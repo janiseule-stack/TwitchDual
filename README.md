@@ -1,0 +1,126 @@
+# TwitchDual
+
+Zwei-Fenster Twitch-Viewer für **Hochkant-/Portrait-Monitore**. Ein Fenster zeigt
+das **Video** (Twitch-Player), ein zweites Fenster zeigt den **Chat** mit
+**7TV-Emotes** – für LIVE-Streams *und* für VOD-Replays.
+
+Beide Fenster werden über **ein gemeinsames Eingabefeld** (oben im Video-Fenster)
+gesteuert: Gibst du einen Channel-Namen (LIVE) oder einen VOD-Link/-ID ein und
+drückst „Laden", verbinden sich **beide** Fenster mit derselben Quelle.
+
+---
+
+## Installation & Start
+
+Voraussetzung: **Node.js ≥ 18** (getestet mit Node 26).
+
+```bash
+npm install
+npm start
+```
+
+Tests der reinen Logik (Eingabe-Parser, Emote-Ersetzung):
+
+```bash
+npm test
+```
+
+---
+
+## Bedienung
+
+Im Feld oben im Video-Fenster eingeben:
+
+| Eingabe                                      | Ergebnis            |
+| -------------------------------------------- | ------------------- |
+| `papaplatte`                                 | LIVE-Stream         |
+| `https://twitch.tv/papaplatte`               | LIVE-Stream         |
+| `https://www.twitch.tv/videos/123456789`     | VOD-Replay          |
+| `123456789` oder `v123456789`                | VOD-Replay          |
+
+- **LIVE:** Chat verbindet sich **anonym lesend** mit dem Twitch-IRC
+  (`irc-ws.chat.twitch.tv`) und zeigt Nachrichten in Echtzeit (Name in Farbe).
+- **VOD:** Chat lädt getimte Kommentare und blendet sie **synchron zur
+  Abspielposition** ein. Beim Vor-/Zurückspringen im Video wird der Chat neu
+  positioniert (Erkennung über Sprünge in `getCurrentTime()`).
+- **7TV-Emotes** funktionieren in **beiden** Modi (inkl. animierter WEBP).
+
+Fenstergrößen und -positionen werden über `electron-store` **persistent
+gemerkt**.
+
+---
+
+## Wie es funktioniert (Architektur)
+
+```
+┌──────────────┐  submit-load   ┌──────────────┐  load (broadcast)  ┌──────────────┐
+│ Video-Fenster│ ─────────────▶ │  Main-Prozess │ ─────────────────▶ │ Chat-Fenster │
+│  (Player)    │                │  (IPC + APIs) │                    │ (IRC / VOD)  │
+│  player-time │ ─────────────▶ │   Relay       │ ─────player-time─▶ │  Replay-Sync │
+└──────────────┘                └──────────────┘                    └──────────────┘
+```
+
+- **Video-Fenster** nutzt die **Twitch-Player-JS-API**
+  (`embed.twitch.tv/embed/v1.js`), nicht nur ein iframe – dadurch ist
+  `getCurrentTime()` auslesbar. Diese Zeit wird alle 500 ms an den Main-Prozess
+  gemeldet und ans Chat-Fenster weitergereicht (für den VOD-Sync).
+- **Chat-Fenster** ist ein **eigener Renderer** (kein offizieller Twitch-Chat-Embed),
+  damit 7TV-Emotes eingebaut werden können.
+- **7TV:** Der Main-Prozess löst zuerst die **Twitch-User-ID** zum Channel-Namen
+  auf und lädt darüber das **7TV-Emote-Set** (`7tv.io/v3`) plus die globalen
+  7TV-Emotes. Die Wort→Bild-Ersetzung passiert XSS-sicher über `textContent`
+  (kein `innerHTML`).
+
+### Warum ein lokaler HTTP-Server?
+
+Der Twitch-Embed verlangt einen `parent`-Parameter, der zum Hostname des
+einbettenden Fensters passt. Unter `file://` gibt es keinen brauchbaren
+Hostname → der Player lädt nicht. Deshalb startet der Main-Prozess einen kleinen
+statischen Server auf `127.0.0.1:<zufälliger Port>` und lädt die Renderer von
+`http://localhost`. Dann passt `parent: ["localhost"]`.
+
+---
+
+## ⚠️ Hinweise zu (teils inoffiziellen) API-Zugriffen
+
+Manche Funktionen nutzen **nicht offiziell dokumentierte** Twitch-Endpunkte.
+Sie können sich jederzeit ändern:
+
+1. **Twitch-GraphQL (`gql.twitch.tv`)** – für **User-ID-Auflösung** und
+   **VOD-Kommentare**. Benötigt einen **`Client-ID`-Header**. Verwendet wird die
+   öffentliche Web-Client-ID des Twitch-Players
+   (`kimne78kx3ncx6brgo4mv6wki5h1ko`) in `src/twitch-api.js`.
+   Diese Aufrufe laufen im **Main-Prozess** (Node), damit keine Browser-CORS-Regeln greifen.
+2. **VOD-Kommentare** nutzen eine **persisted query** (`sha256Hash` in
+   `src/twitch-api.js`). Wenn Twitch den Hash rotiert, kommen keine Kommentare
+   mehr → Hash aktualisieren.
+3. **7TV-API (`7tv.io/v3`)** – öffentlich und dokumentiert, aber ein Drittanbieter.
+   Hat ein Channel kein 7TV, bleibt die Emote-Liste einfach leer.
+4. **Twitch-IRC (`irc-ws.chat.twitch.tv`)** – anonymer Lesezugriff über einen
+   `justinfan…`-Nick (kein Login/Token nötig).
+
+**Falls etwas davon nicht klappt** (z. B. VOD-Kommentare bleiben leer oder die
+User-ID-Auflösung schlägt fehl), liegt das mit hoher Wahrscheinlichkeit an einer
+geänderten inoffiziellen API. Melde dich – dann suchen wir eine Alternative
+(z. B. offizielle Helix-API mit eigenem App-Token für die ID-Auflösung, oder
+ein anderer Kommentar-Provider).
+
+---
+
+## Projektstruktur
+
+```
+main.js                 Electron-Main: Fenster, IPC, Relay, Server-Start
+preload.js              Sichere IPC-Bridge (contextIsolation)
+src/server.js           Statischer localhost-Server (für den Embed-parent)
+src/parse-input.js      Eingabe → live/vod  (getestet)
+src/twitch-api.js       GraphQL (User-ID, VOD-Kommentare) + 7TV-Emotes
+renderer/video/         Video-Fenster (Twitch-Player, Zeit-Broadcast)
+renderer/chat/          Chat-Fenster (IRC live + VOD-Replay + Emote-Render)
+renderer/lib/emote-text.js  Wort→Emote-Tokenizer (getestet)
+test/                   node:test Unit-Tests
+```
+
+## Lizenz
+
+MIT

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>TwitchDual — Video</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      background: #0e0e10; color: #efeff1;
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    }
+    body { display: flex; flex-direction: column; }
+    #bar {
+      display: flex; gap: 8px; align-items: center;
+      padding: 8px; background: #18181b;
+      border-bottom: 1px solid #2a2a2d;
+      -webkit-app-region: drag; /* Fenster ueber Leiste ziehbar */
+    }
+    #bar input, #bar button { -webkit-app-region: no-drag; }
+    #channel {
+      flex: 1; min-width: 0;
+      padding: 8px 10px; border-radius: 6px;
+      border: 1px solid #3a3a3d; background: #0e0e10; color: #efeff1;
+      font-size: 14px;
+    }
+    #channel:focus { outline: none; border-color: #9147ff; }
+    #load {
+      padding: 8px 16px; border: none; border-radius: 6px;
+      background: #9147ff; color: #fff; font-weight: 600; cursor: pointer;
+      font-size: 14px;
+    }
+    #load:hover { background: #772ce8; }
+    #load:disabled { opacity: .5; cursor: default; }
+    #status { font-size: 12px; color: #adadb8; white-space: nowrap; }
+    #player { flex: 1; position: relative; background: #000; }
+    #player iframe { border: 0; }
+    #hint {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center; text-align: center;
+      color: #7a7a82; font-size: 14px; padding: 24px; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" />
+    <button id="load">Laden</button>
+    <span id="status">bereit</span>
+  </div>
+  <div id="player">
+    <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken.</div>
+  </div>
+
+  <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
+  <script src="https://embed.twitch.tv/embed/v1.js"></script>
+  <script src="video.js"></script>
+</body>
+</html>

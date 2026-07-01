@@ -1,0 +1,18 @@
+{
+  "name": "twitchdual",
+  "version": "1.0.0",
+  "description": "Zwei-Fenster Twitch-Viewer (Video + Chat mit 7TV-Emotes) fuer Hochkant-Monitore",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  }
+}

@@ -1,0 +1,42 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%;
+  background: #18181b; color: #efeff1;
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+body { display: flex; flex-direction: column; }
+
+#head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: #0e0e10;
+  border-bottom: 1px solid #2a2a2d; font-size: 13px;
+  -webkit-app-region: drag;
+}
+#title { font-weight: 700; }
+#mode { color: #adadb8; font-size: 12px; }
+
+#messages {
+  flex: 1; overflow-y: auto; padding: 8px 10px;
+  font-size: 14px; line-height: 1.45;
+  scrollbar-width: thin; scrollbar-color: #3a3a3d transparent;
+}
+#messages::-webkit-scrollbar { width: 8px; }
+#messages::-webkit-scrollbar-thumb { background: #3a3a3d; border-radius: 4px; }
+
+.msg { padding: 3px 4px; border-radius: 4px; word-wrap: break-word; }
+.msg:hover { background: #1f1f23; }
+.msg .user { font-weight: 700; }
+.msg .sep { color: #adadb8; }
+.msg .emote {
+  height: 28px; vertical-align: middle; margin: 0 1px;
+}
+.msg.replay { opacity: .97; }
+.msg.system { color: #adadb8; font-style: italic; }
+
+#footer {
+  padding: 5px 12px; background: #0e0e10;
+  border-top: 1px solid #2a2a2d; font-size: 11px; color: #adadb8;
+}
+#conn.ok { color: #00b16a; }
+#conn.err { color: #eb0400; }
