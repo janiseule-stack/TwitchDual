@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>TwitchDual — Video</title>
+  <link rel="stylesheet" href="home.css" />
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -45,16 +46,41 @@
 </head>
 <body>
   <div id="bar">
+    <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
     <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" />
     <button id="load">Laden</button>
     <span id="status">bereit</span>
   </div>
   <div id="player">
-    <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken.</div>
+    <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
+  </div>
+
+  <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
+  <div id="home" class="hidden">
+    <div id="home-head">
+      <button id="home-back" class="hidden">← Zurück</button>
+      <span id="home-title">Favoriten</span>
+      <button id="home-close" title="Schließen">✕</button>
+    </div>
+
+    <div id="home-fav-view">
+      <div id="add-row">
+        <input id="add-input" type="text" placeholder="Channel zu Favoriten hinzufügen …" autocomplete="off" />
+        <button id="add-btn">+ Hinzufügen</button>
+        <button id="refresh-btn" title="Aktualisieren">⟳</button>
+      </div>
+      <div id="fav-list"></div>
+      <div id="fav-empty" class="empty hidden">Noch keine Favoriten. Oben einen Channel-Namen hinzufügen.</div>
+    </div>
+
+    <div id="home-vod-view" class="hidden">
+      <div id="vod-list"></div>
+    </div>
   </div>
 
   <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
   <script src="video.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>

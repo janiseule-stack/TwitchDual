@@ -19,5 +19,12 @@ contextBridge.exposeInMainWorld('twitchDual', {
   // Chat-Fenster empfaengt die Abspielzeit.
   onPlayerTime: (cb) => {
     ipcRenderer.on('player-time', (_e, seconds) => cb(seconds));
-  }
+  },
+
+  // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
+  getFavorites: () => ipcRenderer.invoke('get-favorites'),
+  addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
+  removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
+  liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
+  channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit })
 });

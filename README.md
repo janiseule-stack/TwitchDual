@@ -48,6 +48,24 @@ Im Feld oben im Video-Fenster eingeben:
 Fenstergrößen und -positionen werden über `electron-store` **persistent
 gemerkt**.
 
+### Home-Overlay (Favoriten & VOD-Browser)
+
+Der **☰-Button** oben im Video-Fenster öffnet eine Home-Ansicht über dem Player
+(öffnet sich auch beim Start):
+
+- **Favoriten / wer ist live:** Channels als Favoriten hinzufügen (`+`-Feld). Die
+  App zeigt ohne Login, wer davon **gerade live** ist – mit Vorschaubild, Titel,
+  Spiel und Zuschauerzahl. Live-Kanäle stehen oben, Auto-Refresh alle 60 s. Klick
+  auf **▶ Live** lädt den Stream in beide Fenster.
+- **VOD-Browser:** Der **VODs**-Button eines Channels listet dessen letzte 20
+  Aufzeichnungen (Thumbnail, Titel, Datum, Länge, Aufrufe). Ein Klick lädt den
+  VOD-Replay – der Player hat die volle Zeitleiste zum Durchscrubben, der Chat
+  läuft synchron mit. „← Zurück" führt zur Favoritenliste.
+
+Favoriten werden über `electron-store` (`favorites`) persistent gespeichert.
+Live-Status und VOD-Listen kommen über dieselbe inoffizielle Twitch-GraphQL-API
+(Client-ID-Header, siehe unten).
+
 ---
 
 ## Wie es funktioniert (Architektur)

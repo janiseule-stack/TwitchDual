@@ -5,11 +5,13 @@ const Store = require('electron-store');
 const { startServer } = require('./src/server');
 const { parseInput } = require('./src/parse-input');
 const twitch = require('./src/twitch-api');
+const browse = require('./src/twitch-browse');
 
 const store = new Store({
   defaults: {
     videoBounds: { width: 500, height: 900, x: undefined, y: undefined },
-    chatBounds: { width: 420, height: 900, x: undefined, y: undefined }
+    chatBounds: { width: 420, height: 900, x: undefined, y: undefined },
+    favorites: []
   }
 });
 
@@ -133,6 +135,48 @@ ipcMain.handle('vod-comments', async (_evt, args) => {
     const { videoId, offsetSeconds, cursor } = args || {};
     const page = await twitch.fetchVodComments(videoId, { offsetSeconds, cursor });
     return { ok: true, ...page };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+});
+
+// --- IPC: Home-Overlay (Favoriten, Live-Status, VOD-Listen) ---------------
+ipcMain.handle('get-favorites', () => {
+  return store.get('favorites', []);
+});
+
+ipcMain.handle('add-favorite', (_evt, login) => {
+  const clean = String(login || '').trim().toLowerCase().replace(/^#/, '');
+  if (!/^[a-z0-9_]{2,25}$/.test(clean)) {
+    return { ok: false, error: 'Ungueltiger Channel-Name' };
+  }
+  const favs = store.get('favorites', []);
+  if (!favs.includes(clean)) favs.push(clean);
+  store.set('favorites', favs);
+  return { ok: true, favorites: favs };
+});
+
+ipcMain.handle('remove-favorite', (_evt, login) => {
+  const clean = String(login || '').trim().toLowerCase();
+  const favs = store.get('favorites', []).filter((f) => f !== clean);
+  store.set('favorites', favs);
+  return { ok: true, favorites: favs };
+});
+
+ipcMain.handle('live-status', async (_evt, logins) => {
+  try {
+    const list = await browse.getLiveStatus(logins);
+    return { ok: true, channels: list };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+});
+
+ipcMain.handle('channel-vods', async (_evt, args) => {
+  try {
+    const { login, limit } = args || {};
+    const vods = await browse.getChannelVods(login, limit || 20);
+    return { ok: true, vods };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   }
