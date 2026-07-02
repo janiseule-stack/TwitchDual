@@ -14,9 +14,12 @@ const $vodList = document.getElementById('vod-list');
 const $addInput = document.getElementById('add-input');
 const $addBtn = document.getElementById('add-btn');
 const $refreshBtn = document.getElementById('refresh-btn');
+const $filterInput = document.getElementById('filter-input');
+const $favNoMatch = document.getElementById('fav-nomatch');
 
 let refreshTimer = null;
 let favorites = [];
+let lastChannels = []; // letzter Live-Status (sortiert vom Main-Prozess)
 
 // --- Sichtbarkeit / Navigation --------------------------------------------
 function showFavView() {
@@ -59,7 +62,9 @@ async function loadAndRefresh() {
 
 function renderFavoritesSkeleton() {
   $favList.innerHTML = '';
+  $favNoMatch.classList.add('hidden');
   if (!favorites.length) {
+    lastChannels = [];
     $favEmpty.classList.remove('hidden');
     return;
   }
@@ -70,19 +75,27 @@ async function refreshLive() {
   if (!favorites.length) return;
   const res = await window.twitchDual.liveStatus(favorites);
   if (!res.ok) return;
-  // Live zuerst, dann nach Zuschauern.
-  const channels = res.channels.slice().sort((a, b) => {
-    if (a.live !== b.live) return a.live ? -1 : 1;
-    return (b.viewers || 0) - (a.viewers || 0);
-  });
-  renderFavorites(channels);
+  // Sortierung (live zuerst, dann Zuschauer) macht der Main-Prozess
+  // via browse-map.sortByLive - hier nur noch rendern.
+  lastChannels = res.channels;
+  renderFavorites();
 }
 
-function renderFavorites(channels) {
+// Filter ueber Name, Spiel und Stream-Titel (case-insensitiv).
+function matchesFilter(ch, needle) {
+  if (!needle) return true;
+  const hay = `${ch.login} ${ch.displayName} ${ch.game || ''} ${ch.title || ''}`.toLowerCase();
+  return hay.includes(needle);
+}
+
+function renderFavorites() {
+  const needle = $filterInput.value.trim().toLowerCase();
+  const filtered = lastChannels.filter((ch) => matchesFilter(ch, needle));
   $favList.innerHTML = '';
-  for (const ch of channels) {
+  for (const ch of filtered) {
     $favList.appendChild(buildFavCard(ch));
   }
+  $favNoMatch.classList.toggle('hidden', !(lastChannels.length && !filtered.length));
 }
 
 function buildFavCard(ch) {
@@ -237,6 +250,7 @@ $homeBack.addEventListener('click', showFavView);
 $addBtn.addEventListener('click', doAdd);
 $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
 $refreshBtn.addEventListener('click', refreshLive);
+$filterInput.addEventListener('input', renderFavorites);
 
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen.
 window.twitchDual.onLoad(() => closeHome());

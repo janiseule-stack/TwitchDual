@@ -2,7 +2,7 @@
 // Laeuft im Main-Prozess (kein CORS). Client-ID/Endpoint/Timeout zentral
 // in ./twitch-gql.js. opts (fetchImpl, ...) sind fuer Tests injizierbar.
 
-const { mapLiveUser, mapVod } = require('./browse-map');
+const { mapLiveUser, mapVod, sortByLive } = require('./browse-map');
 const { gql } = require('./twitch-gql');
 
 const LIVE_QUERY =
@@ -30,7 +30,8 @@ async function getLiveStatus(logins, opts = {}) {
       }
     })
   );
-  return results;
+  // Live zuerst, dann nach Zuschauern - zentral hier statt im Renderer.
+  return sortByLive(results);
 }
 
 const VODS_QUERY =

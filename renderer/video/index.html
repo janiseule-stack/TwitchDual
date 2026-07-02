@@ -71,8 +71,16 @@
         <button id="add-btn">+ Hinzufügen</button>
         <button id="refresh-btn" title="Aktualisieren">⟳</button>
       </div>
+      <div id="filter-row">
+        <input id="filter-input" type="text" placeholder="Favoriten durchsuchen (Name, Spiel, Titel) …" autocomplete="off" />
+      </div>
       <div id="fav-list"></div>
-      <div id="fav-empty" class="empty hidden">Noch keine Favoriten. Oben einen Channel-Namen hinzufügen.</div>
+      <div id="fav-empty" class="empty hidden">
+        Noch keine Favoriten.<br /><br />
+        Oben einen Twitch-Channel-Namen eintragen und „+ Hinzufügen" drücken —
+        die Liste zeigt dann, wer gerade live ist, und führt zu den VODs.
+      </div>
+      <div id="fav-nomatch" class="empty hidden">Kein Favorit passt zum Filter.</div>
     </div>
 
     <div id="home-vod-view" class="hidden">

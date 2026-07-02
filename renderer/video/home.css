@@ -52,6 +52,13 @@
 #refresh-btn { background: #2a2a2d; }
 #refresh-btn:hover { background: #3a3a3d; }
 
+#filter-row { margin-bottom: 12px; }
+#filter-input {
+  width: 100%; padding: 8px 10px; border-radius: 6px;
+  border: 1px solid #3a3a3d; background: #0e0e10; color: #efeff1; font-size: 14px;
+}
+#filter-input:focus { outline: none; border-color: #9147ff; }
+
 .empty { color: #7a7a82; text-align: center; padding: 24px; font-size: 14px; }
 
 /* Favoriten-Karte */
