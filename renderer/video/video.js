@@ -9,6 +9,7 @@ const $history = document.getElementById('history');
 
 let player = null;
 let timeTimer = null;
+let playerPrefs = { volume: null, quality: null }; // zuletzt gespeicherte Werte
 
 function setStatus(text, isError = false) {
   $status.textContent = text;
@@ -55,6 +56,11 @@ function mountPlayer(options) {
 
   player.addEventListener(Twitch.Player.READY, () => {
     setStatus(options.channel ? `live: ${options.channel}` : `VOD: ${options.video}`);
+    // Gemerkte Lautstaerke/Qualitaet wieder anwenden.
+    try {
+      if (playerPrefs.volume != null) player.setVolume(playerPrefs.volume);
+      if (playerPrefs.quality) player.setQuality(playerPrefs.quality);
+    } catch (e) {}
   });
   player.addEventListener(Twitch.Player.PLAYING, () => {
     startTimeBroadcast();
@@ -80,6 +86,18 @@ function startTimeBroadcast() {
       const t = player.getCurrentTime();
       if (typeof t === 'number' && !Number.isNaN(t)) {
         window.twitchDual.sendPlayerTime(t);
+      }
+      // Lautstaerke/Qualitaet beobachten und Aenderungen persistieren.
+      const v = player.getVolume();
+      const q = player.getQuality();
+      const vChanged = typeof v === 'number' && v !== playerPrefs.volume;
+      const qChanged = !!q && q !== playerPrefs.quality;
+      if (vChanged || qChanged) {
+        playerPrefs = {
+          volume: typeof v === 'number' ? v : playerPrefs.volume,
+          quality: q || playerPrefs.quality
+        };
+        window.twitchDual.savePlayerPrefs(playerPrefs);
       }
     } catch (e) {
       // Bei Live liefert getCurrentTime evtl. nichts -> ignorieren.
@@ -117,6 +135,7 @@ $channel.addEventListener('keydown', (e) => {
 // Beim Start: Verlauf fuellen + letzte Quelle ins Feld vorschlagen
 // (kein Autoplay - nur Prefill, Laden bleibt ein Klick).
 refreshHistory().then((prefs) => {
+  if (prefs.playerPrefs) playerPrefs = prefs.playerPrefs;
   if (prefs.lastSource && !$channel.value) $channel.value = prefs.lastSource;
 });
 
