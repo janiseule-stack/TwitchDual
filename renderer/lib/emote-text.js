@@ -33,5 +33,12 @@
     return tokens;
   }
 
-  return { tokenize };
+  // Offizielle Twitch-Emotes: Bild-URL ist rein aus der ID ableitbar
+  // (statischer CDN, kein API-Call). Einzige Stelle fuer dieses URL-Schema.
+  function twitchEmoteUrl(id) {
+    return 'https://static-cdn.jtvnw.net/emoticons/v2/' +
+      encodeURIComponent(String(id)) + '/default/dark/1.0';
+  }
+
+  return { tokenize, twitchEmoteUrl };
 });
