@@ -37,5 +37,12 @@ contextBridge.exposeInMainWorld('twitchDual', {
   addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
   removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
   liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
-  channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit })
+  channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
+
+  // Adblock: Einstellung lesen/setzen + Werbe-Status empfangen (Video-Fenster).
+  getAdblockEnabled: () => ipcRenderer.invoke('get-adblock-enabled'),
+  setAdblockEnabled: (enabled) => ipcRenderer.invoke('set-adblock-enabled', enabled),
+  onAdblockState: (cb) => {
+    ipcRenderer.on('adblock-state', (_e, payload) => cb(payload));
+  }
 });
