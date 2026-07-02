@@ -34,6 +34,13 @@
     }
     #load:hover { background: #772ce8; }
     #load:disabled { opacity: .5; cursor: default; }
+    #adblock-toggle {
+      -webkit-app-region: no-drag;
+      padding: 8px 10px; border: 1px solid #3a3a3d; border-radius: 6px;
+      background: #0e0e10; color: #adadb8; font-size: 13px; cursor: pointer;
+      white-space: nowrap;
+    }
+    #adblock-toggle.on { background: #1f3d1f; border-color: #3fa34d; color: #eafbea; }
     #status { font-size: 12px; color: #adadb8; white-space: nowrap; }
     #status.err { color: #eb4034; }
     #player { flex: 1; position: relative; background: #000; }
@@ -59,6 +66,7 @@
     <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
     <datalist id="history"></datalist>
     <button id="load">Laden</button>
+    <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
     <span id="status">bereit</span>
   </div>
   <div id="player">

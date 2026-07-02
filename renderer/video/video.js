@@ -211,3 +211,26 @@ window.twitchDual.onLoad((payload) => {
     mountPlayer({ channel: payload.channel });
   }
 });
+
+// --- Adblock-Schalter -------------------------------------------------------
+const $adblock = document.getElementById('adblock-toggle');
+
+function renderAdblockBtn(enabled) {
+  if (!$adblock) return;
+  $adblock.classList.toggle('on', !!enabled);
+  $adblock.textContent = enabled ? '🛡 Ads: an' : '🛡 Ads: aus';
+}
+
+if ($adblock) {
+  window.twitchDual.getAdblockEnabled().then(renderAdblockBtn).catch(() => {});
+  $adblock.addEventListener('click', async () => {
+    try {
+      const cur = await window.twitchDual.getAdblockEnabled();
+      const res = await window.twitchDual.setAdblockEnabled(!cur);
+      renderAdblockBtn(res.enabled);
+      setStatus(res.enabled
+        ? 'Werbe-Blocker an — beim nächsten Laden aktiv.'
+        : 'Werbe-Blocker aus — beim nächsten Laden.');
+    } catch (e) {}
+  });
+}
