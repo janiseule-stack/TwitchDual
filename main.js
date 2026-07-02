@@ -107,7 +107,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     }
 
     // VOD
-    let owner = { id: null, login: null, displayName: 'VOD' };
+    let owner = { id: null, login: null, displayName: 'VOD', lengthSeconds: 0 };
     try {
       owner = await twitch.resolveVideoOwner(parsed.value);
     } catch (e) {
@@ -120,6 +120,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       videoId: parsed.value,
       displayName: owner.displayName,
       channel: owner.login,
+      lengthSeconds: owner.lengthSeconds || 0,
       emotes
     };
     broadcast('load', payload);

@@ -131,6 +131,64 @@ test('Seek-Race: waehrend Seek eintreffendes ensureCoverage-Fenster wird verworf
   assert.equal(core.coveredUntil, 901);
 });
 
+test('trim: abgespielte Kommentare hinter KEEP_BEHIND verlassen buffer und seen', async () => {
+  const KEEP = VodReplayCore.KEEP_BEHIND;
+  const { core, rendered } = makeCore((_v, off) => ({
+    ok: true,
+    comments: off === 0
+      ? [c('a', 1), c('b', 2), c('c', KEEP + 50), c('zukunft', 100000)]
+      : []
+  }));
+  await core.onTime(0); // coveredUntil = 100000, kein weiterer Fetch noetig
+  await core.onTime(3);                 // a+b gerendert, noch nichts trimmbar
+  assert.equal(core.buffer.length, 4);
+  // Zeit in kleinen Schritten laufen lassen (grosse Spruenge waeren Seeks),
+  // bis a(1) und b(2) hinter dem KEEP_BEHIND-Cutoff liegen.
+  let t = 3;
+  while (t < KEEP + 11) { t += 8; await core.onTime(t); }
+  assert.deepEqual(core.buffer.map((x) => x.id), ['c', 'zukunft']);
+  assert.equal(core.seen.size, 2);
+  assert.equal(core.renderIndex, 0);    // 'c' noch nicht gerendert
+  while (t < KEEP + 51) { t += 8; await core.onTime(t); }
+  assert.deepEqual(rendered, ['a', 'b', 'c']); // trotz Trim korrekt weitergerendert
+});
+
+test('trim: nie ueber renderIndex hinaus (Ungerendertes bleibt)', () => {
+  const { core } = makeCore(() => ({ ok: true, comments: [] }));
+  core.merge([c('a', 1), c('b', 2)]);
+  core.renderIndex = 1; // nur 'a' gerendert
+  assert.equal(core.trim(10000), 1);
+  assert.deepEqual(core.buffer.map((x) => x.id), ['b']);
+  assert.equal(core.renderIndex, 0);
+});
+
+test('Endebedingung: nach Abdeckung der VOD-Laenge keine weiteren Fetches', async () => {
+  const { core, fetchCalls } = makeCore(
+    () => ({ ok: true, comments: [] }),
+    { lengthSeconds: 40 }
+  );
+  await core.onTime(20);  // Seek(20): leeres Fenster -> coveredUntil = 20
+  await core.onTime(21);  // Coverage-Fetch -> coveredUntil = 21 + GAP_STEP = 51 >= 40
+  assert.equal(core.atEnd(), true);
+  const before = fetchCalls.length;
+  await core.onTime(22);
+  await core.onTime(23);
+  assert.equal(fetchCalls.length, before); // Ende erreicht, kein Polling mehr
+});
+
+test('Endebedingung: Seek zurueck hebt das Ende wieder auf', async () => {
+  const { core, fetchCalls } = makeCore(
+    () => ({ ok: true, comments: [] }),
+    { lengthSeconds: 40 }
+  );
+  await core.onTime(35);
+  await core.onTime(36);
+  assert.equal(core.atEnd(), true);
+  await core.onTime(5); // Sprung zurueck an den Anfang
+  assert.equal(core.atEnd(), false);
+  assert.equal(fetchCalls[fetchCalls.length - 1], 5);
+});
+
 test('Fetch-Fehler: onError wird gemeldet, Replay laeuft weiter', async () => {
   let fail = true;
   const { core, errors } = makeCore(() => {

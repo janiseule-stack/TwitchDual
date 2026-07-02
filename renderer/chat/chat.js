@@ -181,6 +181,7 @@ function closeIrc() {
 function createVodReplay(payload) {
   return new VodReplayCore({
     videoId: payload.videoId,
+    lengthSeconds: payload.lengthSeconds || 0,
     fetchPage: (videoId, offsetSeconds) =>
       window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
     onMessage: (c) => appendMessage(

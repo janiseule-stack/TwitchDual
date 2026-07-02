@@ -18,6 +18,7 @@
   const VOD_LOOKAHEAD = 30; // Sekunden Puffer, die wir vor der Abspielzeit vorhalten
   const VOD_GAP_STEP = 30;  // Sprung, wenn ein Fenster keine neuen Kommentare bringt
   const SEEK_THRESHOLD = 10; // >10s Zeitdifferenz = Sprung im Player
+  const KEEP_BEHIND = 120;  // abgespielte Kommentare aelter als das werden verworfen
 
   // Fragmente aus der VOD-API (koennen native Twitch-Emotes enthalten)
   // -> reiner Text; 7TV-Ersetzung passiert erst beim Rendern.
@@ -32,7 +33,8 @@
 
   class VodReplayCore {
     // opts:
-    //   videoId:   string
+    //   videoId:       string
+    //   lengthSeconds: number – VOD-Laenge; 0/unbekannt = keine Endebedingung
     //   fetchPage: async (videoId, offsetSeconds) => { ok, comments, error }
     //   onMessage: (comment) => void   – Kommentar rendern
     //   onClear:   () => void          – Anzeige leeren (nach Seek)
@@ -40,6 +42,7 @@
     constructor(opts) {
       const o = opts || {};
       this.videoId = o.videoId;
+      this.lengthSeconds = o.lengthSeconds || 0;
       this.fetchPage = o.fetchPage;
       this.onMessage = o.onMessage || (() => {});
       this.onClear = o.onClear || (() => {});
@@ -100,9 +103,29 @@
       return Math.max(maxOff, offset);
     }
 
+    // Alles bis zum VOD-Ende angefragt? Dann gibt es nichts mehr nachzuladen.
+    atEnd() {
+      return this.lengthSeconds > 0 && this.coveredUntil >= this.lengthSeconds;
+    }
+
+    // Abgespielte Kommentare weit hinter der Abspielzeit verwerfen, damit
+    // buffer und seen bei langen VODs nicht unbegrenzt wachsen. Die seen-Keys
+    // duerfen mit raus: vorwaerts blaettern erreicht so alte Offsets nie
+    // wieder, und ein Seek setzt ohnehin alles zurueck.
+    trim(t) {
+      const cutoff = t - KEEP_BEHIND;
+      let n = 0;
+      while (n < this.renderIndex && this.buffer[n].offset < cutoff) n++;
+      if (n === 0) return 0;
+      for (const c of this.buffer.splice(0, n)) this.seen.delete(keyOf(c));
+      this.renderIndex -= n;
+      return n;
+    }
+
     // Puffer bis `t + VOD_LOOKAHEAD` auffuellen (ein Fenster pro Aufruf).
     async ensureCoverage(t) {
       if (this.fetching) return;
+      if (this.atEnd()) return;
       if (this.coveredUntil >= t + VOD_LOOKAHEAD) return;
       const reqOffset = Math.max(this.coveredUntil, Math.floor(t));
       const reached = await this.fetchAtOffset(reqOffset);
@@ -154,6 +177,7 @@
       }
       this.lastTime = t;
       this.advance(t);
+      this.trim(t);
       await this.ensureCoverage(t);
     }
   }
@@ -162,6 +186,7 @@
   VodReplayCore.VOD_LOOKAHEAD = VOD_LOOKAHEAD;
   VodReplayCore.VOD_GAP_STEP = VOD_GAP_STEP;
   VodReplayCore.SEEK_THRESHOLD = SEEK_THRESHOLD;
+  VodReplayCore.KEEP_BEHIND = KEEP_BEHIND;
 
   return VodReplayCore;
 });
