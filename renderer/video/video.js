@@ -6,6 +6,46 @@ const $status = document.getElementById('status');
 const $player = document.getElementById('player');
 const $hint = document.getElementById('hint');
 const $history = document.getElementById('history');
+const $adOverlay = document.getElementById('ad-overlay');
+const adState = window.createAdOverlayState ? window.createAdOverlayState() : null;
+
+function renderAdOverlay() {
+  if (!adState || !$adOverlay) return;
+  $adOverlay.classList.toggle('hidden', !adState.overlayVisible);
+  if (!player) return;
+  try {
+    if (adState.shouldMute) {
+      player.setMuted(true);
+    } else {
+      // Werbe-Ende: gemerkten Mute-Zustand wiederherstellen.
+      player.setMuted(adState.restoreMuted);
+    }
+  } catch (e) {}
+}
+
+// Werbe-Status aus dem Player-iframe (via Main-Relay).
+if (window.twitchDual.onAdblockState) {
+  window.twitchDual.onAdblockState((payload) => {
+    if (!adState) return;
+    const phase = payload && payload.phase;
+    if (phase === 'start') {
+      let muted = false;
+      try { muted = !!(player && player.getMuted && player.getMuted()); } catch (e) {}
+      adState.adStart(muted);
+    } else if (phase === 'end') {
+      adState.adEnd();
+    }
+    renderAdOverlay();
+  });
+}
+
+// Watchdog-Timer: raeumt Overlay/Mute auf, falls kein 'end' kommt.
+setInterval(() => {
+  if (!adState) return;
+  const wasActive = adState.overlayVisible;
+  adState.tick(Date.now());
+  if (wasActive && !adState.overlayVisible) renderAdOverlay();
+}, 1000);
 
 let player = null;
 let timeTimer = null;

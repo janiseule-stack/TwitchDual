@@ -43,6 +43,14 @@
       align-items: center; justify-content: center; text-align: center;
       color: #7a7a82; font-size: 14px; padding: 24px; pointer-events: none;
     }
+    #ad-overlay {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      background: #0e0e10; color: #efeff1; text-align: center; padding: 24px;
+    }
+    #ad-overlay.hidden { display: none; }
+    #ad-overlay-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    #ad-overlay-sub { font-size: 13px; color: #adadb8; }
   </style>
 </head>
 <body>
@@ -55,6 +63,12 @@
   </div>
   <div id="player">
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
+    <div id="ad-overlay" class="hidden">
+      <div id="ad-overlay-box">
+        <div id="ad-overlay-title">Werbung wird überbrückt …</div>
+        <div id="ad-overlay-sub">Ton ist kurz stumm — geht gleich weiter.</div>
+      </div>
+    </div>
   </div>
 
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
@@ -90,6 +104,7 @@
 
   <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
+  <script src="../lib/ad-overlay-state.js"></script>
   <script src="video.js"></script>
   <script src="home.js"></script>
 </body>
