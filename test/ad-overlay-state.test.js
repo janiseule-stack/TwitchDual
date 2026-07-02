@@ -52,8 +52,9 @@ test('tick löst Watchdog nach watchdogMs aus', () => {
 test('adEnd nach Watchdog ist harmlos', () => {
   const s = createAdOverlayState({ watchdogMs: 1000 });
   s.adStart(false);
-  s.tick(2000);
+  s.tick(1000);   // erster tick primt die Referenz (raeumt noch nicht auf)
+  s.tick(2500);   // 1500 ms spaeter >= watchdogMs -> Aufraeumen
   assert.equal(s.overlayVisible, false);
-  s.adEnd(); // darf nicht werfen, bleibt inaktiv
+  s.adEnd();
   assert.equal(s.overlayVisible, false);
 });

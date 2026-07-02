@@ -31,15 +31,7 @@
       },
       tick(nowMs) {
         if (!inAd) return;
-        if (startTick === null) {
-          startTick = nowMs;
-          // Check watchdog immediately on first tick
-          if (nowMs >= watchdogMs) {
-            inAd = false;
-            startTick = null;
-          }
-          return;
-        }
+        if (startTick === null) { startTick = nowMs; return; }  // erster tick primt nur
         if (nowMs - startTick >= watchdogMs) {
           inAd = false;
           startTick = null;
