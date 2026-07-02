@@ -157,30 +157,7 @@ function setConn(text, cls) {
 // ---------------------------------------------------------------------------
 // LIVE: Twitch IRC (anonym, nur lesend)
 // ---------------------------------------------------------------------------
-function parseIrc(line) {
-  // Optionale @tags, dann Prefix, Command, Params.
-  let rest = line;
-  let tags = {};
-  if (rest.startsWith('@')) {
-    const sp = rest.indexOf(' ');
-    const tagStr = rest.slice(1, sp);
-    rest = rest.slice(sp + 1);
-    for (const pair of tagStr.split(';')) {
-      const eq = pair.indexOf('=');
-      tags[pair.slice(0, eq)] = pair.slice(eq + 1);
-    }
-  }
-  let prefix = '';
-  if (rest.startsWith(':')) {
-    const sp = rest.indexOf(' ');
-    prefix = rest.slice(1, sp);
-    rest = rest.slice(sp + 1);
-  }
-  const sp = rest.indexOf(' ');
-  const command = sp === -1 ? rest : rest.slice(0, sp);
-  const params = sp === -1 ? '' : rest.slice(sp + 1);
-  return { tags, prefix, command, params };
-}
+// Zeilen-Parsing + Badge-Extraktion: ../lib/irc.js (IrcParse, unit-getestet).
 
 // Reconnect-Zustand: Kanal, den wir halten wollen, + Versuchszaehler.
 // closeIrc() setzt ircSocket auf null, BEVOR es schliesst -> in onclose
@@ -221,20 +198,13 @@ function connectIrc(channel) {
         ws.send('PONG :tmi.twitch.tv');
         continue;
       }
-      const msg = parseIrc(line);
+      const msg = IrcParse.parseIrc(line);
       if (msg.command === 'PRIVMSG') {
-        // params: "#channel :text"
-        const idx = msg.params.indexOf(':');
-        const text = idx === -1 ? '' : msg.params.slice(idx + 1);
+        const text = IrcParse.privmsgText(msg.params);
         const name = msg.tags['display-name'] ||
           (msg.prefix.split('!')[0]) || 'anon';
         const color = msg.tags['color'] || null;
-        // badges-Tag: "broadcaster/1,subscriber/12" -> ['broadcaster', ...]
-        const badges = (msg.tags['badges'] || '')
-          .split(',')
-          .map((b) => b.split('/')[0])
-          .filter(Boolean);
-        appendMessage(name, color, text, { badges });
+        appendMessage(name, color, text, { badges: IrcParse.badgeTypes(msg.tags) });
       } else if (msg.command === '366') {
         ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
         setConn('verbunden ✓', 'ok');
@@ -281,7 +251,7 @@ function createVodReplay(payload) {
       window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
     onMessage: (c) => appendMessage(
       c.name, c.color, VodReplayCore.fragmentsToText(c.fragments),
-      { replay: true, timeSeconds: c.offset }
+      { replay: true, timeSeconds: c.offset, badges: c.badges }
     ),
     onClear: () => { $messages.innerHTML = ''; },
     onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')

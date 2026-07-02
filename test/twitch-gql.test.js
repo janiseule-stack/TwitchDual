@@ -83,7 +83,11 @@ test('fetchVodComments: Mapping (id, offset, name, color, fragments)', async () 
         node: {
           id: 'c1', contentOffsetSeconds: 42,
           commenter: { displayName: 'Max', login: 'max' },
-          message: { userColor: '#f00', fragments: [{ text: 'hi ' }, { text: 'OMEGALUL', emote: null }] }
+          message: {
+            userColor: '#f00',
+            userBadges: [{ setID: 'moderator', version: '1' }, { setID: '', version: '' }],
+            fragments: [{ text: 'hi ' }, { text: 'OMEGALUL', emote: null }]
+          }
         }
       }] } } }
     }])
@@ -91,6 +95,7 @@ test('fetchVodComments: Mapping (id, offset, name, color, fragments)', async () 
   const r = await fetchVodComments('123', { offsetSeconds: 42.9 }, { ...fast, fetchImpl: fn });
   assert.deepEqual(r.comments, [{
     id: 'c1', offset: 42, name: 'Max', color: '#f00',
+    badges: ['moderator'],
     fragments: [{ text: 'hi ', emote: null }, { text: 'OMEGALUL', emote: null }]
   }]);
   // Offset wird abgerundet an die API gegeben.

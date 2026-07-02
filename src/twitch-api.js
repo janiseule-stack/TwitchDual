@@ -154,6 +154,8 @@ async function fetchVodComments(videoId, { offsetSeconds = null } = {}, opts = {
       offset: n.contentOffsetSeconds || 0,
       name: commenter.displayName || commenter.login || 'anon',
       color: (msg.userColor) || null,
+      // userBadges: [{ setID: 'moderator', version: '1' }, ...] -> Typen-Liste
+      badges: (msg.userBadges || []).map((b) => b.setID || '').filter(Boolean),
       fragments
     };
   });
