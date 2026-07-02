@@ -83,9 +83,22 @@ const KNOWN_BADGES = {
   subscriber: ['S', '#9147ff']
 };
 
-// name: string, color: string|null, text: string,
+// Ein Emote-Bild XSS-sicher anhaengen (7TV liefert url, natives Twitch die id).
+function appendEmote(parent, name, url) {
+  const img = document.createElement('img');
+  img.className = 'emote';
+  img.src = url;
+  img.alt = name;
+  img.title = name;
+  img.loading = 'lazy';
+  parent.appendChild(img);
+}
+
+// name: string, color: string|null,
+// tokens: [{type:'text',value}|{type:'emote',name,id|url}] – aus
+// IrcParse.emoteTokens (live) bzw. VodReplayCore.fragmentsToTokens (VOD).
 // opts: { replay?: bool, timeSeconds?: number, badges?: string[] }
-function appendMessage(name, color, text, opts = {}) {
+function appendMessage(name, color, tokens, opts = {}) {
   const stick = nearBottom();
   const div = document.createElement('div');
   div.className = 'msg' + (opts.replay ? ' replay' : '');
@@ -123,19 +136,17 @@ function appendMessage(name, color, text, opts = {}) {
   sep.textContent = ': ';
   div.appendChild(sep);
 
-  // Text -> Tokens -> sichere DOM-Knoten (kein innerHTML == kein XSS).
-  const tokens = EmoteText.tokenize(text, emoteMap);
-  for (const tok of tokens) {
+  // Tokens -> sichere DOM-Knoten (kein innerHTML == kein XSS). Text-Tokens
+  // laufen zusaetzlich durch die 7TV-Ersetzung; native Twitch-Emote-Tokens
+  // (id statt url) werden direkt via twitchEmoteUrl gerendert.
+  for (const tok of tokens || []) {
     if (tok.type === 'emote') {
-      const img = document.createElement('img');
-      img.className = 'emote';
-      img.src = tok.url;
-      img.alt = tok.name;
-      img.title = tok.name;
-      img.loading = 'lazy';
-      div.appendChild(img);
+      appendEmote(div, tok.name, tok.url || EmoteText.twitchEmoteUrl(tok.id));
     } else {
-      div.appendChild(document.createTextNode(tok.value));
+      for (const sub of EmoteText.tokenize(tok.value, emoteMap)) {
+        if (sub.type === 'emote') appendEmote(div, sub.name, sub.url);
+        else div.appendChild(document.createTextNode(sub.value));
+      }
     }
   }
 
@@ -204,7 +215,9 @@ function connectIrc(channel) {
         const name = msg.tags['display-name'] ||
           (msg.prefix.split('!')[0]) || 'anon';
         const color = msg.tags['color'] || null;
-        appendMessage(name, color, text, { badges: IrcParse.badgeTypes(msg.tags) });
+        appendMessage(name, color, IrcParse.emoteTokens(text, msg.tags['emotes']), {
+          badges: IrcParse.badgeTypes(msg.tags)
+        });
       } else if (msg.command === '366') {
         ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
         setConn('verbunden ✓', 'ok');
@@ -250,7 +263,7 @@ function createVodReplay(payload) {
     fetchPage: (videoId, offsetSeconds) =>
       window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
     onMessage: (c) => appendMessage(
-      c.name, c.color, VodReplayCore.fragmentsToText(c.fragments),
+      c.name, c.color, VodReplayCore.fragmentsToTokens(c.fragments),
       { replay: true, timeSeconds: c.offset, badges: c.badges }
     ),
     onClear: () => { $messages.innerHTML = ''; },
