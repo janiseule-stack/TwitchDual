@@ -6,6 +6,10 @@ const $mode = document.getElementById('mode');
 const $conn = document.getElementById('conn');
 const $title = document.getElementById('title');
 const $newMsgs = document.getElementById('new-msgs');
+const $settingsBtn = document.getElementById('settings-btn');
+const $settingsPop = document.getElementById('settings-pop');
+const $optTs = document.getElementById('opt-ts');
+const $optBadges = document.getElementById('opt-badges');
 
 let emoteMap = {};
 let ircSocket = null;
@@ -323,4 +327,33 @@ function formatTime(s) {
   const sec = s % 60;
   const pad = (n) => String(n).padStart(2, '0');
   return (h ? h + ':' : '') + pad(m) + ':' + pad(sec);
+}
+
+// ---------------------------------------------------------------------------
+// ⚙ Chat-Einstellungen: wirken als CSS-Klassen sofort, ueberleben per Store.
+// ---------------------------------------------------------------------------
+let chatPrefs = { showTimestamps: true, showBadges: true };
+
+function applyChatPrefs() {
+  $messages.classList.toggle('hide-ts', !chatPrefs.showTimestamps);
+  $messages.classList.toggle('hide-badges', !chatPrefs.showBadges);
+  $optTs.checked = !!chatPrefs.showTimestamps;
+  $optBadges.checked = !!chatPrefs.showBadges;
+}
+
+window.twitchDual.getUiPrefs().then((prefs) => {
+  chatPrefs = { ...chatPrefs, ...((prefs && prefs.chatPrefs) || {}) };
+  applyChatPrefs();
+}).catch(() => {}); // Prefs sind Komfort - ohne sie gelten die Defaults
+
+$settingsBtn.addEventListener('click', () => {
+  $settingsPop.classList.toggle('hidden');
+});
+
+for (const [el, key] of [[$optTs, 'showTimestamps'], [$optBadges, 'showBadges']]) {
+  el.addEventListener('change', () => {
+    chatPrefs[key] = el.checked;
+    applyChatPrefs();
+    window.twitchDual.saveChatPrefs(chatPrefs);
+  });
 }

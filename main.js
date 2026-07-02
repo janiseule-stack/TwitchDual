@@ -15,7 +15,8 @@ const store = new Store({
     favorites: [],
     history: [],      // zuletzt geladene Quellen [{ value, mode, label }]
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
-    playerPrefs: { volume: null, quality: null }
+    playerPrefs: { volume: null, quality: null },
+    chatPrefs: { showTimestamps: true, showBadges: true }
   }
 });
 
@@ -156,12 +157,18 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
 ipcMain.handle('get-ui-prefs', () => ({
   history: store.get('history', []),
   lastSource: store.get('lastSource', ''),
-  playerPrefs: store.get('playerPrefs', { volume: null, quality: null })
+  playerPrefs: store.get('playerPrefs', { volume: null, quality: null }),
+  chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true })
 }));
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
   const cur = store.get('playerPrefs', { volume: null, quality: null });
   store.set('playerPrefs', { ...cur, ...(prefs || {}) });
+});
+
+ipcMain.on('save-chat-prefs', (_evt, prefs) => {
+  const cur = store.get('chatPrefs', { showTimestamps: true, showBadges: true });
+  store.set('chatPrefs', { ...cur, ...(prefs || {}) });
 });
 
 // Chat-Fenster laedt VOD-Kommentarseiten nach (immer per Offset, siehe twitch-api.js).
