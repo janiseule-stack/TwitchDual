@@ -52,6 +52,12 @@
       this.fetching = false;
       this.lastTime = null;
       this.initialized = false;
+      // Jeder Seek erhoeht die Epoche. Antworten von Fetches, die vor dem Seek
+      // gestartet wurden, tragen eine aeltere Epoche und werden verworfen –
+      // sonst wuerde ein altes Fenster den frisch geleerten Puffer der neuen
+      // Position verschmutzen (onTime/ensureCoverage feuern alle 500 ms und
+      // koennen sich mit einem Seek ueberlappen).
+      this.epoch = 0;
     }
 
     // Kommentare eines Fensters einsortieren (dedupe per id). Neue Kommentare
@@ -71,15 +77,19 @@
     }
 
     // Ein Kommentarfenster ab `offset` laden und einsortieren.
-    // Gibt zurueck, bis zu welchem Offset das Fenster reicht.
+    // Gibt zurueck, bis zu welchem Offset das Fenster reicht –
+    // oder null, wenn die Antwort veraltet ist (Seek waehrend des Fetches).
     async fetchAtOffset(offset) {
+      const epoch = this.epoch;
       this.fetching = true;
       let res;
       try {
         res = await this.fetchPage(this.videoId, offset);
       } finally {
-        this.fetching = false;
+        // Nach einem Seek gehoert das fetching-Flag der neuen Epoche.
+        if (epoch === this.epoch) this.fetching = false;
       }
+      if (epoch !== this.epoch) return null;
       if (!res || !res.ok) {
         this.onError(res && res.error ? res.error : 'Kommentare nicht ladbar');
         return offset;
@@ -96,6 +106,7 @@
       if (this.coveredUntil >= t + VOD_LOOKAHEAD) return;
       const reqOffset = Math.max(this.coveredUntil, Math.floor(t));
       const reached = await this.fetchAtOffset(reqOffset);
+      if (reached == null) return; // veraltet: Seek hat uebernommen
       // Kein Fortschritt (Luecke ohne Kommentare) -> Fenster nach vorn schieben,
       // damit die Wiedergabe nicht an einer stillen Stelle haengen bleibt.
       this.coveredUntil = reached > reqOffset ? reached : reqOffset + VOD_GAP_STEP;
@@ -103,6 +114,8 @@
 
     // Nach einem Sprung (Seek) komplett neu positionieren.
     async seekTo(t) {
+      this.epoch++; // laufende Fetches der alten Position invalidieren
+      this.fetching = false;
       this.onClear();
       this.buffer = [];
       this.seen = new Set();
@@ -110,6 +123,7 @@
       this.coveredUntil = -1;
       const start = Math.max(0, Math.floor(t));
       const reached = await this.fetchAtOffset(start);
+      if (reached == null) return; // veraltet: noch neuerer Seek dazwischen
       this.coveredUntil = Math.max(reached, start);
       // Etwas Kontext zeigen: die Kommentare bis t sofort einblenden.
       this.advance(t);

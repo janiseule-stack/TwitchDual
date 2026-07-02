@@ -91,6 +91,46 @@ test('Sprungerkennung: >SEEK_THRESHOLD Differenz loest Seek mit Clear aus', asyn
   assert.equal(core.buffer.length, 0);
 });
 
+test('Seek-Race: langsamer alter Fetch verschmutzt neue Position nicht', async () => {
+  // Fetch-Antworten manuell aufloesbar machen, um Ueberlappung zu erzwingen.
+  const pending = new Map(); // offset -> resolve
+  const { core, rendered } = makeCore(() => { throw new Error('unused'); });
+  core.fetchPage = (_v, off) => new Promise((resolve) => pending.set(off, resolve));
+
+  const p1 = core.onTime(100);   // initialer Seek -> Fetch(100) haengt
+  const p2 = core.onTime(500);   // Sprung waehrenddessen -> Fetch(500) haengt
+  // Neuen Fetch zuerst beantworten, den alten danach (kommt "zu spaet" an).
+  pending.get(500)({ ok: true, comments: [c('neu', 499)] });
+  pending.get(100)({ ok: true, comments: [c('alt', 99)] });
+  await Promise.all([p1, p2]);
+
+  assert.deepEqual(core.buffer.map((x) => x.id), ['neu']); // 'alt' verworfen
+  assert.deepEqual(rendered, ['neu']);
+  assert.equal(core.coveredUntil, 500);
+  assert.equal(core.fetching, false); // Flag gehoert der neuen Epoche
+});
+
+test('Seek-Race: waehrend Seek eintreffendes ensureCoverage-Fenster wird verworfen', async () => {
+  const pending = new Map();
+  const { core } = makeCore((_v, off) => ({
+    ok: true,
+    comments: off === 0 ? [c('a', 0)] : []
+  }));
+  await core.onTime(0); // initialisiert, coveredUntil=0
+
+  // ensureCoverage-Fetch haengt, dann kommt ein Seek dazwischen.
+  core.fetchPage = (_v, off) => new Promise((resolve) => pending.set(off, resolve));
+  const pCov = core.onTime(1);    // -> Fetch(0..) fuer Coverage haengt
+  const pSeek = core.onTime(900); // Sprung -> neue Epoche, Fetch(900) haengt
+  pending.get(900)({ ok: true, comments: [c('z', 901)] });
+  const covOffset = [...pending.keys()].find((k) => k !== 900);
+  pending.get(covOffset)({ ok: true, comments: [c('stale', 2)] });
+  await Promise.all([pCov, pSeek]);
+
+  assert.deepEqual(core.buffer.map((x) => x.id), ['z']);
+  assert.equal(core.coveredUntil, 901);
+});
+
 test('Fetch-Fehler: onError wird gemeldet, Replay laeuft weiter', async () => {
   let fail = true;
   const { core, errors } = makeCore(() => {
