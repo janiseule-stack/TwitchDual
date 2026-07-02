@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const { autoUpdater } = require('electron-updater');
 
 const { startServer } = require('./src/server');
 const { parseInput } = require('./src/parse-input');
@@ -230,10 +231,25 @@ ipcMain.on('player-state', (_evt, state) => {
   }
 });
 
+// --- Auto-Update (GitHub Releases) -----------------------------------------
+// Laedt neue Versionen im Hintergrund; Installation beim naechsten Beenden.
+// Nur in der gepackten App aktiv; Fehler (offline, Rate-Limit) sind unkritisch.
+const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
+function setupAutoUpdate() {
+  if (!app.isPackaged) return;
+  autoUpdater.on('error', (e) => {
+    console.error('AutoUpdater:', e && e.message ? e.message : e);
+  });
+  autoUpdater.checkForUpdatesAndNotify();
+  setInterval(() => autoUpdater.checkForUpdatesAndNotify(), UPDATE_INTERVAL_MS);
+}
+
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
   createWindows();
+  setupAutoUpdate();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindows();
