@@ -121,8 +121,26 @@ function parseIrc(line) {
   return { tags, prefix, command, params };
 }
 
+// Reconnect-Zustand: Kanal, den wir halten wollen, + Versuchszaehler.
+// closeIrc() setzt ircSocket auf null, BEVOR es schliesst -> in onclose
+// unterscheidet `ircSocket !== ws` gewollte von ungewollten Trennungen.
+let ircChannel = null;
+let ircAttempts = 0;
+let ircReconnectTimer = null;
+
+function scheduleIrcReconnect() {
+  if (!ircChannel || ircReconnectTimer) return;
+  const wait = Backoff.delay(ircAttempts++);
+  setConn(`getrennt – neuer Versuch in ${Math.round(wait / 1000)}s …`, 'err');
+  ircReconnectTimer = setTimeout(() => {
+    ircReconnectTimer = null;
+    if (ircChannel) connectIrc(ircChannel);
+  }, wait);
+}
+
 function connectIrc(channel) {
   closeIrc();
+  ircChannel = channel;
   setConn('verbinde …');
   const nick = 'justinfan' + Math.floor(Math.random() * 90000 + 10000);
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
@@ -152,7 +170,11 @@ function connectIrc(channel) {
         const color = msg.tags['color'] || null;
         appendMessage(name, color, text);
       } else if (msg.command === '366') {
+        ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
         setConn('verbunden ✓', 'ok');
+      } else if (msg.command === 'RECONNECT') {
+        // Twitch bittet um Neuverbindung (Server-Wartung).
+        try { ws.close(); } catch (e) {}
       } else if (msg.command === 'NOTICE') {
         appendSystem(msg.params);
       }
@@ -160,15 +182,22 @@ function connectIrc(channel) {
   };
 
   ws.onclose = () => {
-    if (ircSocket === ws) setConn('getrennt', 'err');
+    if (ircSocket !== ws) return; // gewollt geschlossen/ersetzt
+    ircSocket = null;
+    scheduleIrcReconnect();
   };
-  ws.onerror = () => setConn('IRC-Fehler', 'err');
+  ws.onerror = () => setConn('IRC-Fehler', 'err'); // onclose folgt -> Reconnect dort
 }
 
 function closeIrc() {
+  if (ircReconnectTimer) {
+    clearTimeout(ircReconnectTimer);
+    ircReconnectTimer = null;
+  }
   if (ircSocket) {
-    try { ircSocket.close(); } catch (e) {}
-    ircSocket = null;
+    const ws = ircSocket;
+    ircSocket = null; // vor close(): markiert die Trennung als gewollt
+    try { ws.close(); } catch (e) {}
   }
 }
 
@@ -198,6 +227,8 @@ function createVodReplay(payload) {
 window.twitchDual.onLoad((payload) => {
   emoteMap = payload.emotes || {};
   $messages.innerHTML = '';
+  ircChannel = null; // kein Reconnect mehr auf die alte Quelle
+  ircAttempts = 0;
   closeIrc();
   vod = null;
 
