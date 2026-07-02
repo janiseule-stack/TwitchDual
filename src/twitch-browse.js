@@ -1,20 +1,9 @@
 // Live-Status und VOD-Listen ueber inoffizielle Twitch-GraphQL.
-// Laeuft im Main-Prozess (kein CORS). Nutzt dieselbe Client-ID wie twitch-api.js.
+// Laeuft im Main-Prozess (kein CORS). Client-ID/Endpoint/Timeout zentral
+// in ./twitch-gql.js. opts (fetchImpl, ...) sind fuer Tests injizierbar.
 
 const { mapLiveUser, mapVod } = require('./browse-map');
-
-const CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
-const GQL_URL = 'https://gql.twitch.tv/gql';
-
-async function gql(body) {
-  const res = await fetch(GQL_URL, {
-    method: 'POST',
-    headers: { 'Client-ID': CLIENT_ID, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`GQL HTTP ${res.status}`);
-  return res.json();
-}
+const { gql } = require('./twitch-gql');
 
 const LIVE_QUERY =
   `query($login:String!){ user(login:$login){ id login displayName ` +
@@ -23,7 +12,7 @@ const LIVE_QUERY =
 
 // Live-Status fuer mehrere Logins (parallel). Fehlerhafte einzelne Kanaele
 // werden uebersprungen, nicht die ganze Liste.
-async function getLiveStatus(logins) {
+async function getLiveStatus(logins, opts = {}) {
   const clean = (logins || [])
     .map((l) => String(l).trim().toLowerCase().replace(/^#/, ''))
     .filter(Boolean);
@@ -31,7 +20,7 @@ async function getLiveStatus(logins) {
   const results = await Promise.all(
     clean.map(async (login) => {
       try {
-        const data = await gql({ query: LIVE_QUERY, variables: { login } });
+        const data = await gql({ query: LIVE_QUERY, variables: { login } }, opts);
         const node = data && data.data && data.data.user;
         const model = mapLiveUser(node);
         // Falls Channel nicht existiert -> Platzhalter, damit UI ihn zeigt.
@@ -49,9 +38,9 @@ const VODS_QUERY =
   `edges{ node{ id title lengthSeconds publishedAt viewCount ` +
   `previewThumbnailURL(width:320,height:180) } } } } }`;
 
-async function getChannelVods(login, limit = 20) {
+async function getChannelVods(login, limit = 20, opts = {}) {
   const clean = String(login).trim().toLowerCase().replace(/^#/, '');
-  const data = await gql({ query: VODS_QUERY, variables: { login: clean, n: limit } });
+  const data = await gql({ query: VODS_QUERY, variables: { login: clean, n: limit } }, opts);
   const user = data && data.data && data.data.user;
   if (!user) throw new Error(`Channel "${clean}" nicht gefunden`);
   const edges = (user.videos && user.videos.edges) || [];
