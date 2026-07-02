@@ -26,6 +26,19 @@
     return (fragments || []).map((f) => f.text).join('');
   }
 
+  // Fragmente -> Token-Liste (gleiche Form wie IrcParse.emoteTokens).
+  // Twitch liefert die Emote-ID je nach Query-Variante als emoteID oder id.
+  function fragmentsToTokens(fragments) {
+    const tokens = [];
+    for (const f of fragments || []) {
+      if (!f || !f.text) continue;
+      const id = f.emote && (f.emote.emoteID || f.emote.id);
+      if (id) tokens.push({ type: 'emote', name: f.text, id: String(id) });
+      else tokens.push({ type: 'text', value: f.text });
+    }
+    return tokens;
+  }
+
   // Dedupe-Schluessel eines Kommentars (id, sonst Inhalts-Fallback).
   function keyOf(c) {
     return c.id || `${c.offset}|${c.name}|${fragmentsToText(c.fragments)}`;
@@ -183,6 +196,7 @@
   }
 
   VodReplayCore.fragmentsToText = fragmentsToText;
+  VodReplayCore.fragmentsToTokens = fragmentsToTokens;
   VodReplayCore.VOD_LOOKAHEAD = VOD_LOOKAHEAD;
   VodReplayCore.VOD_GAP_STEP = VOD_GAP_STEP;
   VodReplayCore.SEEK_THRESHOLD = SEEK_THRESHOLD;

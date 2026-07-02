@@ -201,3 +201,31 @@ test('Fetch-Fehler: onError wird gemeldet, Replay laeuft weiter', async () => {
   await core.onTime(31); // coveredUntil=0 -> neuer Fetch noetig
   assert.equal(core.buffer.length, 1);
 });
+
+test('fragmentsToTokens: Text-, Emote- und Misch-Fragmente', () => {
+  assert.deepEqual(
+    VodReplayCore.fragmentsToTokens([
+      { text: 'hi ', emote: null },
+      { text: 'Kappa', emote: { emoteID: '25' } },
+      { text: ' cool', emote: null }
+    ]),
+    [
+      { type: 'text', value: 'hi ' },
+      { type: 'emote', name: 'Kappa', id: '25' },
+      { type: 'text', value: ' cool' }
+    ]
+  );
+});
+
+test('fragmentsToTokens: emote.id-Variante, leere/kaputte Fragmente', () => {
+  assert.deepEqual(
+    VodReplayCore.fragmentsToTokens([
+      { text: 'PogChamp', emote: { id: '305954156' } },
+      { text: '', emote: null },
+      { text: '', emote: { emoteID: '25' } } // Emote ohne Text -> ueberspringen
+    ]),
+    [{ type: 'emote', name: 'PogChamp', id: '305954156' }]
+  );
+  assert.deepEqual(VodReplayCore.fragmentsToTokens(null), []);
+  assert.deepEqual(VodReplayCore.fragmentsToTokens([]), []);
+});
