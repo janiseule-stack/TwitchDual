@@ -169,9 +169,12 @@ src/twitch-api.js       GraphQL (User-ID, VOD-Owner, VOD-Kommentare) + 7TV-Emote
 src/twitch-browse.js    GraphQL für Home-Overlay: Live-Status + VOD-Listen
 src/browse-map.js       Rohdaten der Browse-Queries → UI-Modelle (getestet-fähig)
 renderer/video/         Video-Fenster (Twitch-Player, Zeit-Broadcast, Home-Overlay)
-renderer/chat/          Chat-Fenster (IRC live + VOD-Replay + Emote-Render)
+renderer/chat/          Chat-Fenster (DOM/IPC-Adapter: IRC live + VOD-Replay + Emote-Render)
 renderer/lib/emote-text.js  Wort→Emote-Tokenizer (getestet)
+renderer/lib/vod-replay.js  VOD-Replay-Kernlogik, DOM-frei (getestet)
+renderer/lib/backoff.js     Exponentieller Backoff für IRC-Reconnect (getestet)
 test/                   node:test Unit-Tests
+docs/TODO.md            Priorisierte Verbesserungs-Roadmap
 ```
 
 Datenfluss VOD-Replay (Kurzform):
