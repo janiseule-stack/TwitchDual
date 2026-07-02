@@ -45,7 +45,7 @@ Nutzung (Janis + Bruder), keine öffentliche Bewerbung des Features.
 
 ```
 vaft (iframe, Main World)
-  └─ window.postMessage({type:'twitchdual-ad', phase:'start'|'end'})
+  └─ window.postMessage({source:'twitchdual-adblock', phase:'start'|'end'})
        └─ preload.js (iframe, Isolated World): ipcRenderer.send('adblock-state', …)
             └─ main.js: Relay an videoWin.webContents
                  └─ video.js: Zustandsmaschine → Overlay + setMuted()

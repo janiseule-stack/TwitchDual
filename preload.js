@@ -2,52 +2,61 @@ const { contextBridge, ipcRenderer, webFrame } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+// Laeuft dieser Preload in einem eingebetteten Twitch-iframe? (Video-Fenster
+// hat nodeIntegrationInSubFrames.) Dann NUR den Werbe-Blocker aktivieren und
+// die twitchDual-Bruecke NICHT exponieren - sonst koennte Twitch-/Werbe-Code
+// im iframe Verlauf/Favoriten lesen oder den Player fernsteuern.
+const isTwitchFrame = /(^|\.)twitch\.tv$/.test(location.hostname || '');
+
 // Sichere Bruecke Renderer <-> Main. Renderer hat KEIN nodeIntegration.
-contextBridge.exposeInMainWorld('twitchDual', {
-  // Gemeinsames Eingabefeld: Channel/VOD laden.
-  submitLoad: (raw) => ipcRenderer.invoke('submit-load', raw),
+// Nur im eigenen Fenster (localhost) exponieren, nicht in Twitch-iframes.
+if (!isTwitchFrame) {
+  contextBridge.exposeInMainWorld('twitchDual', {
+    // Gemeinsames Eingabefeld: Channel/VOD laden.
+    submitLoad: (raw) => ipcRenderer.invoke('submit-load', raw),
 
-  // Beide Fenster reagieren auf 'load'.
-  onLoad: (cb) => {
-    ipcRenderer.on('load', (_e, payload) => cb(payload));
-  },
+    // Beide Fenster reagieren auf 'load'.
+    onLoad: (cb) => {
+      ipcRenderer.on('load', (_e, payload) => cb(payload));
+    },
 
-  // VOD-Kommentarseiten nachladen (Chat-Fenster).
-  fetchVodComments: (args) => ipcRenderer.invoke('vod-comments', args),
+    // VOD-Kommentarseiten nachladen (Chat-Fenster).
+    fetchVodComments: (args) => ipcRenderer.invoke('vod-comments', args),
 
-  // Video-Fenster meldet aktuelle Abspielzeit.
-  sendPlayerTime: (seconds) => ipcRenderer.send('player-time', seconds),
+    // Video-Fenster meldet aktuelle Abspielzeit.
+    sendPlayerTime: (seconds) => ipcRenderer.send('player-time', seconds),
 
-  // Chat-Fenster empfaengt die Abspielzeit.
-  onPlayerTime: (cb) => {
-    ipcRenderer.on('player-time', (_e, seconds) => cb(seconds));
-  },
+    // Chat-Fenster empfaengt die Abspielzeit.
+    onPlayerTime: (cb) => {
+      ipcRenderer.on('player-time', (_e, seconds) => cb(seconds));
+    },
 
-  // Video-Fenster meldet Player-Zustand ('playing'|'paused'|'ended').
-  sendPlayerState: (state) => ipcRenderer.send('player-state', state),
-  onPlayerState: (cb) => {
-    ipcRenderer.on('player-state', (_e, state) => cb(state));
-  },
+    // Video-Fenster meldet Player-Zustand ('playing'|'paused'|'ended').
+    sendPlayerState: (state) => ipcRenderer.send('player-state', state),
+    onPlayerState: (cb) => {
+      ipcRenderer.on('player-state', (_e, state) => cb(state));
+    },
 
-  // UI-Voreinstellungen: Verlauf, letzte Quelle, Player-Prefs.
-  getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),
-  savePlayerPrefs: (prefs) => ipcRenderer.send('save-player-prefs', prefs),
-  saveChatPrefs: (prefs) => ipcRenderer.send('save-chat-prefs', prefs),
+    // UI-Voreinstellungen: Verlauf, letzte Quelle, Player-Prefs.
+    getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),
+    savePlayerPrefs: (prefs) => ipcRenderer.send('save-player-prefs', prefs),
+    saveChatPrefs: (prefs) => ipcRenderer.send('save-chat-prefs', prefs),
 
-  // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
-  getFavorites: () => ipcRenderer.invoke('get-favorites'),
-  addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
-  removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
-  liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
-  channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
+    // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
+    getFavorites: () => ipcRenderer.invoke('get-favorites'),
+    addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
+    removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
+    liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
+    channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
 
-  // Adblock: Einstellung lesen/setzen + Werbe-Status empfangen (Video-Fenster).
-  getAdblockEnabled: () => ipcRenderer.invoke('get-adblock-enabled'),
-  setAdblockEnabled: (enabled) => ipcRenderer.invoke('set-adblock-enabled', enabled),
-  onAdblockState: (cb) => {
-    ipcRenderer.on('adblock-state', (_e, payload) => cb(payload));
-  }
-});
+    // Adblock: Einstellung lesen/setzen + Werbe-Status empfangen (Video-Fenster).
+    getAdblockEnabled: () => ipcRenderer.invoke('get-adblock-enabled'),
+    setAdblockEnabled: (enabled) => ipcRenderer.invoke('set-adblock-enabled', enabled),
+    onAdblockState: (cb) => {
+      ipcRenderer.on('adblock-state', (_e, payload) => cb(payload));
+    }
+  });
+}
 
 // --- Werbe-Blocker: nur im Twitch-Player-iframe ------------------------------
 // Der Preload laeuft (Video-Fenster, nodeIntegrationInSubFrames) auch in
@@ -56,9 +65,7 @@ contextBridge.exposeInMainWorld('twitchDual', {
 // kaputtmachen -> alles in try/catch, im Zweifel passiert nichts.
 (async function setupAdblock() {
   try {
-    const host = location.hostname || '';
-    if (!/(^|\.)twitch\.tv$/.test(host)) return;      // nur Twitch-Frames
-    if (host === 'localhost') return;                 // unsere eigene Seite nicht
+    if (!isTwitchFrame) return;                       // nur in Twitch-iframes
 
     const enabled = await ipcRenderer.invoke('get-adblock-enabled');
     if (!enabled) return;
