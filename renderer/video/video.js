@@ -45,6 +45,14 @@ function mountPlayer(options) {
     startTimeBroadcast();
   });
 
+  // Pause/Play/Ende an den Chat melden (Statusanzeige im VOD-Replay).
+  player.addEventListener(Twitch.Player.PAUSE, () =>
+    window.twitchDual.sendPlayerState('paused'));
+  player.addEventListener(Twitch.Player.PLAY, () =>
+    window.twitchDual.sendPlayerState('playing'));
+  player.addEventListener(Twitch.Player.ENDED, () =>
+    window.twitchDual.sendPlayerState('ended'));
+
   startTimeBroadcast();
 }
 

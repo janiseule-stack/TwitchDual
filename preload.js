@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld('twitchDual', {
     ipcRenderer.on('player-time', (_e, seconds) => cb(seconds));
   },
 
+  // Video-Fenster meldet Player-Zustand ('playing'|'paused'|'ended').
+  sendPlayerState: (state) => ipcRenderer.send('player-state', state),
+  onPlayerState: (cb) => {
+    ipcRenderer.on('player-state', (_e, state) => cb(state));
+  },
+
   // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
   getFavorites: () => ipcRenderer.invoke('get-favorites'),
   addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),

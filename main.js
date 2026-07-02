@@ -190,6 +190,13 @@ ipcMain.on('player-time', (_evt, seconds) => {
   }
 });
 
+// Player-Zustand (Pause/Play/Ende) ebenso ans Chat-Fenster relayen.
+ipcMain.on('player-state', (_evt, state) => {
+  if (chatWin && !chatWin.isDestroyed()) {
+    chatWin.webContents.send('player-state', state);
+  }
+});
+
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;

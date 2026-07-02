@@ -271,6 +271,7 @@ window.twitchDual.onLoad((payload) => {
   ircAttempts = 0;
   closeIrc();
   vod = null;
+  playerState = 'playing';
 
   const emoteCount = Object.keys(emoteMap).length;
 
@@ -286,9 +287,18 @@ window.twitchDual.onLoad((payload) => {
   }
 });
 
+// Player-Zustand aus dem Video-Fenster (fuer die Statuszeile im Replay).
+let playerState = 'playing';
+window.twitchDual.onPlayerState((state) => {
+  playerState = state;
+  if (!vod) return;
+  if (state === 'paused') setConn('⏸ Replay pausiert');
+  else if (state === 'ended') setConn('Replay-Ende', 'ok');
+});
+
 window.twitchDual.onPlayerTime((seconds) => {
   if (vod) {
-    setConn('Replay @ ' + formatTime(seconds), 'ok');
+    if (playerState === 'playing') setConn('Replay @ ' + formatTime(seconds), 'ok');
     vod.onTime(seconds);
   }
 });
