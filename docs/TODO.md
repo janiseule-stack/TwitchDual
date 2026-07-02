@@ -34,10 +34,27 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
 
+## Releases / Auto-Update (seit v1.0.0)
+
+- Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
+  für tokenlosen Auto-Update-Zugriff).
+- Installer: `npm run dist` → `dist/installer/TwitchDual Setup <version>.exe`.
+- Auto-Update: electron-updater in `main.js` (Check beim Start + alle 4 h,
+  Download im Hintergrund, Installation beim nächsten Beenden). Nur in der
+  gepackten App aktiv.
+- **Neue Version veröffentlichen:**
+  1. `version` in `package.json` erhöhen, committen, pushen.
+  2. `npm run dist`
+  3. Im Ordner `dist/installer`: EXE + Blockmap auf Bindestrich-Namen
+     kopieren (GitHub ersetzt Leerzeichen, `latest.yml` erwartet
+     `TwitchDual-Setup-<version>.exe`), dann
+     `gh release create v<version> TwitchDual-Setup-<version>.exe
+     TwitchDual-Setup-<version>.exe.blockmap latest.yml`.
+     (Alternativ `npm run release` mit gesetztem `GH_TOKEN`.)
+  4. Installierte Apps holen sich das Update von selbst.
+
 ## Ideen für später
 
-- **Installer** (NSIS via electron-builder) statt portablem Ordner, mit
-  Startmenü-Eintrag und Auto-Update-Option.
 - **Native Twitch-Emotes im VOD**: das `emote`-Feld der Kommentar-`fragments`
   zusätzlich rendern, nicht nur als Text.
 - **Chat-Einstellungen**: Schriftgröße, Zeitstempel an/aus, Badge-Anzeige
