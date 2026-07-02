@@ -88,12 +88,6 @@ function appendMessage(name, color, text, opts = {}) {
   trimMessages();
 }
 
-// Fragmente aus der VOD-API koennen native Twitch-Emotes enthalten.
-// Wir bauen daraus einen reinen Text und lassen 7TV danach ersetzen.
-function fragmentsToText(fragments) {
-  return fragments.map((f) => f.text).join('');
-}
-
 function setConn(text, cls) {
   $conn.textContent = text;
   $conn.className = cls || '';
@@ -181,110 +175,20 @@ function closeIrc() {
 // ---------------------------------------------------------------------------
 // VOD: Chat-Replay ueber GraphQL-Kommentare, synchron zur Player-Zeit
 // ---------------------------------------------------------------------------
-// Twitch-VOD-Kommentare werden pro Anfrage als Fenster um einen Offset geliefert
-// (ca. 50 Kommentare, das Fenster beginnt etwas VOR dem Offset). Wir blaettern
-// deshalb per Offset vorwaerts und deduplizieren die ueberlappenden Fenster ueber
-// die Kommentar-id. (Cursor-Paginierung ist serverseitig gesperrt, siehe
-// src/twitch-api.js.)
-const VOD_LOOKAHEAD = 30; // Sekunden Puffer, die wir vor der Abspielzeit vorhalten
-const VOD_GAP_STEP = 30;  // Sprung, wenn ein Fenster keine neuen Kommentare bringt
-
-class VodReplay {
-  constructor(videoId) {
-    this.videoId = videoId;
-    this.buffer = [];        // sortiert nach offset, dedupliziert per id
-    this.seen = new Set();   // bereits eingesammelte Kommentar-ids
-    this.renderIndex = 0;    // naechster zu zeigender Kommentar
-    this.coveredUntil = -1;  // bis zu diesem Offset haben wir Kommentare angefragt
-    this.fetching = false;
-    this.lastTime = null;
-    this.initialized = false;
-  }
-
-  // Kommentare eines Fensters einsortieren (dedupe per id). Neue Kommentare haben
-  // stets einen groesseren Offset als alles bereits Gezeigte, landen also hinten –
-  // der Sort laesst den bereits gerenderten Bereich [0..renderIndex) unberuehrt.
-  merge(comments) {
-    let added = 0;
-    for (const c of comments) {
-      const key = c.id || `${c.offset}|${c.name}|${fragmentsToText(c.fragments)}`;
-      if (this.seen.has(key)) continue;
-      this.seen.add(key);
-      this.buffer.push(c);
-      added++;
-    }
-    if (added) this.buffer.sort((a, b) => a.offset - b.offset);
-    return added;
-  }
-
-  // Ein Kommentarfenster ab `offset` laden und einsortieren.
-  // Gibt zurueck, bis zu welchem Offset das Fenster reicht.
-  async fetchAtOffset(offset) {
-    this.fetching = true;
-    const res = await window.twitchDual.fetchVodComments({
-      videoId: this.videoId, offsetSeconds: offset
-    });
-    this.fetching = false;
-    if (!res.ok) { setConn('VOD-Fehler: ' + res.error, 'err'); return offset; }
-    this.merge(res.comments);
-    const maxOff = res.comments.length
-      ? res.comments[res.comments.length - 1].offset : offset;
-    return Math.max(maxOff, offset);
-  }
-
-  // Puffer bis `t + VOD_LOOKAHEAD` auffuellen (ein Fenster pro Aufruf).
-  async ensureCoverage(t) {
-    if (this.fetching) return;
-    if (this.coveredUntil >= t + VOD_LOOKAHEAD) return;
-    const reqOffset = Math.max(this.coveredUntil, Math.floor(t));
-    const reached = await this.fetchAtOffset(reqOffset);
-    // Kein Fortschritt (Luecke ohne Kommentare) -> Fenster nach vorn schieben,
-    // damit die Wiedergabe nicht an einer stillen Stelle haengen bleibt.
-    this.coveredUntil = reached > reqOffset ? reached : reqOffset + VOD_GAP_STEP;
-  }
-
-  // Nach einem Sprung (Seek) komplett neu positionieren.
-  async seekTo(t) {
-    $messages.innerHTML = '';
-    this.buffer = [];
-    this.seen = new Set();
-    this.renderIndex = 0;
-    this.coveredUntil = -1;
-    const start = Math.max(0, Math.floor(t));
-    const reached = await this.fetchAtOffset(start);
-    this.coveredUntil = Math.max(reached, start);
-    // Etwas Kontext zeigen: die Kommentare bis t sofort einblenden.
-    this.advance(t);
-  }
-
-  advance(t) {
-    while (
-      this.renderIndex < this.buffer.length &&
-      this.buffer[this.renderIndex].offset <= t
-    ) {
-      const c = this.buffer[this.renderIndex];
-      appendMessage(c.name, c.color, fragmentsToText(c.fragments), { replay: true });
-      this.renderIndex++;
-    }
-  }
-
-  async onTime(t) {
-    if (!this.initialized) {
-      this.initialized = true;
-      this.lastTime = t;
-      await this.seekTo(t);
-      return;
-    }
-    // Sprung erkennen (vor/zurueck): >10s Differenz.
-    if (Math.abs(t - this.lastTime) > 10) {
-      this.lastTime = t;
-      await this.seekTo(t);
-      return;
-    }
-    this.lastTime = t;
-    this.advance(t);
-    await this.ensureCoverage(t);
-  }
+// Die Kernlogik (Offset-Paginierung, Dedupe, Puffer) lebt DOM-frei in
+// ../lib/vod-replay.js (VodReplayCore) und ist dort unit-getestet. Hier
+// werden nur die DOM-Callbacks und der IPC-Fetch eingehaengt.
+function createVodReplay(payload) {
+  return new VodReplayCore({
+    videoId: payload.videoId,
+    fetchPage: (videoId, offsetSeconds) =>
+      window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
+    onMessage: (c) => appendMessage(
+      c.name, c.color, VodReplayCore.fragmentsToText(c.fragments), { replay: true }
+    ),
+    onClear: () => { $messages.innerHTML = ''; },
+    onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -306,7 +210,7 @@ window.twitchDual.onLoad((payload) => {
     $title.textContent = payload.displayName || ('VOD ' + payload.videoId);
     $mode.textContent = `VOD-Replay · ${emoteCount} 7TV-Emotes`;
     setConn('warte auf Player-Zeit …');
-    vod = new VodReplay(payload.videoId);
+    vod = createVodReplay(payload);
   }
 });
 
