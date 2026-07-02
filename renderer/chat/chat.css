@@ -34,6 +34,21 @@ body { display: flex; flex-direction: column; }
 .msg.replay { opacity: .97; }
 .msg.system { color: #adadb8; font-style: italic; }
 
+.msg .ts {
+  color: #6e6e76; font-size: 11px; margin-right: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Schwebender "neue Nachrichten"-Button, wenn der Nutzer hochgescrollt hat. */
+#new-msgs {
+  position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
+  background: #9147ff; color: #fff; border: none; border-radius: 14px;
+  padding: 5px 14px; font-size: 12px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+#new-msgs:hover { background: #772ce8; }
+#new-msgs.hidden { display: none; }
+
 #footer {
   padding: 5px 12px; background: #0e0e10;
   border-top: 1px solid #2a2a2d; font-size: 11px; color: #adadb8;

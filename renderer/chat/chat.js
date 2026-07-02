@@ -5,6 +5,7 @@ const $messages = document.getElementById('messages');
 const $mode = document.getElementById('mode');
 const $conn = document.getElementById('conn');
 const $title = document.getElementById('title');
+const $newMsgs = document.getElementById('new-msgs');
 
 let emoteMap = {};
 let ircSocket = null;
@@ -26,10 +27,32 @@ function scrollToBottom() {
   $messages.scrollTop = $messages.scrollHeight;
 }
 
+// Zaehler fuer Nachrichten, die unterhalb des Sichtbereichs aufgelaufen sind,
+// waehrend der Nutzer hochgescrollt ist.
+let pendingNew = 0;
+
+function updateNewMsgsButton() {
+  if (pendingNew > 0 && !autoScroll) {
+    $newMsgs.textContent = `↓ ${pendingNew} neue Nachricht${pendingNew === 1 ? '' : 'en'}`;
+    $newMsgs.classList.remove('hidden');
+  } else {
+    pendingNew = 0;
+    $newMsgs.classList.add('hidden');
+  }
+}
+
+$newMsgs.addEventListener('click', () => {
+  autoScroll = true;
+  scrollToBottom();
+  pendingNew = 0;
+  updateNewMsgsButton();
+});
+
 // Beim Scrollen entscheiden, ob wir weiter kleben. Scrollt der Nutzer hoch zum
 // Lesen -> autoScroll aus; scrollt er zurueck nach unten -> wieder an.
 $messages.addEventListener('scroll', () => {
   autoScroll = nearBottom();
+  if (autoScroll) updateNewMsgsButton(); // wieder unten -> Button weg
 });
 
 function trimMessages(max = 300) {
@@ -50,11 +73,19 @@ function appendSystem(text) {
   trimMessages();
 }
 
-// name: string, color: string|null, text: string, opts:{replay?:bool}
+// name: string, color: string|null, text: string,
+// opts: { replay?: bool, timeSeconds?: number } (Zeitstempel nur im VOD-Replay)
 function appendMessage(name, color, text, opts = {}) {
   const stick = nearBottom();
   const div = document.createElement('div');
   div.className = 'msg' + (opts.replay ? ' replay' : '');
+
+  if (opts.timeSeconds != null) {
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = formatTime(opts.timeSeconds);
+    div.appendChild(ts);
+  }
 
   const user = document.createElement('span');
   user.className = 'user';
@@ -84,7 +115,12 @@ function appendMessage(name, color, text, opts = {}) {
   }
 
   $messages.appendChild(div);
-  if (stick) $messages.scrollTop = $messages.scrollHeight;
+  if (stick) {
+    $messages.scrollTop = $messages.scrollHeight;
+  } else {
+    pendingNew++;
+    updateNewMsgsButton();
+  }
   trimMessages();
 }
 
@@ -214,7 +250,8 @@ function createVodReplay(payload) {
     fetchPage: (videoId, offsetSeconds) =>
       window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
     onMessage: (c) => appendMessage(
-      c.name, c.color, VodReplayCore.fragmentsToText(c.fragments), { replay: true }
+      c.name, c.color, VodReplayCore.fragmentsToText(c.fragments),
+      { replay: true, timeSeconds: c.offset }
     ),
     onClear: () => { $messages.innerHTML = ''; },
     onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
@@ -227,6 +264,9 @@ function createVodReplay(payload) {
 window.twitchDual.onLoad((payload) => {
   emoteMap = payload.emotes || {};
   $messages.innerHTML = '';
+  autoScroll = true; // neue Quelle -> wieder unten kleben
+  pendingNew = 0;
+  updateNewMsgsButton();
   ircChannel = null; // kein Reconnect mehr auf die alte Quelle
   ircAttempts = 0;
   closeIrc();
