@@ -20,7 +20,8 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "src/**/*"
+      "src/**/*",
+      "vendor/**/*"
     ],
     "win": {
       "target": "nsis"
