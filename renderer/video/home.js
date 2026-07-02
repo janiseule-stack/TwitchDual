@@ -252,6 +252,13 @@ $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); }
 $refreshBtn.addEventListener('click', refreshLive);
 $filterInput.addEventListener('input', renderFavorites);
 
+// Esc schliesst das Overlay (bzw. fuehrt aus der VOD-Ansicht zurueck).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || $home.classList.contains('hidden')) return;
+  if (!$vodView.classList.contains('hidden')) showFavView();
+  else closeHome();
+});
+
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen.
 window.twitchDual.onLoad(() => closeHome());
 

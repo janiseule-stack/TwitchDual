@@ -132,6 +132,27 @@ $channel.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doLoad();
 });
 
+// Tastenkuerzel: Ctrl+L fokussiert das Eingabefeld, Space togglet Play/Pause
+// (nur ausserhalb von Eingabefeldern; greift nicht, wenn das Player-iframe
+// selbst den Fokus hat - dann uebernimmt der Twitch-Player).
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    $channel.focus();
+    $channel.select();
+    return;
+  }
+  const t = e.target;
+  const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+  if (inField) return;
+  if (e.key === ' ' && player) {
+    e.preventDefault();
+    try {
+      if (player.isPaused()) player.play(); else player.pause();
+    } catch (err) {}
+  }
+});
+
 // Beim Start: Verlauf fuellen + letzte Quelle ins Feld vorschlagen
 // (kein Autoplay - nur Prefill, Laden bleibt ein Klick).
 refreshHistory().then((prefs) => {
