@@ -29,6 +29,9 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Main (`sortByLive`), erklärende Leerzustände.
 - Tastenkürzel: `Ctrl+L` Eingabefeld, `Space` Play/Pause, `Esc` Overlay.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
+- Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
+  Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
+- ⚙-Chat-Einstellungen: Zeitstempel/Badges an/aus, persistent (chatPrefs, v1.1.0).
 
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
