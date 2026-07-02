@@ -35,6 +35,7 @@
     #load:hover { background: #772ce8; }
     #load:disabled { opacity: .5; cursor: default; }
     #status { font-size: 12px; color: #adadb8; white-space: nowrap; }
+    #status.err { color: #eb4034; }
     #player { flex: 1; position: relative; background: #000; }
     #player iframe { border: 0; }
     #hint {
@@ -47,7 +48,8 @@
 <body>
   <div id="bar">
     <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
-    <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" />
+    <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
+    <datalist id="history"></datalist>
     <button id="load">Laden</button>
     <span id="status">bereit</span>
   </div>

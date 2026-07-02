@@ -11,9 +11,22 @@ const store = new Store({
   defaults: {
     videoBounds: { width: 500, height: 900, x: undefined, y: undefined },
     chatBounds: { width: 420, height: 900, x: undefined, y: undefined },
-    favorites: []
+    favorites: [],
+    history: [],      // zuletzt geladene Quellen [{ value, mode, label }]
+    lastSource: '',   // letzte Roheingabe (Prefill beim Start)
+    playerPrefs: { volume: null, quality: null }
   }
 });
+
+const HISTORY_MAX = 10;
+
+// Erfolgreich geladene Quelle in den Verlauf aufnehmen (vorn, dedupliziert).
+function pushHistory(entry) {
+  const hist = store.get('history', [])
+    .filter((h) => !(h.mode === entry.mode && h.value === entry.value));
+  hist.unshift(entry);
+  store.set('history', hist.slice(0, HISTORY_MAX));
+}
 
 let videoWin = null;
 let chatWin = null;
@@ -103,6 +116,8 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
         emotes
       };
       broadcast('load', payload);
+      pushHistory({ value: user.login, mode: 'live', label: user.displayName });
+      store.set('lastSource', user.login);
       return { ok: true, ...payload, emoteCount: Object.keys(emotes).length };
     }
 
@@ -124,10 +139,28 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       emotes
     };
     broadcast('load', payload);
+    pushHistory({
+      value: parsed.value,
+      mode: 'vod',
+      label: (owner.displayName || 'VOD') + ' · VOD ' + parsed.value
+    });
+    store.set('lastSource', parsed.value);
     return { ok: true, ...payload, emoteCount: Object.keys(emotes).length };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   }
+});
+
+// UI-Voreinstellungen fuers Video-Fenster (Verlauf, Prefill, Player-Prefs).
+ipcMain.handle('get-ui-prefs', () => ({
+  history: store.get('history', []),
+  lastSource: store.get('lastSource', ''),
+  playerPrefs: store.get('playerPrefs', { volume: null, quality: null })
+}));
+
+ipcMain.on('save-player-prefs', (_evt, prefs) => {
+  const cur = store.get('playerPrefs', { volume: null, quality: null });
+  store.set('playerPrefs', { ...cur, ...(prefs || {}) });
 });
 
 // Chat-Fenster laedt VOD-Kommentarseiten nach (immer per Offset, siehe twitch-api.js).

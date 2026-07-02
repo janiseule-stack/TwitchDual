@@ -5,12 +5,27 @@ const $load = document.getElementById('load');
 const $status = document.getElementById('status');
 const $player = document.getElementById('player');
 const $hint = document.getElementById('hint');
+const $history = document.getElementById('history');
 
 let player = null;
 let timeTimer = null;
 
-function setStatus(text) {
+function setStatus(text, isError = false) {
   $status.textContent = text;
+  $status.className = isError ? 'err' : '';
+}
+
+// Verlauf (zuletzt geladene Quellen) in die Eingabe-Datalist spiegeln.
+async function refreshHistory() {
+  const prefs = await window.twitchDual.getUiPrefs();
+  $history.innerHTML = '';
+  for (const h of prefs.history || []) {
+    const opt = document.createElement('option');
+    opt.value = h.value;
+    opt.label = h.label || h.value;
+    $history.appendChild(opt);
+  }
+  return prefs;
 }
 
 // Player (neu) erzeugen. options: {channel} | {video}
@@ -76,23 +91,33 @@ async function doLoad() {
   const raw = $channel.value.trim();
   if (!raw) return;
   $load.disabled = true;
+  $load.textContent = 'lädt …';
   setStatus('lade …');
   try {
     const res = await window.twitchDual.submitLoad(raw);
     if (!res.ok) {
-      setStatus('Fehler: ' + res.error);
+      setStatus('Fehler: ' + res.error, true);
+    } else {
+      refreshHistory(); // Verlauf hat einen neuen Eintrag
     }
     // Bei Erfolg reagiert dieses Fenster ueber onLoad (unten).
   } catch (e) {
-    setStatus('Fehler: ' + (e.message || e));
+    setStatus('Fehler: ' + (e.message || e), true);
   } finally {
     $load.disabled = false;
+    $load.textContent = 'Laden';
   }
 }
 
 $load.addEventListener('click', doLoad);
 $channel.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doLoad();
+});
+
+// Beim Start: Verlauf fuellen + letzte Quelle ins Feld vorschlagen
+// (kein Autoplay - nur Prefill, Laden bleibt ein Klick).
+refreshHistory().then((prefs) => {
+  if (prefs.lastSource && !$channel.value) $channel.value = prefs.lastSource;
 });
 
 // Broadcast von Main: beide Fenster laden denselben Channel/VOD.
