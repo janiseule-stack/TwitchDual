@@ -117,12 +117,20 @@ async function fetch7tvGlobal() {
   return map;
 }
 
-// Eine Seite VOD-Kommentare laden.
-// Entweder per contentOffsetSeconds (Startpunkt) oder per cursor (naechste Seite).
-async function fetchVodComments(videoId, { offsetSeconds = null, cursor = null } = {}) {
-  const variables = { videoID: String(videoId) };
-  if (cursor) variables.cursor = cursor;
-  else variables.contentOffsetSeconds = offsetSeconds == null ? 0 : Math.floor(offsetSeconds);
+// Eine Seite VOD-Kommentare laden, immer per contentOffsetSeconds.
+//
+// WICHTIG: Twitch verlangt fuer die CURSOR-basierte Paginierung inzwischen einen
+// Client-Integrity-Token; ohne ihn antwortet der Server mit
+// "IntegrityCheckFailed" und comments=null. Die OFFSET-basierte Anfrage
+// funktioniert dagegen weiterhin ohne Token. Deshalb blaettern wir ausschliesslich
+// per Offset weiter (der Aufrufer fragt die naechste Seite mit einem groesseren
+// Offset an). Jeder Kommentar traegt seine "id", damit ueberlappende Fenster
+// dedupliziert werden koennen.
+async function fetchVodComments(videoId, { offsetSeconds = null } = {}) {
+  const variables = {
+    videoID: String(videoId),
+    contentOffsetSeconds: offsetSeconds == null ? 0 : Math.max(0, Math.floor(offsetSeconds))
+  };
 
   const data = await gql([
     {
@@ -137,7 +145,7 @@ async function fetchVodComments(videoId, { offsetSeconds = null, cursor = null }
   const root =
     Array.isArray(data) && data[0] && data[0].data && data[0].data.video;
   if (!root || !root.comments) {
-    return { comments: [], hasNext: false, cursor: null };
+    return { comments: [] };
   }
 
   const edges = root.comments.edges || [];
@@ -150,6 +158,7 @@ async function fetchVodComments(videoId, { offsetSeconds = null, cursor = null }
       emote: f.emote || null
     }));
     return {
+      id: n.id || null,
       offset: n.contentOffsetSeconds || 0,
       name: commenter.displayName || commenter.login || 'anon',
       color: (msg.userColor) || null,
@@ -157,13 +166,7 @@ async function fetchVodComments(videoId, { offsetSeconds = null, cursor = null }
     };
   });
 
-  const pageInfo = root.comments.pageInfo || {};
-  const lastCursor = edges.length ? edges[edges.length - 1].cursor : null;
-  return {
-    comments,
-    hasNext: !!pageInfo.hasNextPage,
-    cursor: lastCursor
-  };
+  return { comments };
 }
 
 module.exports = {

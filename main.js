@@ -129,11 +129,11 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 });
 
-// Chat-Fenster laedt VOD-Kommentarseiten nach.
+// Chat-Fenster laedt VOD-Kommentarseiten nach (immer per Offset, siehe twitch-api.js).
 ipcMain.handle('vod-comments', async (_evt, args) => {
   try {
-    const { videoId, offsetSeconds, cursor } = args || {};
-    const page = await twitch.fetchVodComments(videoId, { offsetSeconds, cursor });
+    const { videoId, offsetSeconds } = args || {};
+    const page = await twitch.fetchVodComments(videoId, { offsetSeconds });
     return { ok: true, ...page };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };

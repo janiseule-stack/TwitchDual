@@ -13,11 +13,29 @@ let vod = null; // VodReplay-Instanz
 // ---------------------------------------------------------------------------
 // Gemeinsames Rendering
 // ---------------------------------------------------------------------------
+// autoScroll = "am unteren Rand kleben". Wird NUR durch echtes Nutzer-Scrollen
+// geaendert, nicht durch asynchrones Nachwachsen (Emote-Bilder laden verzoegert
+// und verschieben das Layout -> deshalb kein nearBottom() pro Nachricht raten).
+let autoScroll = true;
+
 function nearBottom() {
-  return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 60;
+  return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
 }
 
-function trimMessages(max = 200) {
+function scrollToBottom() {
+  $messages.scrollTop = $messages.scrollHeight;
+}
+
+// Beim Scrollen entscheiden, ob wir weiter kleben. Scrollt der Nutzer hoch zum
+// Lesen -> autoScroll aus; scrollt er zurueck nach unten -> wieder an.
+$messages.addEventListener('scroll', () => {
+  autoScroll = nearBottom();
+});
+
+function trimMessages(max = 300) {
+  // Nur kuerzen, solange wir unten kleben. Sonst wuerde das Loeschen oben dem
+  // Lesenden (nach oben gescrollt) die Position wegziehen.
+  if (!autoScroll) return;
   while ($messages.childElementCount > max) {
     $messages.removeChild($messages.firstChild);
   }
@@ -163,53 +181,83 @@ function closeIrc() {
 // ---------------------------------------------------------------------------
 // VOD: Chat-Replay ueber GraphQL-Kommentare, synchron zur Player-Zeit
 // ---------------------------------------------------------------------------
+// Twitch-VOD-Kommentare werden pro Anfrage als Fenster um einen Offset geliefert
+// (ca. 50 Kommentare, das Fenster beginnt etwas VOR dem Offset). Wir blaettern
+// deshalb per Offset vorwaerts und deduplizieren die ueberlappenden Fenster ueber
+// die Kommentar-id. (Cursor-Paginierung ist serverseitig gesperrt, siehe
+// src/twitch-api.js.)
+const VOD_LOOKAHEAD = 30; // Sekunden Puffer, die wir vor der Abspielzeit vorhalten
+const VOD_GAP_STEP = 30;  // Sprung, wenn ein Fenster keine neuen Kommentare bringt
+
 class VodReplay {
   constructor(videoId) {
     this.videoId = videoId;
-    this.buffer = [];      // sortiert nach offset
-    this.renderIndex = 0;  // naechster zu zeigender Kommentar
-    this.cursor = null;
-    this.hasNext = true;
+    this.buffer = [];        // sortiert nach offset, dedupliziert per id
+    this.seen = new Set();   // bereits eingesammelte Kommentar-ids
+    this.renderIndex = 0;    // naechster zu zeigender Kommentar
+    this.coveredUntil = -1;  // bis zu diesem Offset haben wir Kommentare angefragt
     this.fetching = false;
     this.lastTime = null;
     this.initialized = false;
   }
 
+  // Kommentare eines Fensters einsortieren (dedupe per id). Neue Kommentare haben
+  // stets einen groesseren Offset als alles bereits Gezeigte, landen also hinten –
+  // der Sort laesst den bereits gerenderten Bereich [0..renderIndex) unberuehrt.
+  merge(comments) {
+    let added = 0;
+    for (const c of comments) {
+      const key = c.id || `${c.offset}|${c.name}|${fragmentsToText(c.fragments)}`;
+      if (this.seen.has(key)) continue;
+      this.seen.add(key);
+      this.buffer.push(c);
+      added++;
+    }
+    if (added) this.buffer.sort((a, b) => a.offset - b.offset);
+    return added;
+  }
+
+  // Ein Kommentarfenster ab `offset` laden und einsortieren.
+  // Gibt zurueck, bis zu welchem Offset das Fenster reicht.
   async fetchAtOffset(offset) {
     this.fetching = true;
     const res = await window.twitchDual.fetchVodComments({
       videoId: this.videoId, offsetSeconds: offset
     });
     this.fetching = false;
-    if (!res.ok) { setConn('VOD-Fehler: ' + res.error, 'err'); return; }
-    this.buffer = res.comments;
-    this.cursor = res.cursor;
-    this.hasNext = res.hasNext;
-    this.renderIndex = 0;
+    if (!res.ok) { setConn('VOD-Fehler: ' + res.error, 'err'); return offset; }
+    this.merge(res.comments);
+    const maxOff = res.comments.length
+      ? res.comments[res.comments.length - 1].offset : offset;
+    return Math.max(maxOff, offset);
   }
 
-  async fetchNext() {
-    if (this.fetching || !this.hasNext || !this.cursor) return;
-    this.fetching = true;
-    const res = await window.twitchDual.fetchVodComments({
-      videoId: this.videoId, cursor: this.cursor
-    });
-    this.fetching = false;
-    if (!res.ok) return;
-    this.buffer = this.buffer.concat(res.comments);
-    this.cursor = res.cursor;
-    this.hasNext = res.hasNext;
+  // Puffer bis `t + VOD_LOOKAHEAD` auffuellen (ein Fenster pro Aufruf).
+  async ensureCoverage(t) {
+    if (this.fetching) return;
+    if (this.coveredUntil >= t + VOD_LOOKAHEAD) return;
+    const reqOffset = Math.max(this.coveredUntil, Math.floor(t));
+    const reached = await this.fetchAtOffset(reqOffset);
+    // Kein Fortschritt (Luecke ohne Kommentare) -> Fenster nach vorn schieben,
+    // damit die Wiedergabe nicht an einer stillen Stelle haengen bleibt.
+    this.coveredUntil = reached > reqOffset ? reached : reqOffset + VOD_GAP_STEP;
   }
 
-  // Nach einem Sprung (Seek) neu positionieren.
+  // Nach einem Sprung (Seek) komplett neu positionieren.
   async seekTo(t) {
     $messages.innerHTML = '';
-    await this.fetchAtOffset(Math.max(0, Math.floor(t)));
-    // Etwas Kontext zeigen: die letzten Kommentare bis t sofort einblenden.
-    this.advance(t, true);
+    this.buffer = [];
+    this.seen = new Set();
+    this.renderIndex = 0;
+    this.coveredUntil = -1;
+    const start = Math.max(0, Math.floor(t));
+    const reached = await this.fetchAtOffset(start);
+    this.coveredUntil = Math.max(reached, start);
+    // Etwas Kontext zeigen: die Kommentare bis t sofort einblenden.
+    this.advance(t);
   }
 
-  advance(t, isCatchUp = false) {
+  advance(t) {
     while (
       this.renderIndex < this.buffer.length &&
       this.buffer[this.renderIndex].offset <= t
@@ -235,12 +283,7 @@ class VodReplay {
     }
     this.lastTime = t;
     this.advance(t);
-    // Nachladen, wenn Puffer knapp wird.
-    const lastOffset = this.buffer.length
-      ? this.buffer[this.buffer.length - 1].offset : 0;
-    if (this.hasNext && lastOffset < t + 30 && !this.fetching) {
-      this.fetchNext();
-    }
+    await this.ensureCoverage(t);
   }
 }
 

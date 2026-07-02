@@ -42,7 +42,8 @@ Im Feld oben im Video-Fenster eingeben:
   (`irc-ws.chat.twitch.tv`) und zeigt Nachrichten in Echtzeit (Name in Farbe).
 - **VOD:** Chat lädt getimte Kommentare und blendet sie **synchron zur
   Abspielposition** ein. Beim Vor-/Zurückspringen im Video wird der Chat neu
-  positioniert (Erkennung über Sprünge in `getCurrentTime()`).
+  positioniert (Erkennung über Sprünge in `getCurrentTime()`). Nachgeladen wird
+  **fenster­weise per Offset** (siehe „VOD-Kommentar-Paginierung" unten).
 - **7TV-Emotes** funktionieren in **beiden** Modi (inkl. animierter WEBP).
 
 Fenstergrößen und -positionen werden über `electron-store` **persistent
@@ -97,6 +98,33 @@ Hostname → der Player lädt nicht. Deshalb startet der Main-Prozess einen klei
 statischen Server auf `127.0.0.1:<zufälliger Port>` und lädt die Renderer von
 `http://localhost`. Dann passt `parent: ["localhost"]`.
 
+### VOD-Kommentar-Paginierung (wichtig!)
+
+Twitch liefert VOD-Kommentare über die Operation `VideoCommentsByOffsetOrCursor`.
+Diese kann **entweder** per `contentOffsetSeconds` (Startpunkt in Sekunden)
+**oder** per `cursor` (nächste Seite) abgefragt werden.
+
+**Fallstrick:** Die **cursor-basierte** Variante verlangt inzwischen einen
+gültigen **`Client-Integrity`-Token** (Twitchs Anti-Bot). Ohne ihn antwortet der
+Server mit `{"errors":[{"code":"IntegrityCheckFailed"}], "data":{...comments:null}}`.
+Die **offset-basierte** Variante funktioniert dagegen weiterhin **ohne** Token.
+
+Deshalb blättert die App **ausschließlich per Offset** vorwärts:
+
+- Jede Anfrage liefert ein **Fenster** von ~50 Kommentaren, das ca. 2 s **vor**
+  dem angefragten Offset beginnt und einige Sekunden dahinter endet.
+- Die nächste Seite wird mit einem **größeren Offset** (Ende des letzten
+  Fensters) angefragt. Aufeinanderfolgende Fenster **überlappen** sich.
+- Überlappungen werden über die **Kommentar-`id`** dedupliziert
+  (`VodReplay.seen` in `renderer/chat/chat.js`).
+- `VodReplay` hält immer ~`VOD_LOOKAHEAD` (30 s) Puffer vor der Abspielzeit vor
+  und **überspringt stille Lücken** um `VOD_GAP_STEP` (30 s), damit die
+  Wiedergabe nie hängen bleibt.
+
+> Historie: Früher wurde per `cursor` weitergeblättert. Dadurch brach der
+> VOD-Chat nach genau einer Seite (~50 Nachrichten) ab, weil jede Folgeseite am
+> Integrity-Check scheiterte. Der Umbau auf Offset-Paginierung behebt das.
+
 ---
 
 ## ⚠️ Hinweise zu (teils inoffiziellen) API-Zugriffen
@@ -111,7 +139,12 @@ Sie können sich jederzeit ändern:
    Diese Aufrufe laufen im **Main-Prozess** (Node), damit keine Browser-CORS-Regeln greifen.
 2. **VOD-Kommentare** nutzen eine **persisted query** (`sha256Hash` in
    `src/twitch-api.js`). Wenn Twitch den Hash rotiert, kommen keine Kommentare
-   mehr → Hash aktualisieren.
+   mehr → Hash aktualisieren. **Nur die Offset-Variante** dieser Query wird
+   genutzt; die Cursor-Variante ist serverseitig hinter einem
+   `Client-Integrity`-Token gesperrt (`IntegrityCheckFailed`) – Details unter
+   „VOD-Kommentar-Paginierung". Sollte Twitch künftig auch Offset-Anfragen hinter
+   Integrity stellen, bräuchte es einen echten Integrity-Token (aus einem
+   Browser-Kontext) oder eine offizielle Alternative.
 3. **7TV-API (`7tv.io/v3`)** – öffentlich und dokumentiert, aber ein Drittanbieter.
    Hat ein Channel kein 7TV, bleibt die Emote-Liste einfach leer.
 4. **Twitch-IRC (`irc-ws.chat.twitch.tv`)** – anonymer Lesezugriff über einen
@@ -132,11 +165,23 @@ main.js                 Electron-Main: Fenster, IPC, Relay, Server-Start
 preload.js              Sichere IPC-Bridge (contextIsolation)
 src/server.js           Statischer localhost-Server (für den Embed-parent)
 src/parse-input.js      Eingabe → live/vod  (getestet)
-src/twitch-api.js       GraphQL (User-ID, VOD-Kommentare) + 7TV-Emotes
-renderer/video/         Video-Fenster (Twitch-Player, Zeit-Broadcast)
+src/twitch-api.js       GraphQL (User-ID, VOD-Owner, VOD-Kommentare) + 7TV-Emotes
+src/twitch-browse.js    GraphQL für Home-Overlay: Live-Status + VOD-Listen
+src/browse-map.js       Rohdaten der Browse-Queries → UI-Modelle (getestet-fähig)
+renderer/video/         Video-Fenster (Twitch-Player, Zeit-Broadcast, Home-Overlay)
 renderer/chat/          Chat-Fenster (IRC live + VOD-Replay + Emote-Render)
 renderer/lib/emote-text.js  Wort→Emote-Tokenizer (getestet)
 test/                   node:test Unit-Tests
+```
+
+Datenfluss VOD-Replay (Kurzform):
+
+```
+video.js  --player-time (500ms)-->  main.js  --player-time-->  chat.js
+                                                                  │
+chat.js VodReplay.onTime(t):  advance(t) rendert Puffer bis t     │
+   └─ ensureCoverage(t): fetchVodComments(offset) via IPC  ──────┘
+        └─ main.js 'vod-comments'  ──>  twitch-api.fetchVodComments (Offset)
 ```
 
 ## Lizenz
