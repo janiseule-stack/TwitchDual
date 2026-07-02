@@ -19,6 +19,16 @@ npm install
 npm start
 ```
 
+### Als eigenständige EXE (ohne npm) starten
+
+```bash
+npm run pack
+```
+
+erzeugt `dist/TwitchDual-win32-x64/TwitchDual.exe` (portabel, per Doppelklick
+startbar — z. B. Desktop-Verknüpfung darauf legen). Nach Code-Änderungen
+`npm run pack` erneut ausführen, damit die EXE den neuen Stand enthält.
+
 Tests der reinen Logik (Eingabe-Parser, Emote-Ersetzung):
 
 ```bash

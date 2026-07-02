@@ -5,11 +5,13 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "pack": "electron-packager . TwitchDual --platform=win32 --arch=x64 --out=dist --overwrite --ignore=\"^/docs$\" --ignore=\"^/test$\""
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@electron/packager": "^20.0.1",
     "electron": "^33.0.0"
   },
   "dependencies": {
