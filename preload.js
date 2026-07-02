@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('twitchDual', {
   // UI-Voreinstellungen: Verlauf, letzte Quelle, Player-Prefs.
   getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),
   savePlayerPrefs: (prefs) => ipcRenderer.send('save-player-prefs', prefs),
+  saveChatPrefs: (prefs) => ipcRenderer.send('save-chat-prefs', prefs),
 
   // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
   getFavorites: () => ipcRenderer.invoke('get-favorites'),

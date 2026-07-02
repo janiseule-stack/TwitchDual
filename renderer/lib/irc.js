@@ -50,5 +50,47 @@
     return idx === -1 ? '' : params.slice(idx + 1);
   }
 
-  return { parseIrc, badgeTypes, privmsgText };
+  // emotes-Tag ("25:0-4,12-16/1902:6-10") + Text -> Token-Liste fuer das
+  // Rendering. Die Ranges zaehlen CODEPOINTS (nicht UTF-16-Einheiten!),
+  // deshalb Array.from. Kaputte/ueberlappende Ranges werden ignoriert,
+  // die Funktion wirft nie (Fallback: alles Text).
+  function emoteTokens(text, emotesTag) {
+    const cps = Array.from(String(text || ''));
+    const ranges = [];
+    for (const part of String(emotesTag || '').split('/')) {
+      const colon = part.indexOf(':');
+      if (colon <= 0) continue;
+      const id = part.slice(0, colon);
+      for (const r of part.slice(colon + 1).split(',')) {
+        const m = /^(\d+)-(\d+)$/.exec(r);
+        if (!m) continue;
+        const start = Number(m[1]);
+        const end = Number(m[2]);
+        if (start > end || end >= cps.length) continue;
+        ranges.push({ start, end, id });
+      }
+    }
+    ranges.sort((a, b) => a.start - b.start);
+
+    const tokens = [];
+    let pos = 0;
+    for (const r of ranges) {
+      if (r.start < pos) continue; // Ueberlappung -> ignorieren
+      if (r.start > pos) {
+        tokens.push({ type: 'text', value: cps.slice(pos, r.start).join('') });
+      }
+      tokens.push({
+        type: 'emote',
+        name: cps.slice(r.start, r.end + 1).join(''),
+        id: r.id
+      });
+      pos = r.end + 1;
+    }
+    if (pos < cps.length) {
+      tokens.push({ type: 'text', value: cps.slice(pos).join('') });
+    }
+    return tokens;
+  }
+
+  return { parseIrc, badgeTypes, privmsgText, emoteTokens };
 });

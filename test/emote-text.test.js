@@ -32,3 +32,19 @@ test('ohne Emote-Map bleibt alles Text', () => {
   const t = EmoteText.tokenize('OMEGALUL', {});
   assert.deepEqual(t, [{ type: 'text', value: 'OMEGALUL' }]);
 });
+
+test('twitchEmoteUrl: baut CDN-URL aus der Emote-ID', () => {
+  assert.equal(
+    EmoteText.twitchEmoteUrl('25'),
+    'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0'
+  );
+  assert.equal(
+    EmoteText.twitchEmoteUrl(305954156),
+    'https://static-cdn.jtvnw.net/emoticons/v2/305954156/default/dark/1.0'
+  );
+  // emotesv2-IDs enthalten Unterstriche -> unveraendert durchreichen
+  assert.equal(
+    EmoteText.twitchEmoteUrl('emotesv2_abc123'),
+    'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_abc123/default/dark/1.0'
+  );
+});

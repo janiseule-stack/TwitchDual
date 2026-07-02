@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { parseIrc, badgeTypes, privmsgText } = require('../renderer/lib/irc');
+const { parseIrc, badgeTypes, privmsgText, emoteTokens } = require('../renderer/lib/irc');
 
 // Realistische Twitch-IRC-Zeile (gekuerzt) mit Badges, Farbe, Display-Name.
 const SAMPLE =
@@ -40,4 +40,41 @@ test('badgeTypes: Moderator + Subscriber werden erkannt', () => {
   assert.deepEqual(badgeTypes({ badges: '' }), []);
   assert.deepEqual(badgeTypes({}), []);
   assert.deepEqual(badgeTypes(null), []);
+});
+
+test('emoteTokens: ein Emote mitten im Text', () => {
+  assert.deepEqual(emoteTokens('hi Kappa hi', '25:3-7'), [
+    { type: 'text', value: 'hi ' },
+    { type: 'emote', name: 'Kappa', id: '25' },
+    { type: 'text', value: ' hi' }
+  ]);
+});
+
+test('emoteTokens: mehrere Emotes, mehrfaches Vorkommen', () => {
+  // "Kappa hi Kappa VoHiYo" -> 25 an 0-4 und 9-13, 81274 an 15-20
+  assert.deepEqual(emoteTokens('Kappa hi Kappa VoHiYo', '25:0-4,9-13/81274:15-20'), [
+    { type: 'emote', name: 'Kappa', id: '25' },
+    { type: 'text', value: ' hi ' },
+    { type: 'emote', name: 'Kappa', id: '25' },
+    { type: 'text', value: ' ' },
+    { type: 'emote', name: 'VoHiYo', id: '81274' }
+  ]);
+});
+
+test('emoteTokens: Ranges zaehlen Codepoints (Emoji davor)', () => {
+  // Das Herz ist EIN Codepoint mit 2 UTF-16-Einheiten; Twitch zaehlt Codepoints.
+  assert.deepEqual(emoteTokens('💜 Kappa', '25:2-6'), [
+    { type: 'text', value: '💜 ' },
+    { type: 'emote', name: 'Kappa', id: '25' }
+  ]);
+});
+
+test('emoteTokens: leerer/kaputter Tag -> reiner Text, wirft nie', () => {
+  assert.deepEqual(emoteTokens('nur text', ''), [{ type: 'text', value: 'nur text' }]);
+  assert.deepEqual(emoteTokens('nur text', null), [{ type: 'text', value: 'nur text' }]);
+  // Range ausserhalb des Texts / verkehrt herum -> ignorieren
+  assert.deepEqual(emoteTokens('kurz', '25:0-99'), [{ type: 'text', value: 'kurz' }]);
+  assert.deepEqual(emoteTokens('kurz', '25:3-1'), [{ type: 'text', value: 'kurz' }]);
+  assert.deepEqual(emoteTokens('kurz', 'kaputt'), [{ type: 'text', value: 'kurz' }]);
+  assert.deepEqual(emoteTokens('', '25:0-4'), []);
 });
