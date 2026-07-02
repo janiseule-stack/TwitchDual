@@ -26,7 +26,13 @@ body { display: flex; flex-direction: column; }
 
 .msg { padding: 3px 4px; border-radius: 4px; word-wrap: break-word; }
 .msg:hover { background: #1f1f23; }
-.msg .user { font-weight: 700; }
+.msg .user { font-weight: 700; cursor: pointer; }
+.msg .chip {
+  display: inline-block; min-width: 14px; text-align: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+  border-radius: 3px; padding: 0 3px; margin-right: 4px;
+  vertical-align: 1px;
+}
 .msg .sep { color: #adadb8; }
 .msg .emote {
   height: 28px; vertical-align: middle; margin: 0 1px;

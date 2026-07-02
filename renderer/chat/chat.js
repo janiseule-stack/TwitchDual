@@ -58,6 +58,8 @@ $messages.addEventListener('scroll', () => {
 function trimMessages(max = 300) {
   // Nur kuerzen, solange wir unten kleben. Sonst wuerde das Loeschen oben dem
   // Lesenden (nach oben gescrollt) die Position wegziehen.
+  // Unabhaengig davon beschneidet VodReplayCore.trim() seinen Datenpuffer
+  // (KEEP_BEHIND) - hier geht es nur um DOM-Knoten, dort um Speicher.
   if (!autoScroll) return;
   while ($messages.childElementCount > max) {
     $messages.removeChild($messages.firstChild);
@@ -73,8 +75,16 @@ function appendSystem(text) {
   trimMessages();
 }
 
+// Bekannte IRC-Badges -> kompakte farbige Kuerzel.
+const KNOWN_BADGES = {
+  broadcaster: ['B', '#eb0400'],
+  moderator: ['M', '#00ad03'],
+  vip: ['V', '#e005b9'],
+  subscriber: ['S', '#9147ff']
+};
+
 // name: string, color: string|null, text: string,
-// opts: { replay?: bool, timeSeconds?: number } (Zeitstempel nur im VOD-Replay)
+// opts: { replay?: bool, timeSeconds?: number, badges?: string[] }
 function appendMessage(name, color, text, opts = {}) {
   const stick = nearBottom();
   const div = document.createElement('div');
@@ -87,10 +97,25 @@ function appendMessage(name, color, text, opts = {}) {
     div.appendChild(ts);
   }
 
+  for (const b of opts.badges || []) {
+    const def = KNOWN_BADGES[b];
+    if (!def) continue;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = def[0];
+    chip.style.background = def[1];
+    chip.title = b;
+    div.appendChild(chip);
+  }
+
   const user = document.createElement('span');
   user.className = 'user';
   user.textContent = name;
   user.style.color = color || '#bf94ff';
+  user.title = 'Klick: Name kopieren';
+  user.addEventListener('click', () => {
+    navigator.clipboard && navigator.clipboard.writeText(name).catch(() => {});
+  });
   div.appendChild(user);
 
   const sep = document.createElement('span');
@@ -204,7 +229,12 @@ function connectIrc(channel) {
         const name = msg.tags['display-name'] ||
           (msg.prefix.split('!')[0]) || 'anon';
         const color = msg.tags['color'] || null;
-        appendMessage(name, color, text);
+        // badges-Tag: "broadcaster/1,subscriber/12" -> ['broadcaster', ...]
+        const badges = (msg.tags['badges'] || '')
+          .split(',')
+          .map((b) => b.split('/')[0])
+          .filter(Boolean);
+        appendMessage(name, color, text, { badges });
       } else if (msg.command === '366') {
         ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
         setConn('verbunden ✓', 'ok');
