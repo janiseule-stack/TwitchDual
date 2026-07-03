@@ -71,9 +71,13 @@ bestehende Fetches → ohne Netz testbar. GQL bleibt zentral in `src/twitch-gql.
   `title`-Tooltip); Fallback-Einträge weiterhin als Chip. Der ⚙-Schalter
   „Badges anzeigen“ (`hide-badges`-CSS-Klasse) wirkt unverändert.
 - **IPC neu**: `user-badges` (invoke) → Main-Cache (Session-Lebensdauer);
-  Preload-Bridge um `fetchUserBadges` erweitern.
-- **Payload neu**: `badgeCatalog` (Map als plain object) +
-  `thirdPartyBadges` (login → [badge]) im `load`-Broadcast.
+  Preload-Bridge um `fetchUserBadges` erweitern. Beantwortet ALLE
+  Third-Party-Badges eines Users (7TV per Lookup, BTTV/FFZ aus den beim
+  Load geholten Gesamtlisten, die im Main bleiben).
+- **Payload neu**: nur `badgeCatalog` (Map als plain object) im
+  `load`-Broadcast. (Amendment 2026-07-03: BTTV/FFZ-Listen wandern NICHT in
+  den Payload, sondern hinter das `user-badges`-IPC — kleinerer Payload,
+  ein Kanal für alle Third-Party-Badges.)
 
 ### 4. Fehlerverhalten
 
