@@ -37,4 +37,57 @@ async function fetchChannelBadges(channelId, opts = {}) {
   }
 }
 
-module.exports = { fetchGlobalBadges, fetchChannelBadges };
+// BTTV: eine gecachte Gesamtliste "wer traegt welches Badge" (Dev/Pro/...).
+// providerId ist die Twitch-User-ID.
+async function fetchBttvBadges(opts = {}) {
+  const map = {};
+  try {
+    const res = await fetchWithRetry(
+      'https://api.betterttv.net/3/cached/badges/twitch', {}, opts
+    );
+    if (!res.ok) return map;
+    const list = await res.json();
+    for (const u of Array.isArray(list) ? list : []) {
+      const id = u && u.providerId ? String(u.providerId) : '';
+      const badge = u && u.badge;
+      if (!id || !badge || !badge.svg) continue;
+      (map[id] = map[id] || []).push({
+        url: badge.svg,
+        title: badge.description || 'BTTV'
+      });
+    }
+  } catch (e) {
+    // fail-soft
+  }
+  return map;
+}
+
+// FFZ: badges-Liste + users-Map (badgeId -> [twitchUserId]).
+async function fetchFfzBadges(opts = {}) {
+  const map = {};
+  try {
+    const res = await fetchWithRetry(
+      'https://api.frankerfacez.com/v1/badges/ids', {}, opts
+    );
+    if (!res.ok) return map;
+    const data = await res.json();
+    const users = (data && data.users) || {};
+    for (const b of (data && data.badges) || []) {
+      if (!b || b.id == null || !b.urls) continue;
+      const raw = b.urls['2'] || b.urls['1'];
+      if (!raw) continue;
+      const url = raw.startsWith('//') ? 'https:' + raw : raw;
+      for (const uid of users[String(b.id)] || []) {
+        const id = String(uid);
+        (map[id] = map[id] || []).push({ url, title: b.title || 'FFZ' });
+      }
+    }
+  } catch (e) {
+    // fail-soft
+  }
+  return map;
+}
+
+module.exports = {
+  fetchGlobalBadges, fetchChannelBadges, fetchBttvBadges, fetchFfzBadges
+};
