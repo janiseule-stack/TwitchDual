@@ -6,6 +6,46 @@ const $status = document.getElementById('status');
 const $player = document.getElementById('player');
 const $hint = document.getElementById('hint');
 const $history = document.getElementById('history');
+const $adOverlay = document.getElementById('ad-overlay');
+const adState = window.createAdOverlayState ? window.createAdOverlayState() : null;
+
+function renderAdOverlay() {
+  if (!adState || !$adOverlay) return;
+  $adOverlay.classList.toggle('hidden', !adState.overlayVisible);
+  if (!player) return;
+  try {
+    if (adState.shouldMute) {
+      player.setMuted(true);
+    } else {
+      // Werbe-Ende: gemerkten Mute-Zustand wiederherstellen.
+      player.setMuted(adState.restoreMuted);
+    }
+  } catch (e) {}
+}
+
+// Werbe-Status aus dem Player-iframe (via Main-Relay).
+if (window.twitchDual.onAdblockState) {
+  window.twitchDual.onAdblockState((payload) => {
+    if (!adState) return;
+    const phase = payload && payload.phase;
+    if (phase === 'start') {
+      let muted = false;
+      try { muted = !!(player && player.getMuted && player.getMuted()); } catch (e) {}
+      adState.adStart(muted);
+    } else if (phase === 'end') {
+      adState.adEnd();
+    }
+    renderAdOverlay();
+  });
+}
+
+// Watchdog-Timer: raeumt Overlay/Mute auf, falls kein 'end' kommt.
+setInterval(() => {
+  if (!adState) return;
+  const wasActive = adState.overlayVisible;
+  adState.tick(Date.now());
+  if (wasActive && !adState.overlayVisible) renderAdOverlay();
+}, 1000);
 
 let player = null;
 let timeTimer = null;
@@ -37,6 +77,9 @@ function mountPlayer(options) {
     try { player = null; } catch (e) {}
   }
   $player.innerHTML = '';
+  // innerHTML='' hat auch das Werbe-Overlay entfernt -> wieder einhaengen
+  // (Referenz bleibt gueltig; z-index haelt es ueber dem Embed-iframe).
+  if ($adOverlay) $player.appendChild($adOverlay);
 
   if (typeof Twitch === 'undefined' || !Twitch.Player) {
     setStatus('Twitch-Embed nicht geladen (Internet?)');
@@ -171,3 +214,26 @@ window.twitchDual.onLoad((payload) => {
     mountPlayer({ channel: payload.channel });
   }
 });
+
+// --- Adblock-Schalter -------------------------------------------------------
+const $adblock = document.getElementById('adblock-toggle');
+
+function renderAdblockBtn(enabled) {
+  if (!$adblock) return;
+  $adblock.classList.toggle('on', !!enabled);
+  $adblock.textContent = enabled ? '🛡 Ads: an' : '🛡 Ads: aus';
+}
+
+if ($adblock) {
+  window.twitchDual.getAdblockEnabled().then(renderAdblockBtn).catch(() => {});
+  $adblock.addEventListener('click', async () => {
+    try {
+      const cur = await window.twitchDual.getAdblockEnabled();
+      const res = await window.twitchDual.setAdblockEnabled(!cur);
+      renderAdblockBtn(res.enabled);
+      setStatus(res.enabled
+        ? 'Werbe-Blocker an — beim nächsten Laden aktiv.'
+        : 'Werbe-Blocker aus — beim nächsten Laden.');
+    } catch (e) {}
+  });
+}

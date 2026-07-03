@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
@@ -16,7 +17,8 @@ const store = new Store({
     history: [],      // zuletzt geladene Quellen [{ value, mode, label }]
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
-    chatPrefs: { showTimestamps: true, showBadges: true }
+    chatPrefs: { showTimestamps: true, showBadges: true },
+    adblockEnabled: true
   }
 });
 
@@ -51,7 +53,8 @@ function createWindows() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      nodeIntegrationInSubFrames: true
     }
   });
 
@@ -169,6 +172,32 @@ ipcMain.on('save-player-prefs', (_evt, prefs) => {
 ipcMain.on('save-chat-prefs', (_evt, prefs) => {
   const cur = store.get('chatPrefs', { showTimestamps: true, showBadges: true });
   store.set('chatPrefs', { ...cur, ...(prefs || {}) });
+});
+
+// Adblock-Einstellung (persistent, Default an).
+ipcMain.handle('get-adblock-enabled', () => store.get('adblockEnabled', true));
+ipcMain.handle('set-adblock-enabled', (_evt, enabled) => {
+  const val = !!enabled;
+  store.set('adblockEnabled', val);
+  return { ok: true, enabled: val };
+});
+
+// vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)
+// und holt sich die gepinnte Vendor-Datei deshalb per IPC.
+let vaftSourceCache = null;
+ipcMain.handle('get-vaft-source', () => {
+  if (vaftSourceCache === null) {
+    vaftSourceCache = fs.readFileSync(path.join(__dirname, 'vendor', 'vaft.js'), 'utf8');
+  }
+  return vaftSourceCache;
+});
+
+// Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.
+ipcMain.on('adblock-state', (_evt, payload) => {
+  const phase = payload && payload.phase;
+  if ((phase === 'start' || phase === 'end') && videoWin && !videoWin.isDestroyed()) {
+    videoWin.webContents.send('adblock-state', { phase });
+  }
 });
 
 // Chat-Fenster laedt VOD-Kommentarseiten nach (immer per Offset, siehe twitch-api.js).
