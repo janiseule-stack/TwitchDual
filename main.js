@@ -8,6 +8,8 @@ const { startServer } = require('./src/server');
 const { parseInput } = require('./src/parse-input');
 const twitch = require('./src/twitch-api');
 const browse = require('./src/twitch-browse');
+const badgeSources = require('./src/badge-sources');
+const BadgesLib = require('./renderer/lib/badges');
 
 const store = new Store({
   defaults: {
@@ -97,6 +99,27 @@ function broadcast(channel, payload) {
   }
 }
 
+// --- Badges: Kataloge pro Load, Third-Party pro User (Session-Cache) -------
+// BTTV/FFZ liefern Gesamtlisten (userId -> Badges) einmal pro Load; 7TV wird
+// pro User beim ersten Auftauchen nachgeschlagen. Negative Treffer werden
+// mitgecacht. Alles fail-soft: ohne Badge-Daten laeuft der Chat normal.
+let thirdPartyBadges = {};        // twitchUserId -> [{url, title}] (BTTV+FFZ)
+const sevenTvCache = new Map();   // twitchUserId -> Promise<[{url, title}]>
+
+async function loadBadgeData(channelId) {
+  const [globalBadges, channelBadges, bttv, ffz] = await Promise.all([
+    badgeSources.fetchGlobalBadges(),
+    badgeSources.fetchChannelBadges(channelId),
+    badgeSources.fetchBttvBadges(),
+    badgeSources.fetchFfzBadges()
+  ]);
+  thirdPartyBadges = { ...bttv };
+  for (const [id, list] of Object.entries(ffz)) {
+    thirdPartyBadges[id] = (thirdPartyBadges[id] || []).concat(list);
+  }
+  return BadgesLib.buildCatalog(globalBadges, channelBadges);
+}
+
 // --- IPC: zentrale Lade-Logik ---------------------------------------------
 // Das gemeinsame Eingabefeld (im Video-Fenster) schickt 'submit-load'.
 // Wir parsen, loesen IDs + 7TV-Emotes auf und broadcasten 'load' an beide.
@@ -113,12 +136,14 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       const user = await twitch.resolveUserId(parsed.value);
       const channelEmotes = await twitch.fetch7tvEmotes(user.id);
       const emotes = { ...globalEmotes, ...channelEmotes };
+      const badgeCatalog = await loadBadgeData(user.id);
       const payload = {
         mode: 'live',
         channel: user.login,
         displayName: user.displayName,
         userId: user.id,
-        emotes
+        emotes,
+        badgeCatalog
       };
       broadcast('load', payload);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
@@ -135,13 +160,15 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     }
     const channelEmotes = owner.id ? await twitch.fetch7tvEmotes(owner.id) : {};
     const emotes = { ...globalEmotes, ...channelEmotes };
+    const badgeCatalog = await loadBadgeData(owner.id);
     const payload = {
       mode: 'vod',
       videoId: parsed.value,
       displayName: owner.displayName,
       channel: owner.login,
       lengthSeconds: owner.lengthSeconds || 0,
-      emotes
+      emotes,
+      badgeCatalog
     };
     broadcast('load', payload);
     pushHistory({
@@ -209,6 +236,17 @@ ipcMain.handle('vod-comments', async (_evt, args) => {
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   }
+});
+
+// Third-Party-Badges (7TV/BTTV/FFZ) eines Users, gecacht pro Session.
+ipcMain.handle('user-badges', async (_evt, userId) => {
+  const id = String(userId || '');
+  if (!id) return { ok: true, badges: [] };
+  if (!sevenTvCache.has(id)) {
+    sevenTvCache.set(id, badgeSources.fetch7tvUserBadge(id).catch(() => []));
+  }
+  const sevenTv = await sevenTvCache.get(id);
+  return { ok: true, badges: [...(thirdPartyBadges[id] || []), ...sevenTv] };
 });
 
 // --- IPC: Home-Overlay (Favoriten, Live-Status, VOD-Listen) ---------------

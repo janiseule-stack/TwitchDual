@@ -24,6 +24,9 @@ if (!isTwitchFrame) {
     // VOD-Kommentarseiten nachladen (Chat-Fenster).
     fetchVodComments: (args) => ipcRenderer.invoke('vod-comments', args),
 
+    // Third-Party-Badges (7TV/BTTV/FFZ) eines Users (Chat-Fenster).
+    fetchUserBadges: (userId) => ipcRenderer.invoke('user-badges', userId),
+
     // Video-Fenster meldet aktuelle Abspielzeit.
     sendPlayerTime: (seconds) => ipcRenderer.send('player-time', seconds),
 

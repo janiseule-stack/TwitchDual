@@ -12,6 +12,10 @@ const $optTs = document.getElementById('opt-ts');
 const $optBadges = document.getElementById('opt-badges');
 
 let emoteMap = {};
+let badgeCatalog = {};
+// Third-Party-Badges pro User: userId -> [{url,title}] (fertig) | true (laeuft).
+// Badge erscheint ab der Nachricht, zu der der Lookup fertig ist.
+let userBadgeCache = new Map();
 let ircSocket = null;
 let vod = null; // VodReplay-Instanz
 
@@ -79,14 +83,6 @@ function appendSystem(text) {
   trimMessages();
 }
 
-// Bekannte IRC-Badges -> kompakte farbige Kuerzel.
-const KNOWN_BADGES = {
-  broadcaster: ['B', '#eb0400'],
-  moderator: ['M', '#00ad03'],
-  vip: ['V', '#e005b9'],
-  subscriber: ['S', '#9147ff']
-};
-
 // Ein Emote-Bild XSS-sicher anhaengen (7TV liefert url, natives Twitch die id).
 function appendEmote(parent, name, url) {
   const img = document.createElement('img');
@@ -98,10 +94,30 @@ function appendEmote(parent, name, url) {
   parent.appendChild(img);
 }
 
+// Ein aufgeloestes Badge anhaengen: Bild oder Kuerzel-Chip (Fallback).
+function appendBadge(parent, b) {
+  if (b.url) {
+    const img = document.createElement('img');
+    img.className = 'badge';
+    img.src = b.url;
+    img.alt = b.title;
+    img.title = b.title;
+    img.loading = 'lazy';
+    parent.appendChild(img);
+  } else {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = b.fallback;
+    chip.style.background = b.color;
+    chip.title = b.title;
+    parent.appendChild(chip);
+  }
+}
+
 // name: string, color: string|null,
 // tokens: [{type:'text',value}|{type:'emote',name,id|url}] – aus
 // IrcParse.emoteTokens (live) bzw. VodReplayCore.fragmentsToTokens (VOD).
-// opts: { replay?: bool, timeSeconds?: number, badges?: string[] }
+// opts: { replay?, timeSeconds?, badges?: [{set,version}], months?, userId? }
 function appendMessage(name, color, tokens, opts = {}) {
   const stick = nearBottom();
   const div = document.createElement('div');
@@ -114,15 +130,23 @@ function appendMessage(name, color, tokens, opts = {}) {
     div.appendChild(ts);
   }
 
-  for (const b of opts.badges || []) {
-    const def = KNOWN_BADGES[b];
-    if (!def) continue;
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.textContent = def[0];
-    chip.style.background = def[1];
-    chip.title = b;
-    div.appendChild(chip);
+  // Badges: Katalog-Aufloesung (DOM-frei getestet in ../lib/badges.js).
+  // Wirft nie; leerer Katalog -> Kuerzel-Chips wie frueher.
+  for (const b of Badges.resolve(opts.badges, badgeCatalog, { months: opts.months })) {
+    appendBadge(div, b);
+  }
+  // Third-Party (7TV/BTTV/FFZ) aus dem Session-Cache; erster Treffer eines
+  // Users stoesst den Lookup an, gerendert wird ab der naechsten Nachricht.
+  if (opts.userId) {
+    const cached = userBadgeCache.get(opts.userId);
+    if (Array.isArray(cached)) {
+      for (const b of cached) appendBadge(div, b);
+    } else if (!cached) {
+      userBadgeCache.set(opts.userId, true);
+      window.twitchDual.fetchUserBadges(opts.userId)
+        .then((r) => userBadgeCache.set(opts.userId, (r && r.badges) || []))
+        .catch(() => userBadgeCache.set(opts.userId, []));
+    }
   }
 
   const user = document.createElement('span');
@@ -220,7 +244,9 @@ function connectIrc(channel) {
           (msg.prefix.split('!')[0]) || 'anon';
         const color = msg.tags['color'] || null;
         appendMessage(name, color, IrcParse.emoteTokens(text, msg.tags['emotes']), {
-          badges: IrcParse.badgeTypes(msg.tags)
+          badges: Badges.parseBadgeTag(msg.tags),
+          months: Badges.subMonths(msg.tags),
+          userId: msg.tags['user-id'] || null
         });
       } else if (msg.command === '366') {
         ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
@@ -268,7 +294,7 @@ function createVodReplay(payload) {
       window.twitchDual.fetchVodComments({ videoId, offsetSeconds }),
     onMessage: (c) => appendMessage(
       c.name, c.color, VodReplayCore.fragmentsToTokens(c.fragments),
-      { replay: true, timeSeconds: c.offset, badges: c.badges }
+      { replay: true, timeSeconds: c.offset, badges: c.badges, userId: c.userId }
     ),
     onClear: () => { $messages.innerHTML = ''; },
     onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
@@ -280,6 +306,8 @@ function createVodReplay(payload) {
 // ---------------------------------------------------------------------------
 window.twitchDual.onLoad((payload) => {
   emoteMap = payload.emotes || {};
+  badgeCatalog = payload.badgeCatalog || {};
+  userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
   $messages.innerHTML = '';
   autoScroll = true; // neue Quelle -> wieder unten kleben
   pendingNew = 0;

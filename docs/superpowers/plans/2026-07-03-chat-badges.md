@@ -315,24 +315,25 @@ git commit -m "feat: Badge-Katalog (Merge global/Kanal) + Aufloesung mit Kuerzel
 
 **Files:**
 - Create: `src/badge-sources.js`
+- Create: `test/helpers.js` (geteilte Fake-fetch-Helfer)
 - Test: `test/badge-sources.test.js`
 
 **Interfaces:**
-- Consumes: `gql`, `fetchWithRetry` aus `src/twitch-gql.js`; `fakeFetch`-Muster aus `test/twitch-gql.test.js`.
+- Consumes: `gql`, `fetchWithRetry` aus `src/twitch-gql.js`.
 - Produces: `fetchGlobalBadges(opts) -> Promise<[{setID,version,title,imageURL}]>`,
   `fetchChannelBadges(channelId, opts) -> Promise<[…]>`.
   Beide fail-soft: Fehler jeder Art -> `[]`.
+  Außerdem: `test/helpers.js` mit `res(status, body)`, `fakeFetch(script)`,
+  `fast` — wird in Task 6 auch von `test/twitch-gql.test.js` genutzt.
 
 - [ ] **Step 1: Failing Tests schreiben**
 
-`test/badge-sources.test.js` (Helfer `res`/`fakeFetch` aus `test/twitch-gql.test.js` kopieren — bewusst dupliziert, die Testdateien sind hier eigenständig):
+Zuerst `test/helpers.js` anlegen (Extrakt der bewährten Helfer aus
+`test/twitch-gql.test.js`; die Altdatei wird in Task 6 umgestellt):
 
 ```js
-const { test } = require('node:test');
-const assert = require('node:assert');
-const {
-  fetchGlobalBadges, fetchChannelBadges
-} = require('../src/badge-sources');
+// Geteilte Test-Helfer: Fake-Response + Fake-fetch, Antworten der Reihe
+// nach abspielen. Kein Netz in Tests.
 
 function res(status, body = {}) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -349,7 +350,21 @@ function fakeFetch(script) {
   return { fn, calls };
 }
 
+// Tests nicht schlafen lassen (Backoff-Delays ueberspringen).
 const fast = { delayFn: async () => {} };
+
+module.exports = { res, fakeFetch, fast };
+```
+
+Dann `test/badge-sources.test.js`:
+
+```js
+const { test } = require('node:test');
+const assert = require('node:assert');
+const { res, fakeFetch, fast } = require('./helpers');
+const {
+  fetchGlobalBadges, fetchChannelBadges
+} = require('../src/badge-sources');
 
 test('fetchGlobalBadges: liefert die GQL-Badge-Liste', async () => {
   const { fn } = fakeFetch([res(200, {
@@ -458,7 +473,7 @@ Expected: beide Listen nicht leer, Einträge mit `setID`/`version`/`imageURL`. W
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/badge-sources.js test/badge-sources.test.js
+git add src/badge-sources.js test/badge-sources.test.js test/helpers.js
 git commit -m "feat: Twitch-Badge-Kataloge (global + Kanal) per GQL, fail-soft"
 ```
 
@@ -708,7 +723,10 @@ git commit -m "feat: 7TV-User-Badge-Lookup (Endpoint live verifiziert)"
 
 **Files:**
 - Modify: `src/twitch-api.js:158` (badges-Mapping in `fetchVodComments`)
-- Modify: `test/twitch-gql.test.js:88-100` (bestehender Mapping-Test)
+- Modify: `test/twitch-gql.test.js:88-100` (bestehender Mapping-Test; außerdem
+  lokale `res`/`fakeFetch`/`fast`-Definitionen löschen und stattdessen
+  `const { res, fakeFetch, fast } = require('./helpers');` importieren —
+  das Helfer-Modul existiert seit Task 3)
 
 **Interfaces:**
 - Produces: Kommentar-Objekte mit `badges: [{set, version}]` (statt `string[]`)
