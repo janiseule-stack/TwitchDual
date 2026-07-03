@@ -54,6 +54,14 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Live (IRC `badges=`/`badge-info=`, Tooltip mit Abo-Monaten) UND VOD-Replay
   (`userBadges` mit Versionen).
 
+**VOD-Replay-Fix (v1.3.1)**
+- "Chat stuck" in Mega-Chats (z.B. Caedrel): Offset-Paginierung wertete
+  Seitengrenzen-Kollisionen (Twitch liefert die Seite, die den Offset
+  enthaelt — auch wenn sie ganz dahinter liegt) als stille Luecke und
+  uebersprang 30s echte Kommentare. Jetzt: Kollision -> +1s weitertasten,
+  nur komplett leere Antwort -> GAP_STEP. Live am Caedrel-VOD verifiziert
+  (26s-Loecher weg, groesste Luecke 3s).
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
