@@ -41,5 +41,59 @@
     return null;
   }
 
-  return { parseBadgeTag: parseBadgeTag, subMonths: subMonths };
+  // Kuerzel-Fallback (ehemals KNOWN_BADGES in chat.js), wenn der Katalog
+  // komplett fehlt (Netz-/GQL-Ausfall). Farben wie bisher.
+  var FALLBACK = {
+    broadcaster: ['B', '#eb0400'],
+    moderator: ['M', '#00ad03'],
+    vip: ['V', '#e005b9'],
+    subscriber: ['S', '#9147ff']
+  };
+
+  // GQL-Listen -> flache Map "set/version" -> {url, title}. Kanal-Liste
+  // ueberschreibt die globale. "set/*" zeigt je Liste auf die erste Version
+  // des Sets (Fallback fuer unbekannte Versionen), Kanal gewinnt auch hier.
+  function buildCatalog(globalList, channelList) {
+    var catalog = {};
+    [globalList, channelList].forEach(function (list) {
+      var seenSets = {};
+      (Array.isArray(list) ? list : []).forEach(function (b) {
+        if (!b || !b.setID || b.version == null || !b.imageURL) return;
+        var entry = { url: String(b.imageURL), title: b.title || b.setID };
+        catalog[b.setID + '/' + b.version] = entry;
+        if (!seenSets[b.setID]) {
+          seenSets[b.setID] = true;
+          catalog[b.setID + '/*'] = entry;
+        }
+      });
+    });
+    return catalog;
+  }
+
+  // Paare + Katalog -> Render-Liste. Katalog leer -> Kuerzel-Fallback,
+  // unbekanntes Set bei vorhandenem Katalog -> weglassen. Wirft nie.
+  function resolve(pairs, catalog, opts) {
+    var months = (opts && opts.months) || null;
+    var cat = (catalog && typeof catalog === 'object') ? catalog : {};
+    var empty = Object.keys(cat).length === 0;
+    var out = [];
+    (Array.isArray(pairs) ? pairs : []).forEach(function (p) {
+      if (!p || !p.set) return;
+      if (empty) {
+        var fb = FALLBACK[p.set];
+        if (fb) out.push({ fallback: fb[0], color: fb[1], title: p.set });
+        return;
+      }
+      var entry = cat[p.set + '/' + p.version] || cat[p.set + '/*'];
+      if (!entry) return;
+      var title = entry.title;
+      if (months && (p.set === 'subscriber' || p.set === 'founder')) {
+        title += ' (' + months + ' Monate)';
+      }
+      out.push({ url: entry.url, title: title });
+    });
+    return out;
+  }
+
+  return { parseBadgeTag: parseBadgeTag, subMonths: subMonths, buildCatalog: buildCatalog, resolve: resolve, FALLBACK: FALLBACK };
 });
