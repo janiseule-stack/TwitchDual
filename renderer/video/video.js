@@ -77,6 +77,9 @@ function mountPlayer(options) {
     try { player = null; } catch (e) {}
   }
   $player.innerHTML = '';
+  // innerHTML='' hat auch das Werbe-Overlay entfernt -> wieder einhaengen
+  // (Referenz bleibt gueltig; z-index haelt es ueber dem Embed-iframe).
+  if ($adOverlay) $player.appendChild($adOverlay);
 
   if (typeof Twitch === 'undefined' || !Twitch.Player) {
     setStatus('Twitch-Embed nicht geladen (Internet?)');
