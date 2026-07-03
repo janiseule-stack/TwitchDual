@@ -2,24 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { fetchWithRetry, gql } = require('../src/twitch-gql');
 const { fetchVodComments, resolveUserId } = require('../src/twitch-api');
-
-// Fake-Response + Fake-fetch: Antworten der Reihe nach abspielen.
-function res(status, body = {}) {
-  return { ok: status >= 200 && status < 300, status, json: async () => body };
-}
-
-function fakeFetch(script) {
-  const calls = [];
-  const fn = async (url, init) => {
-    calls.push({ url, init });
-    const next = script.shift();
-    if (next instanceof Error) throw next;
-    return next;
-  };
-  return { fn, calls };
-}
-
-const fast = { delayFn: async () => {} }; // Tests nicht schlafen lassen
+const { res, fakeFetch, fast } = require('./helpers');
 
 test('fetchWithRetry: 5xx wird wiederholt, dann Erfolg', async () => {
   const { fn, calls } = fakeFetch([res(500), res(200, { x: 1 })]);
@@ -82,10 +65,10 @@ test('fetchVodComments: Mapping (id, offset, name, color, fragments)', async () 
       data: { video: { comments: { edges: [{
         node: {
           id: 'c1', contentOffsetSeconds: 42,
-          commenter: { displayName: 'Max', login: 'max' },
+          commenter: { id: 'u77', displayName: 'Max', login: 'max' },
           message: {
             userColor: '#f00',
-            userBadges: [{ setID: 'moderator', version: '1' }, { setID: '', version: '' }],
+            userBadges: [{ setID: 'moderator', version: '1' }, { setID: 'vip' }, { setID: '', version: '' }],
             fragments: [{ text: 'hi ' }, { text: 'OMEGALUL', emote: null }]
           }
         }
@@ -95,7 +78,11 @@ test('fetchVodComments: Mapping (id, offset, name, color, fragments)', async () 
   const r = await fetchVodComments('123', { offsetSeconds: 42.9 }, { ...fast, fetchImpl: fn });
   assert.deepEqual(r.comments, [{
     id: 'c1', offset: 42, name: 'Max', color: '#f00',
-    badges: ['moderator'],
+    userId: 'u77',
+    badges: [
+      { set: 'moderator', version: '1' },
+      { set: 'vip', version: '1' }
+    ],
     fragments: [{ text: 'hi ', emote: null }, { text: 'OMEGALUL', emote: null }]
   }]);
   // Offset wird abgerundet an die API gegeben.

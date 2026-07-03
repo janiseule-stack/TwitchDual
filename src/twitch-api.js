@@ -153,9 +153,16 @@ async function fetchVodComments(videoId, { offsetSeconds = null } = {}, opts = {
       id: n.id || null,
       offset: n.contentOffsetSeconds || 0,
       name: commenter.displayName || commenter.login || 'anon',
+      userId: commenter.id || null,
       color: (msg.userColor) || null,
-      // userBadges: [{ setID: 'moderator', version: '1' }, ...] -> Typen-Liste
-      badges: (msg.userBadges || []).map((b) => b.setID || '').filter(Boolean),
+      // userBadges: [{ setID, version }] -> Paare fuer Badges.resolve;
+      // fehlende Version -> '1' (wie beim IRC-Tag-Parsing).
+      badges: (msg.userBadges || [])
+        .map((b) => ({
+          set: (b && b.setID) || '',
+          version: b && b.version != null && b.version !== '' ? String(b.version) : '1'
+        }))
+        .filter((b) => b.set),
       fragments
     };
   });
