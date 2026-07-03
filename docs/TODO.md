@@ -44,6 +44,16 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - **vaft aktualisieren:** siehe `vendor/README.md` (Datei ersetzen, Smoke-Test,
   als App-Release ausliefern).
 
+**Chat-Badges als Bilder (v1.3.0)**
+- Twitch-Global-Katalog (ALLE Sets inkl. Wahl-Badges) + Kanal-Sub/Bits-Badges
+  per GQL (`src/badge-sources.js`), Merge/Aufloesung DOM-frei in
+  `renderer/lib/badges.js` (unit-getestet). Kuerzel B/M/V/S nur noch als
+  Fallback bei Katalog-Ausfall.
+- 7TV-Badge pro User (Session-Cache, `user-badges`-IPC; Endpoint v4-GQL
+  `userByConnection`, verifiziert 2026-07-03) + BTTV/FFZ-Gesamtlisten.
+- Live (IRC `badges=`/`badge-info=`, Tooltip mit Abo-Monaten) UND VOD-Replay
+  (`userBadges` mit Versionen).
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
