@@ -33,6 +33,10 @@ body { display: flex; flex-direction: column; }
   border-radius: 3px; padding: 0 3px; margin-right: 4px;
   vertical-align: 1px;
 }
+.msg .badge {
+  height: 18px; width: 18px;
+  vertical-align: -3px; margin-right: 4px; border-radius: 3px;
+}
 .msg .sep { color: #adadb8; }
 .msg .emote {
   height: 28px; vertical-align: middle; margin: 0 1px;
@@ -82,4 +86,5 @@ body { display: flex; flex-direction: column; }
 
 /* Einstellungen wirken per Klasse am Container sofort auf alle Nachrichten. */
 #messages.hide-ts .ts { display: none; }
-#messages.hide-badges .chip { display: none; }
+#messages.hide-badges .chip,
+#messages.hide-badges .badge { display: none; }
