@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
@@ -179,6 +180,16 @@ ipcMain.handle('set-adblock-enabled', (_evt, enabled) => {
   const val = !!enabled;
   store.set('adblockEnabled', val);
   return { ok: true, enabled: val };
+});
+
+// vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)
+// und holt sich die gepinnte Vendor-Datei deshalb per IPC.
+let vaftSourceCache = null;
+ipcMain.handle('get-vaft-source', () => {
+  if (vaftSourceCache === null) {
+    vaftSourceCache = fs.readFileSync(path.join(__dirname, 'vendor', 'vaft.js'), 'utf8');
+  }
+  return vaftSourceCache;
 });
 
 // Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.

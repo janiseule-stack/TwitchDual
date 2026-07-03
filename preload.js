@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
-const fs = require('fs');
-const path = require('path');
+// ACHTUNG: Preload laeuft in der Electron-Sandbox — require() kann hier NUR
+// 'electron' (+ events/timers/url). Kein fs/path! Dateien liest der
+// Main-Prozess und liefert sie per IPC (siehe 'get-vaft-source').
 
 // Laeuft dieser Preload in einem eingebetteten Twitch-iframe? (Video-Fenster
 // hat nodeIntegrationInSubFrames.) Dann NUR den Werbe-Blocker aktivieren und
@@ -79,8 +80,9 @@ if (!isTwitchFrame) {
       }
     });
 
-    const vaftPath = path.join(__dirname, 'vendor', 'vaft.js');
-    const vaftSrc = fs.readFileSync(vaftPath, 'utf8');
+    // Vendor-Datei kommt aus dem Main-Prozess (Sandbox: kein fs im Preload).
+    const vaftSrc = await ipcRenderer.invoke('get-vaft-source');
+    if (!vaftSrc) return;
 
     // Wrapper: exponiert postMessage-Signal fuer unseren Hook, laedt dann vaft.
     // vaft loggt Ad-Erkennung; wir beobachten diese Signale defensiv ueber eine
