@@ -79,6 +79,19 @@ Live-Status und VOD-Listen kommen über dieselbe inoffizielle Twitch-GraphQL-API
 
 ---
 
+## Werbe-Blocker
+
+TwitchDual injiziert das gepflegte **vaft**-Skript in den Twitch-Player und
+überspringt so die serverseitig eingebettete Werbung. Kommt doch mal Werbung
+durch, wird sie kurz per Overlay + Stummschaltung überbrückt. Über den
+Schalter **🛡 Ads** in der Leiste lässt sich der Blocker abschalten (die
+Einstellung wird gemerkt; sie greift beim nächsten Laden des Players).
+
+Der Blocker ist für die private Nutzung gedacht. vaft ist Fremdcode
+(`vendor/vaft.js`); Aktualisierung siehe `vendor/README.md`.
+
+---
+
 ## Wie es funktioniert (Architektur)
 
 ```

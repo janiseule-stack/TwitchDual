@@ -33,6 +33,17 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
 - ⚙-Chat-Einstellungen: Zeitstempel/Badges an/aus, persistent (chatPrefs, v1.1.0).
 
+**Werbe-Blocker (v1.2.0)**
+- vaft (gepinnt in `vendor/vaft.js`, Fork ryanbr/TwitchAdSolutions) wird per
+  Preload in den `player.twitch.tv`-iframe injiziert und überspringt Werbung
+  (Playlist-/Player-Typ-Tausch). Nur wenn `adblockEnabled` (Default an).
+- Fallback bei durchgekommener Werbung: Overlay „Werbung wird überbrückt …"
+  + Mute, gesteuert von DOM-freier Zustandsmaschine
+  (`renderer/lib/ad-overlay-state.js`, unit-getestet) mit 120-s-Watchdog.
+- Adblock-Schalter (🛡 Ads) in der Video-Leiste, persistent.
+- **vaft aktualisieren:** siehe `vendor/README.md` (Datei ersetzen, Smoke-Test,
+  als App-Release ausliefern).
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
