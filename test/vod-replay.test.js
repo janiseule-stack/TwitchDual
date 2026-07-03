@@ -71,6 +71,48 @@ test('ensureCoverage: kein Fortschritt -> Fenster um VOD_GAP_STEP verschieben', 
   assert.equal(core.coveredUntil, covered0 + VodReplayCore.VOD_GAP_STEP);
 });
 
+test('ensureCoverage: Seitengrenze exakt auf coveredUntil ueberspringt keine 30s', async () => {
+  // Twitch liefert immer die ganze Seite, die den Offset ENTHAELT. Endet die
+  // Seite exakt auf coveredUntil (busy Chat, ~55 Kommentare/Seite), liefert
+  // der Refetch dieselbe Seite -> kein Offset-Fortschritt. Das ist KEINE
+  // stille Luecke: +1s weiter anfragen holt die Folgeseite. (Bug: +GAP_STEP
+  // verwarf bis zu 30s echte Kommentare -> "Chat stuck" in Mega-Chats.)
+  const pageA = [c('a1', 0), c('a2', 5), c('a3', 10)];
+  const pageB = [c('b1', 11), c('b2', 15), c('b3', 20)];
+  const { core, rendered, fetchCalls } = makeCore((_v, off) => ({
+    ok: true,
+    comments: off <= 10 ? pageA : pageB
+  }));
+  await core.onTime(0);  // Seek: Seite A, coveredUntil = 10
+  await core.onTime(1);  // Anfrage bei 10 -> wieder Seite A (Kollision) -> +1
+  await core.onTime(2);  // Anfrage bei 11 -> Seite B
+  assert.ok(fetchCalls.includes(11), `Folgeseite bei 11 angefragt (calls: ${fetchCalls})`);
+  await core.onTime(9);
+  await core.onTime(16); // b1(11) + b2(15) sind faellig
+  assert.ok(rendered.includes('b1') && rendered.includes('b2'),
+    `Kommentare der Folgeseite gerendert (rendered: ${rendered})`);
+});
+
+test('ensureCoverage: Seite komplett HINTER dem Offset ist keine Luecke (+1, nicht +30)', async () => {
+  // Inter-Seiten-Void: Anfrage bei 12 liefert noch die alte Seite (..10),
+  // erst ab 13 kommt die Folgeseite. Live bei Caedrel beobachtet (9275).
+  const pageA = [c('a1', 0), c('a2', 5), c('a3', 10)];
+  const pageB = [c('b1', 13), c('b2', 18)];
+  const { core, rendered } = makeCore((_v, off) => ({
+    ok: true,
+    comments: off <= 12 ? pageA : pageB
+  }));
+  await core.onTime(0);   // Seek: Seite A, coveredUntil = 10
+  await core.onTime(1);   // req 10 -> Seite A (maxOff==req) -> +1 -> 11
+  await core.onTime(2);   // req 11 -> Seite A (maxOff<req)  -> +1 -> 12
+  await core.onTime(3);   // req 12 -> Seite A (maxOff<req)  -> +1 -> 13
+  await core.onTime(4);   // req 13 -> Seite B -> coveredUntil 18
+  await core.onTime(12);
+  await core.onTime(19);  // b1(13) + b2(18) faellig
+  assert.ok(rendered.includes('b1') && rendered.includes('b2'),
+    `Void zwischen Seiten wird ueberkrochen statt uebersprungen (rendered: ${rendered})`);
+});
+
 test('ensureCoverage: kein neuer Fetch solange Puffer weit genug reicht', async () => {
   const { core, fetchCalls } = makeCore((_v, off) => ({
     ok: true,

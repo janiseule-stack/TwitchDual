@@ -93,8 +93,12 @@
     }
 
     // Ein Kommentarfenster ab `offset` laden und einsortieren.
-    // Gibt zurueck, bis zu welchem Offset das Fenster reicht –
-    // oder null, wenn die Antwort veraltet ist (Seek waehrend des Fetches).
+    // Gibt { reached, collision } zurueck – oder null, wenn die Antwort
+    // veraltet ist (Seek waehrend des Fetches). collision heisst: die Antwort
+    // ENTHIELT Kommentare, aber alle bei/hinter dem angefragten Offset –
+    // Twitch hat (wieder) die Seite vor der Seitengrenze geliefert. Das ist
+    // keine stille Luecke, sondern eine Grenz-/Void-Kollision (in busy Chats
+    // bei ~55 Kommentaren/Seite staendig; live verifiziert 2026-07-04).
     async fetchAtOffset(offset) {
       const epoch = this.epoch;
       this.fetching = true;
@@ -108,12 +112,15 @@
       if (epoch !== this.epoch) return null;
       if (!res || !res.ok) {
         this.onError(res && res.error ? res.error : 'Kommentare nicht ladbar');
-        return offset;
+        return { reached: offset, collision: false };
       }
       this.merge(res.comments);
       const maxOff = res.comments.length
-        ? res.comments[res.comments.length - 1].offset : offset;
-      return Math.max(maxOff, offset);
+        ? res.comments[res.comments.length - 1].offset : null;
+      return {
+        reached: maxOff == null ? offset : Math.max(maxOff, offset),
+        collision: maxOff != null && maxOff <= offset
+      };
     }
 
     // Alles bis zum VOD-Ende angefragt? Dann gibt es nichts mehr nachzuladen.
@@ -141,11 +148,20 @@
       if (this.atEnd()) return;
       if (this.coveredUntil >= t + VOD_LOOKAHEAD) return;
       const reqOffset = Math.max(this.coveredUntil, Math.floor(t));
-      const reached = await this.fetchAtOffset(reqOffset);
-      if (reached == null) return; // veraltet: Seek hat uebernommen
-      // Kein Fortschritt (Luecke ohne Kommentare) -> Fenster nach vorn schieben,
-      // damit die Wiedergabe nicht an einer stillen Stelle haengen bleibt.
-      this.coveredUntil = reached > reqOffset ? reached : reqOffset + VOD_GAP_STEP;
+      const r = await this.fetchAtOffset(reqOffset);
+      if (r == null) return; // veraltet: Seek hat uebernommen
+      if (r.reached > reqOffset) {
+        this.coveredUntil = r.reached;
+      } else if (r.collision) {
+        // Seitengrenze/Void getroffen (busy Chat): +1s weitertasten, bis die
+        // Folgeseite kommt. NICHT um GAP_STEP springen – das verwarf bis zu
+        // 30s echte Kommentare ("Chat stuck" in Mega-Chats wie Caedrel).
+        this.coveredUntil = reqOffset + 1;
+      } else {
+        // Komplett leere Antwort (hinter VOD-Ende / keine Daten) ->
+        // grosszuegig ueberspringen, damit die Wiedergabe nicht haengt.
+        this.coveredUntil = reqOffset + VOD_GAP_STEP;
+      }
     }
 
     // Nach einem Sprung (Seek) komplett neu positionieren.
@@ -158,9 +174,9 @@
       this.renderIndex = 0;
       this.coveredUntil = -1;
       const start = Math.max(0, Math.floor(t));
-      const reached = await this.fetchAtOffset(start);
-      if (reached == null) return; // veraltet: noch neuerer Seek dazwischen
-      this.coveredUntil = Math.max(reached, start);
+      const r = await this.fetchAtOffset(start);
+      if (r == null) return; // veraltet: noch neuerer Seek dazwischen
+      this.coveredUntil = Math.max(r.reached, start);
       // Etwas Kontext zeigen: die Kommentare bis t sofort einblenden.
       this.advance(t);
     }
