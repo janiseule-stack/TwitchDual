@@ -2,7 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { res, fakeFetch, fast } = require('./helpers');
 const {
-  fetchGlobalBadges, fetchChannelBadges, fetchBttvBadges, fetchFfzBadges
+  fetchGlobalBadges, fetchChannelBadges, fetchBttvBadges, fetchFfzBadges,
+  fetch7tvUserBadge
 } = require('../src/badge-sources');
 
 test('fetchGlobalBadges: liefert die GQL-Badge-Liste', async () => {
@@ -83,4 +84,36 @@ test('fetchFfzBadges: users-Map (badgeId -> [userId]) wird aufgeloest', async ()
 test('fetchFfzBadges: Fehler -> leere Map', async () => {
   const { fn } = fakeFetch([new Error('offline'), new Error('offline'), new Error('offline')]);
   assert.deepEqual(await fetchFfzBadges({ ...fast, fetchImpl: fn }), {});
+});
+
+test('fetch7tvUserBadge: aktives Badge des Users', async () => {
+  const { fn } = fakeFetch([res(200, {
+    data: { users: { userByConnection: { style: { activeBadge: {
+      id: 'x', name: 'Subscriber', description: '7TV Subscriber',
+      images: [{ url: 'https://cdn.7tv.app/badge/x/1x', width: 18 },
+               { url: 'https://cdn.7tv.app/badge/x/2x', width: 36 }]
+    } } } } }
+  })]);
+  const list = await fetch7tvUserBadge('22484632', { ...fast, fetchImpl: fn });
+  assert.deepEqual(list, [{ url: 'https://cdn.7tv.app/badge/x/2x', title: '7TV Subscriber' }]);
+});
+
+test('fetch7tvUserBadge: kein 7TV-User / Fehler -> leer', async () => {
+  const { fn } = fakeFetch([res(404)]);
+  assert.deepEqual(await fetch7tvUserBadge('1', { ...fast, fetchImpl: fn }), []);
+  const { fn: fn2 } = fakeFetch([new Error('x'), new Error('x'), new Error('x')]);
+  assert.deepEqual(await fetch7tvUserBadge('1', { ...fast, fetchImpl: fn2 }), []);
+  assert.deepEqual(await fetch7tvUserBadge('', {}), []);
+});
+
+test('fetch7tvUserBadge: Nutzer ohne 7TV-Account (userByConnection null) -> leer', async () => {
+  const { fn } = fakeFetch([res(200, { data: { users: { userByConnection: null } } })]);
+  assert.deepEqual(await fetch7tvUserBadge('22484632', { ...fast, fetchImpl: fn }), []);
+});
+
+test('fetch7tvUserBadge: 7TV-Account ohne aktives Badge -> leer', async () => {
+  const { fn } = fakeFetch([res(200, {
+    data: { users: { userByConnection: { style: { activeBadge: null } } } }
+  })]);
+  assert.deepEqual(await fetch7tvUserBadge('26301881', { ...fast, fetchImpl: fn }), []);
 });
