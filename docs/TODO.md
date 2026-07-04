@@ -62,6 +62,12 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   nur komplett leere Antwort -> GAP_STEP. Live am Caedrel-VOD verifiziert
   (26s-Loecher weg, groesste Luecke 3s).
 
+**Autoscroll-Fix (v1.3.2)**
+- Kleben am unteren Rand haengt an der Nutzer-Absicht (autoScroll), nicht
+  mehr an nearBottom() pro Nachricht: nachladende Emote-Bilder verschoben
+  das Layout und liessen den Chat dauerhaft stehen. Programmatische Scrolls
+  markieren sich selbst und zaehlen im scroll-Handler nicht als Nutzer-Scroll.
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
