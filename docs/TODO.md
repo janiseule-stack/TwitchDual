@@ -68,6 +68,12 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   das Layout und liessen den Chat dauerhaft stehen. Programmatische Scrolls
   markieren sich selbst und zaehlen im scroll-Handler nicht als Nutzer-Scroll.
 
+**Autoscroll-Nachschlag (v1.3.3)**
+- Restfaelle: Chromium-eigene Scroll-Events (Scroll-Anchoring/Clamping bei
+  Bild-Nachladen und DOM-Trim) schalteten das Kleben weiter vereinzelt aus.
+  Jetzt schalten NUR echte Eingaben aus (Wheel hoch, PageUp/ArrowUp/Home,
+  Scrollbar-Drag); Scroll-Events schalten hoechstens wieder ein.
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
