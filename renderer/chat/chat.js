@@ -25,14 +25,23 @@ let vod = null; // VodReplay-Instanz
 // autoScroll = "am unteren Rand kleben". Wird NUR durch echtes Nutzer-Scrollen
 // geaendert, nicht durch asynchrones Nachwachsen (Emote-Bilder laden verzoegert
 // und verschieben das Layout -> deshalb kein nearBottom() pro Nachricht raten).
+// Solange autoScroll an ist, scrollt JEDE neue Nachricht ans Ende; das
+// repariert Bild-Drift von selbst. Programmatische Scrolls markieren sich,
+// damit der scroll-Handler sie nicht als Nutzer-Absicht fehldeutet (sonst
+// kippte autoScroll grundlos aus -> "Chat bleibt stehen" in Emote-Chats).
 let autoScroll = true;
+let programmaticScroll = false;
 
 function nearBottom() {
   return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
 }
 
 function scrollToBottom() {
+  const before = $messages.scrollTop;
   $messages.scrollTop = $messages.scrollHeight;
+  // Nur markieren, wenn sich die Position geaendert hat (sonst kommt kein
+  // scroll-Event und die Markierung wuerde ein echtes Nutzer-Event schlucken).
+  if ($messages.scrollTop !== before) programmaticScroll = true;
 }
 
 // Zaehler fuer Nachrichten, die unterhalb des Sichtbereichs aufgelaufen sind,
@@ -58,7 +67,12 @@ $newMsgs.addEventListener('click', () => {
 
 // Beim Scrollen entscheiden, ob wir weiter kleben. Scrollt der Nutzer hoch zum
 // Lesen -> autoScroll aus; scrollt er zurueck nach unten -> wieder an.
+// Eigene (programmatische) Scrolls zaehlen nicht als Nutzer-Absicht.
 $messages.addEventListener('scroll', () => {
+  if (programmaticScroll) {
+    programmaticScroll = false;
+    return;
+  }
   autoScroll = nearBottom();
   if (autoScroll) updateNewMsgsButton(); // wieder unten -> Button weg
 });
@@ -79,7 +93,7 @@ function appendSystem(text) {
   div.className = 'msg system';
   div.textContent = text;
   $messages.appendChild(div);
-  $messages.scrollTop = $messages.scrollHeight;
+  scrollToBottom();
   trimMessages();
 }
 
@@ -119,7 +133,6 @@ function appendBadge(parent, b) {
 // IrcParse.emoteTokens (live) bzw. VodReplayCore.fragmentsToTokens (VOD).
 // opts: { replay?, timeSeconds?, badges?: [{set,version}], months?, userId? }
 function appendMessage(name, color, tokens, opts = {}) {
-  const stick = nearBottom();
   const div = document.createElement('div');
   div.className = 'msg' + (opts.replay ? ' replay' : '');
 
@@ -179,8 +192,11 @@ function appendMessage(name, color, tokens, opts = {}) {
   }
 
   $messages.appendChild(div);
-  if (stick) {
-    $messages.scrollTop = $messages.scrollHeight;
+  // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
+  // Nachricht kippte um, sobald nachladende Emote-Bilder das Layout
+  // verschoben hatten -> Chat blieb dauerhaft stehen (Mega-Chats).
+  if (autoScroll) {
+    scrollToBottom();
   } else {
     pendingNew++;
     updateNewMsgsButton();
