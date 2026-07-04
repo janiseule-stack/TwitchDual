@@ -22,27 +22,44 @@ let vod = null; // VodReplay-Instanz
 // ---------------------------------------------------------------------------
 // Gemeinsames Rendering
 // ---------------------------------------------------------------------------
-// autoScroll = "am unteren Rand kleben". Wird NUR durch echtes Nutzer-Scrollen
-// geaendert, nicht durch asynchrones Nachwachsen (Emote-Bilder laden verzoegert
-// und verschieben das Layout -> deshalb kein nearBottom() pro Nachricht raten).
+// autoScroll = "am unteren Rand kleben". AUSschalten darf das nur eine
+// explizite Nutzer-Eingabe nach oben (Mausrad, Tasten, Scrollbar-Ziehen).
+// Scroll-Events schalten hoechstens wieder EIN (unten angekommen) - denn
+// Chromium feuert auch selbst Scroll-Events (Scroll-Anchoring/Clamping bei
+// nachladenden Bildern und DOM-Trim), und jede Messung darauf kippte das
+// Kleben grundlos aus -> "Chat bleibt stehen" in Emote-Chats.
 // Solange autoScroll an ist, scrollt JEDE neue Nachricht ans Ende; das
-// repariert Bild-Drift von selbst. Programmatische Scrolls markieren sich,
-// damit der scroll-Handler sie nicht als Nutzer-Absicht fehldeutet (sonst
-// kippte autoScroll grundlos aus -> "Chat bleibt stehen" in Emote-Chats).
+// repariert Bild-Drift von selbst.
 let autoScroll = true;
-let programmaticScroll = false;
+let scrollbarDrag = false;
 
 function nearBottom() {
   return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
 }
 
 function scrollToBottom() {
-  const before = $messages.scrollTop;
   $messages.scrollTop = $messages.scrollHeight;
-  // Nur markieren, wenn sich die Position geaendert hat (sonst kommt kein
-  // scroll-Event und die Markierung wuerde ein echtes Nutzer-Event schlucken).
-  if ($messages.scrollTop !== before) programmaticScroll = true;
 }
+
+// Nutzer will nach oben (nur relevant, wenn es ueberhaupt Overflow gibt).
+function userScrollsUp() {
+  if ($messages.scrollHeight > $messages.clientHeight) autoScroll = false;
+}
+
+$messages.addEventListener('wheel', (e) => {
+  if (e.deltaY < 0) userScrollsUp();
+}, { passive: true });
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'Home') userScrollsUp();
+});
+
+// Scrollbar gepackt? Klick rechts der Inhaltsflaeche (clientWidth ist ohne
+// Scrollbar) - waehrend des Ziehens entscheiden die Scroll-Events.
+$messages.addEventListener('mousedown', (e) => {
+  if (e.offsetX >= $messages.clientWidth) scrollbarDrag = true;
+});
+window.addEventListener('mouseup', () => { scrollbarDrag = false; });
 
 // Zaehler fuer Nachrichten, die unterhalb des Sichtbereichs aufgelaufen sind,
 // waehrend der Nutzer hochgescrollt ist.
@@ -65,16 +82,14 @@ $newMsgs.addEventListener('click', () => {
   updateNewMsgsButton();
 });
 
-// Beim Scrollen entscheiden, ob wir weiter kleben. Scrollt der Nutzer hoch zum
-// Lesen -> autoScroll aus; scrollt er zurueck nach unten -> wieder an.
-// Eigene (programmatische) Scrolls zaehlen nicht als Nutzer-Absicht.
+// Scroll-Events: beim Scrollbar-Ziehen nach oben ausschalten, ansonsten
+// hoechstens wieder einschalten, wenn der Nutzer unten angekommen ist.
 $messages.addEventListener('scroll', () => {
-  if (programmaticScroll) {
-    programmaticScroll = false;
-    return;
+  if (scrollbarDrag && !nearBottom()) autoScroll = false;
+  if (nearBottom()) {
+    autoScroll = true;
+    updateNewMsgsButton(); // wieder unten -> Button weg
   }
-  autoScroll = nearBottom();
-  if (autoScroll) updateNewMsgsButton(); // wieder unten -> Button weg
 });
 
 function trimMessages(max = 300) {
