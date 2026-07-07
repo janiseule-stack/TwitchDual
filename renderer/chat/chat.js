@@ -10,6 +10,8 @@ const $settingsBtn = document.getElementById('settings-btn');
 const $settingsPop = document.getElementById('settings-pop');
 const $optTs = document.getElementById('opt-ts');
 const $optBadges = document.getElementById('opt-badges');
+const $optFont = document.getElementById('opt-font');
+const $optFontVal = document.getElementById('opt-font-val');
 
 let emoteMap = {};
 let badgeCatalog = {};
@@ -32,6 +34,9 @@ let vod = null; // VodReplay-Instanz
 // repariert Bild-Drift von selbst.
 let autoScroll = true;
 let scrollbarDrag = false;
+
+// Einblende-Drossel: ueber ANIM_MAX_RATE Nachrichten/s keine Animation mehr.
+const msgRate = ChatUi.createRateMeter({ windowMs: 1000 });
 
 function nearBottom() {
   return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
@@ -117,8 +122,7 @@ function appendEmote(parent, name, url) {
   const img = document.createElement('img');
   img.className = 'emote';
   img.src = url;
-  img.alt = name;
-  img.title = name;
+  img.alt = name; // kein title: der eigene Tooltip uebernimmt (sonst doppelt)
   img.loading = 'lazy';
   parent.appendChild(img);
 }
@@ -181,10 +185,8 @@ function appendMessage(name, color, tokens, opts = {}) {
   user.className = 'user';
   user.textContent = name;
   user.style.color = color || '#bf94ff';
-  user.title = 'Klick: Name kopieren';
-  user.addEventListener('click', () => {
-    navigator.clipboard && navigator.clipboard.writeText(name).catch(() => {});
-  });
+  user.title = 'Klick: User-Info';
+  user.addEventListener('click', (e) => openUserCard(e, name, color || '#bf94ff', div));
   div.appendChild(user);
 
   const sep = document.createElement('span');
@@ -206,6 +208,10 @@ function appendMessage(name, color, tokens, opts = {}) {
     }
   }
 
+  // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
+  // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
+  $messages.classList.toggle('no-anim', msgRate.tick(Date.now()) > ChatUi.ANIM_MAX_RATE);
+
   $messages.appendChild(div);
   // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
   // Nachricht kippte um, sobald nachladende Emote-Bilder das Layout
@@ -223,6 +229,123 @@ function setConn(text, cls) {
   $conn.textContent = text;
   $conn.className = cls || '';
 }
+
+// ---------------------------------------------------------------------------
+// Emote-Tooltip: EIN wiederverwendetes fixed-Overlay, Delegation auf
+// #messages (kein Listener pro Emote - wichtig bei Mega-Chats).
+// ---------------------------------------------------------------------------
+const $emoteTip = document.getElementById('emote-tip');
+const $emoteTipImg = document.getElementById('emote-tip-img');
+const $emoteTipName = document.getElementById('emote-tip-name');
+const $emoteTipSrc = document.getElementById('emote-tip-src');
+
+function showEmoteTip(img) {
+  $emoteTipImg.src = img.src;
+  $emoteTipName.textContent = img.alt;
+  $emoteTipSrc.textContent = ChatUi.emoteProvider(img.src);
+  $emoteTip.classList.remove('hidden');
+  // Erst einblenden, dann messen - sonst sind offsetWidth/Height 0.
+  const r = img.getBoundingClientRect();
+  const w = $emoteTip.offsetWidth, h = $emoteTip.offsetHeight;
+  const left = Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4);
+  let top = r.top - h - 6;
+  if (top < 4) top = r.bottom + 6; // oben kein Platz -> unter das Emote
+  $emoteTip.style.left = left + 'px';
+  $emoteTip.style.top = top + 'px';
+}
+
+function hideEmoteTip() { $emoteTip.classList.add('hidden'); }
+
+$messages.addEventListener('mouseover', (e) => {
+  if (e.target.classList && e.target.classList.contains('emote')) showEmoteTip(e.target);
+});
+$messages.addEventListener('mouseout', (e) => {
+  if (e.target.classList && e.target.classList.contains('emote')) hideEmoteTip();
+});
+
+// ---------------------------------------------------------------------------
+// User-Karte: Klick auf einen Namen -> Name, Badges der Nachricht,
+// Kopieren-Button und die letzten Nachrichten des Users aus dem DOM-Puffer.
+// Kein eigenes Datenmodell: gesammelt wird beim Oeffnen aus den .msg-Knoten.
+// ---------------------------------------------------------------------------
+const $userCard = document.getElementById('user-card');
+const $ucBadges = document.getElementById('uc-badges');
+const $ucName = document.getElementById('uc-name');
+const $ucCopy = document.getElementById('uc-copy');
+const $ucMsgs = document.getElementById('uc-msgs');
+
+// Nachrichtentext eines .msg-Knotens: alles nach dem ': '-Separator;
+// Emote-Bilder zaehlen mit ihrem alt-Namen als Text.
+function collectMsgText(msgDiv) {
+  let text = '';
+  let afterSep = false;
+  for (const node of msgDiv.childNodes) {
+    if (!afterSep) {
+      if (node.classList && node.classList.contains('sep')) afterSep = true;
+      continue;
+    }
+    if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
+    else if (node.classList && node.classList.contains('emote')) text += node.alt;
+  }
+  return text.trim();
+}
+
+function collectEntries() {
+  const entries = [];
+  for (const div of $messages.querySelectorAll('.msg:not(.system)')) {
+    const u = div.querySelector('.user');
+    if (u) entries.push({ name: u.textContent, text: collectMsgText(div) });
+  }
+  return entries;
+}
+
+function closeUserCard() { $userCard.classList.add('hidden'); }
+
+function openUserCard(evt, name, color, msgDiv) {
+  $ucName.textContent = name;
+  $ucName.style.color = color;
+  $ucBadges.innerHTML = '';
+  for (const b of msgDiv.querySelectorAll('.badge, .chip')) {
+    $ucBadges.appendChild(b.cloneNode(true));
+  }
+  $ucMsgs.innerHTML = '';
+  const history = ChatUi.lastMessagesOf(collectEntries(), name, 5);
+  if (!history.length) {
+    const d = document.createElement('div');
+    d.className = 'empty-hint';
+    d.textContent = 'keine weiteren Nachrichten im Puffer';
+    $ucMsgs.appendChild(d);
+  }
+  for (const t of history) {
+    const d = document.createElement('div');
+    d.className = 'uc-msg';
+    d.textContent = t;
+    $ucMsgs.appendChild(d);
+  }
+  $userCard.classList.remove('hidden');
+  // Nahe am Klick positionieren, im Fenster clampen (erst zeigen, dann messen).
+  const w = $userCard.offsetWidth, h = $userCard.offsetHeight;
+  const left = Math.min(Math.max(4, evt.clientX - 20), window.innerWidth - w - 4);
+  const top = Math.min(evt.clientY + 10, window.innerHeight - h - 4);
+  $userCard.style.left = left + 'px';
+  $userCard.style.top = top + 'px';
+}
+
+$ucCopy.addEventListener('click', () => {
+  navigator.clipboard && navigator.clipboard.writeText($ucName.textContent).catch(() => {});
+});
+
+// Schliessen: Klick ausserhalb (mousedown, damit auch Scrollbar-Klicks zaehlen)
+// oder Esc. Klick auf einen anderen Namen oeffnet direkt die neue Karte.
+document.addEventListener('mousedown', (e) => {
+  if ($userCard.classList.contains('hidden')) return;
+  if ($userCard.contains(e.target)) return;
+  if (e.target.classList && e.target.classList.contains('user')) return;
+  closeUserCard();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeUserCard();
+});
 
 // ---------------------------------------------------------------------------
 // LIVE: Twitch IRC (anonym, nur lesend)
@@ -249,7 +372,7 @@ function scheduleIrcReconnect() {
 function connectIrc(channel) {
   closeIrc();
   ircChannel = channel;
-  setConn('verbinde …');
+  setConn('verbinde …', 'connecting');
   const nick = 'justinfan' + Math.floor(Math.random() * 90000 + 10000);
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
   ircSocket = ws;
@@ -327,7 +450,7 @@ function createVodReplay(payload) {
       c.name, c.color, VodReplayCore.fragmentsToTokens(c.fragments),
       { replay: true, timeSeconds: c.offset, badges: c.badges, userId: c.userId }
     ),
-    onClear: () => { $messages.innerHTML = ''; },
+    onClear: () => { $messages.innerHTML = ''; $messages.classList.add('no-anim'); },
     onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
   });
 }
@@ -340,6 +463,8 @@ window.twitchDual.onLoad((payload) => {
   badgeCatalog = payload.badgeCatalog || {};
   userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
   $messages.innerHTML = '';
+  hideEmoteTip();
+  closeUserCard();
   autoScroll = true; // neue Quelle -> wieder unten kleben
   pendingNew = 0;
   updateNewMsgsButton();
@@ -358,7 +483,7 @@ window.twitchDual.onLoad((payload) => {
   } else {
     $title.textContent = payload.displayName || ('VOD ' + payload.videoId);
     $mode.textContent = `VOD-Replay · ${emoteCount} 7TV-Emotes`;
-    setConn('warte auf Player-Zeit …');
+    setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
 });
@@ -391,13 +516,18 @@ function formatTime(s) {
 // ---------------------------------------------------------------------------
 // ⚙ Chat-Einstellungen: wirken als CSS-Klassen sofort, ueberleben per Store.
 // ---------------------------------------------------------------------------
-let chatPrefs = { showTimestamps: true, showBadges: true };
+let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT };
 
 function applyChatPrefs() {
   $messages.classList.toggle('hide-ts', !chatPrefs.showTimestamps);
   $messages.classList.toggle('hide-badges', !chatPrefs.showBadges);
   $optTs.checked = !!chatPrefs.showTimestamps;
   $optBadges.checked = !!chatPrefs.showBadges;
+  // Schriftgroesse: kaputte Store-Werte werden geclampt (11-22, Default 14).
+  const px = ChatUi.clampFontSize(chatPrefs.fontSize);
+  $messages.style.setProperty('--chat-font-size', px + 'px');
+  $optFont.value = String(px);
+  $optFontVal.textContent = px + ' px';
 }
 
 window.twitchDual.getUiPrefs().then((prefs) => {
@@ -416,3 +546,22 @@ for (const [el, key] of [[$optTs, 'showTimestamps'], [$optBadges, 'showBadges']]
     window.twitchDual.saveChatPrefs(chatPrefs);
   });
 }
+
+// Slider: live anwenden beim Ziehen, speichern erst beim Loslassen
+// (sonst ein Store-Write pro Pixel).
+$optFont.addEventListener('input', () => {
+  chatPrefs.fontSize = ChatUi.clampFontSize($optFont.value);
+  applyChatPrefs();
+});
+$optFont.addEventListener('change', () => window.twitchDual.saveChatPrefs(chatPrefs));
+
+// ---------------------------------------------------------------------------
+// Randloses Fenster: Titelleisten-Buttons + Doppelklick auf die Kopfzeile.
+// ---------------------------------------------------------------------------
+document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));
+document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
+document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
+// Doppelklick auf die Kopfzeile (nicht auf Buttons) maximiert.
+document.getElementById('head').addEventListener('dblclick', (e) => {
+  if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');
+});

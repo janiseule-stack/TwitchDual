@@ -52,6 +52,7 @@ function createWindows() {
     ...vb,
     title: 'TwitchDual — Video',
     backgroundColor: '#0e0e10',
+    frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -64,6 +65,7 @@ function createWindows() {
     ...cb,
     title: 'TwitchDual — Chat',
     backgroundColor: '#18181b',
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -217,6 +219,15 @@ ipcMain.handle('get-vaft-source', () => {
     vaftSourceCache = fs.readFileSync(path.join(__dirname, 'vendor', 'vaft.js'), 'utf8');
   }
   return vaftSourceCache;
+});
+
+// Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
+ipcMain.on('window-control', (evt, action) => {
+  const win = BrowserWindow.fromWebContents(evt.sender);
+  if (!win || win.isDestroyed()) return;
+  if (action === 'minimize') win.minimize();
+  else if (action === 'maximize') (win.isMaximized() ? win.unmaximize() : win.maximize());
+  else if (action === 'close') win.close();
 });
 
 // Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.

@@ -10,13 +10,35 @@
     <span id="title">Chat</span>
     <span id="mode"></span>
     <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
+    <div id="win-controls">
+      <button id="win-min" title="Minimieren">─</button>
+      <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
+      <button id="win-close" title="Schließen">✕</button>
+    </div>
   </div>
   <div id="settings-pop" class="hidden">
     <label><input type="checkbox" id="opt-ts" checked /> Zeitstempel anzeigen</label>
     <label><input type="checkbox" id="opt-badges" checked /> Badges anzeigen</label>
+    <label id="opt-font-row">Schrift
+      <input type="range" id="opt-font" min="11" max="22" step="1" />
+      <span id="opt-font-val"></span>
+    </label>
   </div>
   <div id="messages"></div>
   <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
+  <div id="emote-tip" class="hidden">
+    <img id="emote-tip-img" alt="" />
+    <div id="emote-tip-name"></div>
+    <div id="emote-tip-src"></div>
+  </div>
+  <div id="user-card" class="hidden">
+    <div id="uc-head">
+      <span id="uc-badges"></span>
+      <span id="uc-name"></span>
+      <button id="uc-copy" title="Name kopieren">📋</button>
+    </div>
+    <div id="uc-msgs"></div>
+  </div>
   <div id="footer">
     <span id="conn">nicht verbunden</span>
   </div>
@@ -26,6 +48,7 @@
   <script src="../lib/badges.js"></script>
   <script src="../lib/backoff.js"></script>
   <script src="../lib/vod-replay.js"></script>
+  <script src="../lib/chat-ui.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>

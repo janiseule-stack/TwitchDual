@@ -18,7 +18,7 @@ body { display: flex; flex-direction: column; }
 
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
-  font-size: 14px; line-height: 1.45;
+  font-size: var(--chat-font-size, 14px); line-height: 1.45;
   scrollbar-width: thin; scrollbar-color: #3a3a3d transparent;
 }
 #messages::-webkit-scrollbar { width: 8px; }
@@ -34,18 +34,19 @@ body { display: flex; flex-direction: column; }
   vertical-align: 1px;
 }
 .msg .badge {
-  height: 18px; width: 18px;
-  vertical-align: -3px; margin-right: 4px; border-radius: 3px;
+  height: 1.3em; width: 1.3em;
+  vertical-align: -0.22em; margin-right: 4px; border-radius: 3px;
 }
 .msg .sep { color: #adadb8; }
 .msg .emote {
-  height: 28px; vertical-align: middle; margin: 0 1px;
+  height: 2em; vertical-align: middle;
+  margin: -0.35em 1px; /* Zeilenhoehe bleibt konstant trotz 2em-Bild */
 }
 .msg.replay { opacity: .97; }
 .msg.system { color: #adadb8; font-style: italic; }
 
 .msg .ts {
-  color: #6e6e76; font-size: 11px; margin-right: 5px;
+  color: #6e6e76; font-size: 0.8em; margin-right: 5px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -66,6 +67,27 @@ body { display: flex; flex-direction: column; }
 #conn.ok { color: #00b16a; }
 #conn.err { color: #eb0400; }
 
+/* Verbindungsstatus: farbiger Punkt vor dem Text. Grau = neutral,
+   gruen = verbunden, gelb pulsierend = verbinde, rot = Fehler. */
+#conn { display: inline-flex; align-items: center; gap: 6px; }
+#conn::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: #6e6e76; flex-shrink: 0;
+}
+#conn.ok::before { background: #00b16a; }
+#conn.err::before { background: #eb0400; }
+#conn.connecting::before {
+  background: #f5a623;
+  animation: conn-pulse 1.2s ease-in-out infinite;
+}
+@keyframes conn-pulse { 50% { opacity: .25; } }
+
+/* Neue Nachrichten faden kurz ein - ausser der Raten-Zaehler hat bei
+   Mega-Chats/VOD-Seeks .no-anim gesetzt (sonst Dauerflackern). */
+.msg { animation: msg-in 150ms ease-out; }
+@keyframes msg-in { from { opacity: 0; } }
+#messages.no-anim .msg { animation: none; }
+
 /* ⚙-Menue: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
 #settings-btn {
   -webkit-app-region: no-drag;
@@ -73,6 +95,16 @@ body { display: flex; flex-direction: column; }
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
 }
 #settings-btn:hover { color: #efeff1; }
+
+/* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
+#win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
+#win-controls button {
+  background: none; border: none; color: #adadb8; cursor: pointer;
+  font-size: 12px; padding: 6px 9px; border-radius: 6px; line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+#win-controls button:hover { background: #2a2a2d; color: #efeff1; }
+#win-controls #win-close:hover { background: #eb0400; color: #fff; }
 
 #settings-pop {
   position: absolute; top: 34px; right: 8px; z-index: 10;
@@ -83,8 +115,72 @@ body { display: flex; flex-direction: column; }
 }
 #settings-pop.hidden { display: none; }
 #settings-pop label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+#opt-font-row { display: flex; align-items: center; gap: 6px; }
+#opt-font { flex: 1; min-width: 90px; }
+#opt-font-val { color: #adadb8; min-width: 38px; text-align: right; }
 
 /* Einstellungen wirken per Klasse am Container sofort auf alle Nachrichten. */
 #messages.hide-ts .ts { display: none; }
 #messages.hide-badges .chip,
 #messages.hide-badges .badge { display: none; }
+
+/* Emote-Tooltip: EIN fixes Overlay ausserhalb des Scroll-Containers. */
+#emote-tip {
+  position: fixed; z-index: 20; pointer-events: none;
+  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  padding: 8px 12px; text-align: center; max-width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+#emote-tip.hidden { display: none; }
+#emote-tip img { max-height: 84px; max-width: 196px; display: block; margin: 0 auto 4px; }
+#emote-tip-name { font-weight: 700; font-size: 13px; word-break: break-all; }
+#emote-tip-src { font-size: 11px; color: #adadb8; }
+
+/* User-Karte: fixes Overlay, Klick auf Namen oeffnet sie. */
+#user-card {
+  position: fixed; z-index: 30;
+  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  min-width: 200px; max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+#user-card.hidden { display: none; }
+#uc-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-bottom: 1px solid #2a2a2d;
+}
+#uc-badges img.badge { height: 18px; width: 18px; vertical-align: -3px; margin-right: 2px; }
+#uc-name { font-weight: 700; flex: 1; word-break: break-all; }
+#uc-copy {
+  background: none; border: none; cursor: pointer; font-size: 13px;
+  color: #adadb8; padding: 2px 4px;
+}
+#uc-copy:hover { color: #efeff1; }
+#uc-msgs { padding: 6px 10px; max-height: 180px; overflow-y: auto; }
+.uc-msg {
+  font-size: 12px; color: #d0d0d5; padding: 3px 0;
+  border-top: 1px solid #232327; word-wrap: break-word;
+}
+.uc-msg:first-child { border-top: none; }
+#uc-msgs .empty-hint { font-size: 12px; color: #7a7a82; font-style: italic; }
+
+/* ⚙-Popup oeffnet mit Fade/Scale (display-Wechsel startet die Animation) */
+#settings-pop { animation: pop-in 120ms ease-out; transform-origin: top right; }
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(.96); }
+}
+
+button:active { transform: scale(.96); }
+
+/* Bewusste Design-Entscheidung: Die App animiert immer, unabhaengig von der
+   Windows-Einstellung "Animationseffekte" (prefers-reduced-motion). */
+
+/* Satisfying-Details */
+button { transition: background-color 120ms ease, color 120ms ease; }
+.msg .emote { transition: transform 100ms ease; }
+.msg .emote:hover { transform: scale(1.25); }
+#emote-tip { animation: pop-in 120ms ease-out; }
+#user-card { animation: pop-in 120ms ease-out; transform-origin: top left; }
+#new-msgs { animation: bounce-in 220ms cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes bounce-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+}

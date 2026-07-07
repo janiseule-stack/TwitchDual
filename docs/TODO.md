@@ -74,6 +74,27 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Jetzt schalten NUR echte Eingaben aus (Wheel hoch, PageUp/ArrowUp/Home,
   Scrollbar-Drag); Scroll-Events schalten hoechstens wieder ein.
 
+**Komfort & Design (v1.4.0)**
+- Chat: Schriftgroessen-Slider (11-22px, chatPrefs.fontSize, em-Skalierung
+  fuer Emotes/Badges/Zeitstempel + negative Emote-Margins = ruhige Zeilen).
+- Emote-Tooltip (Delegation, ein fixed-Overlay): Vorschau, Name, Quelle
+  (Twitch/7TV/BTTV/FFZ aus URL, ChatUi.emoteProvider).
+- User-Karte bei Namensklick: Badges, Kopieren, letzte 5 Nachrichten aus
+  dem DOM-Puffer (ChatUi.lastMessagesOf). Kopieren-Klick entfaellt direkt.
+- Status-Punkt im Footer (ok/err/connecting), Einblende-Animation neuer
+  Nachrichten mit Raten-Drossel (ChatUi.createRateMeter, >5/s aus).
+- Home: Live-Favoriten als Karten-Grid mit CDN-Thumbnails
+  (previews-ttv, 60s-Cache-Buster), LIVE-Puls, Skeleton-Loader, Hover.
+- Micro-Animationen (Overlay/Popup/Buttons). Bewusst: App animiert IMMER,
+  auch wenn Windows "Animationseffekte" aus hat (prefers-reduced-motion
+  wird ignoriert - Nutzer-Entscheidung).
+- Randlose Fenster (frame:false): App-Leisten sind Titelleisten mit
+  eigenen Buttons (window-control-IPC), Doppelklick maximiert, Snap bleibt.
+- Satisfying-Details: Emote-Hover-Zoom, Pop-in fuer Tooltip/User-Karte,
+  Bounce fuer Neue-Nachrichten-Button, LIVE-Punkt-Glow, Thumbnail-Gradient,
+  weiche Button-Farbwechsel.
+- Neue DOM-freie Lib renderer/lib/chat-ui.js (unit-getestet).
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
@@ -101,8 +122,6 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 
 - **Native Twitch-Emotes im VOD**: das `emote`-Feld der Kommentar-`fragments`
   zusätzlich rendern, nicht nur als Text.
-- **Chat-Einstellungen**: Schriftgröße, Zeitstempel an/aus, Badge-Anzeige
-  an/aus (kleines ⚙-Menü im Chat-Kopf).
 - **Mehrere Chat-Fenster / zweiter Kanal** für Squad-Streams.
 - **E2E-Smoke-Test** (Playwright + Electron), der App-Start, Laden eines
   VODs und ersten Chat-Render prüft.
