@@ -554,3 +554,14 @@ $optFont.addEventListener('input', () => {
   applyChatPrefs();
 });
 $optFont.addEventListener('change', () => window.twitchDual.saveChatPrefs(chatPrefs));
+
+// ---------------------------------------------------------------------------
+// Randloses Fenster: Titelleisten-Buttons + Doppelklick auf die Kopfzeile.
+// ---------------------------------------------------------------------------
+document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));
+document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
+document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
+// Doppelklick auf die Kopfzeile (nicht auf Buttons) maximiert.
+document.getElementById('head').addEventListener('dblclick', (e) => {
+  if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');
+});

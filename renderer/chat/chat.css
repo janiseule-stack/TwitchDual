@@ -96,6 +96,16 @@ body { display: flex; flex-direction: column; }
 }
 #settings-btn:hover { color: #efeff1; }
 
+/* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
+#win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
+#win-controls button {
+  background: none; border: none; color: #adadb8; cursor: pointer;
+  font-size: 12px; padding: 6px 9px; border-radius: 6px; line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+#win-controls button:hover { background: #2a2a2d; color: #efeff1; }
+#win-controls #win-close:hover { background: #eb0400; color: #fff; }
+
 #settings-pop {
   position: absolute; top: 34px; right: 8px; z-index: 10;
   background: #1f1f23; border: 1px solid #2a2a2d; border-radius: 6px;

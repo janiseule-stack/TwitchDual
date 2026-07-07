@@ -237,3 +237,14 @@ if ($adblock) {
     } catch (e) {}
   });
 }
+
+// ---------------------------------------------------------------------------
+// Randloses Fenster: Titelleisten-Buttons + Doppelklick auf die Leiste.
+// ---------------------------------------------------------------------------
+document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));
+document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
+document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
+// Doppelklick nur auf die freie Leiste (nicht Eingabefeld/Buttons) maximiert.
+document.getElementById('bar').addEventListener('dblclick', (e) => {
+  if (e.target.id === 'bar') window.twitchDual.windowControl('maximize');
+});

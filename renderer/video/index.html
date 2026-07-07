@@ -59,9 +59,15 @@
     #ad-overlay-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
     #ad-overlay-sub { font-size: 13px; color: #adadb8; }
     #bar button:active { transform: scale(.96); }
-    @media (prefers-reduced-motion: reduce) {
-      #bar button:active { transform: none; }
+    /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
+    #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 2px; }
+    #win-controls button {
+      background: none; border: none; color: #adadb8; cursor: pointer;
+      font-size: 12px; padding: 7px 10px; border-radius: 6px; line-height: 1;
+      transition: background-color 120ms ease, color 120ms ease;
     }
+    #win-controls button:hover { background: #2a2a2d; color: #efeff1; }
+    #win-controls #win-close:hover { background: #eb0400; color: #fff; }
   </style>
 </head>
 <body>
@@ -72,6 +78,11 @@
     <button id="load">Laden</button>
     <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
     <span id="status">bereit</span>
+    <div id="win-controls">
+      <button id="win-min" title="Minimieren">─</button>
+      <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
+      <button id="win-close" title="Schließen">✕</button>
+    </div>
   </div>
   <div id="player">
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
