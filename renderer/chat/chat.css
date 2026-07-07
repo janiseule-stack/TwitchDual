@@ -67,6 +67,27 @@ body { display: flex; flex-direction: column; }
 #conn.ok { color: #00b16a; }
 #conn.err { color: #eb0400; }
 
+/* Verbindungsstatus: farbiger Punkt vor dem Text. Grau = neutral,
+   gruen = verbunden, gelb pulsierend = verbinde, rot = Fehler. */
+#conn { display: inline-flex; align-items: center; gap: 6px; }
+#conn::before {
+  content: ''; width: 8px; height: 8px; border-radius: 50%;
+  background: #6e6e76; flex-shrink: 0;
+}
+#conn.ok::before { background: #00b16a; }
+#conn.err::before { background: #eb0400; }
+#conn.connecting::before {
+  background: #f5a623;
+  animation: conn-pulse 1.2s ease-in-out infinite;
+}
+@keyframes conn-pulse { 50% { opacity: .25; } }
+
+/* Neue Nachrichten faden kurz ein - ausser der Raten-Zaehler hat bei
+   Mega-Chats/VOD-Seeks .no-anim gesetzt (sonst Dauerflackern). */
+.msg { animation: msg-in 150ms ease-out; }
+@keyframes msg-in { from { opacity: 0; } }
+#messages.no-anim .msg { animation: none; }
+
 /* ⚙-Menue: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
 #settings-btn {
   -webkit-app-region: no-drag;

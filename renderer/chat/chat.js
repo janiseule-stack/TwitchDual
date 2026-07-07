@@ -35,6 +35,9 @@ let vod = null; // VodReplay-Instanz
 let autoScroll = true;
 let scrollbarDrag = false;
 
+// Einblende-Drossel: ueber ANIM_MAX_RATE Nachrichten/s keine Animation mehr.
+const msgRate = ChatUi.createRateMeter({ windowMs: 1000 });
+
 function nearBottom() {
   return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
 }
@@ -205,6 +208,10 @@ function appendMessage(name, color, tokens, opts = {}) {
     }
   }
 
+  // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
+  // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
+  $messages.classList.toggle('no-anim', msgRate.tick(Date.now()) > ChatUi.ANIM_MAX_RATE);
+
   $messages.appendChild(div);
   // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
   // Nachricht kippte um, sobald nachladende Emote-Bilder das Layout
@@ -365,7 +372,7 @@ function scheduleIrcReconnect() {
 function connectIrc(channel) {
   closeIrc();
   ircChannel = channel;
-  setConn('verbinde …');
+  setConn('verbinde …', 'connecting');
   const nick = 'justinfan' + Math.floor(Math.random() * 90000 + 10000);
   const ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
   ircSocket = ws;
@@ -443,7 +450,7 @@ function createVodReplay(payload) {
       c.name, c.color, VodReplayCore.fragmentsToTokens(c.fragments),
       { replay: true, timeSeconds: c.offset, badges: c.badges, userId: c.userId }
     ),
-    onClear: () => { $messages.innerHTML = ''; },
+    onClear: () => { $messages.innerHTML = ''; $messages.classList.add('no-anim'); },
     onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
   });
 }
@@ -476,7 +483,7 @@ window.twitchDual.onLoad((payload) => {
   } else {
     $title.textContent = payload.displayName || ('VOD ' + payload.videoId);
     $mode.textContent = `VOD-Replay · ${emoteCount} 7TV-Emotes`;
-    setConn('warte auf Player-Zeit …');
+    setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
 });
