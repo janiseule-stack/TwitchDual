@@ -119,8 +119,7 @@ function appendEmote(parent, name, url) {
   const img = document.createElement('img');
   img.className = 'emote';
   img.src = url;
-  img.alt = name;
-  img.title = name;
+  img.alt = name; // kein title: der eigene Tooltip uebernimmt (sonst doppelt)
   img.loading = 'lazy';
   parent.appendChild(img);
 }
@@ -225,6 +224,39 @@ function setConn(text, cls) {
   $conn.textContent = text;
   $conn.className = cls || '';
 }
+
+// ---------------------------------------------------------------------------
+// Emote-Tooltip: EIN wiederverwendetes fixed-Overlay, Delegation auf
+// #messages (kein Listener pro Emote - wichtig bei Mega-Chats).
+// ---------------------------------------------------------------------------
+const $emoteTip = document.getElementById('emote-tip');
+const $emoteTipImg = document.getElementById('emote-tip-img');
+const $emoteTipName = document.getElementById('emote-tip-name');
+const $emoteTipSrc = document.getElementById('emote-tip-src');
+
+function showEmoteTip(img) {
+  $emoteTipImg.src = img.src;
+  $emoteTipName.textContent = img.alt;
+  $emoteTipSrc.textContent = ChatUi.emoteProvider(img.src);
+  $emoteTip.classList.remove('hidden');
+  // Erst einblenden, dann messen - sonst sind offsetWidth/Height 0.
+  const r = img.getBoundingClientRect();
+  const w = $emoteTip.offsetWidth, h = $emoteTip.offsetHeight;
+  const left = Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4);
+  let top = r.top - h - 6;
+  if (top < 4) top = r.bottom + 6; // oben kein Platz -> unter das Emote
+  $emoteTip.style.left = left + 'px';
+  $emoteTip.style.top = top + 'px';
+}
+
+function hideEmoteTip() { $emoteTip.classList.add('hidden'); }
+
+$messages.addEventListener('mouseover', (e) => {
+  if (e.target.classList && e.target.classList.contains('emote')) showEmoteTip(e.target);
+});
+$messages.addEventListener('mouseout', (e) => {
+  if (e.target.classList && e.target.classList.contains('emote')) hideEmoteTip();
+});
 
 // ---------------------------------------------------------------------------
 // LIVE: Twitch IRC (anonym, nur lesend)
@@ -342,6 +374,7 @@ window.twitchDual.onLoad((payload) => {
   badgeCatalog = payload.badgeCatalog || {};
   userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
   $messages.innerHTML = '';
+  hideEmoteTip();
   autoScroll = true; // neue Quelle -> wieder unten kleben
   pendingNew = 0;
   updateNewMsgsButton();

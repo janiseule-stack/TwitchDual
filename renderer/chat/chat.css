@@ -92,3 +92,15 @@ body { display: flex; flex-direction: column; }
 #messages.hide-ts .ts { display: none; }
 #messages.hide-badges .chip,
 #messages.hide-badges .badge { display: none; }
+
+/* Emote-Tooltip: EIN fixes Overlay ausserhalb des Scroll-Containers. */
+#emote-tip {
+  position: fixed; z-index: 20; pointer-events: none;
+  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  padding: 8px 12px; text-align: center; max-width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+#emote-tip.hidden { display: none; }
+#emote-tip img { max-height: 84px; max-width: 196px; display: block; margin: 0 auto 4px; }
+#emote-tip-name { font-weight: 700; font-size: 13px; word-break: break-all; }
+#emote-tip-src { font-size: 11px; color: #adadb8; }
