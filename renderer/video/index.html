@@ -58,6 +58,10 @@
     #ad-overlay.hidden { display: none; }
     #ad-overlay-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
     #ad-overlay-sub { font-size: 13px; color: #adadb8; }
+    #bar button:active { transform: scale(.96); }
+    @media (prefers-reduced-motion: reduce) {
+      #bar button:active { transform: none; }
+    }
   </style>
 </head>
 <body>
