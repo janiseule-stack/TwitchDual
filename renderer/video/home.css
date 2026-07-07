@@ -119,3 +119,75 @@
   overflow: hidden;
 }
 .vod .vmeta { font-size: 12px; color: #adadb8; margin-top: 4px; }
+
+/* Live-Favoriten als Vorschau-Karten im Grid */
+#live-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 12px;
+}
+.live-card {
+  background: #18181b; border: 1px solid #202024; border-radius: 8px;
+  overflow: hidden; cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.live-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.45);
+  border-color: #9147ff;
+}
+.lc-thumbwrap {
+  position: relative; aspect-ratio: 16 / 9; background: #2a2a2d; overflow: hidden;
+}
+.lc-thumb {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 160ms ease;
+}
+.live-card:hover .lc-thumb { transform: scale(1.03); }
+.lc-live {
+  position: absolute; top: 6px; left: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(0,0,0,.75); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+}
+.lc-live::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: #eb0400; animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse { 50% { opacity: .35; } }
+.lc-viewers {
+  position: absolute; right: 6px; bottom: 6px;
+  background: rgba(0,0,0,.75); color: #fff; font-size: 11px;
+  padding: 2px 6px; border-radius: 4px;
+}
+.lc-body { display: flex; gap: 8px; padding: 8px; align-items: center; }
+.lc-body .avatar { width: 32px; height: 32px; }
+.lc-info { flex: 1; min-width: 0; }
+.lc-name { font-weight: 700; font-size: 13px; }
+.lc-meta {
+  font-size: 12px; color: #adadb8; margin-top: 2px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.lc-actions {
+  display: flex; gap: 6px; padding: 0 8px 8px; justify-content: flex-end;
+}
+.lc-actions button {
+  padding: 5px 10px; border: none; border-radius: 6px; cursor: pointer;
+  font-size: 12px; font-weight: 600;
+}
+.lc-actions .vods { background: #2a2a2d; color: #efeff1; }
+.lc-actions .vods:hover { background: #3a3a3d; }
+.lc-actions .remove { background: transparent; color: #7a7a82; }
+.lc-actions .remove:hover { color: #eb0400; }
+
+/* Skeleton-Platzhalter beim ersten Laden */
+.live-card.skeleton { pointer-events: none; }
+.live-card.skeleton .lc-thumbwrap,
+.live-card.skeleton .sk-line {
+  background: linear-gradient(90deg, #202024 25%, #2a2a2d 50%, #202024 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+.sk-line { height: 12px; border-radius: 4px; }
+.sk-line.w60 { width: 60%; }
+@keyframes shimmer { to { background-position: -200% 0; } }

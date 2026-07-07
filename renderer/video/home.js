@@ -69,6 +69,21 @@ function renderFavoritesSkeleton() {
     return;
   }
   $favEmpty.classList.add('hidden');
+  // Nur beim allerersten Laden (noch kein Live-Status da) schimmernde
+  // Platzhalter zeigen; spaetere Refreshes ersetzen die Daten in place.
+  if (!lastChannels.length) {
+    const grid = document.createElement('div');
+    grid.id = 'live-grid';
+    const n = Math.min(favorites.length, 3);
+    for (let i = 0; i < n; i++) {
+      const sk = document.createElement('div');
+      sk.className = 'live-card skeleton';
+      sk.innerHTML = '<div class="lc-thumbwrap"></div><div class="lc-body">' +
+        '<div class="sk-line w60"></div></div>'; // statisches Markup, keine Fremddaten
+      grid.appendChild(sk);
+    }
+    $favList.appendChild(grid);
+  }
 }
 
 async function refreshLive() {
@@ -92,9 +107,16 @@ function renderFavorites() {
   const needle = $filterInput.value.trim().toLowerCase();
   const filtered = lastChannels.filter((ch) => matchesFilter(ch, needle));
   $favList.innerHTML = '';
-  for (const ch of filtered) {
-    $favList.appendChild(buildFavCard(ch));
+  // Live-Kanaele als grosse Vorschau-Karten im Grid, offline kompakt darunter.
+  const live = filtered.filter((ch) => ch.live);
+  const off = filtered.filter((ch) => !ch.live);
+  if (live.length) {
+    const grid = document.createElement('div');
+    grid.id = 'live-grid';
+    for (const ch of live) grid.appendChild(buildLiveCard(ch));
+    $favList.appendChild(grid);
   }
+  for (const ch of off) $favList.appendChild(buildFavCard(ch));
   $favNoMatch.classList.toggle('hidden', !(lastChannels.length && !filtered.length));
 }
 
@@ -167,6 +189,89 @@ function buildFavCard(ch) {
   actions.appendChild(remove);
 
   card.appendChild(actions);
+  return card;
+}
+
+// Stream-Vorschau ohne API: Twitch liefert Live-Thumbnails ueber eine
+// vorhersagbare CDN-URL. Cache-Buster wechselt mit dem 60-s-Refresh.
+function previewUrl(login) {
+  const bust = Math.floor(Date.now() / 60000);
+  return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(login)}-440x248.jpg?t=${bust}`;
+}
+
+function buildLiveCard(ch) {
+  const card = document.createElement('div');
+  card.className = 'live-card';
+  card.title = 'Klick: Stream laden';
+  card.addEventListener('click', () => {
+    window.twitchDual.submitLoad(ch.login);
+    closeHome();
+  });
+
+  const wrap = document.createElement('div');
+  wrap.className = 'lc-thumbwrap';
+  const thumb = document.createElement('img');
+  thumb.className = 'lc-thumb';
+  thumb.src = previewUrl(ch.login);
+  thumb.alt = '';
+  thumb.loading = 'lazy';
+  thumb.onerror = () => { thumb.style.visibility = 'hidden'; };
+  wrap.appendChild(thumb);
+  const liveTag = document.createElement('span');
+  liveTag.className = 'lc-live';
+  liveTag.textContent = 'LIVE';
+  wrap.appendChild(liveTag);
+  if (ch.viewersLabel) {
+    const v = document.createElement('span');
+    v.className = 'lc-viewers';
+    v.textContent = ch.viewersLabel + ' Zuschauer';
+    wrap.appendChild(v);
+  }
+  card.appendChild(wrap);
+
+  const body = document.createElement('div');
+  body.className = 'lc-body';
+  const avatar = document.createElement('img');
+  avatar.className = 'avatar';
+  if (ch.avatar) avatar.src = ch.avatar;
+  avatar.alt = '';
+  avatar.onerror = () => { avatar.style.visibility = 'hidden'; };
+  body.appendChild(avatar);
+  const info = document.createElement('div');
+  info.className = 'lc-info';
+  const name = document.createElement('div');
+  name.className = 'lc-name';
+  name.textContent = ch.displayName || ch.login;
+  info.appendChild(name);
+  const meta = document.createElement('div');
+  meta.className = 'lc-meta';
+  meta.textContent = (ch.game ? ch.game : '') + (ch.title ? (ch.game ? ' — ' : '') + ch.title : '');
+  info.appendChild(meta);
+  body.appendChild(info);
+  card.appendChild(body);
+
+  const actions = document.createElement('div');
+  actions.className = 'lc-actions';
+  const vods = document.createElement('button');
+  vods.className = 'vods';
+  vods.textContent = 'VODs';
+  vods.addEventListener('click', (e) => {
+    e.stopPropagation(); // nicht den Karten-Klick (Stream laden) ausloesen
+    openVods(ch.login, ch.displayName);
+  });
+  actions.appendChild(vods);
+  const remove = document.createElement('button');
+  remove.className = 'remove';
+  remove.textContent = '✕';
+  remove.title = 'Aus Favoriten entfernen';
+  remove.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const r = await window.twitchDual.removeFavorite(ch.login);
+    if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
+  });
+  actions.appendChild(remove);
+  card.appendChild(actions);
+
   return card;
 }
 
