@@ -10,6 +10,8 @@ const $settingsBtn = document.getElementById('settings-btn');
 const $settingsPop = document.getElementById('settings-pop');
 const $optTs = document.getElementById('opt-ts');
 const $optBadges = document.getElementById('opt-badges');
+const $optFont = document.getElementById('opt-font');
+const $optFontVal = document.getElementById('opt-font-val');
 
 let emoteMap = {};
 let badgeCatalog = {};
@@ -391,13 +393,18 @@ function formatTime(s) {
 // ---------------------------------------------------------------------------
 // ⚙ Chat-Einstellungen: wirken als CSS-Klassen sofort, ueberleben per Store.
 // ---------------------------------------------------------------------------
-let chatPrefs = { showTimestamps: true, showBadges: true };
+let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT };
 
 function applyChatPrefs() {
   $messages.classList.toggle('hide-ts', !chatPrefs.showTimestamps);
   $messages.classList.toggle('hide-badges', !chatPrefs.showBadges);
   $optTs.checked = !!chatPrefs.showTimestamps;
   $optBadges.checked = !!chatPrefs.showBadges;
+  // Schriftgroesse: kaputte Store-Werte werden geclampt (11-22, Default 14).
+  const px = ChatUi.clampFontSize(chatPrefs.fontSize);
+  $messages.style.setProperty('--chat-font-size', px + 'px');
+  $optFont.value = String(px);
+  $optFontVal.textContent = px + ' px';
 }
 
 window.twitchDual.getUiPrefs().then((prefs) => {
@@ -416,3 +423,11 @@ for (const [el, key] of [[$optTs, 'showTimestamps'], [$optBadges, 'showBadges']]
     window.twitchDual.saveChatPrefs(chatPrefs);
   });
 }
+
+// Slider: live anwenden beim Ziehen, speichern erst beim Loslassen
+// (sonst ein Store-Write pro Pixel).
+$optFont.addEventListener('input', () => {
+  chatPrefs.fontSize = ChatUi.clampFontSize($optFont.value);
+  applyChatPrefs();
+});
+$optFont.addEventListener('change', () => window.twitchDual.saveChatPrefs(chatPrefs));

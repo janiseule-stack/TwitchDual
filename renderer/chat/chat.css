@@ -18,7 +18,7 @@ body { display: flex; flex-direction: column; }
 
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
-  font-size: 14px; line-height: 1.45;
+  font-size: var(--chat-font-size, 14px); line-height: 1.45;
   scrollbar-width: thin; scrollbar-color: #3a3a3d transparent;
 }
 #messages::-webkit-scrollbar { width: 8px; }
@@ -34,18 +34,19 @@ body { display: flex; flex-direction: column; }
   vertical-align: 1px;
 }
 .msg .badge {
-  height: 18px; width: 18px;
-  vertical-align: -3px; margin-right: 4px; border-radius: 3px;
+  height: 1.3em; width: 1.3em;
+  vertical-align: -0.22em; margin-right: 4px; border-radius: 3px;
 }
 .msg .sep { color: #adadb8; }
 .msg .emote {
-  height: 28px; vertical-align: middle; margin: 0 1px;
+  height: 2em; vertical-align: middle;
+  margin: -0.35em 1px; /* Zeilenhoehe bleibt konstant trotz 2em-Bild */
 }
 .msg.replay { opacity: .97; }
 .msg.system { color: #adadb8; font-style: italic; }
 
 .msg .ts {
-  color: #6e6e76; font-size: 11px; margin-right: 5px;
+  color: #6e6e76; font-size: 0.8em; margin-right: 5px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -83,6 +84,9 @@ body { display: flex; flex-direction: column; }
 }
 #settings-pop.hidden { display: none; }
 #settings-pop label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+#opt-font-row { display: flex; align-items: center; gap: 6px; }
+#opt-font { flex: 1; min-width: 90px; }
+#opt-font-val { color: #adadb8; min-width: 38px; text-align: right; }
 
 /* Einstellungen wirken per Klasse am Container sofort auf alle Nachrichten. */
 #messages.hide-ts .ts { display: none; }

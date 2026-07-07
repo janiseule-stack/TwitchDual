@@ -14,6 +14,10 @@
   <div id="settings-pop" class="hidden">
     <label><input type="checkbox" id="opt-ts" checked /> Zeitstempel anzeigen</label>
     <label><input type="checkbox" id="opt-badges" checked /> Badges anzeigen</label>
+    <label id="opt-font-row">Schrift
+      <input type="range" id="opt-font" min="11" max="22" step="1" />
+      <span id="opt-font-val"></span>
+    </label>
   </div>
   <div id="messages"></div>
   <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
@@ -26,6 +30,7 @@
   <script src="../lib/badges.js"></script>
   <script src="../lib/backoff.js"></script>
   <script src="../lib/vod-replay.js"></script>
+  <script src="../lib/chat-ui.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>
