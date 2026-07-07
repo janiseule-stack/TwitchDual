@@ -182,10 +182,8 @@ function appendMessage(name, color, tokens, opts = {}) {
   user.className = 'user';
   user.textContent = name;
   user.style.color = color || '#bf94ff';
-  user.title = 'Klick: Name kopieren';
-  user.addEventListener('click', () => {
-    navigator.clipboard && navigator.clipboard.writeText(name).catch(() => {});
-  });
+  user.title = 'Klick: User-Info';
+  user.addEventListener('click', (e) => openUserCard(e, name, color || '#bf94ff', div));
   div.appendChild(user);
 
   const sep = document.createElement('span');
@@ -256,6 +254,90 @@ $messages.addEventListener('mouseover', (e) => {
 });
 $messages.addEventListener('mouseout', (e) => {
   if (e.target.classList && e.target.classList.contains('emote')) hideEmoteTip();
+});
+
+// ---------------------------------------------------------------------------
+// User-Karte: Klick auf einen Namen -> Name, Badges der Nachricht,
+// Kopieren-Button und die letzten Nachrichten des Users aus dem DOM-Puffer.
+// Kein eigenes Datenmodell: gesammelt wird beim Oeffnen aus den .msg-Knoten.
+// ---------------------------------------------------------------------------
+const $userCard = document.getElementById('user-card');
+const $ucBadges = document.getElementById('uc-badges');
+const $ucName = document.getElementById('uc-name');
+const $ucCopy = document.getElementById('uc-copy');
+const $ucMsgs = document.getElementById('uc-msgs');
+
+// Nachrichtentext eines .msg-Knotens: alles nach dem ': '-Separator;
+// Emote-Bilder zaehlen mit ihrem alt-Namen als Text.
+function collectMsgText(msgDiv) {
+  let text = '';
+  let afterSep = false;
+  for (const node of msgDiv.childNodes) {
+    if (!afterSep) {
+      if (node.classList && node.classList.contains('sep')) afterSep = true;
+      continue;
+    }
+    if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
+    else if (node.classList && node.classList.contains('emote')) text += node.alt;
+  }
+  return text.trim();
+}
+
+function collectEntries() {
+  const entries = [];
+  for (const div of $messages.querySelectorAll('.msg:not(.system)')) {
+    const u = div.querySelector('.user');
+    if (u) entries.push({ name: u.textContent, text: collectMsgText(div) });
+  }
+  return entries;
+}
+
+function closeUserCard() { $userCard.classList.add('hidden'); }
+
+function openUserCard(evt, name, color, msgDiv) {
+  $ucName.textContent = name;
+  $ucName.style.color = color;
+  $ucBadges.innerHTML = '';
+  for (const b of msgDiv.querySelectorAll('.badge, .chip')) {
+    $ucBadges.appendChild(b.cloneNode(true));
+  }
+  $ucMsgs.innerHTML = '';
+  const history = ChatUi.lastMessagesOf(collectEntries(), name, 5);
+  if (!history.length) {
+    const d = document.createElement('div');
+    d.className = 'empty-hint';
+    d.textContent = 'keine weiteren Nachrichten im Puffer';
+    $ucMsgs.appendChild(d);
+  }
+  for (const t of history) {
+    const d = document.createElement('div');
+    d.className = 'uc-msg';
+    d.textContent = t;
+    $ucMsgs.appendChild(d);
+  }
+  $userCard.classList.remove('hidden');
+  // Nahe am Klick positionieren, im Fenster clampen (erst zeigen, dann messen).
+  const w = $userCard.offsetWidth, h = $userCard.offsetHeight;
+  const left = Math.min(Math.max(4, evt.clientX - 20), window.innerWidth - w - 4);
+  const top = Math.min(evt.clientY + 10, window.innerHeight - h - 4);
+  $userCard.style.left = left + 'px';
+  $userCard.style.top = top + 'px';
+}
+
+$ucCopy.addEventListener('click', () => {
+  navigator.clipboard && navigator.clipboard.writeText($ucName.textContent).catch(() => {});
+});
+
+// Schliessen: Klick ausserhalb (mousedown, damit auch Scrollbar-Klicks zaehlen)
+// oder Esc. Klick auf einen anderen Namen oeffnet direkt die neue Karte.
+document.addEventListener('mousedown', (e) => {
+  if ($userCard.classList.contains('hidden')) return;
+  if ($userCard.contains(e.target)) return;
+  if (e.target.classList && e.target.classList.contains('user')) return;
+  closeUserCard();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeUserCard();
 });
 
 // ---------------------------------------------------------------------------
@@ -375,6 +457,7 @@ window.twitchDual.onLoad((payload) => {
   userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
   $messages.innerHTML = '';
   hideEmoteTip();
+  closeUserCard();
   autoScroll = true; // neue Quelle -> wieder unten kleben
   pendingNew = 0;
   updateNewMsgsButton();

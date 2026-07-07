@@ -104,3 +104,30 @@ body { display: flex; flex-direction: column; }
 #emote-tip img { max-height: 84px; max-width: 196px; display: block; margin: 0 auto 4px; }
 #emote-tip-name { font-weight: 700; font-size: 13px; word-break: break-all; }
 #emote-tip-src { font-size: 11px; color: #adadb8; }
+
+/* User-Karte: fixes Overlay, Klick auf Namen oeffnet sie. */
+#user-card {
+  position: fixed; z-index: 30;
+  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  min-width: 200px; max-width: 280px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+#user-card.hidden { display: none; }
+#uc-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-bottom: 1px solid #2a2a2d;
+}
+#uc-badges img.badge { height: 18px; width: 18px; vertical-align: -3px; margin-right: 2px; }
+#uc-name { font-weight: 700; flex: 1; word-break: break-all; }
+#uc-copy {
+  background: none; border: none; cursor: pointer; font-size: 13px;
+  color: #adadb8; padding: 2px 4px;
+}
+#uc-copy:hover { color: #efeff1; }
+#uc-msgs { padding: 6px 10px; max-height: 180px; overflow-y: auto; }
+.uc-msg {
+  font-size: 12px; color: #d0d0d5; padding: 3px 0;
+  border-top: 1px solid #232327; word-wrap: break-word;
+}
+.uc-msg:first-child { border-top: none; }
+#uc-msgs .empty-hint { font-size: 12px; color: #7a7a82; font-style: italic; }
