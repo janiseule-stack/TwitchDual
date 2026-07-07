@@ -85,7 +85,14 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Nachrichten mit Raten-Drossel (ChatUi.createRateMeter, >5/s aus).
 - Home: Live-Favoriten als Karten-Grid mit CDN-Thumbnails
   (previews-ttv, 60s-Cache-Buster), LIVE-Puls, Skeleton-Loader, Hover.
-- Micro-Animationen (Overlay/Popup/Buttons), prefers-reduced-motion.
+- Micro-Animationen (Overlay/Popup/Buttons). Bewusst: App animiert IMMER,
+  auch wenn Windows "Animationseffekte" aus hat (prefers-reduced-motion
+  wird ignoriert - Nutzer-Entscheidung).
+- Randlose Fenster (frame:false): App-Leisten sind Titelleisten mit
+  eigenen Buttons (window-control-IPC), Doppelklick maximiert, Snap bleibt.
+- Satisfying-Details: Emote-Hover-Zoom, Pop-in fuer Tooltip/User-Karte,
+  Bounce fuer Neue-Nachrichten-Button, LIVE-Punkt-Glow, Thumbnail-Gradient,
+  weiche Button-Farbwechsel.
 - Neue DOM-freie Lib renderer/lib/chat-ui.js (unit-getestet).
 
 **Build**

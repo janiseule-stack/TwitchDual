@@ -171,8 +171,16 @@ body { display: flex; flex-direction: column; }
 
 button:active { transform: scale(.96); }
 
-/* Der Verbindungs-Puls ist Statusanzeige, keine Deko -> bleibt an. */
-@media (prefers-reduced-motion: reduce) {
-  #settings-pop, .msg { animation: none; }
-  button:active { transform: none; }
+/* Bewusste Design-Entscheidung: Die App animiert immer, unabhaengig von der
+   Windows-Einstellung "Animationseffekte" (prefers-reduced-motion). */
+
+/* Satisfying-Details */
+button { transition: background-color 120ms ease, color 120ms ease; }
+.msg .emote { transition: transform 100ms ease; }
+.msg .emote:hover { transform: scale(1.25); }
+#emote-tip { animation: pop-in 120ms ease-out; }
+#user-card { animation: pop-in 120ms ease-out; transform-origin: top left; }
+#new-msgs { animation: bounce-in 220ms cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes bounce-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
 }
