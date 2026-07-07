@@ -161,7 +161,8 @@ body { display: flex; flex-direction: column; }
 
 button:active { transform: scale(.96); }
 
+/* Der Verbindungs-Puls ist Statusanzeige, keine Deko -> bleibt an. */
 @media (prefers-reduced-motion: reduce) {
-  #settings-pop, .msg, #conn.connecting::before { animation: none; }
+  #settings-pop, .msg { animation: none; }
   button:active { transform: none; }
 }

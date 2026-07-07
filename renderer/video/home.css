@@ -202,8 +202,10 @@
 /* Dezentes Druck-Feedback fuer alle Buttons im Overlay */
 #home button:active, #home-btn:active { transform: scale(.96); }
 
+/* Status-Pulse (LIVE-Punkt) sind Information, keine Deko - sie laufen
+   auch bei reduced-motion weiter. Nur Dekoratives wird abgeschaltet. */
 @media (prefers-reduced-motion: reduce) {
-  #home, .lc-live::before, .live-card.skeleton .lc-thumbwrap,
+  #home, .live-card.skeleton .lc-thumbwrap,
   .live-card.skeleton .sk-line { animation: none; }
   .live-card, .lc-thumb { transition: none; }
   .live-card:hover { transform: none; }
