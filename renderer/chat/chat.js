@@ -585,6 +585,10 @@ document.getElementById('head').addEventListener('dblclick', (e) => {
 // Neon Dual - On Air (v1.5.0): Fensterfarbe (Chat = chatAccent) als CSS-
 // Variablen; On-Air-Leiste haengt an load-Modus + player-state.
 // ---------------------------------------------------------------------------
+const $colorVideo = document.getElementById('opt-color-video');
+const $colorChat = document.getElementById('opt-color-chat');
+const $colorReset = document.getElementById('opt-color-reset');
+
 let themePrefs = { ...ThemeLib.DEFAULTS };
 
 function applyTheme(prefs) {
@@ -597,12 +601,28 @@ function applyTheme(prefs) {
     ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent));
   document.documentElement.style.setProperty('--onair-to',
     ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent));
+  // Farbwaehler im ⚙-Popup spiegeln den aktiven Zustand.
+  if ($colorVideo) $colorVideo.value = ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent);
+  if ($colorChat) $colorChat.value = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
 }
 
 window.twitchDual.getUiPrefs()
   .then((prefs) => applyTheme(prefs && prefs.themePrefs))
   .catch(() => applyTheme(null)); // Defaults, App startet nie ohne Farben
 window.twitchDual.onThemeChanged(applyTheme);
+
+// input = Live-Vorschau in BEIDEN Fenstern (Broadcast ohne Store-Write),
+// change = speichern. Muster wie beim Schriftgroessen-Slider.
+function currentPickerPrefs() {
+  return { videoAccent: $colorVideo.value, chatAccent: $colorChat.value };
+}
+for (const el of [$colorVideo, $colorChat]) {
+  el.addEventListener('input', () => window.twitchDual.previewThemePrefs(currentPickerPrefs()));
+  el.addEventListener('change', () => window.twitchDual.saveThemePrefs(currentPickerPrefs()));
+}
+$colorReset.addEventListener('click', () => {
+  window.twitchDual.saveThemePrefs({ ...ThemeLib.DEFAULTS });
+});
 
 // On Air: live + spielt. Bis zum ersten 'playing' nach einem Load gilt
 // gedimmt - nie faelschlich on air (Spec Fehlerfaelle).

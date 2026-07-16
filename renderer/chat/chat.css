@@ -138,7 +138,7 @@ body { display: flex; flex-direction: column; }
 #settings-pop label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #opt-font-row { display: flex; align-items: center; gap: 6px; }
 #opt-font { flex: 1; min-width: 90px; }
-#opt-font-val { color: #adadb8; min-width: 38px; text-align: right; }
+#opt-font-val { color: var(--muted); min-width: 38px; text-align: right; }
 
 /* Einstellungen wirken per Klasse am Container sofort auf alle Nachrichten. */
 #messages.hide-ts .ts { display: none; }
@@ -249,3 +249,20 @@ button:focus-visible, input:focus-visible {
   outline: 2px solid var(--accent-dim); outline-offset: 1px;
 }
 #new-msgs { color: #fff; }
+
+/* ⚙-Popup: Farbwaehler (Neon Dual). */
+#opt-color-head {
+  margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted);
+}
+.opt-color-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.opt-color-row input[type="color"] {
+  width: 44px; height: 24px; padding: 0; border: 1px solid var(--line);
+  border-radius: 4px; background: none; cursor: pointer;
+}
+#opt-color-reset {
+  background: var(--hover); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--muted); font-size: 12px; padding: 4px 8px; cursor: pointer;
+}
+#opt-color-reset:hover { color: var(--text); }
