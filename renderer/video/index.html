@@ -5,79 +5,124 @@
   <title>TwitchDual — Video</title>
   <link rel="stylesheet" href="home.css" />
   <style>
+    :root {
+      --accent: #35e0ff;
+      --accent-title: #90eeff;
+      --accent-border: rgba(53, 224, 255, .4);
+      --accent-glow: rgba(53, 224, 255, .2);
+      --accent-dim: rgba(53, 224, 255, .3);
+      --panel: #0e1a22;
+      --onair-from: #35e0ff;
+      --onair-to: #ff4fa3;
+      --bg: #0b0b11;
+      --line: #1c1c26;
+      --hover: #14141c;
+      --text: #ededf4;
+      --muted: #8b8b9c;
+      --ts: #565666;
+      --mono: "Cascadia Code", Consolas, monospace;
+    }
     * { box-sizing: border-box; }
     html, body {
       margin: 0; height: 100%;
-      background: #0e0e10; color: #efeff1;
+      background: var(--bg); color: var(--text);
       font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
     }
     body { display: flex; flex-direction: column; }
     #bar {
       display: flex; gap: 8px; align-items: center;
-      padding: 8px; background: #18181b;
-      border-bottom: 1px solid #2a2a2d;
+      padding: 8px; background: var(--panel);
+      border-bottom: 1px solid var(--accent-border);
       -webkit-app-region: drag; /* Fenster ueber Leiste ziehbar */
     }
     #bar input, #bar button { -webkit-app-region: no-drag; }
     #channel {
       flex: 1; min-width: 0;
       padding: 8px 10px; border-radius: 6px;
-      border: 1px solid #3a3a3d; background: #0e0e10; color: #efeff1;
+      border: 1px solid var(--line); background: var(--bg); color: var(--text);
       font-size: 14px;
     }
-    #channel:focus { outline: none; border-color: #9147ff; }
+    #channel:focus { outline: none; border-color: var(--accent); }
     #load {
       padding: 8px 16px; border: none; border-radius: 6px;
-      background: #9147ff; color: #fff; font-weight: 600; cursor: pointer;
+      background: var(--accent); color: #041018; font-weight: 600; cursor: pointer;
       font-size: 14px;
     }
-    #load:hover { background: #772ce8; }
+    #load:hover { filter: brightness(1.15); }
     #load:disabled { opacity: .5; cursor: default; }
     #adblock-toggle {
       -webkit-app-region: no-drag;
-      padding: 8px 10px; border: 1px solid #3a3a3d; border-radius: 6px;
-      background: #0e0e10; color: #adadb8; font-size: 13px; cursor: pointer;
+      padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+      background: var(--bg); color: var(--muted); font-size: 13px; cursor: pointer;
       white-space: nowrap;
     }
     #adblock-toggle.on { background: #1f3d1f; border-color: #3fa34d; color: #eafbea; }
-    #status { font-size: 12px; color: #adadb8; white-space: nowrap; }
+    #status { font-size: 12px; color: var(--muted); white-space: nowrap; }
     #status.err { color: #eb4034; }
     #player { flex: 1; position: relative; background: #000; }
     #player iframe { border: 0; }
     #hint {
       position: absolute; inset: 0; display: flex;
       align-items: center; justify-content: center; text-align: center;
-      color: #7a7a82; font-size: 14px; padding: 24px; pointer-events: none;
+      color: var(--muted); font-size: 14px; padding: 24px; pointer-events: none;
     }
     #ad-overlay {
       position: absolute; inset: 0; z-index: 5;
       display: flex; align-items: center; justify-content: center;
-      background: #0e0e10; color: #efeff1; text-align: center; padding: 24px;
+      background: var(--bg); color: var(--text); text-align: center; padding: 24px;
     }
     #ad-overlay.hidden { display: none; }
     #ad-overlay-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-    #ad-overlay-sub { font-size: 13px; color: #adadb8; }
+    #ad-overlay-sub { font-size: 13px; color: var(--muted); }
     #bar button:active { transform: scale(.96); }
     #bar button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
     /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
     #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 2px; }
     #win-controls button {
-      background: none; border: none; color: #adadb8; cursor: pointer;
+      background: none; border: none; color: var(--muted); cursor: pointer;
       font-size: 12px; padding: 7px 10px; border-radius: 6px; line-height: 1;
       transition: background-color 120ms ease, color 120ms ease;
     }
-    #win-controls button:hover { background: #2a2a2d; color: #efeff1; }
+    #win-controls button:hover { background: var(--hover); color: var(--text); }
     #win-controls #win-close:hover { background: #eb0400; color: #fff; }
+    body {
+      border: 1px solid var(--accent-border);
+      box-shadow: inset 0 0 24px -12px var(--accent-glow);
+    }
+    #onair-bar {
+      height: 2px; flex-shrink: 0;
+      background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
+      opacity: .25;
+    }
+    body.onair #onair-bar {
+      opacity: 1;
+      box-shadow: 0 0 10px var(--accent-glow);
+      animation: onair-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes onair-pulse { 50% { opacity: .55; } }
+    #onair-tag {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: .08em; white-space: nowrap;
+      background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    body:not(.onair) #onair-tag { display: none; }
+    #status { font-family: var(--mono); }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--accent-dim); outline-offset: 1px;
+    }
   </style>
 </head>
 <body>
+  <div id="onair-bar"></div>
   <div id="bar">
     <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
     <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
     <datalist id="history"></datalist>
     <button id="load">Laden</button>
     <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
+    <span id="onair-tag">● ON AIR</span>
     <span id="status">bereit</span>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
@@ -129,6 +174,7 @@
   <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
   <script src="../lib/ad-overlay-state.js"></script>
+  <script src="../lib/theme.js"></script>
   <script src="video.js"></script>
   <script src="home.js"></script>
 </body>
