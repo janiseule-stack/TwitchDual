@@ -38,6 +38,15 @@ let scrollbarDrag = false;
 // Einblende-Drossel: ueber ANIM_MAX_RATE Nachrichten/s keine Animation mehr.
 const msgRate = ChatUi.createRateMeter({ windowMs: 1000 });
 
+// Nachrichten pro Minute fuers Footer-Display (Monospace-Detail).
+const $rate = document.getElementById('rate');
+const minuteRate = ChatUi.createRateMeter({ windowMs: 60000 });
+let rateShown = -1;
+function tickRateDisplay(now) {
+  const n = minuteRate.tick(now);
+  if (n !== rateShown) { rateShown = n; $rate.textContent = n + ' msg/min'; }
+}
+
 function nearBottom() {
   return $messages.scrollHeight - $messages.scrollTop - $messages.clientHeight < 40;
 }
@@ -211,6 +220,7 @@ function appendMessage(name, color, tokens, opts = {}) {
   // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
   // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
   $messages.classList.toggle('no-anim', msgRate.tick(Date.now()) > ChatUi.ANIM_MAX_RATE);
+  tickRateDisplay(Date.now());
 
   $messages.appendChild(div);
   // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
@@ -459,6 +469,9 @@ function createVodReplay(payload) {
 // Steuerung: auf 'load' und 'player-time' reagieren
 // ---------------------------------------------------------------------------
 window.twitchDual.onLoad((payload) => {
+  onAirMode = payload.mode;
+  onAirPlayerState = null;
+  updateOnAir();
   emoteMap = payload.emotes || {};
   badgeCatalog = payload.badgeCatalog || {};
   userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
@@ -492,6 +505,8 @@ window.twitchDual.onLoad((payload) => {
 let playerState = 'playing';
 window.twitchDual.onPlayerState((state) => {
   playerState = state;
+  onAirPlayerState = state;
+  updateOnAir();
   if (!vod) return;
   if (state === 'paused') setConn('⏸ Replay pausiert');
   else if (state === 'ended') setConn('Replay-Ende', 'ok');
@@ -565,3 +580,36 @@ document.getElementById('win-close').addEventListener('click', () => window.twit
 document.getElementById('head').addEventListener('dblclick', (e) => {
   if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');
 });
+
+// ---------------------------------------------------------------------------
+// Neon Dual - On Air (v1.5.0): Fensterfarbe (Chat = chatAccent) als CSS-
+// Variablen; On-Air-Leiste haengt an load-Modus + player-state.
+// ---------------------------------------------------------------------------
+let themePrefs = { ...ThemeLib.DEFAULTS };
+
+function applyTheme(prefs) {
+  themePrefs = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
+  const vars = ThemeLib.accentVars(themePrefs.chatAccent);
+  for (const [k, v] of Object.entries(vars)) {
+    document.documentElement.style.setProperty(k, v);
+  }
+  document.documentElement.style.setProperty('--onair-from',
+    ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent));
+  document.documentElement.style.setProperty('--onair-to',
+    ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent));
+}
+
+window.twitchDual.getUiPrefs()
+  .then((prefs) => applyTheme(prefs && prefs.themePrefs))
+  .catch(() => applyTheme(null)); // Defaults, App startet nie ohne Farben
+window.twitchDual.onThemeChanged(applyTheme);
+
+// On Air: live + spielt. Bis zum ersten 'playing' nach einem Load gilt
+// gedimmt - nie faelschlich on air (Spec Fehlerfaelle).
+let onAirMode = null;        // 'live' | 'vod' | null (aus dem load-Broadcast)
+let onAirPlayerState = null; // letzter player-state nach dem Load
+
+function updateOnAir() {
+  const on = ThemeLib.onAirState(onAirMode, onAirPlayerState) === 'onair';
+  document.body.classList.toggle('onair', on);
+}

@@ -6,9 +6,11 @@
   <link rel="stylesheet" href="chat.css" />
 </head>
 <body>
+  <div id="onair-bar"></div>
   <div id="head">
     <span id="title">Chat</span>
     <span id="mode"></span>
+    <span id="onair-tag">● ON AIR</span>
     <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
@@ -41,6 +43,7 @@
   </div>
   <div id="footer">
     <span id="conn">nicht verbunden</span>
+    <span id="rate"></span>
   </div>
 
   <script src="../lib/emote-text.js"></script>
@@ -49,6 +52,7 @@
   <script src="../lib/backoff.js"></script>
   <script src="../lib/vod-replay.js"></script>
   <script src="../lib/chat-ui.js"></script>
+  <script src="../lib/theme.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>
