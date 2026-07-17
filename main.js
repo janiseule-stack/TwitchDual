@@ -22,7 +22,7 @@ const store = new Store({
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
     adblockEnabled: true,
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3' }
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', videoAlpha: 100, chatAlpha: 100 }
   }
 });
 
@@ -53,7 +53,8 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#0b0b11',
+    backgroundColor: '#00000000',
+    transparent: true,
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -66,7 +67,8 @@ function createWindows() {
   chatWin = new BrowserWindow({
     ...cb,
     title: 'TwitchDual — Chat',
-    backgroundColor: '#0b0b11',
+    backgroundColor: '#00000000',
+    transparent: true,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -192,7 +194,9 @@ function cleanThemePrefs(prefs) {
   const d = ThemeLib.DEFAULTS;
   return {
     videoAccent: ThemeLib.normalizeHex(prefs && prefs.videoAccent, d.videoAccent),
-    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent)
+    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent),
+    videoAlpha: ThemeLib.clampAlpha(prefs && prefs.videoAlpha),
+    chatAlpha: ThemeLib.clampAlpha(prefs && prefs.chatAlpha)
   };
 }
 
