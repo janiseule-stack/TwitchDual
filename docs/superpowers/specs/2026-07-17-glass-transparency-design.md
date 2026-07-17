@@ -42,11 +42,13 @@ Bekannte Nebenwirkungen (akzeptiert, im Smoke-Test prüfen):
 - **`clampAlpha(input)`**: Prozentwert 0–100 → Zahl; Strings/Müll/fehlend
   → 100 (nie unsichtbar durch kaputte Store-Werte); Grenzen geklemmt,
   Rundung auf ganze Prozent.
-- **Flächen als RGB-Triplets:** `accentVars` liefert zusätzlich
-  `--panel-rgb` („r, g, b" des getönten Panels) und es gibt eine Konstante
-  `--bg-rgb` (11, 11, 17). CSS nutzt
-  `rgba(var(--panel-rgb), var(--bg-alpha))` statt festem Hex — ein
-  einziger Alpha-Wert (`--bg-alpha`, 0–1) steuert alle Flächen.
+- **Alpha direkt in den Flächen-Variablen:** Alle Flächen laufen schon
+  über die CSS-Variablen `--bg`, `--panel`, `--hover`, `--line`, die
+  `applyTheme()` pro Fenster setzt. `accentVars(hex, alphaPct)` liefert
+  diese Werte künftig als `rgba(…, alpha)` statt als Hex — das CSS
+  bleibt fast unangetastet, ein Alpha-Wert pro Fenster steuert alles.
+  Die Hex-Fallbacks in den Stylesheets (bis zum ersten `applyTheme`)
+  bleiben opak.
 - **`accentContrast(hex)`** (Bug-Fix): wählt zwischen dunklem Text
   `#041018` und hellem Text `#f2f6ff` den mit dem **höheren
   WCAG-Kontrastverhältnis** zur Akzentfarbe (relative Luminanz +
