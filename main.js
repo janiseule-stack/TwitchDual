@@ -249,12 +249,25 @@ ipcMain.handle('get-vaft-source', () => {
 });
 
 // Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
+// Nur-Video-Modus: gemerkte Fenstergroesse pro Fenster (Key = win.id), damit
+// 'video-only-off' die Groesse vor dem 16:9-Einrasten wiederherstellen kann.
+const preVideoOnlyBounds = new Map();
+
 ipcMain.on('window-control', (evt, action) => {
   const win = BrowserWindow.fromWebContents(evt.sender);
   if (!win || win.isDestroyed()) return;
   if (action === 'minimize') win.minimize();
   else if (action === 'maximize') (win.isMaximized() ? win.unmaximize() : win.maximize());
   else if (action === 'close') win.close();
+  else if (action === 'video-only-on') {
+    if (win.isMaximized()) win.unmaximize();
+    preVideoOnlyBounds.set(win.id, win.getBounds());
+    const [w] = win.getContentSize();
+    win.setContentSize(w, Math.round(w * 9 / 16)); // 16:9, Breite behalten
+  } else if (action === 'video-only-off') {
+    const b = preVideoOnlyBounds.get(win.id);
+    if (b) { win.setBounds(b); preVideoOnlyBounds.delete(win.id); }
+  }
 });
 
 // Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.

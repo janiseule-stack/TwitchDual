@@ -113,6 +113,31 @@
     button:focus-visible, input:focus-visible {
       outline: 2px solid var(--accent-dim); outline-offset: 1px;
     }
+    /* Nur-Video-Modus: Umschalt-Button in der Leiste. */
+    #video-only-btn {
+      -webkit-app-region: no-drag;
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 14px; padding: 6px 8px; border-radius: 6px; line-height: 1;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+    #video-only-btn:hover { background: var(--hover); color: var(--text); }
+    /* Im Modus: alles ausser dem Player ausblenden. */
+    body.video-only #bar,
+    body.video-only #onair-bar { display: none; }
+    body.video-only { border: none; box-shadow: none; }
+    /* Schwebender Verlassen-Button: nur im Modus, blendet bei Ruhe aus. */
+    #video-exit {
+      position: fixed; top: 12px; right: 12px; z-index: 40;
+      -webkit-app-region: no-drag;
+      display: none; align-items: center; gap: 6px;
+      background: rgba(0, 0, 0, .6); color: #fff;
+      border: 1px solid rgba(255, 255, 255, .2); border-radius: 6px;
+      padding: 6px 10px; font-size: 12px; cursor: pointer;
+      opacity: 0; transition: opacity 200ms ease;
+    }
+    body.video-only #video-exit { display: flex; }
+    body.video-only.controls-active #video-exit { opacity: 1; }
+    #video-exit:hover { background: rgba(0, 0, 0, .85); }
   </style>
 </head>
 <body>
@@ -125,12 +150,14 @@
     <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
     <span id="onair-tag">● ON AIR</span>
     <span id="status">bereit</span>
+    <button id="video-only-btn" title="Nur Video (Fenster füllen)">⛶</button>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
       <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
       <button id="win-close" title="Schließen">✕</button>
     </div>
   </div>
+  <button id="video-exit" title="Nur-Video verlassen">✕ Nur-Video</button>
   <div id="player">
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
     <div id="ad-overlay" class="hidden">
