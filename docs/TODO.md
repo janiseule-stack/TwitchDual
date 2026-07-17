@@ -109,6 +109,16 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Neue DOM-freie Lib renderer/lib/theme.js (normalizeHex, accentVars,
   onAirState; unit-getestet).
 
+**Glass-Transparenz + Kontrast-Fix (v1.6.0)**
+- Deckkraft-Slider pro Fenster (Video/Chat) im ⚙-Popup: Hintergrund 0-100 %
+  durchsichtig, Text/Emotes/Glow/On-Air-Leiste bleiben voll. Fenster mit
+  `transparent:true`; Flaechen ueber `--bg/--panel/--hover` als rgba mit einem
+  Alpha pro Fenster (`themePrefs.videoAlpha/chatAlpha`, Default 100 %,
+  ueber `clampAlpha` gesaeubert).
+- Bug-Fix: Akzent-Buttons ("Laden", "+ Hinzufuegen") waehlen ihren Textton
+  per `ThemeLib.accentContrast` (hoeheres WCAG-Kontrastverhaeltnis) + duenner
+  neutraler Rand -> auch Schwarz als Akzentfarbe bleibt lesbar.
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
