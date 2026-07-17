@@ -22,7 +22,7 @@ const store = new Store({
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
     adblockEnabled: true,
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', videoAlpha: 100, chatAlpha: 100 }
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
   }
 });
 
@@ -53,8 +53,7 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#00000000',
-    transparent: true,
+    backgroundColor: '#0b0b11', // Video-Fenster bleibt opak (Player deckt eh alles)
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -195,7 +194,6 @@ function cleanThemePrefs(prefs) {
   return {
     videoAccent: ThemeLib.normalizeHex(prefs && prefs.videoAccent, d.videoAccent),
     chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent),
-    videoAlpha: ThemeLib.clampAlpha(prefs && prefs.videoAlpha),
     chatAlpha: ThemeLib.clampAlpha(prefs && prefs.chatAlpha)
   };
 }
@@ -263,8 +261,10 @@ ipcMain.on('window-control', (evt, action) => {
     if (win.isMaximized()) win.unmaximize();
     preVideoOnlyBounds.set(win.id, win.getBounds());
     const [w] = win.getContentSize();
-    win.setContentSize(w, Math.round(w * 9 / 16)); // 16:9, Breite behalten
+    win.setContentSize(w, Math.round(w * 9 / 16)); // sofort auf 16:9, Breite behalten
+    win.setAspectRatio(16 / 9); // bleibt beim Resize 16:9 -> nie wieder Balken
   } else if (action === 'video-only-off') {
+    win.setAspectRatio(0); // Seitenverhaeltnis-Sperre wieder loesen
     const b = preVideoOnlyBounds.get(win.id);
     if (b) { win.setBounds(b); preVideoOnlyBounds.delete(win.id); }
   }

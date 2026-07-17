@@ -9,7 +9,7 @@
     root.ThemeLib = factory();
   }
 })(typeof self !== 'undefined' ? self : this, function () {
-  const DEFAULTS = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', videoAlpha: 100, chatAlpha: 100 };
+  const DEFAULTS = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 };
   const BG = { r: 11, g: 11, b: 17 };    // Grundton #0b0b11 (fuer die Panel-Toenung)
   const HOVER = { r: 20, g: 20, b: 28 }; // neutrale Hover-/Panel-Flaeche #14141c
 

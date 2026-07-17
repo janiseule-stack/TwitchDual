@@ -301,7 +301,7 @@ document.addEventListener('mousemove', showControlsBriefly);
 // ---------------------------------------------------------------------------
 function applyTheme(prefs) {
   const t = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(t.videoAccent, t.videoAlpha);
+  const vars = ThemeLib.accentVars(t.videoAccent); // Video-Fenster ist opak (kein Alpha)
   for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }
