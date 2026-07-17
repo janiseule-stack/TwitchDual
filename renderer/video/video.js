@@ -264,7 +264,7 @@ document.getElementById('bar').addEventListener('dblclick', (e) => {
 // ---------------------------------------------------------------------------
 function applyTheme(prefs) {
   const t = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(t.videoAccent);
+  const vars = ThemeLib.accentVars(t.videoAccent, t.videoAlpha);
   for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }

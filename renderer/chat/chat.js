@@ -588,12 +588,16 @@ document.getElementById('head').addEventListener('dblclick', (e) => {
 const $colorVideo = document.getElementById('opt-color-video');
 const $colorChat = document.getElementById('opt-color-chat');
 const $colorReset = document.getElementById('opt-color-reset');
+const $alphaVideo = document.getElementById('opt-alpha-video');
+const $alphaChat = document.getElementById('opt-alpha-chat');
+const $alphaVideoVal = document.getElementById('opt-alpha-video-val');
+const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
 
 let themePrefs = { ...ThemeLib.DEFAULTS };
 
 function applyTheme(prefs) {
   themePrefs = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(themePrefs.chatAccent);
+  const vars = ThemeLib.accentVars(themePrefs.chatAccent, themePrefs.chatAlpha);
   for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }
@@ -604,6 +608,13 @@ function applyTheme(prefs) {
   // Farbwaehler im ⚙-Popup spiegeln den aktiven Zustand.
   if ($colorVideo) $colorVideo.value = ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent);
   if ($colorChat) $colorChat.value = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
+  // Deckkraft-Slider + %-Anzeige spiegeln den aktiven Zustand.
+  const va = ThemeLib.clampAlpha(themePrefs.videoAlpha);
+  const ca = ThemeLib.clampAlpha(themePrefs.chatAlpha);
+  if ($alphaVideo) $alphaVideo.value = va;
+  if ($alphaChat) $alphaChat.value = ca;
+  if ($alphaVideoVal) $alphaVideoVal.textContent = va + '%';
+  if ($alphaChatVal) $alphaChatVal.textContent = ca + '%';
 }
 
 window.twitchDual.getUiPrefs()
@@ -614,7 +625,12 @@ window.twitchDual.onThemeChanged(applyTheme);
 // input = Live-Vorschau in BEIDEN Fenstern (Broadcast ohne Store-Write),
 // change = speichern. Muster wie beim Schriftgroessen-Slider.
 function currentPickerPrefs() {
-  return { videoAccent: $colorVideo.value, chatAccent: $colorChat.value };
+  return {
+    videoAccent: $colorVideo.value,
+    chatAccent: $colorChat.value,
+    videoAlpha: ThemeLib.clampAlpha($alphaVideo ? $alphaVideo.value : themePrefs.videoAlpha),
+    chatAlpha: ThemeLib.clampAlpha($alphaChat ? $alphaChat.value : themePrefs.chatAlpha)
+  };
 }
 for (const el of [$colorVideo, $colorChat]) {
   el.addEventListener('input', () => window.twitchDual.previewThemePrefs(currentPickerPrefs()));
