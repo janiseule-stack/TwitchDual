@@ -11,6 +11,7 @@
       --accent-border: rgba(53, 224, 255, .4);
       --accent-glow: rgba(53, 224, 255, .2);
       --accent-dim: rgba(53, 224, 255, .3);
+      --accent-contrast: #041018;
       --panel: #0e1a22;
       --onair-from: #35e0ff;
       --onair-to: #ff4fa3;
@@ -45,8 +46,8 @@
     }
     #channel:focus { outline: none; border-color: var(--accent); }
     #load {
-      padding: 8px 16px; border: none; border-radius: 6px;
-      background: var(--accent); color: #041018; font-weight: 600; cursor: pointer;
+      padding: 8px 16px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 6px;
+      background: var(--accent); color: var(--accent-contrast); font-weight: 600; cursor: pointer;
       font-size: 14px;
     }
     #load:hover { filter: brightness(1.15); }
