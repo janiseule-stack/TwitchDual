@@ -266,3 +266,11 @@ button:focus-visible, input:focus-visible {
   color: var(--muted); font-size: 12px; padding: 4px 8px; cursor: pointer;
 }
 #opt-color-reset:hover { color: var(--text); }
+
+/* ⚙-Popup: Deckkraft-Slider (Glass-Transparenz). */
+.opt-alpha-row { display: flex; align-items: center; gap: 8px; }
+.opt-alpha-row input[type="range"] { flex: 1; min-width: 90px; }
+.opt-alpha-val {
+  font-family: var(--mono); color: var(--muted);
+  min-width: 42px; text-align: right;
+}

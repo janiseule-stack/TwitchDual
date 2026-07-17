@@ -636,6 +636,15 @@ for (const el of [$colorVideo, $colorChat]) {
   el.addEventListener('input', () => window.twitchDual.previewThemePrefs(currentPickerPrefs()));
   el.addEventListener('change', () => window.twitchDual.saveThemePrefs(currentPickerPrefs()));
 }
+for (const el of [$alphaVideo, $alphaChat]) {
+  el.addEventListener('input', () => {
+    // %-Anzeige sofort, Live-Vorschau in beide Fenster (kein Store-Write).
+    $alphaVideoVal.textContent = ThemeLib.clampAlpha($alphaVideo.value) + '%';
+    $alphaChatVal.textContent = ThemeLib.clampAlpha($alphaChat.value) + '%';
+    window.twitchDual.previewThemePrefs(currentPickerPrefs());
+  });
+  el.addEventListener('change', () => window.twitchDual.saveThemePrefs(currentPickerPrefs()));
+}
 $colorReset.addEventListener('click', () => {
   window.twitchDual.saveThemePrefs({ ...ThemeLib.DEFAULTS });
 });
