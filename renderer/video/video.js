@@ -107,15 +107,21 @@ function mountPlayer(options) {
   });
   player.addEventListener(Twitch.Player.PLAYING, () => {
     startTimeBroadcast();
+    window.twitchDual.sendPlayerState('playing');
+    onAirPlayerState = 'playing'; updateOnAir();
   });
-
-  // Pause/Play/Ende an den Chat melden (Statusanzeige im VOD-Replay).
-  player.addEventListener(Twitch.Player.PAUSE, () =>
-    window.twitchDual.sendPlayerState('paused'));
-  player.addEventListener(Twitch.Player.PLAY, () =>
-    window.twitchDual.sendPlayerState('playing'));
-  player.addEventListener(Twitch.Player.ENDED, () =>
-    window.twitchDual.sendPlayerState('ended'));
+  player.addEventListener(Twitch.Player.PAUSE, () => {
+    window.twitchDual.sendPlayerState('paused');
+    onAirPlayerState = 'paused'; updateOnAir();
+  });
+  player.addEventListener(Twitch.Player.PLAY, () => {
+    window.twitchDual.sendPlayerState('playing');
+    onAirPlayerState = 'playing'; updateOnAir();
+  });
+  player.addEventListener(Twitch.Player.ENDED, () => {
+    window.twitchDual.sendPlayerState('ended');
+    onAirPlayerState = 'ended'; updateOnAir();
+  });
 
   startTimeBroadcast();
 }
@@ -205,6 +211,9 @@ refreshHistory().then((prefs) => {
 
 // Broadcast von Main: beide Fenster laden denselben Channel/VOD.
 window.twitchDual.onLoad((payload) => {
+  onAirMode = payload.mode;
+  onAirPlayerState = null;
+  updateOnAir();
   $channel.value = payload.mode === 'vod'
     ? (payload.videoId || '')
     : (payload.channel || '');
@@ -248,3 +257,31 @@ document.getElementById('win-close').addEventListener('click', () => window.twit
 document.getElementById('bar').addEventListener('dblclick', (e) => {
   if (e.target.id === 'bar') window.twitchDual.windowControl('maximize');
 });
+
+// ---------------------------------------------------------------------------
+// Neon Dual - On Air (v1.5.0): Fensterfarbe (Video = videoAccent) als CSS-
+// Variablen; On-Air-Leiste haengt an load-Modus + eigenem Player-Zustand.
+// ---------------------------------------------------------------------------
+function applyTheme(prefs) {
+  const t = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
+  const vars = ThemeLib.accentVars(t.videoAccent);
+  for (const [k, v] of Object.entries(vars)) {
+    document.documentElement.style.setProperty(k, v);
+  }
+  document.documentElement.style.setProperty('--onair-from',
+    ThemeLib.normalizeHex(t.videoAccent, ThemeLib.DEFAULTS.videoAccent));
+  document.documentElement.style.setProperty('--onair-to',
+    ThemeLib.normalizeHex(t.chatAccent, ThemeLib.DEFAULTS.chatAccent));
+}
+
+window.twitchDual.getUiPrefs()
+  .then((prefs) => applyTheme(prefs && prefs.themePrefs))
+  .catch(() => applyTheme(null));
+window.twitchDual.onThemeChanged(applyTheme);
+
+let onAirMode = null;
+let onAirPlayerState = null;
+function updateOnAir() {
+  const on = ThemeLib.onAirState(onAirMode, onAirPlayerState) === 'onair';
+  document.body.classList.toggle('onair', on);
+}

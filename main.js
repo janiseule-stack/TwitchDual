@@ -10,6 +10,7 @@ const twitch = require('./src/twitch-api');
 const browse = require('./src/twitch-browse');
 const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
+const ThemeLib = require('./renderer/lib/theme');
 
 const store = new Store({
   defaults: {
@@ -20,7 +21,8 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    adblockEnabled: true
+    adblockEnabled: true,
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3' }
   }
 });
 
@@ -51,7 +53,7 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#0e0e10',
+    backgroundColor: '#0b0b11',
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -64,7 +66,7 @@ function createWindows() {
   chatWin = new BrowserWindow({
     ...cb,
     title: 'TwitchDual — Chat',
-    backgroundColor: '#18181b',
+    backgroundColor: '#0b0b11',
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -185,12 +187,22 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 });
 
+// Theme-Farben aus dem Store koennen Muell sein -> immer saeubern (ThemeLib).
+function cleanThemePrefs(prefs) {
+  const d = ThemeLib.DEFAULTS;
+  return {
+    videoAccent: ThemeLib.normalizeHex(prefs && prefs.videoAccent, d.videoAccent),
+    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent)
+  };
+}
+
 // UI-Voreinstellungen fuers Video-Fenster (Verlauf, Prefill, Player-Prefs).
 ipcMain.handle('get-ui-prefs', () => ({
   history: store.get('history', []),
   lastSource: store.get('lastSource', ''),
   playerPrefs: store.get('playerPrefs', { volume: null, quality: null }),
-  chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true })
+  chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true }),
+  themePrefs: cleanThemePrefs(store.get('themePrefs'))
 }));
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
@@ -201,6 +213,17 @@ ipcMain.on('save-player-prefs', (_evt, prefs) => {
 ipcMain.on('save-chat-prefs', (_evt, prefs) => {
   const cur = store.get('chatPrefs', { showTimestamps: true, showBadges: true });
   store.set('chatPrefs', { ...cur, ...(prefs || {}) });
+});
+
+// Fensterfarben: speichern broadcastet an BEIDE Fenster (Wirkung sofort);
+// preview broadcastet nur (Live-Vorschau beim Ziehen im Farbwaehler).
+ipcMain.on('save-theme-prefs', (_evt, prefs) => {
+  const clean = cleanThemePrefs(prefs);
+  store.set('themePrefs', clean);
+  broadcast('theme-changed', clean);
+});
+ipcMain.on('preview-theme-prefs', (_evt, prefs) => {
+  broadcast('theme-changed', cleanThemePrefs(prefs));
 });
 
 // Adblock-Einstellung (persistent, Default an).

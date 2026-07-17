@@ -6,9 +6,11 @@
   <link rel="stylesheet" href="chat.css" />
 </head>
 <body>
+  <div id="onair-bar"></div>
   <div id="head">
     <span id="title">Chat</span>
     <span id="mode"></span>
+    <span id="onair-tag">● ON AIR</span>
     <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
@@ -23,6 +25,14 @@
       <input type="range" id="opt-font" min="11" max="22" step="1" />
       <span id="opt-font-val"></span>
     </label>
+    <div id="opt-color-head">Farben</div>
+    <label class="opt-color-row">Video
+      <input type="color" id="opt-color-video" value="#35e0ff" />
+    </label>
+    <label class="opt-color-row">Chat
+      <input type="color" id="opt-color-chat" value="#ff4fa3" />
+    </label>
+    <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
   </div>
   <div id="messages"></div>
   <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
@@ -41,6 +51,7 @@
   </div>
   <div id="footer">
     <span id="conn">nicht verbunden</span>
+    <span id="rate"></span>
   </div>
 
   <script src="../lib/emote-text.js"></script>
@@ -49,6 +60,7 @@
   <script src="../lib/backoff.js"></script>
   <script src="../lib/vod-replay.js"></script>
   <script src="../lib/chat-ui.js"></script>
+  <script src="../lib/theme.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>

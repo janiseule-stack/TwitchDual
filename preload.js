@@ -48,6 +48,11 @@ if (!isTwitchFrame) {
     getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),
     savePlayerPrefs: (prefs) => ipcRenderer.send('save-player-prefs', prefs),
     saveChatPrefs: (prefs) => ipcRenderer.send('save-chat-prefs', prefs),
+    saveThemePrefs: (prefs) => ipcRenderer.send('save-theme-prefs', prefs),
+    previewThemePrefs: (prefs) => ipcRenderer.send('preview-theme-prefs', prefs),
+    onThemeChanged: (cb) => {
+      ipcRenderer.on('theme-changed', (_e, prefs) => cb(prefs));
+    },
 
     // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
     getFavorites: () => ipcRenderer.invoke('get-favorites'),

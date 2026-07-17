@@ -95,6 +95,20 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   weiche Button-Farbwechsel.
 - Neue DOM-freie Lib renderer/lib/chat-ui.js (unit-getestet).
 
+**Neon Dual - On Air (v1.5.0)**
+- Eigene visuelle Identitaet statt Twitch-Look: fast schwarzer Grund,
+  Video-Fenster Cyan, Chat-Fenster Magenta (Glow an Rahmen/Titel/Status),
+  Twitch-Lila komplett entfernt. Alle Akzente als CSS-Variablen.
+- Fensterfarben im ⚙-Popup einstellbar (zwei Color-Picker + Reset,
+  Live-Vorschau in beiden Fenstern; themePrefs in electron-store,
+  save/preview-theme-prefs-IPC + theme-changed-Broadcast).
+- On-Air-Leiste (2px-Verlauf Video->Chat-Farbe) ueber beiden Fenstern:
+  leuchtet + pulsiert nur bei Live-Kanal der spielt (load-mode +
+  player-state-Relay; PLAYING sendet jetzt auch 'playing'), sonst gedimmt.
+- Monospace-Details (Zeitstempel, msg/min-Anzeige im Chat-Footer, Status).
+- Neue DOM-freie Lib renderer/lib/theme.js (normalizeHex, accentVars,
+  onAirState; unit-getestet).
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).

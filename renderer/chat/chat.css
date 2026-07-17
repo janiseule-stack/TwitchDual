@@ -1,7 +1,28 @@
+/* Neon Dual - On Air (v1.5.0): alle Akzente laufen ueber CSS-Variablen.
+   --accent* und --panel setzt chat.js aus ThemeLib.accentVars(chatAccent);
+   die Werte hier sind nur der Fallback bis zum ersten applyTheme(). */
+:root {
+  --accent: #ff4fa3;
+  --accent-title: #ff9ecc;
+  --accent-border: rgba(255, 79, 163, .4);
+  --accent-glow: rgba(255, 79, 163, .2);
+  --accent-dim: rgba(255, 79, 163, .3);
+  --panel: #1c101b;
+  --onair-from: #35e0ff;
+  --onair-to: #ff4fa3;
+  --bg: #0b0b11;
+  --line: #1c1c26;
+  --hover: #14141c;
+  --text: #ededf4;
+  --muted: #8b8b9c;
+  --ts: #565666;
+  --mono: "Cascadia Code", Consolas, monospace;
+}
+
 * { box-sizing: border-box; }
 html, body {
   margin: 0; height: 100%;
-  background: #18181b; color: #efeff1;
+  background: var(--bg); color: var(--text);
   font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
 }
@@ -9,23 +30,23 @@ body { display: flex; flex-direction: column; }
 
 #head {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 12px; background: #0e0e10;
-  border-bottom: 1px solid #2a2a2d; font-size: 13px;
+  padding: 8px 12px; background: var(--panel);
+  border-bottom: 1px solid var(--accent-border); font-size: 13px;
   -webkit-app-region: drag;
 }
 #title { font-weight: 700; }
-#mode { color: #adadb8; font-size: 12px; }
+#mode { color: var(--muted); font-size: 12px; }
 
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
   font-size: var(--chat-font-size, 14px); line-height: 1.45;
-  scrollbar-width: thin; scrollbar-color: #3a3a3d transparent;
+  scrollbar-width: thin; scrollbar-color: #23232e transparent;
 }
 #messages::-webkit-scrollbar { width: 8px; }
-#messages::-webkit-scrollbar-thumb { background: #3a3a3d; border-radius: 4px; }
+#messages::-webkit-scrollbar-thumb { background: #23232e; border-radius: 4px; }
 
 .msg { padding: 3px 4px; border-radius: 4px; word-wrap: break-word; }
-.msg:hover { background: #1f1f23; }
+.msg:hover { background: var(--hover); }
 .msg .user { font-weight: 700; cursor: pointer; }
 .msg .chip {
   display: inline-block; min-width: 14px; text-align: center;
@@ -37,34 +58,34 @@ body { display: flex; flex-direction: column; }
   height: 1.3em; width: 1.3em;
   vertical-align: -0.22em; margin-right: 4px; border-radius: 3px;
 }
-.msg .sep { color: #adadb8; }
+.msg .sep { color: var(--muted); }
 .msg .emote {
   height: 2em; vertical-align: middle;
   margin: -0.35em 1px; /* Zeilenhoehe bleibt konstant trotz 2em-Bild */
 }
 .msg.replay { opacity: .97; }
-.msg.system { color: #adadb8; font-style: italic; }
+.msg.system { color: var(--muted); font-style: italic; }
 
 .msg .ts {
-  color: #6e6e76; font-size: 0.8em; margin-right: 5px;
+  color: var(--ts); font-size: 0.8em; margin-right: 5px;
   font-variant-numeric: tabular-nums;
 }
 
 /* Schwebender "neue Nachrichten"-Button, wenn der Nutzer hochgescrollt hat. */
 #new-msgs {
   position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
-  background: #9147ff; color: #fff; border: none; border-radius: 14px;
+  background: var(--accent); color: #fff; border: none; border-radius: 14px;
   padding: 5px 14px; font-size: 12px; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.5);
 }
-#new-msgs:hover { background: #772ce8; }
+#new-msgs:hover { filter: brightness(1.15); }
 #new-msgs.hidden { display: none; }
 
 #footer {
-  padding: 5px 12px; background: #0e0e10;
-  border-top: 1px solid #2a2a2d; font-size: 11px; color: #adadb8;
+  padding: 5px 12px; background: var(--panel);
+  border-top: 1px solid var(--line); font-size: 11px; color: var(--muted);
 }
-#conn.ok { color: #00b16a; }
+#conn.ok { color: var(--muted); }
 #conn.err { color: #eb0400; }
 
 /* Verbindungsstatus: farbiger Punkt vor dem Text. Grau = neutral,
@@ -72,9 +93,9 @@ body { display: flex; flex-direction: column; }
 #conn { display: inline-flex; align-items: center; gap: 6px; }
 #conn::before {
   content: ''; width: 8px; height: 8px; border-radius: 50%;
-  background: #6e6e76; flex-shrink: 0;
+  background: var(--ts); flex-shrink: 0;
 }
-#conn.ok::before { background: #00b16a; }
+#conn.ok::before { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
 #conn.err::before { background: #eb0400; }
 #conn.connecting::before {
   background: #f5a623;
@@ -91,24 +112,24 @@ body { display: flex; flex-direction: column; }
 /* ⚙-Menue: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
 #settings-btn {
   -webkit-app-region: no-drag;
-  background: none; border: none; color: #adadb8;
+  background: none; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
 }
-#settings-btn:hover { color: #efeff1; }
+#settings-btn:hover { color: var(--text); }
 
 /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
 #win-controls button {
-  background: none; border: none; color: #adadb8; cursor: pointer;
+  background: none; border: none; color: var(--muted); cursor: pointer;
   font-size: 12px; padding: 6px 9px; border-radius: 6px; line-height: 1;
   transition: background-color 120ms ease, color 120ms ease;
 }
-#win-controls button:hover { background: #2a2a2d; color: #efeff1; }
+#win-controls button:hover { background: var(--hover); color: var(--text); }
 #win-controls #win-close:hover { background: #eb0400; color: #fff; }
 
 #settings-pop {
   position: absolute; top: 34px; right: 8px; z-index: 10;
-  background: #1f1f23; border: 1px solid #2a2a2d; border-radius: 6px;
+  background: var(--hover); border: 1px solid var(--line); border-radius: 6px;
   padding: 8px 10px; font-size: 12px; display: flex;
   flex-direction: column; gap: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,.5);
@@ -117,7 +138,7 @@ body { display: flex; flex-direction: column; }
 #settings-pop label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 #opt-font-row { display: flex; align-items: center; gap: 6px; }
 #opt-font { flex: 1; min-width: 90px; }
-#opt-font-val { color: #adadb8; min-width: 38px; text-align: right; }
+#opt-font-val { color: var(--muted); min-width: 38px; text-align: right; }
 
 /* Einstellungen wirken per Klasse am Container sofort auf alle Nachrichten. */
 #messages.hide-ts .ts { display: none; }
@@ -127,41 +148,41 @@ body { display: flex; flex-direction: column; }
 /* Emote-Tooltip: EIN fixes Overlay ausserhalb des Scroll-Containers. */
 #emote-tip {
   position: fixed; z-index: 20; pointer-events: none;
-  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  background: var(--hover); border: 1px solid var(--line); border-radius: 8px;
   padding: 8px 12px; text-align: center; max-width: 220px;
   box-shadow: 0 4px 12px rgba(0,0,0,.5);
 }
 #emote-tip.hidden { display: none; }
 #emote-tip img { max-height: 84px; max-width: 196px; display: block; margin: 0 auto 4px; }
 #emote-tip-name { font-weight: 700; font-size: 13px; word-break: break-all; }
-#emote-tip-src { font-size: 11px; color: #adadb8; }
+#emote-tip-src { font-size: 11px; color: var(--muted); }
 
 /* User-Karte: fixes Overlay, Klick auf Namen oeffnet sie. */
 #user-card {
   position: fixed; z-index: 30;
-  background: #1f1f23; border: 1px solid #3a3a3d; border-radius: 8px;
+  background: var(--hover); border: 1px solid var(--line); border-radius: 8px;
   min-width: 200px; max-width: 280px;
   box-shadow: 0 4px 12px rgba(0,0,0,.5);
 }
 #user-card.hidden { display: none; }
 #uc-head {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 10px; border-bottom: 1px solid #2a2a2d;
+  padding: 8px 10px; border-bottom: 1px solid var(--line);
 }
 #uc-badges img.badge { height: 18px; width: 18px; vertical-align: -3px; margin-right: 2px; }
 #uc-name { font-weight: 700; flex: 1; word-break: break-all; }
 #uc-copy {
   background: none; border: none; cursor: pointer; font-size: 13px;
-  color: #adadb8; padding: 2px 4px;
+  color: var(--muted); padding: 2px 4px;
 }
-#uc-copy:hover { color: #efeff1; }
+#uc-copy:hover { color: var(--text); }
 #uc-msgs { padding: 6px 10px; max-height: 180px; overflow-y: auto; }
 .uc-msg {
-  font-size: 12px; color: #d0d0d5; padding: 3px 0;
-  border-top: 1px solid #232327; word-wrap: break-word;
+  font-size: 12px; color: var(--text); padding: 3px 0;
+  border-top: 1px solid var(--line); word-wrap: break-word;
 }
 .uc-msg:first-child { border-top: none; }
-#uc-msgs .empty-hint { font-size: 12px; color: #7a7a82; font-style: italic; }
+#uc-msgs .empty-hint { font-size: 12px; color: var(--muted); font-style: italic; }
 
 /* ⚙-Popup oeffnet mit Fade/Scale (display-Wechsel startet die Animation) */
 #settings-pop { animation: pop-in 120ms ease-out; transform-origin: top right; }
@@ -184,3 +205,64 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 @keyframes bounce-in {
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
 }
+
+/* --- Neon Dual - On Air (v1.5.0) ------------------------------------------ */
+
+/* Fensterrahmen in der Fensterfarbe (randloses Fenster). */
+body {
+  border: 1px solid var(--accent-border);
+  box-shadow: inset 0 0 24px -12px var(--accent-glow);
+}
+
+/* Titelzeile traegt die Fensterfarbe. */
+#title { color: var(--accent-title); }
+
+/* On-Air-Leiste: 2px ueber der Titelzeile. Gedimmt sichtbar, live = volle
+   Leuchtkraft + langsamer Puls. Kein display-Wechsel -> kein Layout-Sprung. */
+#onair-bar {
+  height: 2px; flex-shrink: 0;
+  background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
+  opacity: .25;
+}
+body.onair #onair-bar {
+  opacity: 1;
+  box-shadow: 0 0 10px var(--accent-glow);
+  animation: onair-pulse 1.6s ease-in-out infinite;
+}
+@keyframes onair-pulse { 50% { opacity: .55; } }
+
+/* ON-AIR-Schriftzug: Verlaufs-Text, nur sichtbar wenn on air. */
+#onair-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: .08em;
+  background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+body:not(.onair) #onair-tag { display: none; }
+
+/* Monospace fuer den technischen Puls: Zeitstempel, Status, msg/min. */
+.msg .ts, #footer, #mode { font-family: var(--mono); }
+#rate { margin-left: 8px; color: var(--ts); }
+
+/* Fokus/Interaktion in der Fensterfarbe. */
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent-dim); outline-offset: 1px;
+}
+#new-msgs { color: #fff; }
+
+/* ⚙-Popup: Farbwaehler (Neon Dual). */
+#opt-color-head {
+  margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted);
+}
+.opt-color-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.opt-color-row input[type="color"] {
+  width: 44px; height: 24px; padding: 0; border: 1px solid var(--line);
+  border-radius: 4px; background: none; cursor: pointer;
+}
+#opt-color-reset {
+  background: var(--hover); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--muted); font-size: 12px; padding: 4px 8px; cursor: pointer;
+}
+#opt-color-reset:hover { color: var(--text); }
