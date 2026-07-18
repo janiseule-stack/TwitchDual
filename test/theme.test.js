@@ -120,3 +120,17 @@ test('onAirState: nur live + spielt ist on air', () => {
   assert.equal(ThemeLib.onAirState(null, 'playing'), 'dimmed');  // nichts geladen
   assert.equal(ThemeLib.onAirState(undefined, undefined), 'dimmed');
 });
+
+// --- onAirLabel ------------------------------------------------------------
+const _TL = require('../renderer/lib/theme');
+test('onAirLabel: live + playing -> LIVE', () => {
+  assert.strictEqual(_TL.onAirLabel('live', 'playing'), 'LIVE');
+});
+test('onAirLabel: vod + playing -> VOD', () => {
+  assert.strictEqual(_TL.onAirLabel('vod', 'playing'), 'VOD');
+});
+test('onAirLabel: paused/idle -> null (dimmed, kein Label)', () => {
+  assert.strictEqual(_TL.onAirLabel('live', 'paused'), null);
+  assert.strictEqual(_TL.onAirLabel('vod', 'ended'), null);
+  assert.strictEqual(_TL.onAirLabel(null, null), null);
+});

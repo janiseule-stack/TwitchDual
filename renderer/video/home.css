@@ -156,7 +156,7 @@
 }
 .lc-live::before {
   content: ''; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--onair-to); animation: live-pulse 1.6s ease-in-out infinite;
+  background: #eb0400; animation: live-pulse 1.6s ease-in-out infinite;
 }
 @keyframes live-pulse { 50% { opacity: .35; } }
 .lc-viewers {
@@ -214,7 +214,7 @@
 /* Satisfying-Details */
 #home button, #home-btn { transition: background-color 120ms ease, color 120ms ease; }
 /* Leichter Glow um den pulsierenden LIVE-Punkt */
-.lc-live::before { box-shadow: 0 0 6px var(--onair-to); }
+.lc-live::before { box-shadow: 0 0 6px #eb0400; }
 /* Verlauf am unteren Thumbnail-Rand: Chips bleiben auf hellen Bildern lesbar */
 .lc-thumbwrap::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;

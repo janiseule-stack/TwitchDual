@@ -117,5 +117,14 @@
     return mode === 'live' && playerState === 'playing' ? 'onair' : 'dimmed';
   }
 
-  return { DEFAULTS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState };
+  // Label + Glow-Ausloeser der On-Air-Leiste: 'LIVE' (Live-Kanal spielt),
+  // 'VOD' (VOD spielt), sonst null (dimmed, kein Label). VOD glueht wie Live.
+  function onAirLabel(mode, playerState) {
+    if (playerState !== 'playing') return null;
+    if (mode === 'live') return 'LIVE';
+    if (mode === 'vod') return 'VOD';
+    return null;
+  }
+
+  return { DEFAULTS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel };
 });

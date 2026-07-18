@@ -508,11 +508,11 @@ window.twitchDual.onLoad((payload) => {
 
   if (payload.mode === 'live') {
     $title.textContent = payload.displayName || payload.channel;
-    $mode.textContent = `LIVE · ${emoteCount} 7TV-Emotes`;
+    $mode.textContent = `${emoteCount} 7TV-Emotes`;
     connectIrc(payload.channel);
   } else {
     $title.textContent = payload.displayName || ('VOD ' + payload.videoId);
-    $mode.textContent = `VOD-Replay · ${emoteCount} 7TV-Emotes`;
+    $mode.textContent = `${emoteCount} 7TV-Emotes`;
     setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
@@ -663,6 +663,8 @@ let onAirMode = null;        // 'live' | 'vod' | null (aus dem load-Broadcast)
 let onAirPlayerState = null; // letzter player-state nach dem Load
 
 function updateOnAir() {
-  const on = ThemeLib.onAirState(onAirMode, onAirPlayerState) === 'onair';
-  document.body.classList.toggle('onair', on);
+  const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
+  document.body.classList.toggle('onair', label !== null);
+  const el = document.getElementById('oa-label');
+  if (el) el.textContent = label ? ('● ' + label) : '';
 }
