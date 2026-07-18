@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const Store = require('electron-store');
@@ -125,6 +125,13 @@ function createWindows() {
     win.on('resize', save);
     win.on('move', save);
   }
+
+  // Login-Panel oeffnet twitch.tv/activate im Systembrowser (nicht im
+  // Electron-Fenster) - Links aus dem Video-Renderer immer extern oeffnen.
+  videoWin.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   videoWin.on('closed', () => {
     videoWin = null;

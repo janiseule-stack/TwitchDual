@@ -219,6 +219,21 @@
       <button id="home-close" title="Schließen">✕</button>
     </div>
 
+    <div id="auth-bar">
+      <span id="auth-state">Nicht angemeldet</span>
+      <button id="auth-login" type="button">Mit Twitch anmelden</button>
+      <button id="auth-logout" type="button" class="hidden">Abmelden</button>
+    </div>
+    <div id="auth-code" class="hidden">
+      <p>Gehe auf <b id="auth-uri">twitch.tv/activate</b> und gib diesen Code ein:</p>
+      <div id="auth-code-val">————</div>
+      <div class="auth-code-actions">
+        <button id="auth-copy" type="button">Code kopieren</button>
+        <button id="auth-open" type="button">Seite öffnen</button>
+      </div>
+      <span id="auth-wait">Warte auf Bestätigung …</span>
+    </div>
+
     <div id="home-fav-view">
       <div id="add-row">
         <input id="add-input" type="text" placeholder="Channel zu Favoriten hinzufügen …" autocomplete="off" />

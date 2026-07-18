@@ -393,6 +393,50 @@ document.addEventListener('keydown', (e) => {
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen.
 window.twitchDual.onLoad(() => closeHome());
 
+// --- Login (Device Flow) ---------------------------------------------------
+const $authState = document.getElementById('auth-state');
+const $authLogin = document.getElementById('auth-login');
+const $authLogout = document.getElementById('auth-logout');
+const $authCode = document.getElementById('auth-code');
+const $authUri = document.getElementById('auth-uri');
+const $authCodeVal = document.getElementById('auth-code-val');
+const $authCopy = document.getElementById('auth-copy');
+const $authOpen = document.getElementById('auth-open');
+
+let loggedIn = false;
+
+function renderAuth(st) {
+  loggedIn = !!(st && st.loggedIn);
+  $authState.textContent = loggedIn ? ('Angemeldet als ' + st.displayName) : 'Nicht angemeldet';
+  $authLogin.classList.toggle('hidden', loggedIn);
+  $authLogout.classList.toggle('hidden', !loggedIn);
+  if (loggedIn) $authCode.classList.add('hidden');
+  if (typeof refreshFollowed === 'function') refreshFollowed(); // Task 8
+}
+
+window.twitchDual.authStatus().then(renderAuth).catch(() => {});
+window.twitchDual.onAuthChanged(renderAuth);
+
+$authLogin.addEventListener('click', async () => {
+  $authLogin.disabled = true;
+  const r = await window.twitchDual.authStart();
+  $authLogin.disabled = false;
+  if (!r.ok) { $authState.textContent = 'Fehler: ' + r.error; return; }
+  $authUri.textContent = (r.verification_uri || 'https://www.twitch.tv/activate').replace(/^https?:\/\//, '');
+  $authUri.dataset.href = r.verification_uri;
+  $authCodeVal.textContent = r.user_code;
+  $authCode.classList.remove('hidden');
+});
+$authCopy.addEventListener('click', () => {
+  navigator.clipboard && navigator.clipboard.writeText($authCodeVal.textContent).catch(() => {});
+});
+$authOpen.addEventListener('click', () => {
+  // Externer Browser: main.js setzt am Video-Fenster einen
+  // setWindowOpenHandler, der http(s)-Ziele an shell.openExternal gibt.
+  window.open($authUri.dataset.href || 'https://www.twitch.tv/activate', '_blank');
+});
+$authLogout.addEventListener('click', () => window.twitchDual.authLogout());
+
 // Beim Start Overlay zeigen, damit man gleich Favoriten sieht.
 // (Dieses Script laeuft am Ende von <body>, die Elemente existieren bereits.)
 openHome();
