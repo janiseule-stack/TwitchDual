@@ -32,14 +32,19 @@
     }
     body { display: flex; flex-direction: column; }
     #bar {
-      display: flex; gap: 8px; align-items: center;
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
       padding: 8px; background: var(--panel);
       border-bottom: 1px solid var(--accent-border);
       -webkit-app-region: drag; /* Fenster ueber Leiste ziehbar */
     }
     #bar input, #bar button { -webkit-app-region: no-drag; }
+    /* Drei Spalten: links Home, Mitte Eingabe (fix zur Fenstermitte), rechts Status/Fenster-Buttons.
+       So springt die Mitte nicht, wenn der Status-Text wechselt (bereit -> live: …). */
+    .bar-left { justify-self: start; min-width: 0; }
+    .bar-center { display: flex; align-items: center; gap: 8px; justify-self: center; }
+    .bar-right { display: flex; align-items: center; gap: 8px; justify-self: end; min-width: 0; }
     #channel {
-      flex: 1; min-width: 0;
+      flex: 0 1 340px; min-width: 0;
       padding: 8px 10px; border-radius: 6px;
       border: 1px solid var(--line); background: var(--bg); color: var(--text);
       font-size: 14px;
@@ -153,18 +158,24 @@
 <body>
   <div id="onair-bar"></div>
   <div id="bar">
-    <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
-    <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
-    <datalist id="history"></datalist>
-    <button id="load">Laden</button>
-    <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
-    <span id="onair-tag">● ON AIR</span>
-    <span id="status">bereit</span>
-    <button id="video-only-btn" title="Nur Video (Fenster füllen)">⛶</button>
-    <div id="win-controls">
-      <button id="win-min" title="Minimieren">─</button>
-      <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
-      <button id="win-close" title="Schließen">✕</button>
+    <div class="bar-left">
+      <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
+    </div>
+    <div class="bar-center">
+      <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
+      <datalist id="history"></datalist>
+      <button id="load">Laden</button>
+      <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
+    </div>
+    <div class="bar-right">
+      <span id="onair-tag">● ON AIR</span>
+      <span id="status">bereit</span>
+      <button id="video-only-btn" title="Nur Video (Fenster füllen)">⛶</button>
+      <div id="win-controls">
+        <button id="win-min" title="Minimieren">─</button>
+        <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
+        <button id="win-close" title="Schließen">✕</button>
+      </div>
     </div>
   </div>
   <div id="video-topbar">
@@ -186,6 +197,7 @@
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
       <span id="home-title">Favoriten</span>
+      <button id="fav-tools-toggle" title="Suche & Hinzufügen ein-/ausblenden">🔍</button>
       <button id="home-close" title="Schließen">✕</button>
     </div>
 
