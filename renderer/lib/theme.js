@@ -10,6 +10,18 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   const DEFAULTS = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 };
+
+  // Kuratierte Akzent-Kombis (Video / Chat) fuer schnelles Auswaehlen im
+  // ⚙-Popup. 'neon-dual' == DEFAULTS (= "Farben zuruecksetzen"). Farben bereits
+  // normalisiert (Kleinschreibung, 6-stellig), damit activePreset direkt matcht.
+  const PRESETS = [
+    { id: 'neon-dual', name: 'Neon Dual', videoAccent: '#35e0ff', chatAccent: '#ff4fa3' },
+    { id: 'sunset',    name: 'Sunset',    videoAccent: '#ff9e3d', chatAccent: '#ff4f7e' },
+    { id: 'cyber',     name: 'Cyber',     videoAccent: '#8dff5c', chatAccent: '#a06bff' },
+    { id: 'ice-fire',  name: 'Ice & Fire', videoAccent: '#4fb8ff', chatAccent: '#ff5a4f' },
+    { id: 'aurora',    name: 'Aurora',    videoAccent: '#46f0a0', chatAccent: '#5aa0ff' },
+    { id: 'pearl',     name: 'Pearl',     videoAccent: '#f4f1ff', chatAccent: '#c9a3ff' }
+  ];
   const BG = { r: 11, g: 11, b: 17 };    // Grundton #0b0b11 (fuer die Panel-Toenung)
   const HOVER = { r: 20, g: 20, b: 28 }; // neutrale Hover-/Panel-Flaeche #14141c
 
@@ -126,5 +138,16 @@
     return null;
   }
 
-  return { DEFAULTS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel };
+  // Das Preset, dessen beide Akzente exakt den aktuellen prefs entsprechen -
+  // sonst null (Nutzer hat eine Farbe von Hand geaendert). Vergleich ueber
+  // normalizeHex, damit Schreibweise (Gross/Klein, ohne '#') egal ist.
+  function activePreset(prefs) {
+    if (!prefs || typeof prefs !== 'object') return null;
+    const v = normalizeHex(prefs.videoAccent, null);
+    const c = normalizeHex(prefs.chatAccent, null);
+    if (!v || !c) return null;
+    return PRESETS.find((p) => p.videoAccent === v && p.chatAccent === c) || null;
+  }
+
+  return { DEFAULTS, PRESETS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel, activePreset };
 });

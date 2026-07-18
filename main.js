@@ -4,6 +4,7 @@ const path = require('path');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 
+const { setupAutoUpdate } = require('./src/auto-update');
 const { startServer } = require('./src/server');
 const { parseInput } = require('./src/parse-input');
 const twitch = require('./src/twitch-api');
@@ -210,6 +211,7 @@ ipcMain.handle('get-ui-prefs', () => ({
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
 ipcMain.on('home-open', () => broadcast('home-open'));
+ipcMain.on('home-close', () => broadcast('home-close'));
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
   const cur = store.get('playerPrefs', { volume: null, quality: null });
@@ -363,22 +365,32 @@ ipcMain.on('player-state', (_evt, state) => {
 // --- Auto-Update (GitHub Releases) -----------------------------------------
 // Laedt neue Versionen im Hintergrund; Installation beim naechsten Beenden.
 // Nur in der gepackten App aktiv; Fehler (offline, Rate-Limit) sind unkritisch.
-const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
+// Verdrahtung + Fehlerabfang stecken in src/auto-update.js (getestet).
 
-function setupAutoUpdate() {
-  if (!app.isPackaged) return;
-  autoUpdater.on('error', (e) => {
-    console.error('AutoUpdater:', e && e.message ? e.message : e);
-  });
-  autoUpdater.checkForUpdatesAndNotify();
-  setInterval(() => autoUpdater.checkForUpdatesAndNotify(), UPDATE_INTERVAL_MS);
+// Protokolliert Updater-Ereignisse sichtbar in eine Datei (console.* ist in der
+// gepackten App unsichtbar). Darf den Start nie blockieren.
+function updaterLog(event, detail) {
+  const line = `[${new Date().toISOString()}] update:${event}` +
+    (detail !== undefined ? ` ${detail}` : '');
+  console.log(line);
+  try {
+    fs.appendFileSync(path.join(app.getPath('userData'), 'updater.log'), line + '\n');
+  } catch { /* Logging ist best-effort */ }
 }
+
+// Defense-in-Depth: electron-updater laesst bei Download-Fehlern intern eine
+// nicht abgefangene Rejection stehen (AppUpdater.js: `void downloadPromise.then`),
+// die wir von aussen nicht catchen koennen. Ein Hintergrund-Update darf die App
+// des Nutzers niemals abschiessen — daher hier auffangen und nur protokollieren.
+process.on('unhandledRejection', (reason) => {
+  updaterLog('unhandled-rejection', reason && reason.message ? reason.message : String(reason));
+});
 
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
   createWindows();
-  setupAutoUpdate();
+  setupAutoUpdate(autoUpdater, updaterLog, { isPackaged: app.isPackaged });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindows();

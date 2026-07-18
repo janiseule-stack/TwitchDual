@@ -485,7 +485,12 @@ function createVodReplay(payload) {
 // ---------------------------------------------------------------------------
 // Steuerung: auf 'load' und 'player-time' reagieren
 // ---------------------------------------------------------------------------
-window.twitchDual.onLoad((payload) => {
+// Zuletzt geladene Quelle - fuer den Wiederaufbau, wenn der Nutzer aus dem
+// Home-Menue OHNE Neuwahl zur laufenden Quelle zurueckkehrt (home-close).
+let currentPayload = null;
+
+function applySource(payload) {
+  currentPayload = payload;
   onAirMode = payload.mode;
   onAirPlayerState = null;
   updateOnAir();
@@ -516,7 +521,8 @@ window.twitchDual.onLoad((payload) => {
     setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
-});
+}
+window.twitchDual.onLoad(applySource);
 
 // Player-Zustand aus dem Video-Fenster (fuer die Statuszeile im Replay).
 let playerState = 'playing';
@@ -541,6 +547,12 @@ window.twitchDual.onHomeOpen(() => {
   setConn('nicht verbunden');
   $mode.textContent = '';
   $title.textContent = 'Chat';
+});
+
+// Nutzer schliesst Home zurueck zur laufenden Quelle -> Chat wieder aufbauen.
+// currentPayload bleibt ueber home-open erhalten; ohne Quelle passiert nichts.
+window.twitchDual.onHomeClose(() => {
+  if (currentPayload) applySource(currentPayload);
 });
 
 window.twitchDual.onPlayerTime((seconds) => {
@@ -621,8 +633,32 @@ const $colorChat = document.getElementById('opt-color-chat');
 const $colorReset = document.getElementById('opt-color-reset');
 const $alphaChat = document.getElementById('opt-alpha-chat');
 const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
+const $presets = document.getElementById('opt-presets');
 
 let themePrefs = { ...ThemeLib.DEFAULTS };
+
+// Preset-Chips (Zwei-Ton: Video-Farbe ↖ / Chat-Farbe ↘) einmalig rendern.
+// Klick uebernimmt beide Akzente wie der Reset-Button; Deckkraft bleibt.
+if ($presets) {
+  for (const p of ThemeLib.PRESETS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'preset-chip';
+    chip.dataset.id = p.id;
+    chip.title = p.name;
+    chip.setAttribute('aria-label', p.name);
+    chip.style.setProperty('--pv', p.videoAccent);
+    chip.style.setProperty('--pc', p.chatAccent);
+    chip.addEventListener('click', () => {
+      window.twitchDual.saveThemePrefs({
+        videoAccent: p.videoAccent,
+        chatAccent: p.chatAccent,
+        chatAlpha: ThemeLib.clampAlpha(themePrefs.chatAlpha)
+      });
+    });
+    $presets.appendChild(chip);
+  }
+}
 
 function applyTheme(prefs) {
   themePrefs = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
@@ -641,6 +677,13 @@ function applyTheme(prefs) {
   const ca = ThemeLib.clampAlpha(themePrefs.chatAlpha);
   if ($alphaChat) $alphaChat.value = ca;
   if ($alphaChatVal) $alphaChatVal.textContent = ca + '%';
+  // Aktiven Preset-Chip markieren (oder keinen, wenn Farben von Hand geaendert).
+  if ($presets) {
+    const active = ThemeLib.activePreset(themePrefs);
+    for (const chip of $presets.children) {
+      chip.classList.toggle('active', !!active && chip.dataset.id === active.id);
+    }
+  }
 }
 
 window.twitchDual.getUiPrefs()

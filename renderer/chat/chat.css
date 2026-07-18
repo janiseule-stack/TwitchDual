@@ -241,7 +241,7 @@ body {
 }
 body.onair #onair-bar .oa-line {
   opacity: 1; box-shadow: 0 0 8px var(--accent-glow);
-  animation: onair-pulse 2.6s ease-in-out infinite;
+  animation: onair-pulse 3.6s ease-in-out infinite;
 }
 @keyframes onair-pulse { 50% { opacity: .55; } }
 
@@ -279,6 +279,23 @@ button:focus-visible, input:focus-visible {
   outline: 2px solid var(--accent-dim); outline-offset: 1px;
 }
 #new-msgs { color: #fff; }
+
+/* ⚙-Popup: Preset-Chips (kuratierte Video/Chat-Kombis). Zwei-Ton diagonal:
+   --pv (Video) oben-links, --pc (Chat) unten-rechts; aktiver Chip glueht. */
+.opt-presets-label { font-size: 11px; color: var(--muted); margin: -2px 0 -2px; }
+.opt-presets { display: flex; flex-wrap: wrap; gap: 9px; padding: 2px 0 2px; }
+.preset-chip {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--pv) 0 50%, var(--pc) 50% 100%);
+  box-shadow: 0 0 6px -1px var(--pv);
+  transition: transform 100ms ease, box-shadow 120ms ease;
+}
+.preset-chip:hover { transform: scale(1.12); }
+.preset-chip.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent), 0 0 10px 1px var(--accent-glow);
+}
 
 /* ⚙-Popup: Farbwaehler (Neon Dual). */
 .opt-color-row input[type="color"] {
