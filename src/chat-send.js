@@ -10,7 +10,12 @@ const IrcParse = require('../renderer/lib/irc');
 const IRC_URL = 'wss://irc-ws.chat.twitch.tv:443';
 
 class ChatSender {
-  constructor({ WebSocketImpl = globalThis.WebSocket, onNotice = () => {}, onRoom = () => {}, onStatus = () => {} } = {}) {
+  // WebSocketImpl-Default: Electron-Main laeuft unter Node 20 (Electron 33),
+  // das noch KEIN globales WebSocket kennt (erst ab Node 21). Fallback auf
+  // die 'ws'-Package-Implementierung. `require('ws')` wird nur ausgewertet,
+  // wenn kein globales WebSocket existiert UND kein Impl injiziert wurde —
+  // Tests, die einen Mock injizieren, sind davon nicht betroffen.
+  constructor({ WebSocketImpl = globalThis.WebSocket || require('ws'), onNotice = () => {}, onRoom = () => {}, onStatus = () => {} } = {}) {
     this.WebSocketImpl = WebSocketImpl;
     this.onNotice = onNotice;
     this.onRoom = onRoom;
