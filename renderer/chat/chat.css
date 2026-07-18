@@ -130,7 +130,7 @@ body { display: flex; flex-direction: column; }
 #win-controls #win-close:hover { background: #eb0400; color: #fff; }
 
 #settings-pop {
-  position: absolute; top: 34px; right: 8px; z-index: 10;
+  position: absolute; top: 48px; right: 8px; z-index: 10;
   background: var(--panel); border: 1px solid var(--accent-border); border-radius: 8px;
   padding: 4px; font-size: 12px; min-width: 236px;
   display: flex; flex-direction: column;
@@ -241,7 +241,7 @@ body {
 }
 body.onair #onair-bar .oa-line {
   opacity: 1; box-shadow: 0 0 8px var(--accent-glow);
-  animation: onair-pulse 1.6s ease-in-out infinite;
+  animation: onair-pulse 2.6s ease-in-out infinite;
 }
 @keyframes onair-pulse { 50% { opacity: .55; } }
 
