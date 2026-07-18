@@ -259,12 +259,49 @@ document.getElementById('bar').addEventListener('dblclick', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Nur-Video-Modus: Leiste/Rahmen weg, Fenster auf 16:9 (keine Balken). Kein
+// Tastenkuerzel (stoert beim Zocken) - Umschalt-Button + schwebender
+// Verlassen-Button, der bei Mausruhe ausblendet.
+// ---------------------------------------------------------------------------
+const $videoExit = document.getElementById('video-exit');
+let controlsHideTimer = null;
+
+function enterVideoOnly() {
+  if (document.body.classList.contains('video-only')) return;
+  document.body.classList.add('video-only');
+  window.twitchDual.windowControl('video-only-on');
+  showControlsBriefly();
+}
+function leaveVideoOnly() {
+  if (!document.body.classList.contains('video-only')) return;
+  document.body.classList.remove('video-only', 'controls-active');
+  clearTimeout(controlsHideTimer);
+  window.twitchDual.windowControl('video-only-off');
+}
+// Verlassen-Button zeigen und nach 2,5 s Ruhe wieder ausblenden.
+function showControlsBriefly() {
+  if (!document.body.classList.contains('video-only')) return;
+  document.body.classList.add('controls-active');
+  clearTimeout(controlsHideTimer);
+  controlsHideTimer = setTimeout(() => document.body.classList.remove('controls-active'), 2500);
+}
+
+document.getElementById('video-only-btn').addEventListener('click', enterVideoOnly);
+$videoExit.addEventListener('click', leaveVideoOnly);
+// Doppelklick auf die Videoflaeche verlaesst den Modus ebenfalls.
+document.getElementById('player').addEventListener('dblclick', () => {
+  if (document.body.classList.contains('video-only')) leaveVideoOnly();
+});
+// Mausbewegung im Modus holt den Verlassen-Button kurz zurueck.
+document.addEventListener('mousemove', showControlsBriefly);
+
+// ---------------------------------------------------------------------------
 // Neon Dual - On Air (v1.5.0): Fensterfarbe (Video = videoAccent) als CSS-
 // Variablen; On-Air-Leiste haengt an load-Modus + eigenem Player-Zustand.
 // ---------------------------------------------------------------------------
 function applyTheme(prefs) {
   const t = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(t.videoAccent);
+  const vars = ThemeLib.accentVars(t.videoAccent); // Video-Fenster ist opak (kein Alpha)
   for (const [k, v] of Object.entries(vars)) {
     document.documentElement.style.setProperty(k, v);
   }

@@ -109,6 +109,24 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Neue DOM-freie Lib renderer/lib/theme.js (normalizeHex, accentVars,
   onAirState; unit-getestet).
 
+**Glass-Transparenz + Nur-Video + Kontrast-Fix (v1.6.0)**
+- Deckkraft-Slider fuers Chat-Fenster im ⚙-Popup: Hintergrund 0-100 %
+  durchsichtig, Text/Emotes/Glow/On-Air-Leiste bleiben voll. Chat-Fenster mit
+  `transparent:true`; Flaechen ueber `--bg/--panel/--hover` als rgba mit einem
+  Alpha (`themePrefs.chatAlpha`, Default 100 %, ueber `clampAlpha` gesaeubert).
+  (Video-Transparenz bewusst weggelassen - der Player deckt das Fenster eh
+  komplett; Video-Fenster bleibt opak.)
+- Nur-Video-Modus (⛶ in der Video-Leiste): Leiste/Rahmen/On-Air weg, Player
+  fuellt das Fenster, das per `setAspectRatio(16/9)` dauerhaft auf 16:9 rastet
+  -> keine schwarzen Balken, auch beim Resize. Kein Tastenkuerzel (stoert beim
+  Zocken); schwebender Verlassen-Button (blendet bei Mausruhe aus) +
+  Doppelklick aufs Video. Reine Ansicht, nicht persistent.
+- Einstellungs-Popup aufgeraeumt: Abschnitte "Chat" und "Fenster" mit
+  Ueberschriften/Trennlinie, einheitliche Zeilen, klarer Zuruecksetzen-Button.
+- Bug-Fix: Akzent-Buttons ("Laden", "+ Hinzufuegen") waehlen ihren Textton
+  per `ThemeLib.accentContrast` (hoeheres WCAG-Kontrastverhaeltnis) + duenner
+  neutraler Rand -> auch Schwarz als Akzentfarbe bleibt lesbar.
+
 **Build**
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).

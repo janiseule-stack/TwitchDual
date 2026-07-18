@@ -16,6 +16,15 @@ const $addBtn = document.getElementById('add-btn');
 const $refreshBtn = document.getElementById('refresh-btn');
 const $filterInput = document.getElementById('filter-input');
 const $favNoMatch = document.getElementById('fav-nomatch');
+const $favTools = document.getElementById('fav-tools-toggle');
+
+// Suche/Hinzufuegen ein-/ausblendbar; Zustand bleibt ueber Sitzungen erhalten.
+let toolsCollapsed = false;
+try { toolsCollapsed = localStorage.getItem('favToolsCollapsed') === '1'; } catch { /* egal */ }
+function applyToolsState() {
+  $favView.classList.toggle('tools-collapsed', toolsCollapsed);
+  $favTools.classList.toggle('active', toolsCollapsed);
+}
 
 let refreshTimer = null;
 let favorites = [];
@@ -26,6 +35,7 @@ function showFavView() {
   $vodView.classList.add('hidden');
   $favView.classList.remove('hidden');
   $homeBack.classList.add('hidden');
+  $favTools.classList.remove('hidden'); // Umschalter nur bei Favoriten
   $homeTitle.textContent = 'Favoriten';
 }
 
@@ -33,6 +43,7 @@ function showVodView(login, displayName) {
   $favView.classList.add('hidden');
   $vodView.classList.remove('hidden');
   $homeBack.classList.remove('hidden');
+  $favTools.classList.add('hidden'); // in der VOD-Ansicht kein Suchfeld
   $homeTitle.textContent = 'VODs · ' + (displayName || login);
 }
 
@@ -356,6 +367,12 @@ $addBtn.addEventListener('click', doAdd);
 $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
 $refreshBtn.addEventListener('click', refreshLive);
 $filterInput.addEventListener('input', renderFavorites);
+$favTools.addEventListener('click', () => {
+  toolsCollapsed = !toolsCollapsed;
+  try { localStorage.setItem('favToolsCollapsed', toolsCollapsed ? '1' : '0'); } catch { /* egal */ }
+  applyToolsState();
+});
+applyToolsState();
 
 // Esc schliesst das Overlay (bzw. fuehrt aus der VOD-Ansicht zurueck).
 document.addEventListener('keydown', (e) => {

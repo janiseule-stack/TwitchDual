@@ -22,7 +22,7 @@ const store = new Store({
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
     adblockEnabled: true,
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3' }
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
   }
 });
 
@@ -53,7 +53,7 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#0b0b11',
+    backgroundColor: '#0b0b11', // Video-Fenster bleibt opak (Player deckt eh alles)
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -66,7 +66,8 @@ function createWindows() {
   chatWin = new BrowserWindow({
     ...cb,
     title: 'TwitchDual — Chat',
-    backgroundColor: '#0b0b11',
+    backgroundColor: '#00000000',
+    transparent: true,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -192,7 +193,8 @@ function cleanThemePrefs(prefs) {
   const d = ThemeLib.DEFAULTS;
   return {
     videoAccent: ThemeLib.normalizeHex(prefs && prefs.videoAccent, d.videoAccent),
-    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent)
+    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent),
+    chatAlpha: ThemeLib.clampAlpha(prefs && prefs.chatAlpha)
   };
 }
 
@@ -245,12 +247,27 @@ ipcMain.handle('get-vaft-source', () => {
 });
 
 // Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
+// Nur-Video-Modus: gemerkte Fenstergroesse pro Fenster (Key = win.id), damit
+// 'video-only-off' die Groesse vor dem 16:9-Einrasten wiederherstellen kann.
+const preVideoOnlyBounds = new Map();
+
 ipcMain.on('window-control', (evt, action) => {
   const win = BrowserWindow.fromWebContents(evt.sender);
   if (!win || win.isDestroyed()) return;
   if (action === 'minimize') win.minimize();
   else if (action === 'maximize') (win.isMaximized() ? win.unmaximize() : win.maximize());
   else if (action === 'close') win.close();
+  else if (action === 'video-only-on') {
+    if (win.isMaximized()) win.unmaximize();
+    preVideoOnlyBounds.set(win.id, win.getBounds());
+    const [w] = win.getContentSize();
+    win.setContentSize(w, Math.round(w * 9 / 16)); // sofort auf 16:9, Breite behalten
+    win.setAspectRatio(16 / 9); // bleibt beim Resize 16:9 -> nie wieder Balken
+  } else if (action === 'video-only-off') {
+    win.setAspectRatio(0); // Seitenverhaeltnis-Sperre wieder loesen
+    const b = preVideoOnlyBounds.get(win.id);
+    if (b) { win.setBounds(b); preVideoOnlyBounds.delete(win.id); }
+  }
 });
 
 // Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.
