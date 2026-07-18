@@ -10,7 +10,10 @@ const { TokenStore } = require('../src/twitch-tokens');
 const fakeCrypto = {
   isAvailable: () => true,
   encrypt: (s) => Buffer.from(s, 'utf8').toString('base64'),
-  decrypt: (b) => Buffer.from(String(b), 'base64').toString('utf8')
+  decrypt: (b) => {
+    assert.ok(Buffer.isBuffer(b), 'decrypt muss einen Buffer bekommen');
+    return b.toString('utf8');
+  }
 };
 
 function tmpFile() {
@@ -50,4 +53,17 @@ test('clear entfernt die Datei', () => {
 test('available spiegelt crypto.isAvailable', () => {
   const store = new TokenStore(tmpFile(), { ...fakeCrypto, isAvailable: () => false });
   assert.equal(store.available(), false);
+});
+
+test('load bei korrupten/nicht entschluesselbaren Daten gibt null (kein Throw)', () => {
+  const fp = tmpFile();
+  fs.writeFileSync(fp, 'irgendein-kaputter-inhalt', 'utf8');
+  const brokenCrypto = {
+    ...fakeCrypto,
+    decrypt: () => { throw new Error('decrypt fehlgeschlagen (z.B. safeStorage lehnt Eingabe ab)'); }
+  };
+  const store = new TokenStore(fp, brokenCrypto);
+  assert.doesNotThrow(() => store.load());
+  assert.equal(store.load(), null);
+  fs.unlinkSync(fp);
 });

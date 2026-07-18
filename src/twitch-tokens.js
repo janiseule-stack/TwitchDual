@@ -29,7 +29,7 @@ class TokenStore {
     try { b64 = this.fs.readFileSync(this.filePath, 'utf8'); }
     catch { return null; }                            // keine Datei -> nicht eingeloggt
     try {
-      const dec = this.crypto.decrypt(b64);
+      const dec = this.crypto.decrypt(Buffer.from(b64, 'base64'));
       return JSON.parse(dec);
     } catch { return null; }                          // korrupt -> wie ausgeloggt
   }
