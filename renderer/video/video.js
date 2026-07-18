@@ -312,13 +312,19 @@ function applyTheme(prefs) {
 }
 
 window.twitchDual.getUiPrefs()
-  .then((prefs) => applyTheme(prefs && prefs.themePrefs))
+  .then((prefs) => {
+    applyTheme(prefs && prefs.themePrefs);
+    const v = document.getElementById('home-version');
+    if (v && prefs && prefs.appVersion) v.textContent = 'v' + prefs.appVersion;
+  })
   .catch(() => applyTheme(null));
 window.twitchDual.onThemeChanged(applyTheme);
 
 let onAirMode = null;
 let onAirPlayerState = null;
 function updateOnAir() {
-  const on = ThemeLib.onAirState(onAirMode, onAirPlayerState) === 'onair';
-  document.body.classList.toggle('onair', on);
+  const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
+  document.body.classList.toggle('onair', label !== null);
+  const el = document.getElementById('oa-label');
+  if (el) el.textContent = label ? ('● ' + label) : '';
 }

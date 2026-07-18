@@ -44,7 +44,19 @@ const minuteRate = ChatUi.createRateMeter({ windowMs: 60000 });
 let rateShown = -1;
 function tickRateDisplay(now) {
   const n = minuteRate.tick(now);
-  if (n !== rateShown) { rateShown = n; $rate.textContent = n + ' msg/min'; }
+  if (n !== rateShown) {
+    rateShown = n;
+    $rate.textContent = n + ' msg/min';
+    // Glow waechst mit der Rate (rein aus ChatUi.rateHeat, 0..1).
+    $rate.style.setProperty('--rate-glow', (6 + ChatUi.rateHeat(n) * 12) + 'px');
+  }
+}
+
+// Puls-Punkt kurz aufblitzen (Animation via Reflow neu starten).
+function pingRate() {
+  $rate.classList.remove('ping');
+  void $rate.offsetWidth;
+  $rate.classList.add('ping');
 }
 
 function nearBottom() {
@@ -219,8 +231,13 @@ function appendMessage(name, color, tokens, opts = {}) {
 
   // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
   // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
-  $messages.classList.toggle('no-anim', msgRate.tick(Date.now()) > ChatUi.ANIM_MAX_RATE);
-  tickRateDisplay(Date.now());
+  const rateNow = Date.now();
+  const busy = msgRate.tick(rateNow) > ChatUi.ANIM_MAX_RATE;
+  $messages.classList.toggle('no-anim', busy);
+  tickRateDisplay(rateNow);
+  // Diskreter Blitz nur in ruhigen Chats; bei Mega-Chats/Seeks bleibt es beim
+  // stetigen Glow (kein Flackern) — gleiche Schwelle wie die Einblende-Drossel.
+  if (!busy) pingRate();
 
   $messages.appendChild(div);
   // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
@@ -468,7 +485,12 @@ function createVodReplay(payload) {
 // ---------------------------------------------------------------------------
 // Steuerung: auf 'load' und 'player-time' reagieren
 // ---------------------------------------------------------------------------
-window.twitchDual.onLoad((payload) => {
+// Zuletzt geladene Quelle - fuer den Wiederaufbau, wenn der Nutzer aus dem
+// Home-Menue OHNE Neuwahl zur laufenden Quelle zurueckkehrt (home-close).
+let currentPayload = null;
+
+function applySource(payload) {
+  currentPayload = payload;
   onAirMode = payload.mode;
   onAirPlayerState = null;
   updateOnAir();
@@ -491,15 +513,16 @@ window.twitchDual.onLoad((payload) => {
 
   if (payload.mode === 'live') {
     $title.textContent = payload.displayName || payload.channel;
-    $mode.textContent = `LIVE · ${emoteCount} 7TV-Emotes`;
+    $mode.textContent = `${emoteCount} 7TV-Emotes`;
     connectIrc(payload.channel);
   } else {
     $title.textContent = payload.displayName || ('VOD ' + payload.videoId);
-    $mode.textContent = `VOD-Replay · ${emoteCount} 7TV-Emotes`;
+    $mode.textContent = `${emoteCount} 7TV-Emotes`;
     setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
-});
+}
+window.twitchDual.onLoad(applySource);
 
 // Player-Zustand aus dem Video-Fenster (fuer die Statuszeile im Replay).
 let playerState = 'playing';
@@ -510,6 +533,26 @@ window.twitchDual.onPlayerState((state) => {
   if (!vod) return;
   if (state === 'paused') setConn('⏸ Replay pausiert');
   else if (state === 'ended') setConn('Replay-Ende', 'ok');
+});
+
+// Nutzer geht zurueck ins Home-Menue -> laufende Quelle trennen, sonst laeuft
+// der Chat der alten Quelle im Hintergrund weiter.
+window.twitchDual.onHomeOpen(() => {
+  vod = null;
+  ircChannel = null;
+  closeIrc();
+  onAirMode = null;
+  onAirPlayerState = null;
+  updateOnAir();
+  setConn('nicht verbunden');
+  $mode.textContent = '';
+  $title.textContent = 'Chat';
+});
+
+// Nutzer schliesst Home zurueck zur laufenden Quelle -> Chat wieder aufbauen.
+// currentPayload bleibt ueber home-open erhalten; ohne Quelle passiert nichts.
+window.twitchDual.onHomeClose(() => {
+  if (currentPayload) applySource(currentPayload);
 });
 
 window.twitchDual.onPlayerTime((seconds) => {
@@ -590,8 +633,32 @@ const $colorChat = document.getElementById('opt-color-chat');
 const $colorReset = document.getElementById('opt-color-reset');
 const $alphaChat = document.getElementById('opt-alpha-chat');
 const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
+const $presets = document.getElementById('opt-presets');
 
 let themePrefs = { ...ThemeLib.DEFAULTS };
+
+// Preset-Chips (Zwei-Ton: Video-Farbe ↖ / Chat-Farbe ↘) einmalig rendern.
+// Klick uebernimmt beide Akzente wie der Reset-Button; Deckkraft bleibt.
+if ($presets) {
+  for (const p of ThemeLib.PRESETS) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'preset-chip';
+    chip.dataset.id = p.id;
+    chip.title = p.name;
+    chip.setAttribute('aria-label', p.name);
+    chip.style.setProperty('--pv', p.videoAccent);
+    chip.style.setProperty('--pc', p.chatAccent);
+    chip.addEventListener('click', () => {
+      window.twitchDual.saveThemePrefs({
+        videoAccent: p.videoAccent,
+        chatAccent: p.chatAccent,
+        chatAlpha: ThemeLib.clampAlpha(themePrefs.chatAlpha)
+      });
+    });
+    $presets.appendChild(chip);
+  }
+}
 
 function applyTheme(prefs) {
   themePrefs = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
@@ -610,6 +677,13 @@ function applyTheme(prefs) {
   const ca = ThemeLib.clampAlpha(themePrefs.chatAlpha);
   if ($alphaChat) $alphaChat.value = ca;
   if ($alphaChatVal) $alphaChatVal.textContent = ca + '%';
+  // Aktiven Preset-Chip markieren (oder keinen, wenn Farben von Hand geaendert).
+  if ($presets) {
+    const active = ThemeLib.activePreset(themePrefs);
+    for (const chip of $presets.children) {
+      chip.classList.toggle('active', !!active && chip.dataset.id === active.id);
+    }
+  }
 }
 
 window.twitchDual.getUiPrefs()
@@ -646,6 +720,8 @@ let onAirMode = null;        // 'live' | 'vod' | null (aus dem load-Broadcast)
 let onAirPlayerState = null; // letzter player-state nach dem Load
 
 function updateOnAir() {
-  const on = ThemeLib.onAirState(onAirMode, onAirPlayerState) === 'onair';
-  document.body.classList.toggle('onair', on);
+  const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
+  document.body.classList.toggle('onair', label !== null);
+  const el = document.getElementById('oa-label');
+  if (el) el.textContent = label ? ('● ' + label) : '';
 }

@@ -6,11 +6,13 @@
   <link rel="stylesheet" href="chat.css" />
 </head>
 <body>
-  <div id="onair-bar"></div>
+  <div id="onair-bar">
+    <span class="oa-line"></span>
+    <span id="oa-label">● ON AIR</span>
+  </div>
   <div id="head">
     <span id="title">Chat</span>
     <span id="mode"></span>
-    <span id="onair-tag">● ON AIR</span>
     <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
@@ -21,27 +23,29 @@
   <div id="settings-pop" class="hidden">
     <div class="opt-group">
       <div class="opt-group-title">Chat</div>
-      <label class="opt-check"><input type="checkbox" id="opt-ts" checked /> Zeitstempel anzeigen</label>
-      <label class="opt-check"><input type="checkbox" id="opt-badges" checked /> Badges anzeigen</label>
-      <label id="opt-font-row" class="opt-row">Schrift
+      <label class="opt-check"><input type="checkbox" id="opt-ts" checked /> Zeitstempel</label>
+      <label class="opt-check"><input type="checkbox" id="opt-badges" checked /> Badges</label>
+      <label id="opt-font-row" class="opt-row">Schriftgröße
         <input type="range" id="opt-font" min="11" max="22" step="1" />
         <span id="opt-font-val"></span>
       </label>
     </div>
     <div class="opt-group">
-      <div class="opt-group-title">Fenster</div>
-      <label class="opt-color-row opt-row">Video-Farbe
+      <div class="opt-group-title">Darstellung</div>
+      <div class="opt-presets-label">Presets</div>
+      <div id="opt-presets" class="opt-presets"></div>
+      <label class="opt-color-row opt-row">Video-Akzent
         <input type="color" id="opt-color-video" value="#35e0ff" />
       </label>
-      <label class="opt-color-row opt-row">Chat-Farbe
+      <label class="opt-color-row opt-row">Chat-Akzent
         <input type="color" id="opt-color-chat" value="#ff4fa3" />
       </label>
-      <label class="opt-alpha-row opt-row">Deckkraft
+      <label class="opt-alpha-row opt-row">Deckkraft (Chat)
         <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
         <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
       </label>
     </div>
-    <button id="opt-color-reset" type="button">Zurücksetzen</button>
+    <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
   </div>
   <div id="messages"></div>
   <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>

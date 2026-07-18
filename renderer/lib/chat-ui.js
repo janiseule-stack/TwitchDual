@@ -64,8 +64,15 @@
     };
   }
 
+  // 0..1: wie „heiss" der Chat gerade ist (msg/min gegen eine Obergrenze).
+  // Treibt Glow/Groesse des Puls-Punkts im Footer. Rein, damit testbar.
+  function rateHeat(n, max = 120) {
+    if (!(max > 0)) return 0;
+    return Math.max(0, Math.min(1, n / max));
+  }
+
   return {
-    clampFontSize, emoteProvider, lastMessagesOf, createRateMeter,
+    clampFontSize, emoteProvider, lastMessagesOf, createRateMeter, rateHeat,
     FONT_MIN, FONT_MAX, FONT_DEFAULT, ANIM_MAX_RATE
   };
 });

@@ -79,3 +79,23 @@ test('createRateMeter: reset leert das Fenster', () => {
   m.reset();
   assert.equal(m.tick(3), 1);
 });
+
+// --- rateHeat --------------------------------------------------------------
+test('rateHeat: 0 msg/min -> 0', () => {
+  assert.strictEqual(ChatUi.rateHeat(0), 0);
+});
+test('rateHeat: an der Obergrenze -> 1', () => {
+  assert.strictEqual(ChatUi.rateHeat(120), 1);
+});
+test('rateHeat: darueber wird geclampt auf 1', () => {
+  assert.strictEqual(ChatUi.rateHeat(500), 1);
+});
+test('rateHeat: negativ -> 0', () => {
+  assert.strictEqual(ChatUi.rateHeat(-5), 0);
+});
+test('rateHeat: Mitte -> 0.5', () => {
+  assert.strictEqual(ChatUi.rateHeat(60), 0.5);
+});
+test('rateHeat: eigener max-Wert', () => {
+  assert.strictEqual(ChatUi.rateHeat(30, 60), 0.5);
+});

@@ -48,6 +48,7 @@ function showVodView(login, displayName) {
 }
 
 function openHome() {
+  window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
   showFavView();
   loadAndRefresh();
@@ -62,6 +63,14 @@ function openHome() {
 
 function closeHome() {
   $home.classList.add('hidden');
+}
+
+// Home schliessen und zur bereits laufenden Quelle zurueck -> Chat wieder
+// verbinden (der Player lief unter dem Overlay weiter). NICHT benutzen, wenn
+// gerade eine neue Quelle geladen wird - das erledigt onLoad im Chat selbst.
+function closeHomeResume() {
+  closeHome();
+  window.twitchDual.notifyHomeClose();
 }
 
 // --- Favoriten laden / anzeigen -------------------------------------------
@@ -359,9 +368,9 @@ function buildVodCard(v) {
 // --- Events ---------------------------------------------------------------
 $homeBtn.addEventListener('click', () => {
   if ($home.classList.contains('hidden')) openHome();
-  else closeHome();
+  else closeHomeResume();
 });
-$homeClose.addEventListener('click', closeHome);
+$homeClose.addEventListener('click', closeHomeResume);
 $homeBack.addEventListener('click', showFavView);
 $addBtn.addEventListener('click', doAdd);
 $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
@@ -378,7 +387,7 @@ applyToolsState();
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || $home.classList.contains('hidden')) return;
   if (!$vodView.classList.contains('hidden')) showFavView();
-  else closeHome();
+  else closeHomeResume();
 });
 
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen.

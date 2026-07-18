@@ -120,3 +120,72 @@ test('onAirState: nur live + spielt ist on air', () => {
   assert.equal(ThemeLib.onAirState(null, 'playing'), 'dimmed');  // nichts geladen
   assert.equal(ThemeLib.onAirState(undefined, undefined), 'dimmed');
 });
+
+// --- onAirLabel ------------------------------------------------------------
+const _TL = require('../renderer/lib/theme');
+test('onAirLabel: live + playing -> LIVE', () => {
+  assert.strictEqual(_TL.onAirLabel('live', 'playing'), 'LIVE');
+});
+test('onAirLabel: vod + playing -> VOD', () => {
+  assert.strictEqual(_TL.onAirLabel('vod', 'playing'), 'VOD');
+});
+test('onAirLabel: paused/idle -> null (dimmed, kein Label)', () => {
+  assert.strictEqual(_TL.onAirLabel('live', 'paused'), null);
+  assert.strictEqual(_TL.onAirLabel('vod', 'ended'), null);
+  assert.strictEqual(_TL.onAirLabel(null, null), null);
+});
+
+// --- PRESETS ---------------------------------------------------------------
+test('PRESETS: nicht leer, jeder Eintrag vollstaendig + gueltige Hex', () => {
+  assert.ok(Array.isArray(ThemeLib.PRESETS) && ThemeLib.PRESETS.length >= 1);
+  for (const p of ThemeLib.PRESETS) {
+    assert.ok(p.id && typeof p.id === 'string', `id fehlt: ${JSON.stringify(p)}`);
+    assert.ok(p.name && typeof p.name === 'string', `name fehlt: ${p.id}`);
+    // Farben sind bereits normalisiert (== ihre eigene Normalisierung).
+    assert.equal(ThemeLib.normalizeHex(p.videoAccent, '#000000'), p.videoAccent, `videoAccent: ${p.id}`);
+    assert.equal(ThemeLib.normalizeHex(p.chatAccent, '#000000'), p.chatAccent, `chatAccent: ${p.id}`);
+  }
+});
+
+test('PRESETS: ids sind eindeutig', () => {
+  const ids = ThemeLib.PRESETS.map((p) => p.id);
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+test('PRESETS: neon-dual entspricht den DEFAULTS', () => {
+  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
+  assert.ok(nd);
+  assert.equal(nd.videoAccent, ThemeLib.DEFAULTS.videoAccent);
+  assert.equal(nd.chatAccent, ThemeLib.DEFAULTS.chatAccent);
+});
+
+// --- activePreset ----------------------------------------------------------
+test('activePreset: exakter Treffer', () => {
+  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
+  const hit = ThemeLib.activePreset({ videoAccent: nd.videoAccent, chatAccent: nd.chatAccent });
+  assert.equal(hit && hit.id, 'neon-dual');
+});
+
+test('activePreset: Treffer trotz anderer Schreibweise (Gross/ohne #)', () => {
+  const p = ThemeLib.PRESETS.find((x) => x.id === 'sunset');
+  const hit = ThemeLib.activePreset({
+    videoAccent: p.videoAccent.slice(1).toUpperCase(),
+    chatAccent: p.chatAccent.toUpperCase()
+  });
+  assert.equal(hit && hit.id, 'sunset');
+});
+
+test('activePreset: Zwischenfarbe -> null', () => {
+  assert.equal(ThemeLib.activePreset({ videoAccent: '#123456', chatAccent: '#abcdef' }), null);
+});
+
+test('activePreset: nur ein Akzent passt -> null (beide muessen matchen)', () => {
+  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
+  assert.equal(ThemeLib.activePreset({ videoAccent: nd.videoAccent, chatAccent: '#000000' }), null);
+});
+
+test('activePreset: robust gegen kaputte/fehlende prefs', () => {
+  assert.equal(ThemeLib.activePreset(null), null);
+  assert.equal(ThemeLib.activePreset({}), null);
+  assert.equal(ThemeLib.activePreset({ videoAccent: 'rot', chatAccent: 42 }), null);
+});

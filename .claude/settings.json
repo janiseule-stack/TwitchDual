@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/ui-shots-if-changed.js",
+            "async": true,
+            "timeout": 120,
+            "statusMessage": "UI-Screenshots aktualisieren …"
+          }
+        ]
+      }
+    ]
+  }
+}

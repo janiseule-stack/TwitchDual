@@ -21,6 +21,19 @@ if (!isTwitchFrame) {
       ipcRenderer.on('load', (_e, payload) => cb(payload));
     },
 
+    // Home-Overlay geoeffnet -> Chat trennt die laufende Quelle.
+    notifyHomeOpen: () => ipcRenderer.send('home-open'),
+    onHomeOpen: (cb) => {
+      ipcRenderer.on('home-open', () => cb());
+    },
+
+    // Home-Overlay ohne Neuwahl geschlossen -> Chat verbindet die laufende
+    // Quelle wieder (Gegenstueck zu home-open).
+    notifyHomeClose: () => ipcRenderer.send('home-close'),
+    onHomeClose: (cb) => {
+      ipcRenderer.on('home-close', () => cb());
+    },
+
     // VOD-Kommentarseiten nachladen (Chat-Fenster).
     fetchVodComments: (args) => ipcRenderer.invoke('vod-comments', args),
 
