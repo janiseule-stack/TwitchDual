@@ -17,6 +17,11 @@ const $refreshBtn = document.getElementById('refresh-btn');
 const $filterInput = document.getElementById('filter-input');
 const $favNoMatch = document.getElementById('fav-nomatch');
 const $favTools = document.getElementById('fav-tools-toggle');
+const $followedView = document.getElementById('followed-view');
+const $followedList = document.getElementById('followed-list');
+const $followedEmpty = document.getElementById('followed-empty');
+const $tabFollowed = document.getElementById('tab-followed');
+const $tabFavorites = document.getElementById('tab-favorites');
 
 // Suche/Hinzufuegen ein-/ausblendbar; Zustand bleibt ueber Sitzungen erhalten.
 let toolsCollapsed = false;
@@ -33,18 +38,67 @@ let lastChannels = []; // letzter Live-Status (sortiert vom Main-Prozess)
 // --- Sichtbarkeit / Navigation --------------------------------------------
 function showFavView() {
   $vodView.classList.add('hidden');
+  $followedView.classList.add('hidden');
   $favView.classList.remove('hidden');
   $homeBack.classList.add('hidden');
   $favTools.classList.remove('hidden'); // Umschalter nur bei Favoriten
   $homeTitle.textContent = 'Favoriten';
+  $tabFavorites.classList.add('active');
+  $tabFollowed.classList.remove('active');
 }
 
 function showVodView(login, displayName) {
   $favView.classList.add('hidden');
+  $followedView.classList.add('hidden');
   $vodView.classList.remove('hidden');
   $homeBack.classList.remove('hidden');
   $favTools.classList.add('hidden'); // in der VOD-Ansicht kein Suchfeld
   $homeTitle.textContent = 'VODs · ' + (displayName || login);
+}
+
+// --- Gefolgte Channels (Task 8) --------------------------------------------
+function showFollowedView() {
+  $favView.classList.add('hidden');
+  $vodView.classList.add('hidden');
+  $followedView.classList.remove('hidden');
+  $homeBack.classList.add('hidden');
+  $favTools.classList.add('hidden'); // Gefolgt hat kein Such-/Hinzufuegen-Feld
+  $homeTitle.textContent = 'Gefolgt';
+  $tabFollowed.classList.add('active');
+  $tabFavorites.classList.remove('active');
+  refreshFollowed();
+}
+
+// Wird nach jeder Login-Statusaenderung aus renderAuth() aufgerufen (siehe unten).
+// Blendet die Tabs je nach Login-Status ein/aus und laedt bei Bedarf die Liste.
+async function refreshFollowed() {
+  $tabFollowed.classList.toggle('hidden', !loggedIn);
+  $tabFavorites.classList.toggle('hidden', !loggedIn);
+  if (!loggedIn) {
+    // Abmeldung waehrend die Gefolgt-Ansicht offen ist -> zurueck zu Favoriten.
+    if (!$followedView.classList.contains('hidden')) showFavView();
+    return;
+  }
+  if ($followedView.classList.contains('hidden')) return; // nur laden, wenn sichtbar
+  const res = await window.twitchDual.getFollowed();
+  $followedList.innerHTML = '';
+  if (!res.ok) {
+    $followedEmpty.textContent = 'Fehler: ' + (res.error || 'unbekannt');
+    $followedEmpty.classList.remove('hidden');
+    return;
+  }
+  // getFollowed() liefert bereits live-first sortiert (Main-Prozess, browse.getLiveStatus).
+  const live = res.channels.filter((ch) => ch.live);
+  const off = res.channels.filter((ch) => !ch.live);
+  $followedEmpty.textContent = 'Keine gefolgten Channels.';
+  $followedEmpty.classList.toggle('hidden', res.channels.length > 0);
+  if (live.length) {
+    const grid = document.createElement('div');
+    grid.id = 'live-grid'; // gleiche Grid-Optik wie bei den Favoriten (buildLiveCard)
+    for (const ch of live) grid.appendChild(buildLiveCard(ch));
+    $followedList.appendChild(grid);
+  }
+  for (const ch of off) $followedList.appendChild(buildFavCard(ch));
 }
 
 function openHome() {
@@ -376,6 +430,8 @@ $addBtn.addEventListener('click', doAdd);
 $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
 $refreshBtn.addEventListener('click', refreshLive);
 $filterInput.addEventListener('input', renderFavorites);
+$tabFollowed.addEventListener('click', showFollowedView);
+$tabFavorites.addEventListener('click', showFavView);
 $favTools.addEventListener('click', () => {
   toolsCollapsed = !toolsCollapsed;
   try { localStorage.setItem('favToolsCollapsed', toolsCollapsed ? '1' : '0'); } catch { /* egal */ }

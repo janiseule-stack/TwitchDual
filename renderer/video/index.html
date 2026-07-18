@@ -214,6 +214,8 @@
   <div id="home" class="hidden">
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
+      <button id="tab-followed" type="button" class="hidden">Gefolgt</button>
+      <button id="tab-favorites" type="button" class="hidden active">Favoriten</button>
       <span id="home-title">Favoriten</span>
       <button id="fav-tools-toggle" title="Suche & Hinzufügen ein-/ausblenden">🔍</button>
       <button id="home-close" title="Schließen">✕</button>
@@ -254,6 +256,11 @@
 
     <div id="home-vod-view" class="hidden">
       <div id="vod-list"></div>
+    </div>
+
+    <div id="followed-view" class="hidden">
+      <div id="followed-list"></div>
+      <div id="followed-empty" class="empty hidden">Keine gefolgten Live-Channels.</div>
     </div>
     <div id="home-version"></div>
   </div>
