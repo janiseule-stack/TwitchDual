@@ -44,7 +44,19 @@ const minuteRate = ChatUi.createRateMeter({ windowMs: 60000 });
 let rateShown = -1;
 function tickRateDisplay(now) {
   const n = minuteRate.tick(now);
-  if (n !== rateShown) { rateShown = n; $rate.textContent = n + ' msg/min'; }
+  if (n !== rateShown) {
+    rateShown = n;
+    $rate.textContent = n + ' msg/min';
+    // Glow waechst mit der Rate (rein aus ChatUi.rateHeat, 0..1).
+    $rate.style.setProperty('--rate-glow', (6 + ChatUi.rateHeat(n) * 12) + 'px');
+  }
+}
+
+// Puls-Punkt kurz aufblitzen (Animation via Reflow neu starten).
+function pingRate() {
+  $rate.classList.remove('ping');
+  void $rate.offsetWidth;
+  $rate.classList.add('ping');
 }
 
 function nearBottom() {
@@ -219,8 +231,13 @@ function appendMessage(name, color, tokens, opts = {}) {
 
   // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
   // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
-  $messages.classList.toggle('no-anim', msgRate.tick(Date.now()) > ChatUi.ANIM_MAX_RATE);
-  tickRateDisplay(Date.now());
+  const rateNow = Date.now();
+  const busy = msgRate.tick(rateNow) > ChatUi.ANIM_MAX_RATE;
+  $messages.classList.toggle('no-anim', busy);
+  tickRateDisplay(rateNow);
+  // Diskreter Blitz nur in ruhigen Chats; bei Mega-Chats/Seeks bleibt es beim
+  // stetigen Glow (kein Flackern) — gleiche Schwelle wie die Einblende-Drossel.
+  if (!busy) pingRate();
 
   $messages.appendChild(div);
   // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
