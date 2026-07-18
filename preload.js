@@ -21,6 +21,12 @@ if (!isTwitchFrame) {
       ipcRenderer.on('load', (_e, payload) => cb(payload));
     },
 
+    // Home-Overlay geoeffnet -> Chat trennt die laufende Quelle.
+    notifyHomeOpen: () => ipcRenderer.send('home-open'),
+    onHomeOpen: (cb) => {
+      ipcRenderer.on('home-open', () => cb());
+    },
+
     // VOD-Kommentarseiten nachladen (Chat-Fenster).
     fetchVodComments: (args) => ipcRenderer.invoke('vod-comments', args),
 

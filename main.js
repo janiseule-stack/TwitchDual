@@ -208,6 +208,9 @@ ipcMain.handle('get-ui-prefs', () => ({
   appVersion: app.getVersion()
 }));
 
+// Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
+ipcMain.on('home-open', () => broadcast('home-open'));
+
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
   const cur = store.get('playerPrefs', { volume: null, quality: null });
   store.set('playerPrefs', { ...cur, ...(prefs || {}) });

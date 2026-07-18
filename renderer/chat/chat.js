@@ -529,6 +529,20 @@ window.twitchDual.onPlayerState((state) => {
   else if (state === 'ended') setConn('Replay-Ende', 'ok');
 });
 
+// Nutzer geht zurueck ins Home-Menue -> laufende Quelle trennen, sonst laeuft
+// der Chat der alten Quelle im Hintergrund weiter.
+window.twitchDual.onHomeOpen(() => {
+  vod = null;
+  ircChannel = null;
+  closeIrc();
+  onAirMode = null;
+  onAirPlayerState = null;
+  updateOnAir();
+  setConn('nicht verbunden');
+  $mode.textContent = '';
+  $title.textContent = 'Chat';
+});
+
 window.twitchDual.onPlayerTime((seconds) => {
   if (vod) {
     if (playerState === 'playing') setConn('Replay @ ' + formatTime(seconds), 'ok');

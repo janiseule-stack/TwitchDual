@@ -48,6 +48,7 @@ function showVodView(login, displayName) {
 }
 
 function openHome() {
+  window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
   showFavView();
   loadAndRefresh();
