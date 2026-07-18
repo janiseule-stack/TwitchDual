@@ -63,9 +63,21 @@
       background: var(--bg); color: var(--muted); font-size: 13px; cursor: pointer;
       white-space: nowrap;
     }
-    #adblock-toggle.on { background: #1f3d1f; border-color: #3fa34d; color: #eafbea; }
-    #status { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    #adblock-toggle.on {
+      background: var(--accent-glow); border-color: var(--accent-border);
+      color: var(--accent-title); box-shadow: 0 0 10px -3px var(--accent);
+    }
+    #status {
+      font-size: 12px; color: var(--muted); white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    #status::before {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--ts); flex-shrink: 0;
+    }
+    body.onair #status::before { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
     #status.err { color: #eb4034; }
+    #status.err::before { background: #eb4034; box-shadow: none; }
     #player { flex: 1; position: relative; background: #000; }
     #player iframe { border: 0; }
     #hint {
@@ -97,23 +109,27 @@
       box-shadow: inset 0 0 24px -12px var(--accent-glow);
     }
     #onair-bar {
-      height: 2px; flex-shrink: 0;
-      background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
-      opacity: .25;
+      display: flex; align-items: center; gap: 10px; height: 16px;
+      padding: 0 12px; flex-shrink: 0;
     }
-    body.onair #onair-bar {
-      opacity: 1;
-      box-shadow: 0 0 10px var(--accent-glow);
+    #onair-bar .oa-line {
+      flex: 1; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
+      opacity: .22;
+    }
+    body.onair #onair-bar .oa-line {
+      opacity: 1; box-shadow: 0 0 8px var(--accent-glow);
       animation: onair-pulse 1.6s ease-in-out infinite;
     }
     @keyframes onair-pulse { 50% { opacity: .55; } }
-    #onair-tag {
+    #oa-label {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
-      letter-spacing: .08em; white-space: nowrap;
+      letter-spacing: .14em; white-space: nowrap;
       background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
       -webkit-background-clip: text; background-clip: text; color: transparent;
+      opacity: 0; transition: opacity .25s;
     }
-    body:not(.onair) #onair-tag { display: none; }
+    body.onair #oa-label { opacity: 1; }
     #status { font-family: var(--mono); }
     button:focus-visible, input:focus-visible {
       outline: 2px solid var(--accent-dim); outline-offset: 1px;
@@ -156,7 +172,10 @@
   </style>
 </head>
 <body>
-  <div id="onair-bar"></div>
+  <div id="onair-bar">
+    <span class="oa-line"></span>
+    <span id="oa-label">● ON AIR</span>
+  </div>
   <div id="bar">
     <div class="bar-left">
       <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
@@ -168,7 +187,6 @@
       <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
     </div>
     <div class="bar-right">
-      <span id="onair-tag">● ON AIR</span>
       <span id="status">bereit</span>
       <button id="video-only-btn" title="Nur Video (Fenster füllen)">⛶</button>
       <div id="win-controls">
