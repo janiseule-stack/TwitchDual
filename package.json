@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
+    "shots": "electron tools/ui-shots.js",
     "pack": "electron-packager . TwitchDual --platform=win32 --arch=x64 --out=dist --overwrite --ignore=\"^/docs$\" --ignore=\"^/test$\"",
     "dist": "electron-builder --win nsis",
     "release": "electron-builder --win nsis --publish always"
