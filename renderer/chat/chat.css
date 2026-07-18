@@ -35,7 +35,7 @@ body { display: flex; flex-direction: column; }
   -webkit-app-region: drag;
 }
 #title { font-weight: 700; }
-#mode { color: var(--muted); font-size: 12px; }
+#mode { color: var(--muted); font-size: 12px; margin-left: 10px; }
 
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
