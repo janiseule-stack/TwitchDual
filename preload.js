@@ -79,7 +79,18 @@ if (!isTwitchFrame) {
     setAdblockEnabled: (enabled) => ipcRenderer.invoke('set-adblock-enabled', enabled),
     onAdblockState: (cb) => {
       ipcRenderer.on('adblock-state', (_e, payload) => cb(payload));
-    }
+    },
+
+    // Login (Device Flow) + Sende-Chat (v1.8.0).
+    authStatus: () => ipcRenderer.invoke('auth-status'),
+    authStart: () => ipcRenderer.invoke('auth-start'),
+    authLogout: () => ipcRenderer.invoke('auth-logout'),
+    onAuthChanged: (cb) => { ipcRenderer.on('auth-changed', (_e, st) => cb(st)); },
+    getFollowed: () => ipcRenderer.invoke('get-followed'),
+    getUserEmotes: () => ipcRenderer.invoke('get-user-emotes'),
+    chatSend: (text) => ipcRenderer.invoke('chat-send', { text }),
+    onChatNotice: (cb) => { ipcRenderer.on('chat-notice', (_e, n) => cb(n)); },
+    onChatRoom: (cb) => { ipcRenderer.on('chat-room', (_e, r) => cb(r)); }
   });
 }
 
