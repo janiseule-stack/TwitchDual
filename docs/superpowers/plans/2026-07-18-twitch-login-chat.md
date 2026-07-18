@@ -153,8 +153,7 @@ Expected: FAIL (`Cannot find module '../src/twitch-auth'`).
 // vollstaendig ohne echtes Netz getestet.
 
 // Client-ID der registrierten Twitch-App (Public). NICHT geheim.
-// TODO(einmalig): echte Client-ID aus dev.twitch.tv/console/apps eintragen.
-const CLIENT_ID = 'REPLACE_WITH_TWITCH_CLIENT_ID';
+const CLIENT_ID = 'by9tsq2or5ztro5o2g1qgrp32ptd9s';
 const SCOPES = 'chat:read chat:edit user:read:follows user:read:emotes';
 
 const DEVICE_URL = 'https://id.twitch.tv/oauth2/device';
@@ -1559,7 +1558,6 @@ git commit -m "release: v1.8.0 — Twitch-Login, Gefolgt, Chatten, Emote-Picker"
 
 - [ ] **Step 5: Release (durch Janis, nach Test)**
 
-Voraussetzung: echte Client-ID ist in `src/twitch-auth.js` eingetragen. Dann:
 Run: `npm run release` (electron-builder, GitHub Releases; Auto-Update greift bei Nutzern).
 
 ---
@@ -1581,6 +1579,6 @@ Run: `npm run release` (electron-builder, GitHub Releases; Auto-Update greift be
 - Scopes `chat:read chat:edit user:read:follows user:read:emotes` → Task 1 (`SCOPES`) ✓
 - Preload-Whitelist, kein Token im Renderer → Task 6 ✓
 
-**Placeholder scan:** Einziger bewusster Platzhalter: `CLIENT_ID = 'REPLACE_WITH_TWITCH_CLIENT_ID'` in Task 1 — muss von Janis mit der echten (nicht geheimen) Client-ID ersetzt werden; als `TODO(einmalig)` markiert und in Task 12/Release referenziert. Kein Code-Platzhalter sonst.
+**Placeholder scan:** Keine Platzhalter mehr. Die echte (öffentliche) Client-ID `by9tsq2or5ztro5o2g1qgrp32ptd9s` ist in Task 1 eingetragen.
 
 **Type consistency:** `startDeviceAuth`, `pollTokenOnce`, `refreshTokens`, `validateToken` (Task 1) werden in Task 6 (`auth-manager`) exakt so genutzt. `TokenStore(filePath, crypto, fsImpl?)` (Task 2) ↔ Verdrahtung Task 6. `ChatSender({WebSocketImpl,onNotice,onRoom,onStatus})` mit `login/logout/setChannel/send` (Task 5) ↔ Nutzung Task 6. `getFollowedChannels`/`getUserEmotes` Rückgabeform (Task 3) ↔ Konsum Task 8/10. `chatSend`/`onChatNotice`/`onChatRoom`/`getFollowed`/`getUserEmotes`/`auth*`-Bridge (Task 6) ↔ Renderer Tasks 7–11. Konsistent.
