@@ -204,7 +204,8 @@ ipcMain.handle('get-ui-prefs', () => ({
   lastSource: store.get('lastSource', ''),
   playerPrefs: store.get('playerPrefs', { volume: null, quality: null }),
   chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true }),
-  themePrefs: cleanThemePrefs(store.get('themePrefs'))
+  themePrefs: cleanThemePrefs(store.get('themePrefs')),
+  appVersion: app.getVersion()
 }));
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {

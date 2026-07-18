@@ -312,7 +312,11 @@ function applyTheme(prefs) {
 }
 
 window.twitchDual.getUiPrefs()
-  .then((prefs) => applyTheme(prefs && prefs.themePrefs))
+  .then((prefs) => {
+    applyTheme(prefs && prefs.themePrefs);
+    const v = document.getElementById('home-version');
+    if (v && prefs && prefs.appVersion) v.textContent = 'v' + prefs.appVersion;
+  })
   .catch(() => applyTheme(null));
 window.twitchDual.onThemeChanged(applyTheme);
 
