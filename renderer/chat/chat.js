@@ -824,3 +824,20 @@ document.addEventListener('mousedown', (e) => {
   if ($emotePanel.contains(e.target) || e.target === $emoteBtn) return;
   $emotePanel.classList.add('hidden');
 });
+
+// --- Sende-Fehler (NOTICE) + Raum-Status (ROOMSTATE) -----------------------
+// NOTICE (z.B. Slow-Mode aktiv, Follower-only) landet als Fehlermeldung im
+// gleichen Toast wie fehlgeschlagene Sendeversuche (showChatError, Task 9).
+window.twitchDual.onChatNotice((n) => { showChatError(n.text); });
+
+// ROOMSTATE zeigt aktive Raum-Einschraenkungen als kleinen Chip im Composer.
+const $roomState = document.getElementById('room-state');
+window.twitchDual.onChatRoom((r) => {
+  const parts = [];
+  if (r.slowSeconds && r.slowSeconds > 0) parts.push('🐌 ' + r.slowSeconds + 's');
+  if (r.followersOnly !== null && r.followersOnly >= 0) parts.push('Nur Follower');
+  if (r.subsOnly) parts.push('Nur Subs');
+  if (r.emoteOnly) parts.push('Nur Emotes');
+  $roomState.textContent = parts.join(' · ');
+  $roomState.classList.toggle('hidden', parts.length === 0);
+});
