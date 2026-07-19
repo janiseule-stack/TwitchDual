@@ -136,7 +136,15 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Gefolgte Channels im Home-Overlay (Tab „Gefolgt", live zuerst als Karten).
 - Nachrichten senden (authentifizierter IRC-Sende-Socket, Rate-Limit 20/30s, nur im Live-Modus).
 - Emote-Picker: Channel-Emotes (7TV/BTTV/FFZ) + eigene Twitch-Sub-Emotes.
+- Inline-Emotes im Eingabefeld (contenteditable statt <input>): getippter Emote-Name
+  wird bei Leertaste/Senden/Blur zum Bild, beim Senden wieder zu Text serialisiert.
+- Tab-Autocomplete mit Vorschlags-Leiste: Teilname + Tab vervollstaendigt/cyclet
+  (Shift+Tab rueckwaerts), die Leiste zeigt die Treffer als Bild (aktueller markiert),
+  Klick setzt direkt ein.
+- Slow-Mode-Countdown: nach dem Senden zaehlt der Raum-Status-Chip runter
+  („🐌 noch X s"), Senden-Button bis dahin gesperrt.
 - Sende-Fehler sichtbar (NOTICE-Uebersetzung) + Raum-Status-Chip (Slow/Follower/Subs/Emote-only aus ROOMSTATE).
+- Home merkt sich den zuletzt aktiven Tab (Gefolgt/Favoriten) beim erneuten Oeffnen.
 - Scopes exakt: chat:read chat:edit user:read:follows user:read:emotes.
 
 ## Releases / Auto-Update (seit v1.0.0)

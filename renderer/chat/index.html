@@ -48,11 +48,11 @@
     <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
   </div>
   <div id="messages"></div>
-  <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
   <div id="composer">
+    <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
     <button id="emote-btn" type="button" title="Emotes" disabled>😀</button>
     <span id="room-state" class="hidden"></span>
-    <input id="chat-input" type="text" maxlength="500" placeholder="Zum Chatten anmelden" disabled />
+    <div id="chat-input" contenteditable="false" data-placeholder="Zum Chatten anmelden"></div>
     <button id="chat-send" type="button" disabled>Senden</button>
     <div id="chat-error" class="hidden"></div>
     <div id="emote-panel" class="hidden">
@@ -61,6 +61,7 @@
       <div class="ep-section">Deine Emotes</div>
       <div id="ep-user" class="ep-grid"></div>
     </div>
+    <div id="ac-bar" class="hidden"></div>
   </div>
   <div id="emote-tip" class="hidden">
     <img id="emote-tip-img" alt="" />
