@@ -36,7 +36,10 @@ let favorites = [];
 let lastChannels = []; // letzter Live-Status (sortiert vom Main-Prozess)
 
 // --- Sichtbarkeit / Navigation --------------------------------------------
+let homeTab = 'favorites'; // zuletzt aktiver Tab -> beim erneuten Home-Oeffnen wiederherstellen
+
 function showFavView() {
+  homeTab = 'favorites';
   $vodView.classList.add('hidden');
   $followedView.classList.add('hidden');
   $favView.classList.remove('hidden');
@@ -58,6 +61,7 @@ function showVodView(login, displayName) {
 
 // --- Gefolgte Channels (Task 8) --------------------------------------------
 function showFollowedView() {
+  homeTab = 'followed';
   $favView.classList.add('hidden');
   $vodView.classList.add('hidden');
   $followedView.classList.remove('hidden');
@@ -104,7 +108,9 @@ async function refreshFollowed() {
 function openHome() {
   window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
-  showFavView();
+  // Zuletzt aktiven Tab wiederherstellen (Gefolgt nur wenn eingeloggt).
+  if (homeTab === 'followed' && loggedIn) showFollowedView();
+  else showFavView();
   loadAndRefresh();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
