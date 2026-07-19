@@ -782,8 +782,8 @@ let userEmotesLoaded = false;
 
 function insertEmote(code) {
   const el = $composerInput;
-  const start = el.selectionStart || el.value.length;
-  const end = el.selectionEnd || el.value.length;
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
   const pad = (start > 0 && el.value[start - 1] !== ' ') ? ' ' : '';
   el.value = el.value.slice(0, start) + pad + code + ' ' + el.value.slice(end);
   el.focus();
