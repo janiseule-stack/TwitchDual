@@ -95,10 +95,10 @@ async function refreshFollowed() {
   if (live.length) {
     const grid = document.createElement('div');
     grid.id = 'live-grid'; // gleiche Grid-Optik wie bei den Favoriten (buildLiveCard)
-    for (const ch of live) grid.appendChild(buildLiveCard(ch));
+    for (const ch of live) grid.appendChild(buildLiveCard(ch, { showRemove: false }));
     $followedList.appendChild(grid);
   }
-  for (const ch of off) $followedList.appendChild(buildFavCard(ch));
+  for (const ch of off) $followedList.appendChild(buildFavCard(ch, { showRemove: false }));
 }
 
 function openHome() {
@@ -194,7 +194,7 @@ function renderFavorites() {
   $favNoMatch.classList.toggle('hidden', !(lastChannels.length && !filtered.length));
 }
 
-function buildFavCard(ch) {
+function buildFavCard(ch, { showRemove = true } = {}) {
   const card = document.createElement('div');
   card.className = 'fav';
 
@@ -251,16 +251,18 @@ function buildFavCard(ch) {
   vods.addEventListener('click', () => openVods(ch.login, ch.displayName));
   actions.appendChild(vods);
 
-  const remove = document.createElement('button');
-  remove.className = 'remove';
-  remove.textContent = '✕';
-  remove.title = 'Aus Favoriten entfernen';
-  remove.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    const r = await window.twitchDual.removeFavorite(ch.login);
-    if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
-  });
-  actions.appendChild(remove);
+  if (showRemove) {
+    const remove = document.createElement('button');
+    remove.className = 'remove';
+    remove.textContent = '✕';
+    remove.title = 'Aus Favoriten entfernen';
+    remove.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const r = await window.twitchDual.removeFavorite(ch.login);
+      if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
+    });
+    actions.appendChild(remove);
+  }
 
   card.appendChild(actions);
   return card;
@@ -273,7 +275,7 @@ function previewUrl(login) {
   return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(login)}-440x248.jpg?t=${bust}`;
 }
 
-function buildLiveCard(ch) {
+function buildLiveCard(ch, { showRemove = true } = {}) {
   const card = document.createElement('div');
   card.className = 'live-card';
   card.title = 'Klick: Stream laden';
@@ -334,16 +336,18 @@ function buildLiveCard(ch) {
     openVods(ch.login, ch.displayName);
   });
   actions.appendChild(vods);
-  const remove = document.createElement('button');
-  remove.className = 'remove';
-  remove.textContent = '✕';
-  remove.title = 'Aus Favoriten entfernen';
-  remove.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    const r = await window.twitchDual.removeFavorite(ch.login);
-    if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
-  });
-  actions.appendChild(remove);
+  if (showRemove) {
+    const remove = document.createElement('button');
+    remove.className = 'remove';
+    remove.textContent = '✕';
+    remove.title = 'Aus Favoriten entfernen';
+    remove.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const r = await window.twitchDual.removeFavorite(ch.login);
+      if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
+    });
+    actions.appendChild(remove);
+  }
   card.appendChild(actions);
 
   return card;

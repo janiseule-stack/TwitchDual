@@ -165,3 +165,7 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - **Mehrere Chat-Fenster / zweiter Kanal** für Squad-Streams.
 - **E2E-Smoke-Test** (Playwright + Electron), der App-Start, Laden eines
   VODs und ersten Chat-Render prüft.
+- **Sende-Socket-Token nach Refresh aktualisieren**: AuthManager.getAccess()
+  erneuert das Token, aber ChatSender behält das alte; bei Socket-Neuaufbau
+  nach >4h schlägt die IRC-Auth still fehl. AuthManager soll ChatSender bei
+  Refresh neu einloggen.
