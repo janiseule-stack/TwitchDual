@@ -316,3 +316,29 @@ button:focus-visible, input:focus-visible {
   font-family: var(--mono); color: var(--muted);
   min-width: 42px; text-align: right;
 }
+
+/* Chat-Eingabezeile (v1.8.0): nur eingeloggt + Live aktiv (updateComposerState). */
+#composer {
+  display: flex; gap: 6px; padding: 6px 8px; align-items: center;
+  position: relative; flex-shrink: 0;
+  background: var(--panel); border-top: 1px solid var(--line);
+}
+#chat-input {
+  flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px;
+  background: rgba(255, 255, 255, .06); color: var(--text);
+  border: 1px solid var(--accent-border); font-family: inherit; font-size: 13px;
+}
+#chat-input:disabled { opacity: .6; cursor: not-allowed; }
+#chat-send, #emote-btn {
+  cursor: pointer; background: var(--hover); color: var(--text);
+  border: 1px solid var(--accent-border); border-radius: 6px; padding: 6px 10px;
+}
+#emote-btn { padding: 6px 8px; }
+#chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled) { border-color: var(--accent-dim); }
+#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .5; }
+#chat-error {
+  position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 4px;
+  background: #4a1220; color: #ffb3c4; padding: 4px 8px; border-radius: 6px;
+  font-size: 12px; animation: pop-in 120ms ease-out;
+}
+#chat-error.hidden { display: none; }

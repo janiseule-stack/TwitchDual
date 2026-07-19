@@ -521,6 +521,8 @@ function applySource(payload) {
     setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
+
+  chatMode = payload.mode; updateComposerState();
 }
 window.twitchDual.onLoad(applySource);
 
@@ -547,6 +549,8 @@ window.twitchDual.onHomeOpen(() => {
   setConn('nicht verbunden');
   $mode.textContent = '';
   $title.textContent = 'Chat';
+
+  chatMode = null; updateComposerState();
 });
 
 // Nutzer schliesst Home zurueck zur laufenden Quelle -> Chat wieder aufbauen.
@@ -725,3 +729,47 @@ function updateOnAir() {
   const el = document.getElementById('oa-label');
   if (el) el.textContent = label ? ('● ' + label) : '';
 }
+
+// ---------------------------------------------------------------------------
+// Senden (v1.8.0): Eingabefeld ist nur eingeloggt + im Live-Modus aktiv.
+// chatLoggedIn/chatMode/updateComposerState/showChatError sind Modul-Zustand
+// fuer Task 10 (Emote-Picker) und Task 11 (Sende-Fehler/Room-Status).
+// ---------------------------------------------------------------------------
+const $composerInput = document.getElementById('chat-input');
+const $composerSend = document.getElementById('chat-send');
+const $emoteBtn = document.getElementById('emote-btn');
+const $chatError = document.getElementById('chat-error');
+
+let chatLoggedIn = false;
+let chatMode = null; // 'live' | 'vod' | null
+
+function updateComposerState() {
+  const canChat = chatLoggedIn && chatMode === 'live';
+  $composerInput.disabled = !canChat;
+  $composerSend.disabled = !canChat;
+  $emoteBtn.disabled = !canChat;
+  $composerInput.placeholder = !chatLoggedIn ? 'Zum Chatten anmelden'
+    : chatMode !== 'live' ? 'Chatten nur im Live-Modus'
+    : 'Nachricht senden …';
+}
+
+async function doSend() {
+  const text = $composerInput.value.trim();
+  if (!text) return;
+  $composerInput.value = '';
+  const r = await window.twitchDual.chatSend(text);
+  if (!r.ok) showChatError(r.error);
+}
+
+function showChatError(text) {
+  $chatError.textContent = text;
+  $chatError.classList.remove('hidden');
+  clearTimeout(showChatError._t);
+  showChatError._t = setTimeout(() => $chatError.classList.add('hidden'), 4000);
+}
+
+$composerSend.addEventListener('click', doSend);
+$composerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSend(); });
+
+window.twitchDual.authStatus().then((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); }).catch(() => {});
+window.twitchDual.onAuthChanged((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); });
