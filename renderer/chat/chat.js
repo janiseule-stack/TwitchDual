@@ -773,3 +773,54 @@ $composerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSen
 
 window.twitchDual.authStatus().then((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); }).catch(() => {});
 window.twitchDual.onAuthChanged((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); });
+
+// --- Emote-Picker -----------------------------------------------------------
+const $emotePanel = document.getElementById('emote-panel');
+const $epChannel = document.getElementById('ep-channel');
+const $epUser = document.getElementById('ep-user');
+let userEmotesLoaded = false;
+
+function insertEmote(code) {
+  const el = $composerInput;
+  const start = el.selectionStart || el.value.length;
+  const end = el.selectionEnd || el.value.length;
+  const pad = (start > 0 && el.value[start - 1] !== ' ') ? ' ' : '';
+  el.value = el.value.slice(0, start) + pad + code + ' ' + el.value.slice(end);
+  el.focus();
+}
+
+function fillEmoteGrid(container, entries) {
+  container.innerHTML = '';
+  for (const e of entries) {
+    const img = document.createElement('img');
+    img.className = 'ep-emote';
+    img.src = e.url;
+    img.alt = e.name;
+    img.title = e.name;
+    img.loading = 'lazy';
+    img.addEventListener('click', () => insertEmote(e.name));
+    container.appendChild(img);
+  }
+}
+
+async function openEmotePanel() {
+  // Channel-Emotes aus der bereits geladenen emoteMap (name -> url).
+  fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })).slice(0, 200));
+  if (!userEmotesLoaded) {
+    const res = await window.twitchDual.getUserEmotes();
+    if (res.ok) fillEmoteGrid($epUser, res.emotes);
+    userEmotesLoaded = true;
+  }
+  $emotePanel.classList.remove('hidden');
+}
+
+$emoteBtn.addEventListener('click', () => {
+  if ($emotePanel.classList.contains('hidden')) openEmotePanel();
+  else $emotePanel.classList.add('hidden');
+});
+// Klick außerhalb schließt das Panel.
+document.addEventListener('mousedown', (e) => {
+  if ($emotePanel.classList.contains('hidden')) return;
+  if ($emotePanel.contains(e.target) || e.target === $emoteBtn) return;
+  $emotePanel.classList.add('hidden');
+});
