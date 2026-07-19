@@ -131,6 +131,14 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
 
+**Twitch-Login + Chatten (v1.8.0)**
+- Twitch-Login per Device Code Flow (Public Client, kein Secret); Token verschluesselt via safeStorage, verlaesst nie den Main-Prozess.
+- Gefolgte Channels im Home-Overlay (Tab „Gefolgt", live zuerst als Karten).
+- Nachrichten senden (authentifizierter IRC-Sende-Socket, Rate-Limit 20/30s, nur im Live-Modus).
+- Emote-Picker: Channel-Emotes (7TV/BTTV/FFZ) + eigene Twitch-Sub-Emotes.
+- Sende-Fehler sichtbar (NOTICE-Uebersetzung) + Raum-Status-Chip (Slow/Follower/Subs/Emote-only aus ROOMSTATE).
+- Scopes exakt: chat:read chat:edit user:read:follows user:read:emotes.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
