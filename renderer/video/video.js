@@ -49,7 +49,14 @@ setInterval(() => {
 
 let player = null;
 let timeTimer = null;
-let playerPrefs = { volume: null, quality: null }; // zuletzt gespeicherte Werte
+// Default-Lautstaerke 15 % (0..1), falls noch nichts gemerkt ist; ein
+// gespeicherter Wert (prefs.playerPrefs) ueberschreibt das beim Start.
+let playerPrefs = { volume: 0.15, quality: null };
+// Der Twitch-Embed durchlaeuft beim Autoplay-Start eine Mute-Sequenz und setzt
+// die Lautstaerke dabei kurz auf seinen Default (100%). Bis der Stream wirklich
+// laeuft, NICHT persistieren (sonst ueberschreiben diese Uebergangswerte den
+// gemerkten Wert) und den gewuenschten Wert auf PLAYING erneut setzen.
+let volumeReady = false;
 
 function setStatus(text, isError = false) {
   $status.textContent = text;
@@ -95,6 +102,7 @@ function mountPlayer(options) {
     autoplay: true
   };
 
+  volumeReady = false; // neuer Player -> Lautstaerke erst nach dem Einpendeln merken
   player = new Twitch.Player($player, { ...base, ...options });
 
   player.addEventListener(Twitch.Player.READY, () => {
@@ -106,6 +114,12 @@ function mountPlayer(options) {
     } catch (e) {}
   });
   player.addEventListener(Twitch.Player.PLAYING, () => {
+    // Jetzt laeuft der Stream wirklich: gewuenschte Lautstaerke (erneut) setzen,
+    // dann kurz danach das Merken freigeben (echte Nutzeraenderungen ab hier).
+    if (!volumeReady) {
+      try { if (playerPrefs.volume != null) player.setVolume(playerPrefs.volume); } catch (e) {}
+      setTimeout(() => { volumeReady = true; }, 500);
+    }
     startTimeBroadcast();
     window.twitchDual.sendPlayerState('playing');
     onAirPlayerState = 'playing'; updateOnAir();
@@ -136,17 +150,21 @@ function startTimeBroadcast() {
       if (typeof t === 'number' && !Number.isNaN(t)) {
         window.twitchDual.sendPlayerTime(t);
       }
-      // Lautstaerke/Qualitaet beobachten und Aenderungen persistieren.
-      const v = player.getVolume();
-      const q = player.getQuality();
-      const vChanged = typeof v === 'number' && v !== playerPrefs.volume;
-      const qChanged = !!q && q !== playerPrefs.quality;
-      if (vChanged || qChanged) {
-        playerPrefs = {
-          volume: typeof v === 'number' ? v : playerPrefs.volume,
-          quality: q || playerPrefs.quality
-        };
-        window.twitchDual.savePlayerPrefs(playerPrefs);
+      // Lautstaerke/Qualitaet beobachten und Aenderungen persistieren - aber
+      // erst, wenn der Player eingependelt ist (sonst speichern die Start-
+      // Uebergangswerte den 100%-Default des Embeds ueber den gemerkten Wert).
+      if (volumeReady) {
+        const v = player.getVolume();
+        const q = player.getQuality();
+        const vChanged = typeof v === 'number' && v !== playerPrefs.volume;
+        const qChanged = !!q && q !== playerPrefs.quality;
+        if (vChanged || qChanged) {
+          playerPrefs = {
+            volume: typeof v === 'number' ? v : playerPrefs.volume,
+            quality: q || playerPrefs.quality
+          };
+          window.twitchDual.savePlayerPrefs(playerPrefs);
+        }
       }
     } catch (e) {
       // Bei Live liefert getCurrentTime evtl. nichts -> ignorieren.

@@ -118,7 +118,9 @@ $messages.addEventListener('scroll', () => {
   }
 });
 
-function trimMessages(max = 300) {
+const TRIM_MAX = 50;
+
+function trimMessages(max = TRIM_MAX) {
   // Nur kuerzen, solange wir unten kleben. Sonst wuerde das Loeschen oben dem
   // Lesenden (nach oben gescrollt) die Position wegziehen.
   // Unabhaengig davon beschneidet VodReplayCore.trim() seinen Datenpuffer
@@ -172,7 +174,7 @@ function appendBadge(parent, b) {
 // tokens: [{type:'text',value}|{type:'emote',name,id|url}] – aus
 // IrcParse.emoteTokens (live) bzw. VodReplayCore.fragmentsToTokens (VOD).
 // opts: { replay?, timeSeconds?, badges?: [{set,version}], months?, userId? }
-function appendMessage(name, color, tokens, opts = {}) {
+function buildMessageEl(name, color, tokens, opts = {}) {
   const div = document.createElement('div');
   div.className = 'msg' + (opts.replay ? ' replay' : '');
 
@@ -229,27 +231,44 @@ function appendMessage(name, color, tokens, opts = {}) {
     }
   }
 
-  // Einblende-Animation nur in ruhigen Chats; Seek-Bursts im VOD treiben
-  // die Rate sofort ueber die Schwelle -> Animation ist dann automatisch aus.
+  return div;
+}
+
+// ---------------------------------------------------------------------------
+// Rendering: jede Nachricht wird SOFORT einzeln angehaengt (mit Einblende-
+// Animation) - das ergibt den fluessigen Stream-Look. Nur das teure
+// scrollToBottom (erzwingt Layout-Reflow) UND das Trimmen werden per
+// requestAnimationFrame auf EINMAL pro Frame gebuendelt: das war die eigentliche
+// Last bei schnellen Chats (30-50 Reflows/s), nicht das Anhaengen selbst.
+// ---------------------------------------------------------------------------
+let scrollScheduled = false;
+function scheduleScrollTrim() {
+  if (scrollScheduled) return;
+  scrollScheduled = true;
+  requestAnimationFrame(() => {
+    scrollScheduled = false;
+    if (autoScroll) scrollToBottom(); // sonst klebt der Leser oben (bewusst)
+    trimMessages();                    // self-guard: trimmt nur bei autoScroll
+  });
+}
+
+function appendMessage(name, color, tokens, opts = {}) {
+  const div = buildMessageEl(name, color, tokens, opts);
+
+  // Einblende-Animation nur in ruhigen Chats; oberhalb ANIM_MAX_RATE wuerde sie
+  // nur flackern. Seek-Bursts im VOD treiben die Rate sofort ueber die Schwelle.
   const rateNow = Date.now();
   const busy = msgRate.tick(rateNow) > ChatUi.ANIM_MAX_RATE;
   $messages.classList.toggle('no-anim', busy);
   tickRateDisplay(rateNow);
-  // Diskreter Blitz nur in ruhigen Chats; bei Mega-Chats/Seeks bleibt es beim
-  // stetigen Glow (kein Flackern) — gleiche Schwelle wie die Einblende-Drossel.
   if (!busy) pingRate();
 
   $messages.appendChild(div);
-  // Nutzer-Absicht (autoScroll) statt Pixel-Messung: nearBottom() pro
-  // Nachricht kippte um, sobald nachladende Emote-Bilder das Layout
-  // verschoben hatten -> Chat blieb dauerhaft stehen (Mega-Chats).
-  if (autoScroll) {
-    scrollToBottom();
-  } else {
+  if (!autoScroll) {
     pendingNew++;
     updateNewMsgsButton();
   }
-  trimMessages();
+  scheduleScrollTrim(); // scrollToBottom + trim gebuendelt (ein Reflow pro Frame)
 }
 
 function setConn(text, cls) {

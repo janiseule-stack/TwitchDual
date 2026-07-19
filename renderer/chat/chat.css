@@ -346,7 +346,8 @@ button:focus-visible, input:focus-visible {
   cursor: pointer; background: var(--hover); color: var(--text);
   border: 1px solid var(--accent-border); border-radius: 6px; padding: 6px 10px;
 }
-#emote-btn { padding: 6px 8px; }
+#emote-btn { padding: 4px 6px; display: inline-flex; align-items: center; }
+#emote-btn img { height: 20px; width: auto; display: block; }
 #chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled) { border-color: var(--accent-dim); }
 #chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .5; }
 #chat-error {

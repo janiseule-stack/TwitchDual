@@ -24,8 +24,11 @@ const $tabFollowed = document.getElementById('tab-followed');
 const $tabFavorites = document.getElementById('tab-favorites');
 
 // Suche/Hinzufuegen ein-/ausblendbar; Zustand bleibt ueber Sitzungen erhalten.
-let toolsCollapsed = false;
-try { toolsCollapsed = localStorage.getItem('favToolsCollapsed') === '1'; } catch { /* egal */ }
+let toolsCollapsed = true; // Default: eingeklappt; nur ein explizit gemerkter Zustand oeffnet wieder
+try {
+  const stored = localStorage.getItem('favToolsCollapsed');
+  if (stored != null) toolsCollapsed = stored === '1';
+} catch { /* egal */ }
 function applyToolsState() {
   $favView.classList.toggle('tools-collapsed', toolsCollapsed);
   $favTools.classList.toggle('active', toolsCollapsed);

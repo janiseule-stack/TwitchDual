@@ -13,8 +13,9 @@
   const FONT_MAX = 22;
   const FONT_DEFAULT = 14;
   // Ab dieser Nachrichtenrate (pro Fenster) wird die Einblende-Animation
-  // abgeschaltet - in Mega-Chats wuerde sie nur flackern.
-  const ANIM_MAX_RATE = 5;
+  // abgeschaltet - in Mega-Chats wuerde sie nur flackern. 15/s (~900/min) haelt
+  // die Animation auch bei schnellen Chats (300-400/min) an; erst darueber aus.
+  const ANIM_MAX_RATE = 15;
 
   // Schriftgroesse aus dem Store kann Muell sein (alte Version, Handedit).
   function clampFontSize(v) {
