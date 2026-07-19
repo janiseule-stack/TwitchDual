@@ -214,9 +214,26 @@
   <div id="home" class="hidden">
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
+      <button id="tab-followed" type="button" class="hidden">Gefolgt</button>
+      <button id="tab-favorites" type="button" class="hidden active">Favoriten</button>
       <span id="home-title">Favoriten</span>
       <button id="fav-tools-toggle" title="Suche & Hinzufügen ein-/ausblenden">🔍</button>
       <button id="home-close" title="Schließen">✕</button>
+    </div>
+
+    <div id="auth-bar">
+      <span id="auth-state">Nicht angemeldet</span>
+      <button id="auth-login" type="button">Mit Twitch anmelden</button>
+      <button id="auth-logout" type="button" class="hidden">Abmelden</button>
+    </div>
+    <div id="auth-code" class="hidden">
+      <p>Gehe auf <b id="auth-uri">twitch.tv/activate</b> und gib diesen Code ein:</p>
+      <div id="auth-code-val">————</div>
+      <div class="auth-code-actions">
+        <button id="auth-copy" type="button">Code kopieren</button>
+        <button id="auth-open" type="button">Seite öffnen</button>
+      </div>
+      <span id="auth-wait">Warte auf Bestätigung …</span>
     </div>
 
     <div id="home-fav-view">
@@ -239,6 +256,11 @@
 
     <div id="home-vod-view" class="hidden">
       <div id="vod-list"></div>
+    </div>
+
+    <div id="followed-view" class="hidden">
+      <div id="followed-list"></div>
+      <div id="followed-empty" class="empty hidden">Keine gefolgten Live-Channels.</div>
     </div>
     <div id="home-version"></div>
   </div>

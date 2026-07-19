@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const Store = require('electron-store');
@@ -12,6 +12,11 @@ const browse = require('./src/twitch-browse');
 const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
 const ThemeLib = require('./renderer/lib/theme');
+const { TokenStore } = require('./src/twitch-tokens');
+const { AuthManager } = require('./src/auth-manager');
+const helix = require('./src/twitch-helix');
+const { ChatSender } = require('./src/chat-send');
+const { safeStorage } = require('electron');
 
 const store = new Store({
   defaults: {
@@ -26,6 +31,37 @@ const store = new Store({
     themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
   }
 });
+
+// --- Twitch-Login + Sende-Chat (v1.8.0) ------------------------------------
+let authManager = null;
+let chatSender = null;
+let currentLiveChannel = null; // aktuell geladener Live-Channel (fuer Sende-Socket)
+
+function initAuth() {
+  const cryptoBridge = {
+    isAvailable: () => safeStorage.isEncryptionAvailable(),
+    encrypt: (s) => safeStorage.encryptString(s),
+    decrypt: (buf) => safeStorage.decryptString(Buffer.from(buf))
+  };
+  const tokenStore = new TokenStore(path.join(app.getPath('userData'), 'twitch-auth.enc'), cryptoBridge);
+  authManager = new AuthManager({
+    tokenStore,
+    onChanged: async (st) => {
+      broadcast('auth-changed', st);
+      // Sende-Socket an den neuen Login-Zustand anpassen.
+      if (st.loggedIn) {
+        const acc = await authManager.getAccess();
+        if (acc) chatSender.login({ login: acc.login, accessToken: acc.accessToken });
+      } else {
+        chatSender.logout();
+      }
+    }
+  });
+  chatSender = new ChatSender({
+    onNotice: (n) => { if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('chat-notice', n); },
+    onRoom: (r) => { if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('chat-room', r); }
+  });
+}
 
 const HISTORY_MAX = 10;
 
@@ -90,6 +126,13 @@ function createWindows() {
     win.on('move', save);
   }
 
+  // Login-Panel oeffnet twitch.tv/activate im Systembrowser (nicht im
+  // Electron-Fenster) - Links aus dem Video-Renderer immer extern oeffnen.
+  videoWin.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
   videoWin.on('closed', () => {
     videoWin = null;
     if (chatWin && !chatWin.isDestroyed()) chatWin.close();
@@ -152,6 +195,8 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
         badgeCatalog
       };
       broadcast('load', payload);
+      currentLiveChannel = user.login;
+      if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
       store.set('lastSource', user.login);
       return { ok: true, ...payload, emoteCount: Object.keys(emotes).length };
@@ -177,6 +222,8 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       badgeCatalog
     };
     broadcast('load', payload);
+    currentLiveChannel = null;
+    if (chatSender) chatSender.setChannel(null);
     pushHistory({
       value: parsed.value,
       mode: 'vod',
@@ -210,7 +257,7 @@ ipcMain.handle('get-ui-prefs', () => ({
 }));
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
-ipcMain.on('home-open', () => broadcast('home-open'));
+ipcMain.on('home-open', () => { if (chatSender) chatSender.setChannel(null); broadcast('home-open'); });
 ipcMain.on('home-close', () => broadcast('home-close'));
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
@@ -306,6 +353,42 @@ ipcMain.handle('user-badges', async (_evt, userId) => {
   return { ok: true, badges: [...(thirdPartyBadges[id] || []), ...sevenTv] };
 });
 
+// --- Login (Device Flow) -----------------------------------------------
+ipcMain.handle('auth-status', () => authManager.status());
+ipcMain.handle('auth-start', async () => {
+  try { return { ok: true, ...(await authManager.startDeviceFlow()) }; }
+  catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+ipcMain.handle('auth-logout', () => { authManager.logout(); return { ok: true }; });
+
+// Gefolgte Channels (mit Live-Status, live-first via browse.getLiveStatus).
+ipcMain.handle('get-followed', async () => {
+  try {
+    const acc = await authManager.getAccess();
+    if (!acc) return { ok: false, error: 'Nicht angemeldet.' };
+    const followed = await helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken });
+    const channels = await browse.getLiveStatus(followed.map((f) => f.login));
+    return { ok: true, channels };
+  } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
+// Eigene Twitch-Emotes fuer den Picker.
+ipcMain.handle('get-user-emotes', async () => {
+  try {
+    const acc = await authManager.getAccess();
+    if (!acc) return { ok: false, error: 'Nicht angemeldet.' };
+    const emotes = await helix.getUserEmotes({ userId: acc.userId, accessToken: acc.accessToken });
+    return { ok: true, emotes };
+  } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
+// Nachricht senden (nur Live + eingeloggt; Guards im ChatSender).
+ipcMain.handle('chat-send', (_evt, args) => {
+  const { text } = args || {};
+  if (!chatSender) return { ok: false, error: 'Chat nicht bereit.' };
+  return chatSender.send(String(text || ''));
+});
+
 // --- IPC: Home-Overlay (Favoriten, Live-Status, VOD-Listen) ---------------
 ipcMain.handle('get-favorites', () => {
   return store.get('favorites', []);
@@ -389,7 +472,12 @@ process.on('unhandledRejection', (reason) => {
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
+  initAuth();
   createWindows();
+  if (authManager.status().loggedIn) {
+    const acc = await authManager.getAccess();
+    if (acc) chatSender.login({ login: acc.login, accessToken: acc.accessToken });
+  }
   setupAutoUpdate(autoUpdater, updaterLog, { isPackaged: app.isPackaged });
 
   app.on('activate', () => {

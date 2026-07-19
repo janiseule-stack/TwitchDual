@@ -521,6 +521,8 @@ function applySource(payload) {
     setConn('warte auf Player-Zeit …', 'connecting');
     vod = createVodReplay(payload);
   }
+
+  chatMode = payload.mode; updateComposerState();
 }
 window.twitchDual.onLoad(applySource);
 
@@ -547,6 +549,8 @@ window.twitchDual.onHomeOpen(() => {
   setConn('nicht verbunden');
   $mode.textContent = '';
   $title.textContent = 'Chat';
+
+  chatMode = null; updateComposerState();
 });
 
 // Nutzer schliesst Home zurueck zur laufenden Quelle -> Chat wieder aufbauen.
@@ -725,3 +729,367 @@ function updateOnAir() {
   const el = document.getElementById('oa-label');
   if (el) el.textContent = label ? ('● ' + label) : '';
 }
+
+// ---------------------------------------------------------------------------
+// Senden (v1.8.0): Eingabefeld ist nur eingeloggt + im Live-Modus aktiv.
+// chatLoggedIn/chatMode/updateComposerState/showChatError sind Modul-Zustand
+// fuer Task 10 (Emote-Picker) und Task 11 (Sende-Fehler/Room-Status).
+// ---------------------------------------------------------------------------
+const $composerInput = document.getElementById('chat-input');
+const $composerSend = document.getElementById('chat-send');
+const $emoteBtn = document.getElementById('emote-btn');
+const $chatError = document.getElementById('chat-error');
+
+let chatLoggedIn = false;
+let chatMode = null; // 'live' | 'vod' | null
+
+function updateComposerState() {
+  const canChat = chatLoggedIn && chatMode === 'live';
+  // contenteditable kann nicht "disabled" sein -> Attribut + Klasse steuern.
+  $composerInput.contentEditable = canChat ? 'true' : 'false';
+  $composerInput.classList.toggle('composer-disabled', !canChat);
+  $composerSend.disabled = !canChat || slowRemaining() > 0; // Slow-Mode-Cooldown
+  $emoteBtn.disabled = !canChat;
+  $composerInput.dataset.placeholder = !chatLoggedIn ? 'Zum Chatten anmelden'
+    : chatMode !== 'live' ? 'Chatten nur im Live-Modus'
+    : 'Nachricht senden …';
+  if (canChat) ensureUserEmotes(); // eigene Emotes fuer Inline-Wandlung vorladen
+}
+
+// Serialisiert das contenteditable-Feld zu reinem Text: Text-Knoten woertlich,
+// Emote-Bilder als ihr Code (data-code), <br> als Leerzeichen. Mehrfach-
+// Leerzeichen werden am Ende zusammengefasst.
+function getComposerText() {
+  let out = '';
+  for (const node of $composerInput.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) out += node.textContent;
+    else if (node.nodeName === 'IMG' && node.dataset.code) out += ' ' + node.dataset.code + ' ';
+    else if (node.nodeName === 'BR') out += ' ';
+    else out += node.textContent || '';
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function clearComposer() { $composerInput.innerHTML = ''; }
+
+async function doSend() {
+  if (slowRemaining() > 0) { showChatError('Slow-Mode — noch ' + slowRemaining() + ' s.'); return; }
+  convertWordBeforeCaret(); // letztes getipptes Wort noch in ein Emote wandeln
+  const text = getComposerText().slice(0, 500); // Twitch-Limit
+  if (!text) return;
+  clearComposer();
+  clearAc();
+  const r = await window.twitchDual.chatSend(text);
+  if (!r.ok) { showChatError(r.error); return; }
+  if (roomSlowSeconds > 0) startSlowCountdown(roomSlowSeconds);
+}
+
+function showChatError(text) {
+  $chatError.textContent = text;
+  $chatError.classList.remove('hidden');
+  clearTimeout(showChatError._t);
+  showChatError._t = setTimeout(() => $chatError.classList.add('hidden'), 4000);
+}
+
+$composerSend.addEventListener('click', doSend);
+$composerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    // Emote-Autocomplete: Teilname + Tab vervollstaendigt / cyclet Treffer.
+    if (emoteAutocomplete(e.shiftKey)) e.preventDefault();
+    return;
+  }
+  if (e.key !== 'Tab') clearAc(); // jede andere Taste beendet den Cycle + schliesst die Leiste
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); return; }
+  if (e.key === ' ' || e.key === 'Spacebar') {
+    // Vor dem Leerzeichen das Wort links vom Cursor pruefen und ggf. in ein
+    // Emote-Bild wandeln (wie bei Twitch). Das Leerzeichen setzen wir selbst.
+    if (convertWordBeforeCaret()) { e.preventDefault(); insertTextAtCaret(' '); }
+  }
+});
+// Feld verlassen -> letztes getipptes Wort noch in ein Emote wandeln.
+$composerInput.addEventListener('blur', () => { convertWordBeforeCaret(); clearAc(); });
+// Einfuegen (nur Text) beim Paste, damit kein Fremd-HTML ins Feld kommt.
+$composerInput.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const t = (e.clipboardData || window.clipboardData).getData('text');
+  insertTextAtCaret(t.replace(/[\r\n]+/g, ' '));
+});
+// Leert das Feld ganz, wenn nur noch ein leeres <br> uebrig ist -> Placeholder.
+$composerInput.addEventListener('input', () => {
+  if (!$composerInput.textContent.trim() && !$composerInput.querySelector('img')) {
+    $composerInput.innerHTML = '';
+  }
+});
+
+window.twitchDual.authStatus().then((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); }).catch(() => {});
+window.twitchDual.onAuthChanged((st) => { chatLoggedIn = !!(st && st.loggedIn); updateComposerState(); });
+
+// --- Emote-Picker -----------------------------------------------------------
+const $emotePanel = document.getElementById('emote-panel');
+const $epChannel = document.getElementById('ep-channel');
+const $epUser = document.getElementById('ep-user');
+let userEmotesLoaded = false;
+let userEmoteMap = {}; // name -> url der eigenen Twitch-Emotes (fuer Inline-Wandlung)
+
+// Bild-URL fuer einen Emote-Namen: erst Channel (7TV/BTTV/FFZ), dann eigene.
+function emoteUrlFor(name) { return emoteMap[name] || userEmoteMap[name] || null; }
+
+// Eigene Emotes einmal laden (fuellt userEmoteMap + optional das Picker-Grid).
+async function ensureUserEmotes() {
+  if (userEmotesLoaded) return;
+  const res = await window.twitchDual.getUserEmotes();
+  if (res && res.ok) {
+    for (const e of res.emotes) userEmoteMap[e.name] = e.url;
+    fillEmoteGrid($epUser, res.emotes);
+    userEmotesLoaded = true; // nur bei Erfolg -> transienter Fehler blockt Retry nicht
+  }
+}
+
+// Baut ein atomares Inline-Emote-Bild fuers Eingabefeld.
+function makeEmoteImg(name, url) {
+  const img = document.createElement('img');
+  img.className = 'composer-emote';
+  img.src = url;
+  img.alt = name;
+  img.title = name;
+  img.dataset.code = name;      // Serialisierung zurueck zu Text (getComposerText)
+  img.contentEditable = 'false'; // Cursor/Backspace behandeln es als eine Einheit
+  img.draggable = false;
+  return img;
+}
+
+// Fuegt einen Knoten am aktuellen Cursor ein (oder ans Ende) und setzt den
+// Cursor dahinter. Faellt auf Anhaengen zurueck, wenn keine Selektion im Feld.
+function insertNodeAtCaret(node) {
+  $composerInput.focus();
+  const sel = window.getSelection();
+  let range;
+  if (sel && sel.rangeCount && $composerInput.contains(sel.anchorNode)) {
+    range = sel.getRangeAt(0);
+    range.deleteContents();
+  } else {
+    range = document.createRange();
+    range.selectNodeContents($composerInput);
+    range.collapse(false);
+  }
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function insertTextAtCaret(text) { insertNodeAtCaret(document.createTextNode(text)); }
+
+// Emote per Picker/Klick ins Feld setzen (mit trennendem Leerzeichen dahinter).
+function insertEmote(name, url) {
+  const src = url || emoteUrlFor(name);
+  if (!src) { insertTextAtCaret(name + ' '); return; }
+  insertNodeAtCaret(makeEmoteImg(name, src));
+  insertTextAtCaret(' ');
+}
+
+// Wandelt das Wort direkt links vom Cursor in ein Emote-Bild, falls bekannt.
+// Gibt true zurueck, wenn gewandelt wurde (dann setzt der Aufrufer das Space).
+function convertWordBeforeCaret() {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+  const range = sel.getRangeAt(0);
+  if (!range.collapsed) return false;
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return false;
+  const offset = range.startOffset;
+  const text = node.textContent;
+  let start = offset;
+  while (start > 0 && text[start - 1] !== ' ') start--;
+  const word = text.slice(start, offset);
+  const url = word && emoteUrlFor(word);
+  if (!url) return false;
+  // Wort aus dem Textknoten schneiden und durch das Emote-Bild ersetzen.
+  const wordRange = document.createRange();
+  wordRange.setStart(node, start);
+  wordRange.setEnd(node, offset);
+  wordRange.deleteContents();
+  const img = makeEmoteImg(word, url);
+  wordRange.insertNode(img);
+  wordRange.setStartAfter(img);
+  wordRange.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(wordRange);
+  return true;
+}
+
+function fillEmoteGrid(container, entries) {
+  container.innerHTML = '';
+  for (const e of entries) {
+    const img = document.createElement('img');
+    img.className = 'ep-emote';
+    img.src = e.url;
+    img.alt = e.name;
+    img.title = e.name;
+    img.loading = 'lazy';
+    img.addEventListener('click', () => insertEmote(e.name, e.url));
+    container.appendChild(img);
+  }
+}
+
+async function openEmotePanel() {
+  // Channel-Emotes aus der bereits geladenen emoteMap (name -> url).
+  fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })).slice(0, 200));
+  await ensureUserEmotes();
+  $emotePanel.classList.remove('hidden');
+}
+
+// --- Emote-Autocomplete (Tab) ----------------------------------------------
+const $acBar = document.getElementById('ac-bar');
+let acState = null; // {node,start,prefix,matches,index} waehrend des Tab-Cyclens
+
+function allEmoteNames() {
+  return Object.keys(emoteMap).concat(Object.keys(userEmoteMap));
+}
+
+// Textknoten + Wortgrenze links vom Cursor (nur wenn Cursor in einem Textknoten).
+function caretWord() {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!range.collapsed) return null;
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+  const offset = range.startOffset;
+  const text = node.textContent;
+  let start = offset;
+  while (start > 0 && text[start - 1] !== ' ') start--;
+  return { node, start, offset, word: text.slice(start, offset) };
+}
+
+function setCaretIn(node, pos) {
+  const sel = window.getSelection();
+  const r = document.createRange();
+  r.setStart(node, pos); r.collapse(true);
+  sel.removeAllRanges(); sel.addRange(r);
+}
+
+// Tab-Vervollstaendigung: Teilname -> passender Emote-Name; wiederholtes Tab
+// cyclet durch alle Treffer (Shift+Tab rueckwaerts). true = Tab abfangen.
+// Ersetzt das gerade getippte/vervollstaendigte Wort durch name (Text) und
+// setzt den Cursor dahinter. Nutzt acState.start als feste Wortgrenze.
+function applyAcName(name) {
+  const cur = caretWord();
+  const endOffset = cur && cur.node === acState.node ? cur.offset : acState.start + acState.prefix.length;
+  const t = acState.node.textContent;
+  acState.node.textContent = t.slice(0, acState.start) + name + t.slice(endOffset);
+  setCaretIn(acState.node, acState.start + name.length);
+}
+
+function emoteAutocomplete(backwards) {
+  const cw = caretWord();
+  if (acState && cw && cw.node === acState.node && cw.start === acState.start) {
+    acState.index = (acState.index + (backwards ? -1 : 1) + acState.matches.length) % acState.matches.length;
+  } else {
+    if (!cw || !cw.word) return false; // kein Wort -> normales Tab-Verhalten
+    const pfx = cw.word.toLowerCase();
+    const matches = allEmoteNames().filter((n) => n.toLowerCase().startsWith(pfx)).sort();
+    if (!matches.length) return true; // Tab abfangen, aber nichts einsetzen
+    acState = { node: cw.node, start: cw.start, prefix: cw.word, matches, index: 0 };
+  }
+  applyAcName(acState.matches[acState.index]);
+  renderAcBar();
+  return true;
+}
+
+// Vorschlags-Leiste: zeigt die Treffer als Bild, hebt den aktuellen hervor.
+function renderAcBar() {
+  if (!acState || !acState.matches.length) { clearAcBar(); return; }
+  $acBar.innerHTML = '';
+  acState.matches.slice(0, 60).forEach((name, i) => {
+    const url = emoteUrlFor(name);
+    const item = document.createElement('div');
+    item.className = 'ac-item' + (i === acState.index ? ' active' : '');
+    if (url) { const img = document.createElement('img'); img.src = url; img.alt = name; item.appendChild(img); }
+    const label = document.createElement('span');
+    label.className = 'ac-name'; label.textContent = name;
+    item.appendChild(label);
+    // mousedown + preventDefault: Feld behaelt Fokus (kein Blur vor dem Klick).
+    item.addEventListener('mousedown', (e) => { e.preventDefault(); commitAc(i); });
+    $acBar.appendChild(item);
+  });
+  $acBar.classList.remove('hidden');
+  const active = $acBar.querySelector('.ac-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+function clearAcBar() { if ($acBar) { $acBar.classList.add('hidden'); $acBar.innerHTML = ''; } }
+function clearAc() { acState = null; clearAcBar(); }
+
+// Klick auf einen Vorschlag: einsetzen + direkt in Emote-Bild wandeln.
+function commitAc(i) {
+  if (!acState) return;
+  acState.index = i;
+  applyAcName(acState.matches[i]);
+  convertWordBeforeCaret();
+  insertTextAtCaret(' ');
+  clearAc();
+  $composerInput.focus();
+}
+
+$emoteBtn.addEventListener('click', () => {
+  if ($emotePanel.classList.contains('hidden')) openEmotePanel();
+  else $emotePanel.classList.add('hidden');
+});
+// Klick außerhalb schließt das Panel.
+document.addEventListener('mousedown', (e) => {
+  if ($emotePanel.classList.contains('hidden')) return;
+  if ($emotePanel.contains(e.target) || e.target === $emoteBtn) return;
+  $emotePanel.classList.add('hidden');
+});
+
+// --- Sende-Fehler (NOTICE) + Raum-Status (ROOMSTATE) -----------------------
+// NOTICE (z.B. Slow-Mode aktiv, Follower-only) landet als Fehlermeldung im
+// gleichen Toast wie fehlgeschlagene Sendeversuche (showChatError, Task 9).
+window.twitchDual.onChatNotice((n) => { showChatError(n.text); });
+
+// ROOMSTATE zeigt aktive Raum-Einschraenkungen als kleinen Chip im Composer.
+// Bei Slow-Mode laeuft nach dem Senden ein Countdown ("noch X s"), damit man
+// nicht selbst mitzaehlen muss; der Senden-Button ist bis dahin gesperrt.
+const $roomState = document.getElementById('room-state');
+let lastRoom = null;      // letzter ROOMSTATE (fuer Re-Render waehrend des Countdowns)
+let roomSlowSeconds = 0;  // aktuelles Slow-Mode-Intervall in Sekunden (0 = aus)
+let slowUntil = 0;        // Zeitpunkt (ms), ab dem wieder gesendet werden darf
+let slowTimer = null;
+
+function slowRemaining() {
+  return slowUntil > Date.now() ? Math.ceil((slowUntil - Date.now()) / 1000) : 0;
+}
+
+function startSlowCountdown(sec) {
+  slowUntil = Date.now() + sec * 1000;
+  renderRoomState();
+  updateComposerState();
+  clearInterval(slowTimer);
+  slowTimer = setInterval(() => {
+    renderRoomState();
+    updateComposerState();
+    if (slowRemaining() <= 0) { clearInterval(slowTimer); slowTimer = null; }
+  }, 250);
+}
+
+function renderRoomState() {
+  const parts = [];
+  const rem = slowRemaining();
+  if (rem > 0) parts.push('🐌 noch ' + rem + ' s');
+  else if (roomSlowSeconds > 0) parts.push('🐌 ' + roomSlowSeconds + ' s');
+  if (lastRoom) {
+    if (lastRoom.followersOnly !== null && lastRoom.followersOnly >= 0) parts.push('Nur Follower');
+    if (lastRoom.subsOnly) parts.push('Nur Subs');
+    if (lastRoom.emoteOnly) parts.push('Nur Emotes');
+  }
+  $roomState.textContent = parts.join(' · ');
+  $roomState.classList.toggle('hidden', parts.length === 0);
+}
+
+window.twitchDual.onChatRoom((r) => {
+  lastRoom = r;
+  roomSlowSeconds = r.slowSeconds && r.slowSeconds > 0 ? r.slowSeconds : 0;
+  renderRoomState();
+});

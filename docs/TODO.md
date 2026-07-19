@@ -131,6 +131,22 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - `npm run pack` erzeugt portable `dist/TwitchDual-win32-x64/TwitchDual.exe`
   (@electron/packager, nutzt lokalen Electron-Cache).
 
+**Twitch-Login + Chatten (v1.8.0)**
+- Twitch-Login per Device Code Flow (Public Client, kein Secret); Token verschluesselt via safeStorage, verlaesst nie den Main-Prozess.
+- Gefolgte Channels im Home-Overlay (Tab „Gefolgt", live zuerst als Karten).
+- Nachrichten senden (authentifizierter IRC-Sende-Socket, Rate-Limit 20/30s, nur im Live-Modus).
+- Emote-Picker: Channel-Emotes (7TV/BTTV/FFZ) + eigene Twitch-Sub-Emotes.
+- Inline-Emotes im Eingabefeld (contenteditable statt <input>): getippter Emote-Name
+  wird bei Leertaste/Senden/Blur zum Bild, beim Senden wieder zu Text serialisiert.
+- Tab-Autocomplete mit Vorschlags-Leiste: Teilname + Tab vervollstaendigt/cyclet
+  (Shift+Tab rueckwaerts), die Leiste zeigt die Treffer als Bild (aktueller markiert),
+  Klick setzt direkt ein.
+- Slow-Mode-Countdown: nach dem Senden zaehlt der Raum-Status-Chip runter
+  („🐌 noch X s"), Senden-Button bis dahin gesperrt.
+- Sende-Fehler sichtbar (NOTICE-Uebersetzung) + Raum-Status-Chip (Slow/Follower/Subs/Emote-only aus ROOMSTATE).
+- Home merkt sich den zuletzt aktiven Tab (Gefolgt/Favoriten) beim erneuten Oeffnen.
+- Scopes exakt: chat:read chat:edit user:read:follows user:read:emotes.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
@@ -157,3 +173,7 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - **Mehrere Chat-Fenster / zweiter Kanal** für Squad-Streams.
 - **E2E-Smoke-Test** (Playwright + Electron), der App-Start, Laden eines
   VODs und ersten Chat-Render prüft.
+- **Sende-Socket-Token nach Refresh aktualisieren**: AuthManager.getAccess()
+  erneuert das Token, aber ChatSender behält das alte; bei Socket-Neuaufbau
+  nach >4h schlägt die IRC-Auth still fehl. AuthManager soll ChatSender bei
+  Refresh neu einloggen.
