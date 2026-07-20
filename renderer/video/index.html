@@ -85,14 +85,19 @@
       align-items: center; justify-content: center; text-align: center;
       color: var(--muted); font-size: 14px; padding: 24px; pointer-events: none;
     }
+    /* Dezente Plakette oben links statt deckendem Vollbild-Overlay - der
+       (werbefreie) Stream bleibt sichtbar, kein Blackout mehr. */
     #ad-overlay {
-      position: absolute; inset: 0; z-index: 5;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg); color: var(--text); text-align: center; padding: 24px;
+      position: absolute; top: 10px; left: 10px; z-index: 5;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(11, 11, 17, .72); color: var(--text);
+      border: 1px solid var(--line); border-radius: 7px;
+      padding: 5px 9px; pointer-events: none;
+      backdrop-filter: blur(4px);
     }
     #ad-overlay.hidden { display: none; }
-    #ad-overlay-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-    #ad-overlay-sub { font-size: 13px; color: var(--muted); }
+    #ad-overlay-title { font-size: 12px; font-weight: 600; }
+    #ad-overlay-sub { display: none; }
     #bar button:active { transform: scale(.96); }
     #bar button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
     /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
@@ -204,8 +209,8 @@
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
     <div id="ad-overlay" class="hidden">
       <div id="ad-overlay-box">
-        <div id="ad-overlay-title">Werbung wird überbrückt …</div>
-        <div id="ad-overlay-sub">Ton ist kurz stumm — geht gleich weiter.</div>
+        <div id="ad-overlay-title">🛡 Werbung wird geblockt …</div>
+        <div id="ad-overlay-sub"></div>
       </div>
     </div>
   </div>

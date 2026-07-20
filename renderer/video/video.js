@@ -11,16 +11,11 @@ const adState = window.createAdOverlayState ? window.createAdOverlayState() : nu
 
 function renderAdOverlay() {
   if (!adState || !$adOverlay) return;
+  // Nur ein dezenter Hinweis - NICHT stummschalten. vaft ersetzt die Werbung
+  // bereits durch Inhalt; ein Zwangs-Mute strandete den Ton, wenn das (fragil
+  // per console.log-Heuristik erkannte) Werbe-Ende ausblieb -> "Ton weg" bis der
+  // 120-s-Watchdog griff. Overlay bleibt als reines, nicht-deckendes Feedback.
   $adOverlay.classList.toggle('hidden', !adState.overlayVisible);
-  if (!player) return;
-  try {
-    if (adState.shouldMute) {
-      player.setMuted(true);
-    } else {
-      // Werbe-Ende: gemerkten Mute-Zustand wiederherstellen.
-      player.setMuted(adState.restoreMuted);
-    }
-  } catch (e) {}
 }
 
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
