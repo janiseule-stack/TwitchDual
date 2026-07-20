@@ -541,6 +541,7 @@ function applySource(payload) {
     vod = createVodReplay(payload);
   }
 
+  resetRoomState(); // Slow-Mode/Raum-Status der alten Quelle verwerfen
   chatMode = payload.mode; updateComposerState();
 }
 window.twitchDual.onLoad(applySource);
@@ -772,7 +773,7 @@ function updateComposerState() {
   $composerInput.dataset.placeholder = !chatLoggedIn ? 'Zum Chatten anmelden'
     : chatMode !== 'live' ? 'Chatten nur im Live-Modus'
     : 'Nachricht senden …';
-  if (canChat) ensureUserEmotes(); // eigene Emotes fuer Inline-Wandlung vorladen
+  if (canChat) ensureUserEmotes().catch(() => {}); // eigene Emotes fuer Inline-Wandlung vorladen
 }
 
 // Serialisiert das contenteditable-Feld zu reinem Text: Text-Knoten woertlich,
@@ -955,8 +956,8 @@ function fillEmoteGrid(container, entries) {
 async function openEmotePanel() {
   // Channel-Emotes aus der bereits geladenen emoteMap (name -> url).
   fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })).slice(0, 200));
+  $emotePanel.classList.remove('hidden'); // sofort zeigen; eigenes Grid fuellt sich nach
   await ensureUserEmotes();
-  $emotePanel.classList.remove('hidden');
 }
 
 // --- Emote-Autocomplete (Tab) ----------------------------------------------
@@ -964,7 +965,8 @@ const $acBar = document.getElementById('ac-bar');
 let acState = null; // {node,start,prefix,matches,index} waehrend des Tab-Cyclens
 
 function allEmoteNames() {
-  return Object.keys(emoteMap).concat(Object.keys(userEmoteMap));
+  // Set: gleiche Namen in Channel- + eigenen Emotes nicht doppelt vorschlagen.
+  return [...new Set(Object.keys(emoteMap).concat(Object.keys(userEmoteMap)))];
 }
 
 // Textknoten + Wortgrenze links vom Cursor (nur wenn Cursor in einem Textknoten).
@@ -1079,6 +1081,18 @@ let slowTimer = null;
 
 function slowRemaining() {
   return slowUntil > Date.now() ? Math.ceil((slowUntil - Date.now()) / 1000) : 0;
+}
+
+// Beim Quellenwechsel aufrufen: veralteten Slow-Mode/Raum-Status verwerfen,
+// sonst haengt der 🐌-Chip / ein laufender Countdown der alten Quelle nach.
+// (Funktions-Deklaration -> gehoistet, aus applySource weiter oben aufrufbar.)
+function resetRoomState() {
+  lastRoom = null;
+  roomSlowSeconds = 0;
+  slowUntil = 0;
+  clearInterval(slowTimer);
+  slowTimer = null;
+  renderRoomState();
 }
 
 function startSlowCountdown(sec) {

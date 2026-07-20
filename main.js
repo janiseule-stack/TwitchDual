@@ -258,7 +258,12 @@ ipcMain.handle('get-ui-prefs', () => ({
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
 ipcMain.on('home-open', () => { if (chatSender) chatSender.setChannel(null); broadcast('home-open'); });
-ipcMain.on('home-close', () => broadcast('home-close'));
+// Zurueck zur laufenden Quelle: Sende-Socket wieder auf den Live-Channel joinen
+// (home-open hatte setChannel(null) gemacht) - sonst bleibt Senden tot.
+ipcMain.on('home-close', () => {
+  if (chatSender && currentLiveChannel) chatSender.setChannel(currentLiveChannel);
+  broadcast('home-close');
+});
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
   const cur = store.get('playerPrefs', { volume: null, quality: null });

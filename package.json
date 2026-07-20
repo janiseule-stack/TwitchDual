@@ -1,6 +1,6 @@
 {
   "name": "twitchdual",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Zwei-Fenster Twitch-Viewer (Video + Chat mit 7TV-Emotes) fuer Hochkant-Monitore",
   "main": "main.js",
   "scripts": {

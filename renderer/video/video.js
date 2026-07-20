@@ -79,10 +79,8 @@ async function refreshHistory() {
 // Player (neu) erzeugen. options: {channel} | {video}
 function mountPlayer(options) {
   if ($hint) $hint.style.display = 'none';
-  // Alten Player entfernen.
-  if (player) {
-    try { player = null; } catch (e) {}
-  }
+  // Alten Player-Verweis freigeben; das iframe raeumt gleich innerHTML='' weg.
+  player = null;
   $player.innerHTML = '';
   // innerHTML='' hat auch das Werbe-Overlay entfernt -> wieder einhaengen
   // (Referenz bleibt gueltig; z-index haelt es ueber dem Embed-iframe).
