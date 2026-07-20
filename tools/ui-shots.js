@@ -31,11 +31,6 @@ const CONFIGS = [
              const h=document.getElementById('hint'); if(h) h.textContent='';` },
   { name: 'video-idle', file: `${R}/video/index.html`, w: 1400, h: 300,
     inject: `const s=document.getElementById('status'); s.className=''; s.textContent='bereit';` },
-  { name: 'video-adblock', file: `${R}/video/index.html`, w: 1400, h: 150,
-    inject: `document.getElementById('adblock-toggle').classList.add('on');
-             document.body.classList.add('onair');
-             const s=document.getElementById('status'); s.className=''; s.textContent='live: gronkh';
-             const h=document.getElementById('hint'); if(h) h.textContent='';` },
   { name: 'chat-live', file: `${R}/chat/index.html`, w: 640, h: 560,
     inject: `document.body.classList.add('onair');
              document.getElementById('messages').innerHTML=\`${CHAT_MSGS}\`;

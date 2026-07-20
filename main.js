@@ -27,7 +27,6 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    adblockEnabled: true,
     themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
   }
 });
@@ -284,14 +283,6 @@ ipcMain.on('save-theme-prefs', (_evt, prefs) => {
 });
 ipcMain.on('preview-theme-prefs', (_evt, prefs) => {
   broadcast('theme-changed', cleanThemePrefs(prefs));
-});
-
-// Adblock-Einstellung (persistent, Default an).
-ipcMain.handle('get-adblock-enabled', () => store.get('adblockEnabled', true));
-ipcMain.handle('set-adblock-enabled', (_evt, enabled) => {
-  const val = !!enabled;
-  store.set('adblockEnabled', val);
-  return { ok: true, enabled: val };
 });
 
 // vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)

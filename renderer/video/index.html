@@ -57,16 +57,6 @@
     }
     #load:hover { filter: brightness(1.15); }
     #load:disabled { opacity: .5; cursor: default; }
-    #adblock-toggle {
-      -webkit-app-region: no-drag;
-      padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-      background: var(--bg); color: var(--muted); font-size: 13px; cursor: pointer;
-      white-space: nowrap;
-    }
-    #adblock-toggle.on {
-      background: var(--accent-glow); border-color: var(--accent-border);
-      color: var(--accent-title); box-shadow: 0 0 10px -3px var(--accent);
-    }
     #status {
       font-size: 12px; color: var(--muted); white-space: nowrap;
       display: inline-flex; align-items: center; gap: 6px;
@@ -78,6 +68,7 @@
     body.onair #status::before { background: var(--accent); box-shadow: 0 0 6px var(--accent-dim); }
     #status.err { color: #eb4034; }
     #status.err::before { background: #eb4034; box-shadow: none; }
+    #status.hidden { display: none; } /* leer -> ganz weg (kein einsamer Punkt) */
     #player { flex: 1; position: relative; background: #000; }
     #player iframe { border: 0; }
     #hint {
@@ -85,19 +76,26 @@
       align-items: center; justify-content: center; text-align: center;
       color: var(--muted); font-size: 14px; padding: 24px; pointer-events: none;
     }
-    /* Dezente Plakette oben links statt deckendem Vollbild-Overlay - der
-       (werbefreie) Stream bleibt sichtbar, kein Blackout mehr. */
-    #ad-overlay {
-      position: absolute; top: 10px; left: 10px; z-index: 5;
-      display: inline-flex; align-items: center; gap: 4px;
-      background: rgba(11, 11, 17, .72); color: var(--text);
-      border: 1px solid var(--line); border-radius: 7px;
-      padding: 5px 9px; pointer-events: none;
-      backdrop-filter: blur(4px);
+    /* Leuchtpunkt "Ads blocked" in der Leiste (wo frueher der Ads-Schalter war).
+       Adblock ist immer an -> dauerhaft sichtbar; pulsiert schneller (.blocking),
+       waehrend gerade eine Werbung geblockt wird. */
+    #ads-indicator {
+      -webkit-app-region: no-drag;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); white-space: nowrap;
+      padding: 0 4px; user-select: none; cursor: default;
     }
-    #ad-overlay.hidden { display: none; }
-    #ad-overlay-title { font-size: 12px; font-weight: 600; }
-    #ad-overlay-sub { display: none; }
+    #ads-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0;
+      animation: ads-pulse 2.4s ease-in-out infinite;
+    }
+    #ads-indicator.blocking { color: var(--accent-title); }
+    #ads-indicator.blocking #ads-dot { animation-duration: .7s; }
+    @keyframes ads-pulse {
+      0%, 100% { box-shadow: 0 0 5px 0 var(--accent-dim), 0 0 2px var(--accent); opacity: .8; }
+      50%      { box-shadow: 0 0 11px 2px var(--accent), 0 0 3px var(--accent); opacity: 1; }
+    }
     #bar button:active { transform: scale(.96); }
     #bar button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
     /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
@@ -189,7 +187,7 @@
       <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
       <datalist id="history"></datalist>
       <button id="load">Laden</button>
-      <button id="adblock-toggle" title="Werbe-Blocker an/aus">🛡 Ads</button>
+      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span id="ads-dot"></span>Ads blocked</span>
     </div>
     <div class="bar-right">
       <span id="status">bereit</span>
@@ -207,12 +205,6 @@
   </div>
   <div id="player">
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
-    <div id="ad-overlay" class="hidden">
-      <div id="ad-overlay-box">
-        <div id="ad-overlay-title">🛡 Werbung wird geblockt …</div>
-        <div id="ad-overlay-sub"></div>
-      </div>
-    </div>
   </div>
 
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->

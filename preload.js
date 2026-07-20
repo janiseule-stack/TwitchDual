@@ -74,9 +74,7 @@ if (!isTwitchFrame) {
     liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
     channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
 
-    // Adblock: Einstellung lesen/setzen + Werbe-Status empfangen (Video-Fenster).
-    getAdblockEnabled: () => ipcRenderer.invoke('get-adblock-enabled'),
-    setAdblockEnabled: (enabled) => ipcRenderer.invoke('set-adblock-enabled', enabled),
+    // Werbe-Status empfangen (Video-Fenster). Adblock ist immer an (kein Schalter).
     onAdblockState: (cb) => {
       ipcRenderer.on('adblock-state', (_e, payload) => cb(payload));
     },
@@ -102,9 +100,7 @@ if (!isTwitchFrame) {
 (async function setupAdblock() {
   try {
     if (!isTwitchFrame) return;                       // nur in Twitch-iframes
-
-    const enabled = await ipcRenderer.invoke('get-adblock-enabled');
-    if (!enabled) return;
+    // Adblock ist ab v1.8.4 immer aktiv (kein Schalter mehr) -> ungated injizieren.
 
     // Werbe-Signale der Seite (aus vaft-Wrapper) an Main relayen.
     window.addEventListener('message', (e) => {

@@ -6,16 +6,18 @@ const $status = document.getElementById('status');
 const $player = document.getElementById('player');
 const $hint = document.getElementById('hint');
 const $history = document.getElementById('history');
-const $adOverlay = document.getElementById('ad-overlay');
+const $adsIndicator = document.getElementById('ads-indicator');
 const adState = window.createAdOverlayState ? window.createAdOverlayState() : null;
 
+// Leuchtpunkt in der Leiste ("Ads blocked"): dauerhaft an (Adblock ist immer
+// aktiv), pulsiert staerker (.blocking) waehrend gerade Werbung geblockt wird.
+// NICHT stummschalten - vaft ersetzt die Werbung bereits durch Inhalt; ein
+// Zwangs-Mute strandete frueher den Ton, wenn das (fragil per console.log-
+// Heuristik erkannte) Werbe-Ende ausblieb. Der 120-s-Watchdog raeumt .blocking
+// selbst weg, falls kein 'end'-Signal kommt.
 function renderAdOverlay() {
-  if (!adState || !$adOverlay) return;
-  // Nur ein dezenter Hinweis - NICHT stummschalten. vaft ersetzt die Werbung
-  // bereits durch Inhalt; ein Zwangs-Mute strandete den Ton, wenn das (fragil
-  // per console.log-Heuristik erkannte) Werbe-Ende ausblieb -> "Ton weg" bis der
-  // 120-s-Watchdog griff. Overlay bleibt als reines, nicht-deckendes Feedback.
-  $adOverlay.classList.toggle('hidden', !adState.overlayVisible);
+  if (!adState || !$adsIndicator) return;
+  $adsIndicator.classList.toggle('blocking', adState.overlayVisible);
 }
 
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
@@ -54,8 +56,8 @@ let playerPrefs = { volume: 0.15, quality: null };
 let volumeReady = false;
 
 function setStatus(text, isError = false) {
-  $status.textContent = text;
-  $status.className = isError ? 'err' : '';
+  $status.textContent = text || '';
+  $status.className = (isError ? 'err' : '') + (text ? '' : ' hidden');
 }
 
 // Verlauf (zuletzt geladene Quellen) in die Eingabe-Datalist spiegeln.
@@ -77,9 +79,6 @@ function mountPlayer(options) {
   // Alten Player-Verweis freigeben; das iframe raeumt gleich innerHTML='' weg.
   player = null;
   $player.innerHTML = '';
-  // innerHTML='' hat auch das Werbe-Overlay entfernt -> wieder einhaengen
-  // (Referenz bleibt gueltig; z-index haelt es ueber dem Embed-iframe).
-  if ($adOverlay) $player.appendChild($adOverlay);
 
   if (typeof Twitch === 'undefined' || !Twitch.Player) {
     setStatus('Twitch-Embed nicht geladen (Internet?)');
@@ -99,7 +98,7 @@ function mountPlayer(options) {
   player = new Twitch.Player($player, { ...base, ...options });
 
   player.addEventListener(Twitch.Player.READY, () => {
-    setStatus(options.channel ? `live: ${options.channel}` : `VOD: ${options.video}`);
+    setStatus(''); // "live: X"/"VOD: X" war redundant (Kanal steht im Feld + On-Air-Label)
     // Gemerkte Lautstaerke/Qualitaet wieder anwenden.
     try {
       if (playerPrefs.volume != null) player.setVolume(playerPrefs.volume);
@@ -235,28 +234,8 @@ window.twitchDual.onLoad((payload) => {
   }
 });
 
-// --- Adblock-Schalter -------------------------------------------------------
-const $adblock = document.getElementById('adblock-toggle');
-
-function renderAdblockBtn(enabled) {
-  if (!$adblock) return;
-  $adblock.classList.toggle('on', !!enabled);
-  $adblock.textContent = enabled ? '🛡 Ads: an' : '🛡 Ads: aus';
-}
-
-if ($adblock) {
-  window.twitchDual.getAdblockEnabled().then(renderAdblockBtn).catch(() => {});
-  $adblock.addEventListener('click', async () => {
-    try {
-      const cur = await window.twitchDual.getAdblockEnabled();
-      const res = await window.twitchDual.setAdblockEnabled(!cur);
-      renderAdblockBtn(res.enabled);
-      setStatus(res.enabled
-        ? 'Werbe-Blocker an — beim nächsten Laden aktiv.'
-        : 'Werbe-Blocker aus — beim nächsten Laden.');
-    } catch (e) {}
-  });
-}
+// Werbe-Blocker ist ab v1.8.4 immer an (kein Schalter mehr) - Injektion in
+// preload.js laeuft ungated, Werbe-Status kommt weiterhin ueber onAdblockState.
 
 // ---------------------------------------------------------------------------
 // Randloses Fenster: Titelleisten-Buttons + Doppelklick auf die Leiste.
