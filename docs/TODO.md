@@ -170,12 +170,17 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   (main.js). `enable-hardware-overlays` und
   `disable-gpu-driver-bug-workarounds` sind die bekannten Stoerenfriede.
   Bringen sie laut Messung nichts, gehoeren sie entfernt.
-- **Offener Messpunkt:** Beim Rauchtest aus einer Hintergrund-Shell meldete
-  `getGPUFeatureStatus()` durchgehend `disabled_software` — mit *und* ohne
-  Flags identisch. Ein Start aus einer Hintergrund-Shell kann der App den
-  GPU-Zugriff selbst verwehren; die Messung ist deshalb nicht beweiskraeftig.
-  Vor dem Release mit einem normalen Start (Verknuepfung/eigenes Terminal)
-  wiederholen und `video_decode` vergleichen.
+- **Messfalle (wichtig):** `getGPUFeatureStatus()` meldet direkt in
+  `app.whenReady()` durchgehend `disabled_software`, auch wenn die
+  Beschleunigung laeuft. Erst `await app.getGPUInfo('complete')` liefert die
+  echten Werte. Mit nacktem Electron ohne Flags nachgewiesen:
+  frueh `video_decode=disabled_software`, spaet `video_decode=enabled`.
+- **Messergebnis:** Die GPU dekodiert bereits — es gab nie einen
+  Software-Rueckfall. Die fuenf Flags aendern nichts und gehoeren wieder raus,
+  allen voran `enable-hardware-overlays` und
+  `disable-gpu-driver-bug-workarounds` (Risiko fuer den transparenten Chat).
+  Gemessene Last mit aktiver Beschleunigung: ~1,18 Kerne = 9,8 % Gesamt-CPU
+  bei 12 logischen Kernen.
 
 ## Releases / Auto-Update (seit v1.0.0)
 

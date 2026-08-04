@@ -495,8 +495,13 @@ app.whenReady().then(async () => {
   createWindows();
 
   // Belegt im Log, ob die GPU den Twitch-Stream wirklich dekodiert.
-  // Entscheidend ist das Feld video_decode: enabled_on vs. software_only.
-  updaterLog('gpu-status', JSON.stringify(app.getGPUFeatureStatus()));
+  // WICHTIG: erst nach abgeschlossener Info-Sammlung abfragen. Direkt bei
+  // whenReady meldet Chromium noch ueberall "disabled_software", auch wenn
+  // die Beschleunigung laeuft — das sieht wie ein Totalausfall aus und ist
+  // keiner.
+  app.getGPUInfo('complete')
+    .then(() => updaterLog('gpu-status', JSON.stringify(app.getGPUFeatureStatus())))
+    .catch((e) => updaterLog('gpu-status-fehler', e && e.message ? e.message : String(e)));
 
   const forceSafe = (grund) => {
     store.set('gpuState', nextState(store.get('gpuState'), 'gpu-crash'));
