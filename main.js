@@ -17,7 +17,6 @@ const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
 const { ChatSender } = require('./src/chat-send');
 const { safeStorage } = require('electron');
-const { applyGpuFlags, nextState } = require('./src/gpu-flags');
 
 const store = new Store({
   defaults: {
@@ -28,21 +27,9 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 },
-    gpuState: { mode: 'accel', pending: false }
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
   }
 });
-
-// --- GPU-Flags (v1.9.0) ----------------------------------------------------
-// Muss vor app.whenReady() laufen, sonst ignoriert Chromium die Switches.
-// Ein Zustand mit offener pending-Marke bedeutet: der vorige Start hat das
-// Rendern nicht ueberlebt -> dieser Start laeuft ohne Flags.
-store.set('gpuState', applyGpuFlags({
-  commandLine: app.commandLine,
-  state: store.get('gpuState'),
-  env: process.env,
-  log: updaterLog
-}));
 
 // --- Twitch-Login + Sende-Chat (v1.8.0) ------------------------------------
 let authManager = null;
@@ -127,16 +114,6 @@ function createWindows() {
 
   videoWin.loadURL(`http://localhost:${serverPort}/video/index.html`);
   chatWin.loadURL(`http://localhost:${serverPort}/chat/index.html`);
-
-  // Marke erst loeschen, wenn das Video-Fenster 20 s stabil gerendert hat.
-  videoWin.webContents.once('did-frame-finish-load', () => {
-    const t = setTimeout(() => {
-      if (!videoWin || videoWin.isDestroyed()) return;
-      store.set('gpuState', nextState(store.get('gpuState'), 'render-ok'));
-      updaterLog('gpu-render-ok');
-    }, 20000);
-    if (typeof t.unref === 'function') t.unref();
-  });
 
   // Fenster-Bounds bei jeder Aenderung merken.
   const save = () => {
@@ -502,17 +479,6 @@ app.whenReady().then(async () => {
   app.getGPUInfo('complete')
     .then(() => updaterLog('gpu-status', JSON.stringify(app.getGPUFeatureStatus())))
     .catch((e) => updaterLog('gpu-status-fehler', e && e.message ? e.message : String(e)));
-
-  const forceSafe = (grund) => {
-    store.set('gpuState', nextState(store.get('gpuState'), 'gpu-crash'));
-    updaterLog('gpu-crash', grund);
-  };
-  app.on('child-process-gone', (_e, details) => {
-    if (details && details.type === 'GPU') forceSafe(`gpu:${details.reason}`);
-  });
-  app.on('render-process-gone', (_e, _wc, details) => {
-    forceSafe(`renderer:${details && details.reason}`);
-  });
   if (authManager.status().loggedIn) {
     const acc = await authManager.getAccess();
     if (acc) chatSender.login({ login: acc.login, accessToken: acc.accessToken });
