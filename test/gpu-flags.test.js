@@ -101,6 +101,29 @@ test('applyGpuFlags respektiert TWITCHDUAL_NO_GPU=1', () => {
   assert.deepEqual(cl.applied, []);
 });
 
+test('TWITCHDUAL_NO_GPU wirkt nur fuer diesen Start und veraendert den Zustand nicht', () => {
+  const gespeichert = { mode: 'accel', pending: false };
+  const st = applyGpuFlags({
+    commandLine: fakeCommandLine(),
+    state: gespeichert,
+    env: { TWITCHDUAL_NO_GPU: '1' },
+    log: () => {}
+  });
+  // Nach dem Entfernen der Variable muessen die Flags wiederkommen.
+  assert.deepEqual(st, { mode: 'accel', pending: false });
+  assert.equal(decideMode(st, {}), 'accel');
+});
+
+test('erzwungenes safe loescht eine offene pending-Marke nicht', () => {
+  const st = applyGpuFlags({
+    commandLine: fakeCommandLine(),
+    state: { mode: 'accel', pending: true },
+    env: { TWITCHDUAL_NO_GPU: '1' },
+    log: () => {}
+  });
+  assert.deepEqual(st, { mode: 'accel', pending: true });
+});
+
 test('applyGpuFlags protokolliert den gewaehlten Modus', () => {
   const seen = [];
   applyGpuFlags({

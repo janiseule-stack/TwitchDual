@@ -38,11 +38,16 @@ function nextState(state, event) {
 // Wendet die Flags an und liefert den Zustand zurueck, den der Aufrufer
 // speichern muss. Kennt weder electron-store noch app — beides kommt von aussen.
 function applyGpuFlags({ commandLine, state, env, log }) {
+  const erzwungen = !!(env && env.TWITCHDUAL_NO_GPU === '1');
   const mode = decideMode(state, env);
   if (mode === 'accel') {
     for (const name of SWITCHES) commandLine.appendSwitch(name);
   }
-  log('gpu-mode', mode);
+  log('gpu-mode', erzwungen ? 'safe (erzwungen)' : mode);
+  // Der Not-Aus gilt nur fuer diesen Start. Wuerden wir hier 'start-safe'
+  // fortschreiben, blieben die Flags nach dem Entfernen der Variable
+  // dauerhaft aus — ein stiller Dauerzustand, den niemand bemerkt.
+  if (erzwungen) return { ...DEFAULT_STATE, ...(state || {}) };
   return nextState(state, mode === 'accel' ? 'start-accel' : 'start-safe');
 }
 
