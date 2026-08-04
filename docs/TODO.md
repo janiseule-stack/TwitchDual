@@ -147,6 +147,36 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Home merkt sich den zuletzt aktiven Tab (Gefolgt/Favoriten) beim erneuten Oeffnen.
 - Scopes exakt: chat:read chat:edit user:read:follows user:read:emotes.
 
+## GPU-Beschleunigung (v1.9.0)
+
+- `src/gpu-flags.js` setzt beim Start fuenf Chromium-Switches:
+  `ignore-gpu-blocklist`, `enable-gpu-rasterization`, `enable-zero-copy`,
+  `enable-hardware-overlays`, `disable-gpu-driver-bug-workarounds`.
+  Muss auf Modulebene in `main.js` laufen — nach `app.whenReady()` ignoriert
+  Chromium die Switches.
+- **Auto-Rollback:** Vor dem Setzen wird eine `pending`-Marke in `gpuState`
+  (electron-store) geschrieben, die erst 20 s nach dem ersten gerenderten
+  Frame geloescht wird. Findet der naechste Start die Marke noch vor, laeuft
+  er ohne Flags und merkt `safe` dauerhaft. GPU- und Renderer-Abstuerze
+  (`child-process-gone`, `render-process-gone`) setzen sofort auf `safe`.
+- **Not-Aus:** `TWITCHDUAL_NO_GPU=1` erzwingt `safe`. Wirkt bewusst **nur fuer
+  den laufenden Start** und veraendert `gpuState` nicht — sonst blieben die
+  Flags nach dem Entfernen der Variable still fuer immer aus.
+- `safe` heisst *keine Flags* — Electrons Hardwarebeschleunigung bleibt an.
+- **Nachweis:** `updater.log` enthaelt beim Start `gpu-mode <modus>` und
+  `gpu-status` mit `app.getGPUFeatureStatus()`. Das Feld `video_decode`
+  zeigt, ob die GPU den Twitch-Stream wirklich dekodiert.
+- **Achtung Chat-Transparenz:** Das Chat-Fenster laeuft mit `transparent: true`
+  (main.js). `enable-hardware-overlays` und
+  `disable-gpu-driver-bug-workarounds` sind die bekannten Stoerenfriede.
+  Bringen sie laut Messung nichts, gehoeren sie entfernt.
+- **Offener Messpunkt:** Beim Rauchtest aus einer Hintergrund-Shell meldete
+  `getGPUFeatureStatus()` durchgehend `disabled_software` — mit *und* ohne
+  Flags identisch. Ein Start aus einer Hintergrund-Shell kann der App den
+  GPU-Zugriff selbst verwehren; die Messung ist deshalb nicht beweiskraeftig.
+  Vor dem Release mit einem normalen Start (Verknuepfung/eigenes Terminal)
+  wiederholen und `video_decode` vergleichen.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
