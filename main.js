@@ -470,6 +470,15 @@ app.whenReady().then(async () => {
   serverPort = port;
   initAuth();
   createWindows();
+
+  // Belegt im Log, ob die GPU den Twitch-Stream wirklich dekodiert.
+  // WICHTIG: erst nach abgeschlossener Info-Sammlung abfragen. Direkt bei
+  // whenReady meldet Chromium noch ueberall "disabled_software", auch wenn
+  // die Beschleunigung laeuft — das sieht wie ein Totalausfall aus und ist
+  // keiner.
+  app.getGPUInfo('complete')
+    .then(() => updaterLog('gpu-status', JSON.stringify(app.getGPUFeatureStatus())))
+    .catch((e) => updaterLog('gpu-status-fehler', e && e.message ? e.message : String(e)));
   if (authManager.status().loggedIn) {
     const acc = await authManager.getAccess();
     if (acc) chatSender.login({ login: acc.login, accessToken: acc.accessToken });

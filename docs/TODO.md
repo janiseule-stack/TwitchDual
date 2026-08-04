@@ -147,6 +147,26 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Home merkt sich den zuletzt aktiven Tab (Gefolgt/Favoriten) beim erneuten Oeffnen.
 - Scopes exakt: chat:read chat:edit user:read:follows user:read:emotes.
 
+## GPU-Diagnose (v1.8.5)
+
+- `main.js` protokolliert beim Start `gpu-status` mit
+  `app.getGPUFeatureStatus()`. Das Feld `video_decode` zeigt, ob die GPU den
+  Twitch-Stream dekodiert.
+- **Messfalle, unbedingt beachten:** `getGPUFeatureStatus()` meldet direkt in
+  `app.whenReady()` durchgehend `disabled_software`, auch wenn die
+  Beschleunigung voll laeuft. Erst nach `await app.getGPUInfo('complete')`
+  stimmen die Werte. Mit nacktem Electron ohne Flags nachgewiesen:
+  frueh `video_decode=disabled_software`, spaet `video_decode=enabled`.
+- **Ergebnis der Messung:** Die GPU dekodiert bereits. Ein Versuch mit fuenf
+  Chromium-Switches (`ignore-gpu-blocklist`, `enable-gpu-rasterization`,
+  `enable-zero-copy`, `enable-hardware-overlays`,
+  `disable-gpu-driver-bug-workarounds`) brachte messbar nichts und wurde
+  wieder entfernt — die letzten beiden gefaehrden den transparenten Chat fuer
+  Nullgewinn. Entwurf und Plan liegen unter `docs/superpowers/`, falls das
+  jemand erneut versuchen will.
+- Last mit aktiver Beschleunigung: ~1,18 Kerne = 9,8 % Gesamt-CPU
+  bei 12 logischen Kernen. Normalpreis, kein Defekt.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
