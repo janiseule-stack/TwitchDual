@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { SWITCHES, DEFAULT_STATE, decideMode, nextState } = require('../src/gpu-flags');
+const { SWITCHES, DEFAULT_STATE, decideMode, nextState, applyGpuFlags } = require('../src/gpu-flags');
 
 test('SWITCHES enthaelt genau die fuenf dokumentierten Switches', () => {
   assert.deepEqual(SWITCHES, [
@@ -64,4 +64,50 @@ test('nextState ist idempotent', () => {
 
 test('nextState ignoriert unbekannte Ereignisse', () => {
   assert.deepEqual(nextState({ mode: 'accel', pending: true }, 'quatsch'), { mode: 'accel', pending: true });
+});
+
+function fakeCommandLine() {
+  const applied = [];
+  return { applied, appendSwitch: (name) => applied.push(name) };
+}
+
+test('applyGpuFlags setzt im accel-Modus alle fuenf Switches', () => {
+  const cl = fakeCommandLine();
+  const st = applyGpuFlags({ commandLine: cl, state: DEFAULT_STATE, env: {}, log: () => {} });
+  assert.deepEqual(cl.applied, SWITCHES);
+  assert.deepEqual(st, { mode: 'accel', pending: true });
+});
+
+test('applyGpuFlags setzt im safe-Modus keinen einzigen Switch', () => {
+  const cl = fakeCommandLine();
+  const st = applyGpuFlags({
+    commandLine: cl,
+    state: { mode: 'accel', pending: true },
+    env: {},
+    log: () => {}
+  });
+  assert.deepEqual(cl.applied, []);
+  assert.deepEqual(st, { mode: 'safe', pending: false });
+});
+
+test('applyGpuFlags respektiert TWITCHDUAL_NO_GPU=1', () => {
+  const cl = fakeCommandLine();
+  applyGpuFlags({
+    commandLine: cl,
+    state: DEFAULT_STATE,
+    env: { TWITCHDUAL_NO_GPU: '1' },
+    log: () => {}
+  });
+  assert.deepEqual(cl.applied, []);
+});
+
+test('applyGpuFlags protokolliert den gewaehlten Modus', () => {
+  const seen = [];
+  applyGpuFlags({
+    commandLine: fakeCommandLine(),
+    state: DEFAULT_STATE,
+    env: {},
+    log: (event, detail) => seen.push([event, detail])
+  });
+  assert.deepEqual(seen, [['gpu-mode', 'accel']]);
 });

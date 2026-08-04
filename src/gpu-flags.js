@@ -35,4 +35,15 @@ function nextState(state, event) {
   }
 }
 
-module.exports = { SWITCHES, DEFAULT_STATE, decideMode, nextState };
+// Wendet die Flags an und liefert den Zustand zurueck, den der Aufrufer
+// speichern muss. Kennt weder electron-store noch app — beides kommt von aussen.
+function applyGpuFlags({ commandLine, state, env, log }) {
+  const mode = decideMode(state, env);
+  if (mode === 'accel') {
+    for (const name of SWITCHES) commandLine.appendSwitch(name);
+  }
+  log('gpu-mode', mode);
+  return nextState(state, mode === 'accel' ? 'start-accel' : 'start-safe');
+}
+
+module.exports = { SWITCHES, DEFAULT_STATE, decideMode, nextState, applyGpuFlags };
