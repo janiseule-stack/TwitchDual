@@ -106,3 +106,29 @@ test('jede Einloesung bekommt eine eigene transactionID', async () => {
   assert.notEqual(f.aufrufe[0].body.variables.input.transactionID,
                   f.aufrufe[1].body.variables.input.transactionID);
 });
+
+test('claim schickt die Integrity-Kopfzeilen mit', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 1, error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  await api.claim('geheim', '1', 'k1', {
+    'Client-Integrity': 'v4.local.abc', 'X-Device-Id': 'geraet1'
+  });
+  const h = f.aufrufe[0].opts.headers;
+  assert.equal(h['Client-Integrity'], 'v4.local.abc');
+  assert.equal(h['X-Device-Id'], 'geraet1');
+  assert.equal(h['Client-ID'], 'kimne78kx3ncx6brgo4mv6wki5h1ko');  // Grundkopfzeilen bleiben
+});
+
+test('claim ohne Zusatzkopfzeilen verhaelt sich wie bisher', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 1, error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  assert.deepEqual(await api.claim('geheim', '1', 'k1'), { ok: true, error: null });
+  assert.equal(f.aufrufe[0].opts.headers['Client-Integrity'], undefined);
+});
+
+test('IntegrityCheckFailed ist als eigener Fehlertyp erkennbar', async () => {
+  const f = fakeFetch({ errors: [{ message: 'failed integrity check',
+    extensions: { code: 'IntegrityCheckFailed' } }], data: null });
+  const api = createPointsApi({ fetchImpl: f });
+  await assert.rejects(() => api.claim('geheim', '1', 'k1'), (e) => e.integrity === true);
+});

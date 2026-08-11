@@ -39,13 +39,14 @@ function neueTransaktionsId() {
 }
 
 function createPointsApi({ fetchImpl = fetch } = {}) {
-  async function ruf(token, query, variables) {
+  async function ruf(token, query, variables, extraHeaders) {
     const res = await fetchImpl(ENDPUNKT, {
       method: 'POST',
       headers: {
         'Client-ID': WEB_CLIENT_ID,
         'Content-Type': 'application/json',
-        'Authorization': 'OAuth ' + token
+        'Authorization': 'OAuth ' + token,
+        ...(extraHeaders || {})
       },
       body: JSON.stringify({ query, variables })
     });
@@ -54,9 +55,18 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
     }
     const daten = JSON.parse(await res.text());
     if (daten.errors && daten.errors.length) {
-      const m = daten.errors[0].message || 'unbekannt';
+      const erster = daten.errors[0];
+      const m = erster.message || 'unbekannt';
+      const code = erster.extensions && erster.extensions.code;
       // "service error" = Feld existiert, Dienst verweigert (Client-Integrity).
       if (/service error/i.test(m)) throw new Error('Von Twitch gesperrt: ' + m);
+      // IntegrityCheckFailed: eigener, unterscheidbarer Fehlertyp, damit der
+      // Aufrufer den Integrity-Satz verwerfen und neu ernten kann.
+      if (code === 'IntegrityCheckFailed' || /integrity/i.test(m)) {
+        const fehler = new Error('Twitch-Fehler: ' + m);
+        fehler.integrity = true;
+        throw fehler;
+      }
       throw new Error('Twitch-Fehler: ' + m);
     }
     return daten.data;
@@ -76,8 +86,8 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
       };
     },
 
-    async claim(token, channelID, claimID) {
-      const d = await ruf(token, M_CLAIM, { input: { channelID, claimID } });
+    async claim(token, channelID, claimID, extraHeaders) {
+      const d = await ruf(token, M_CLAIM, { input: { channelID, claimID } }, extraHeaders);
       const r = d && d.claimCommunityPoints;
       const fehler = r && r.error ? r.error.code : null;
       return { ok: !fehler, error: fehler };
