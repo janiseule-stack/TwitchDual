@@ -97,6 +97,16 @@ test('redeem schickt cost, title und eine transactionID mit', async () => {
   assert.ok(input.transactionID && input.transactionID.length >= 16);
 });
 
+// Review-Fund: claim hatte diesen Test, redeem nicht - dabei ist redeem der
+// einzige Aufruf, der echte Punkte ausgibt. Twitchs Begruendung muss beim
+// Aufrufer ankommen, sonst scheitert die Einloesung still.
+test('redeem meldet Twitchs Fehlercode weiter', async () => {
+  const f = fakeFetch({ data: { redeemCommunityPointsCustomReward: { error: { code: 'NOT_ENOUGH_POINTS' } } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const r = await api.redeem('geheim', '1', { id: 'r1', title: 'Brot', cost: 200 }, '');
+  assert.deepEqual(r, { ok: false, error: 'NOT_ENOUGH_POINTS' });
+});
+
 test('jede Einloesung bekommt eine eigene transactionID', async () => {
   const f = fakeFetch({ data: { redeemCommunityPointsCustomReward: { error: null } } });
   const api = createPointsApi({ fetchImpl: f });

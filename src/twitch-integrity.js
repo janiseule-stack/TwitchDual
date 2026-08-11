@@ -80,7 +80,10 @@ function ernteIntegrity({ BrowserWindow, ses, timeoutMs = 30000 }) {
       try { ses.webRequest.onBeforeSendHeaders(GQL_FILTER, null); } catch { /* egal */ }
       if (win) {
         try { win.removeListener('closed', beiSchliessen); } catch { /* egal */ }
-        try { win.close(); } catch { /* schon zu */ }
+        // destroy() statt close(): close() laesst die Seite beforeunload
+        // ausfuehren und kann abgelehnt werden. Bei show:false saehe das
+        // niemand und das unsichtbare Fenster bliebe fuer immer offen.
+        try { win.destroy(); } catch { /* schon zu */ }
       }
       resolve(ergebnis);
     };
@@ -108,7 +111,18 @@ function ernteIntegrity({ BrowserWindow, ses, timeoutMs = 30000 }) {
       win.on('closed', beiSchliessen);
       ses.webRequest.onBeforeSendHeaders(GQL_FILTER, beiAnfrage);
 
-      win.webContents.once('did-fail-load', () => abschliessen(null));
+      // Nur ein echter Fehlschlag des HAUPTrahmens beendet die Ernte.
+      // twitch.tv/directory laedt reichlich Unterrahmen und Beiwerk, und
+      // ERR_ABORTED (-3) ist beim Weiternavigieren Alltag. Frueher brach
+      // jeder dieser Faelle die Ernte ab -> "Integrity-Kopfzeilen nicht
+      // erhalten" und einer von nur drei Kisten-Versuchen war verbrannt.
+      // 'on' statt 'once': ein ignorierter Unterrahmen darf den Lauscher
+      // nicht aufbrauchen.
+      win.webContents.on('did-fail-load', (_ev, code, _beschreibung, _url, istHauptrahmen) => {
+        if (istHauptrahmen !== true) return;
+        if (code === -3) return; // ERR_ABORTED
+        abschliessen(null);
+      });
 
       timer = setTimeout(() => abschliessen(null), timeoutMs);
 
