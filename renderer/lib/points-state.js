@@ -42,6 +42,16 @@
       claimFehlgeschlagen(claimID) {
         claimVersuche.set(claimID, (claimVersuche.get(claimID) || 0) + 1);
       },
+      // Nach einem frischen Anmelden muss der Takt sofort wieder greifen.
+      // Ohne das steht der Abstand nach einem abgelaufenen Token noch auf bis
+      // zu 5 Minuten und der Chip haengt so lange auf "..." fest.
+      // Bewusst NICHT zurueckgesetzt: Kanalsperren und Kisten-Zaehler. Beide
+      // haengen am Kanal bzw. an der Kiste, nicht an der Anmeldung - sie hier
+      // zu leeren wuerde nur wieder gegen dieselbe Wand laufen.
+      zuruecksetzen() {
+        abstand = intervalMs;
+        letzteAbfrage = null;
+      },
       kanalGesperrt(channelLogin) {
         gesperrteKanaele.add(channelLogin);
       },

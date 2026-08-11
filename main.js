@@ -337,10 +337,29 @@ const integrity = createIntegrityStore({});
 // nachgefuehrt. currentLiveChannel (oben, Login+Sende-Chat) traegt bereits
 // die Live-vs-VOD-Wahrheit, deshalb keine zweite Kanal-Variable.
 let webToken = null;
+// Token vorhanden, aber von Twitch abgewiesen. Spec: "Takt stoppt". Ohne das
+// klopft der Takt bis zum Programmende gegen einen toten Token, und
+// web-login-status meldet weiter "angemeldet".
+let webTokenAbgelaufen = false;
 let punkteSpielt = false;     // Player-Zustand ('playing' vom Video-Fenster)
 let punkteHomeOffen = false;  // Home-Overlay offen -> Takt ruht
 let punkteLaeuft = false;     // verhindert ueberlappende Takt-Durchlaeufe
 let punkteChannelId = null;   // channelID des zuletzt abgefragten Kanals (fuer Redeem)
+
+// Ist ein brauchbarer Web-Token da? Ein abgelaufener zaehlt nicht.
+function webTokenNutzbar() {
+  return !!webToken && !webTokenAbgelaufen;
+}
+
+// Genaue Absage statt Sammelbegriff: "nicht angemeldet" gegenueber jemandem,
+// der angemeldet ist und nur gerade ein VOD schaut, schickt ihn zu einem
+// voellig sinnlosen zweiten Login.
+function punkteAbsage() {
+  if (!webToken) return 'nicht angemeldet';
+  if (webTokenAbgelaufen) return 'Anmeldung abgelaufen';
+  if (!currentLiveChannel) return 'kein Live-Kanal';
+  return null;
+}
 
 ipcMain.handle('web-login-start', () => new Promise((resolve) => {
   oeffneLoginFenster({
@@ -349,6 +368,11 @@ ipcMain.handle('web-login-start', () => new Promise((resolve) => {
       try {
         webAuth.speichern(token);
         webToken = token;
+        webTokenAbgelaufen = false;
+        // Takt frisch anlaufen lassen: nach einem abgelaufenen Token steht
+        // der Abstand sonst noch auf bis zu 5 Minuten und das Neuanmelden
+        // bliebe so lange ohne sichtbare Wirkung.
+        pointsState.zuruecksetzen();
         resolve({ ok: true });
       } catch (e) {
         resolve({ ok: false, error: e.message });
@@ -358,15 +382,17 @@ ipcMain.handle('web-login-start', () => new Promise((resolve) => {
   });
 }));
 
-ipcMain.handle('web-login-status', () => ({ angemeldet: !!webToken }));
+ipcMain.handle('web-login-status', () => ({ angemeldet: webTokenNutzbar() }));
 ipcMain.handle('web-login-logout', () => {
   webAuth.loeschen();
   webToken = null;
+  webTokenAbgelaufen = false;
   return { ok: true };
 });
 
 ipcMain.handle('points-rewards', async () => {
-  if (!webToken || !currentLiveChannel) return { ok: false, error: 'nicht angemeldet' };
+  const absage = punkteAbsage();
+  if (absage) return { ok: false, error: absage };
   try {
     return { ok: true, rewards: await pointsApi.rewards(webToken, currentLiveChannel) };
   } catch (e) {
@@ -377,7 +403,8 @@ ipcMain.handle('points-rewards', async () => {
 // reward: das volle Belohnungsobjekt { id, title, cost } aus points-rewards -
 // Twitch verlangt cost und title zwingend, eine blosse ID reicht nicht.
 ipcMain.handle('points-redeem', async (_e, { reward, textInput }) => {
-  if (!webToken || !currentLiveChannel) return { ok: false, error: 'nicht angemeldet' };
+  const absage = punkteAbsage();
+  if (absage) return { ok: false, error: absage };
   try {
     let channelID = punkteChannelId;
     if (!channelID) {
@@ -437,20 +464,30 @@ async function punkteTick() {
     const zustand = {
       live: !!currentLiveChannel && !punkteHomeOffen,
       playing: punkteSpielt,
-      hatToken: !!webToken,
+      hatToken: webTokenNutzbar(),
       channelLogin: currentLiveChannel
     };
     if (!pointsState.sollAbfragen(zustand, Date.now())) return;
     try {
       const ctx = await pointsApi.context(webToken, currentLiveChannel);
-      pointsState.abfrageOk(Date.now());
       punkteChannelId = ctx.channelID;
       if (ctx.balance === null) {
-        // Kanal hat Kanalpunkte aus -> einmal melden, dann ruhen.
-        pointsState.kanalGesperrt(currentLiveChannel);
-        broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal hat keine Kanalpunkte' });
+        if (ctx.channelID != null) {
+          // Kanal gibt es, er hat Kanalpunkte aus -> einmal melden, dann ruhen.
+          pointsState.abfrageOk(Date.now());
+          pointsState.kanalGesperrt(currentLiveChannel);
+          broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal hat keine Kanalpunkte' });
+        } else {
+          // Gar kein community-Objekt: Kanal unbekannt oder Antwort unbrauchbar.
+          // NICHT sperren - die Sperre gilt bis zum Programmende, und "gibt es
+          // nicht" ist etwas anderes als "hat keine Punkte". Das Zurueckfahren
+          // kuemmert sich um die Wiederholung.
+          pointsState.abfrageFehler(Date.now());
+          broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal nicht gefunden' });
+        }
         return;
       }
+      pointsState.abfrageOk(Date.now());
       if (ctx.claimID && pointsState.darfClaimen(ctx.claimID)) {
         try {
           const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
@@ -466,6 +503,10 @@ async function punkteTick() {
       }
       broadcast('points-update', { balance: ctx.balance, displayName: ctx.displayName, fehler: null });
     } catch (e) {
+      // Abgelaufener Token: Takt anhalten (Spec). Der Chip zeigt die Meldung
+      // samt Knopf zum Neuanmelden; ein Weiterklopfen mit totem Token bringt
+      // nichts und laesst web-login-status "angemeldet" luegen.
+      if (/abgelaufen/i.test(e.message)) webTokenAbgelaufen = true;
       pointsState.abfrageFehler(Date.now());
       broadcast('points-update', { balance: null, displayName: null, fehler: e.message });
     }

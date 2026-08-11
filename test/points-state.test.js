@@ -59,6 +59,31 @@ test('eine neue Kiste ist von der Sperre der alten unbetroffen', () => {
   assert.equal(s.darfClaimen('k2'), true);
 });
 
+// Review-Fund: nach einem abgelaufenen Token steht der Abstand auf bis zu
+// 5 Minuten. Ohne zuruecksetzen() bliebe ein Neuanmelden so lange ohne jede
+// sichtbare Wirkung.
+test('zuruecksetzen laesst den Takt sofort wieder greifen', () => {
+  const s = createPointsState({ intervalMs: 15000, maxBackoffMs: 300000 });
+  const an = { live: true, playing: true, hatToken: true, channelLogin: 'x' };
+  for (let i = 0; i < 20; i++) s.abfrageFehler(i * 1000);
+  assert.equal(s.aktuellerAbstandMs, 300000);
+  assert.equal(s.sollAbfragen(an, 20000), false); // Rueckfahren wuerde 5 Min blockieren
+  s.zuruecksetzen();
+  assert.equal(s.aktuellerAbstandMs, 15000);
+  assert.equal(s.sollAbfragen(an, 20000), true);  // sofort, nicht erst in 5 Min
+});
+
+test('zuruecksetzen laesst Kanalsperre und Kisten-Zaehler stehen', () => {
+  const s = createPointsState({ maxClaimVersuche: 1 });
+  s.kanalGesperrt('x');
+  s.claimFehlgeschlagen('k1');
+  s.zuruecksetzen();
+  // Beides haengt am Kanal bzw. an der Kiste, nicht an der Anmeldung - ein
+  // Neuanmelden darf nicht wieder gegen dieselbe Wand laufen lassen.
+  assert.equal(s.istKanalGesperrt('x'), true);
+  assert.equal(s.darfClaimen('k1'), false);
+});
+
 test('gesperrter Kanal wird nicht mehr abgefragt', () => {
   const s = createPointsState();
   const an = { live: true, playing: true, hatToken: true, channelLogin: 'x' };
