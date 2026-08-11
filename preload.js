@@ -88,7 +88,17 @@ if (!isTwitchFrame) {
     getUserEmotes: () => ipcRenderer.invoke('get-user-emotes'),
     chatSend: (text) => ipcRenderer.invoke('chat-send', { text }),
     onChatNotice: (cb) => { ipcRenderer.on('chat-notice', (_e, n) => cb(n)); },
-    onChatRoom: (cb) => { ipcRenderer.on('chat-room', (_e, r) => cb(r)); }
+    onChatRoom: (cb) => { ipcRenderer.on('chat-room', (_e, r) => cb(r)); },
+
+    // Web-Login (separat vom Device-Flow) + Kanalpunkte. Der Token selbst
+    // bleibt im Main - hier gehen nur abgeleitete Werte durch (bool, Text,
+    // Bilanz, Belohnungsliste).
+    startWebLogin: () => ipcRenderer.invoke('web-login-start'),
+    webLoginStatus: () => ipcRenderer.invoke('web-login-status'),
+    webLogout: () => ipcRenderer.invoke('web-login-logout'),
+    getRewards: () => ipcRenderer.invoke('points-rewards'),
+    redeemReward: (reward, textInput) => ipcRenderer.invoke('points-redeem', { reward, textInput }),
+    onPointsUpdate: (cb) => { ipcRenderer.on('points-update', (_e, p) => cb(p)); }
   });
 }
 

@@ -16,7 +16,7 @@ const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
 const { ChatSender } = require('./src/chat-send');
-const { safeStorage } = require('electron');
+const { safeStorage, session } = require('electron');
 
 const store = new Store({
   defaults: {
@@ -194,6 +194,10 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
         badgeCatalog
       };
       broadcast('load', payload);
+      // Kanalwechsel: Chip sofort leeren statt bis zu 15s den alten Stand zu
+      // zeigen. Der neue Stand kommt innerhalb von 15s per Takt nach.
+      broadcast('points-update', { balance: null, displayName: null, fehler: null });
+      punkteChannelId = null;
       currentLiveChannel = user.login;
       if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
@@ -221,6 +225,9 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       badgeCatalog
     };
     broadcast('load', payload);
+    // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben.
+    broadcast('points-update', { balance: null, displayName: null, fehler: null });
+    punkteChannelId = null;
     currentLiveChannel = null;
     if (chatSender) chatSender.setChannel(null);
     pushHistory({
@@ -256,11 +263,16 @@ ipcMain.handle('get-ui-prefs', () => ({
 }));
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
-ipcMain.on('home-open', () => { if (chatSender) chatSender.setChannel(null); broadcast('home-open'); });
+ipcMain.on('home-open', () => {
+  if (chatSender) chatSender.setChannel(null);
+  punkteHomeOffen = true; // Kanalpunkte-Takt ruht, solange das Overlay offen ist
+  broadcast('home-open');
+});
 // Zurueck zur laufenden Quelle: Sende-Socket wieder auf den Live-Channel joinen
 // (home-open hatte setChannel(null) gemacht) - sonst bleibt Senden tot.
 ipcMain.on('home-close', () => {
   if (chatSender && currentLiveChannel) chatSender.setChannel(currentLiveChannel);
+  punkteHomeOffen = false;
   broadcast('home-close');
 });
 
@@ -305,6 +317,153 @@ ipcMain.handle('get-volume-guard-source', () => {
   }
   return volumeGuardSourceCache;
 });
+
+// --- Kanalpunkte -------------------------------------------------------
+// Der Web-Token bleibt hier im Main. Kein IPC-Kanal gibt ihn heraus - nur
+// abgeleitete Werte (Bilanz, Anmeldestatus als bool, Fehlertexte) verlassen
+// den Prozess. Siehe Praefungsschritt am Ende der Aufgabe.
+const createPointsApi = require('./src/twitch-points');
+const createPointsState = require('./renderer/lib/points-state');
+const { createWebAuthStore, oeffneLoginFenster } = require('./src/twitch-web-auth');
+const { createIntegrityStore, ernteIntegrity } = require('./src/twitch-integrity');
+
+const pointsApi = createPointsApi({});
+const pointsState = createPointsState({ intervalMs: 15000 });
+const webAuth = createWebAuthStore({ safeStorage, store });
+const integrity = createIntegrityStore({});
+
+// webToken wird EINMAL beim Start gelesen (nicht bei jedem Takt - safeStorage
+// entschluesselt sonst dauerhaft einmal pro Sekunde) und bei Login/Logout
+// nachgefuehrt. currentLiveChannel (oben, Login+Sende-Chat) traegt bereits
+// die Live-vs-VOD-Wahrheit, deshalb keine zweite Kanal-Variable.
+let webToken = null;
+let punkteSpielt = false;     // Player-Zustand ('playing' vom Video-Fenster)
+let punkteHomeOffen = false;  // Home-Overlay offen -> Takt ruht
+let punkteLaeuft = false;     // verhindert ueberlappende Takt-Durchlaeufe
+let punkteChannelId = null;   // channelID des zuletzt abgefragten Kanals (fuer Redeem)
+
+ipcMain.handle('web-login-start', () => new Promise((resolve) => {
+  oeffneLoginFenster({
+    BrowserWindow,
+    onToken: async (token) => {
+      try {
+        webAuth.speichern(token);
+        webToken = token;
+        resolve({ ok: true });
+      } catch (e) {
+        resolve({ ok: false, error: e.message });
+      }
+    },
+    onAbbruch: () => resolve({ ok: false, error: 'Anmeldung abgebrochen' })
+  });
+}));
+
+ipcMain.handle('web-login-status', () => ({ angemeldet: !!webToken }));
+ipcMain.handle('web-login-logout', () => {
+  webAuth.loeschen();
+  webToken = null;
+  return { ok: true };
+});
+
+ipcMain.handle('points-rewards', async () => {
+  if (!webToken || !currentLiveChannel) return { ok: false, error: 'nicht angemeldet' };
+  try {
+    return { ok: true, rewards: await pointsApi.rewards(webToken, currentLiveChannel) };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+// reward: das volle Belohnungsobjekt { id, title, cost } aus points-rewards -
+// Twitch verlangt cost und title zwingend, eine blosse ID reicht nicht.
+ipcMain.handle('points-redeem', async (_e, { reward, textInput }) => {
+  if (!webToken || !currentLiveChannel) return { ok: false, error: 'nicht angemeldet' };
+  try {
+    let channelID = punkteChannelId;
+    if (!channelID) {
+      const ctx = await pointsApi.context(webToken, currentLiveChannel);
+      channelID = ctx.channelID;
+    }
+    return await pointsApi.redeem(webToken, channelID, reward, textInput);
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+// Kiste einloesen. Twitch verlangt dafuer Integrity-Kopfzeilen aus einer
+// echten Seitensitzung; die werden nur geholt, wenn wirklich eine Kiste
+// offen ist, und bei Ablehnung genau einmal erneuert.
+async function kisteEinloesen(channelID, claimID) {
+  let satz = integrity.holen(Date.now());
+  if (!satz) {
+    satz = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
+    if (!satz) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
+    integrity.setzen(satz, Date.now());
+  }
+  const kopf = {
+    'Client-Integrity': satz.integrity,
+    'X-Device-Id': satz.deviceId,
+    'Client-Session-Id': satz.sessionId,
+    'Client-Version': satz.version
+  };
+  try {
+    return await pointsApi.claim(webToken, channelID, claimID, kopf);
+  } catch (e) {
+    if (!e.integrity) throw e;
+    // Abgelehnt -> Satz ist verbraucht, genau einmal neu holen und wiederholen.
+    integrity.verwerfen();
+    const neu = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
+    if (!neu) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
+    integrity.setzen(neu, Date.now());
+    return await pointsApi.claim(webToken, channelID, claimID, {
+      'Client-Integrity': neu.integrity,
+      'X-Device-Id': neu.deviceId,
+      'Client-Session-Id': neu.sessionId,
+      'Client-Version': neu.version
+    });
+  }
+}
+
+// 15-s-Takt (Sekunden-Tick, sollAbfragen laesst nur alle 15s wirklich durch -
+// so wirkt das Zurueckfahren bei Fehlern, ohne den Timer neu zu setzen).
+// Abgefragt wird nur bei Live-Kanal, spielendem Player, vorhandenem Token und
+// geschlossenem Home-Overlay. Gegen Ueberlappung gesichert (punkteLaeuft),
+// weil eine Abfrage samt Integrity-Ernte laenger als eine Sekunde dauern kann
+// und ernteIntegrity nur einen Lauscher pro Sitzung gleichzeitig vertraegt.
+async function punkteTick() {
+  if (punkteLaeuft) return;
+  punkteLaeuft = true;
+  try {
+    const zustand = {
+      live: !!currentLiveChannel && !punkteHomeOffen,
+      playing: punkteSpielt,
+      hatToken: !!webToken,
+      channelLogin: currentLiveChannel
+    };
+    if (!pointsState.sollAbfragen(zustand, Date.now())) return;
+    try {
+      const ctx = await pointsApi.context(webToken, currentLiveChannel);
+      pointsState.abfrageOk(Date.now());
+      punkteChannelId = ctx.channelID;
+      if (ctx.balance === null) {
+        // Kanal hat Kanalpunkte aus -> einmal melden, dann ruhen.
+        pointsState.kanalGesperrt(currentLiveChannel);
+        broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal hat keine Kanalpunkte' });
+        return;
+      }
+      if (ctx.claimID && pointsState.darfClaimen(ctx.claimID)) {
+        const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
+        if (!r.ok) pointsState.claimFehlgeschlagen(ctx.claimID);
+      }
+      broadcast('points-update', { balance: ctx.balance, displayName: ctx.displayName, fehler: null });
+    } catch (e) {
+      pointsState.abfrageFehler(Date.now());
+      broadcast('points-update', { balance: null, displayName: null, fehler: e.message });
+    }
+  } finally {
+    punkteLaeuft = false;
+  }
+}
 
 // Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
 // Nur-Video-Modus: gemerkte Fenstergroesse pro Fenster (Key = win.id), damit
@@ -447,6 +606,7 @@ ipcMain.on('player-time', (_evt, seconds) => {
 
 // Player-Zustand (Pause/Play/Ende) ebenso ans Chat-Fenster relayen.
 ipcMain.on('player-state', (_evt, state) => {
+  punkteSpielt = (state === 'playing'); // Kanalpunkte-Takt fragt nur bei spielendem Player
   if (chatWin && !chatWin.isDestroyed()) {
     chatWin.webContents.send('player-state', state);
   }
@@ -480,7 +640,14 @@ app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
   initAuth();
+  webToken = webAuth.lesen(); // einmalig beim Start, siehe Kommentar oben bei der Deklaration
   createWindows();
+
+  // Kanalpunkte-Takt: tickt jede Sekunde, sollAbfragen() im punkteTick laesst
+  // die eigentliche Abfrage nur alle 15s (bzw. seltener nach Fehlern) durch.
+  // Erst hier starten, nicht auf Modulebene - sonst liefe der Takt schon vor
+  // app.whenReady().
+  setInterval(() => { punkteTick().catch(() => { /* punkteTick faengt selbst ab; Netz */ }); }, 1000);
 
   // Belegt im Log, ob die GPU den Twitch-Stream wirklich dekodiert.
   // WICHTIG: erst nach abgeschlossener Info-Sammlung abfragen. Direkt bei
