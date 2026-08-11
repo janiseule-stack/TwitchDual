@@ -107,6 +107,15 @@ body { display: flex; flex-direction: column; }
 }
 @keyframes conn-pulse { 50% { opacity: .25; } }
 
+/* Kanalpunkte-Chip: Stand, Fehler oder Anmelde-Knopf im Footer.
+   .klickbar statt [onclick]-Selektor, weil ein per JS gesetztes onclick
+   kein Attribut im DOM ist und der Selektor daher nie treffen wuerde. */
+#points-chip { cursor: default; }
+#points-chip.hidden { display: none; }
+#points-chip.klickbar { cursor: pointer; }
+#points-chip.err { color: #ff6b6b; }
+#points-chip.stale { opacity: 0.55; }
+
 /* Neue Nachrichten faden kurz ein - ausser der Raten-Zaehler hat bei
    Mega-Chats/VOD-Seeks .no-anim gesetzt (sonst Dauerflackern). */
 .msg { animation: msg-in 150ms ease-out; }

@@ -1126,3 +1126,55 @@ window.twitchDual.onChatRoom((r) => {
   roomSlowSeconds = r.slowSeconds && r.slowSeconds > 0 ? r.slowSeconds : 0;
   renderRoomState();
 });
+
+// --- Kanalpunkte-Chip (Web-Login, separat vom Device-Flow) -----------------
+// Zeigt Stand, Fehler oder den Anmelde-Knopf. Der Token selbst bleibt im
+// Main-Prozess; hier kommt nur der abgeleitete Punktestand per IPC an.
+const $pointsChip = document.getElementById('points-chip');
+
+function zeigePunkte(p) {
+  if (!$pointsChip) return;
+  $pointsChip.classList.remove('hidden', 'err', 'stale', 'klickbar');
+  if (p && p.fehler) {
+    // Nichts scheitert still: Fehler steht im Chip, nicht nur in der Konsole.
+    const abgelaufen = /abgelaufen/i.test(p.fehler);
+    $pointsChip.classList.add(abgelaufen ? 'err' : 'stale');
+    $pointsChip.textContent = abgelaufen ? '⚠ Anmeldung abgelaufen' : '⚠ ' + p.fehler;
+    $pointsChip.onclick = abgelaufen ? starteWebLogin : null;
+    $pointsChip.classList.toggle('klickbar', abgelaufen);
+    return;
+  }
+  // balance == null ohne Fehler: bewusste Loeschung bei Quell-/Kanalwechsel
+  // (main.js). Bis der neue Stand da ist (binnen ~15s), lieber nichts zeigen
+  // als eine falsche Zahl vom alten Kanal.
+  if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); return; }
+  $pointsChip.textContent = '🪙 ' + p.balance.toLocaleString('de-DE');
+  $pointsChip.onclick = null;
+  $pointsChip.classList.remove('klickbar');
+}
+
+async function starteWebLogin() {
+  const r = await window.twitchDual.startWebLogin();
+  if (!r.ok) {
+    $pointsChip.classList.remove('hidden');
+    $pointsChip.classList.add('err');
+    $pointsChip.textContent = '⚠ ' + r.error;
+    $pointsChip.onclick = starteWebLogin;
+    $pointsChip.classList.add('klickbar');
+    return;
+  }
+  $pointsChip.textContent = '🪙 …';
+}
+
+window.twitchDual.onPointsUpdate(zeigePunkte);
+
+// Beim Start: nicht angemeldet -> Anmelde-Knopf statt leerer Flaeche.
+(async () => {
+  const s = await window.twitchDual.webLoginStatus();
+  if (!s.angemeldet) {
+    $pointsChip.classList.remove('hidden');
+    $pointsChip.textContent = '🪙 Für Kanalpunkte anmelden';
+    $pointsChip.onclick = starteWebLogin;
+    $pointsChip.classList.add('klickbar');
+  }
+})();
