@@ -1185,12 +1185,21 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
 // "nicht angemeldet" selbst, statt dass hier vorab gefiltert wird.
 const $rewardsBtn = document.getElementById('rewards-btn');
 const $rewardsPanel = document.getElementById('rewards-panel');
+// Generation-Zaehler: schnelles Zu-Auf-Zu kann mehrere getRewards()-Aufrufe
+// ueberlappend in Flug haben. Ohne Wache wuerde eine spaet zurueckkommende
+// alte Antwort die Anzeige einer neueren Antwort ueberschreiben -> und dabei
+// im schlimmsten Fall einen gerade laufenden redeemReward()-Knopf aus dem
+// DOM reissen, dessen Ergebnis dann niemand mehr sieht (verstoesst gegen
+// "Nichts scheitert still").
+let rewardsLoadId = 0;
 
 async function oeffneBelohnungen() {
   $rewardsPanel.classList.toggle('hidden');
   if ($rewardsPanel.classList.contains('hidden')) return;
+  const meineLoadId = ++rewardsLoadId;
   $rewardsPanel.textContent = 'lädt …';
   const r = await window.twitchDual.getRewards();
+  if (meineLoadId !== rewardsLoadId) return; // zwischenzeitlich neu geoeffnet -> diese Antwort ist veraltet, verwerfen
   if (!r.ok) { $rewardsPanel.textContent = '⚠ ' + r.error; return; }
   if (!r.rewards.length) { $rewardsPanel.textContent = 'Keine Belohnungen verfügbar.'; return; }
   $rewardsPanel.innerHTML = '';
