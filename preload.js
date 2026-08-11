@@ -114,12 +114,17 @@ if (!isTwitchFrame) {
     // Vendor-Datei kommt aus dem Main-Prozess (Sandbox: kein fs im Preload).
     const vaftSrc = await ipcRenderer.invoke('get-vaft-source');
     if (!vaftSrc) return;
+    // Lautstaerke-Waechter (siehe renderer/lib/volume-guard.js). Faellt er aus,
+    // laeuft der Player normal weiter - nur ohne diesen Backstop.
+    const volumeGuardSrc = await ipcRenderer.invoke('get-volume-guard-source');
 
     // Wrapper: exponiert postMessage-Signal fuer unseren Hook, laedt dann vaft.
     // vaft loggt Ad-Erkennung; wir beobachten diese Signale defensiv ueber eine
     // von uns definierte Bruecke window.__twitchDualAd(phase). Ein leichter
     // console.log-Hook erkennt vafts Ad-Meldungen ueber heuristische Marker.
-    const bootstrap = `
+    // Reihenfolge: erst der Waechter (definiert window.createVolumeGuard), dann
+    // unser Bootstrap (nutzt ihn sofort), zuletzt vaft.
+    const bootstrap = volumeGuardSrc + '\n' + `
       (function(){
         window.__twitchDualAd = function(phase){
           try { window.postMessage({ source: 'twitchdual-adblock', phase: phase }, '*'); } catch(e){}
@@ -137,6 +142,25 @@ if (!isTwitchFrame) {
           } catch(e){}
           return _log.apply(console, arguments);
         };
+        // Lautstaerke-Backstop: vaft stellt nach dem Werbe-Reload zwar den
+        // Mute-Zustand wieder her, aber nicht die Lautstaerke des neuen
+        // <video>-Elements.
+        // Bleibt es unmuted auf 0 stehen, ist der Ton weg, waehrend die
+        // Oberflaeche den alten Wert anzeigt - hier korrigiert.
+        (function(){
+          if (!window.createVolumeGuard) return;
+          var guard = window.createVolumeGuard();
+          setInterval(function(){
+            try {
+              var v = document.querySelector('video');
+              var act = guard.observe(v ? { muted: v.muted, volume: v.volume } : null, Date.now());
+              if (act && v) {
+                v.volume = act.restoreTo;
+                console.log('[TwitchDual] Lautstaerke nach Player-Neustart wiederhergestellt: ' + act.restoreTo);
+              }
+            } catch(e){}
+          }, 300);
+        })();
       })();
     ` + vaftSrc;
 

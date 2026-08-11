@@ -295,6 +295,17 @@ ipcMain.handle('get-vaft-source', () => {
   return vaftSourceCache;
 });
 
+// Lautstaerke-Waechter fuer die Injektion (gleicher Weg wie vaft): das Modul
+// liegt als eine Quelle in renderer/lib und wird per Test abgedeckt.
+let volumeGuardSourceCache = null;
+ipcMain.handle('get-volume-guard-source', () => {
+  if (volumeGuardSourceCache === null) {
+    volumeGuardSourceCache = fs.readFileSync(
+      path.join(__dirname, 'renderer', 'lib', 'volume-guard.js'), 'utf8');
+  }
+  return volumeGuardSourceCache;
+});
+
 // Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
 // Nur-Video-Modus: gemerkte Fenstergroesse pro Fenster (Key = win.id), damit
 // 'video-only-off' die Groesse vor dem 16:9-Einrasten wiederherstellen kann.

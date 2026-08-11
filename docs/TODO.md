@@ -167,6 +167,42 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Last mit aktiver Beschleunigung: ~1,18 Kerne = 9,8 % Gesamt-CPU
   bei 12 logischen Kernen. Normalpreis, kein Defekt.
 
+## Ton weg nach Werbung (v1.8.6)
+
+- **Symptom:** Nach einem Werbeblock kam kein Ton mehr, obwohl die Oberflaeche
+  Ton anzeigte. Am Regler ziehen half sofort — bis zum naechsten Mal.
+- **Ursache (belegt per Diagnose-Log, 2026-08-09 17:31):** vaft macht nach der
+  Werbung einen Hard-Reload und ersetzt dabei das `<video>`-Element. Fuer
+  `muted` raeumt es gruendlich auf (Listener auf canplay/playing/loadeddata,
+  4000-ms-Timeout, 5500-ms-Backstop). Fuer `volume` schreibt es nur den
+  localStorage-Wert zurueck und hofft, dass Twitchs Player ihn liest — ein
+  Rennen. Verliert es das Rennen, bleibt das neue Element auf `volume=0`:
+
+      17:31:16.013  muted:true   volume:0    <- vaft stummt bewusst
+      17:31:16.328  muted:false  volume:0    <- Mute weg, Lautstaerke bleibt 0
+      18:24:10.627  muted:false  volume:0    <- 53 Minuten spaeter unveraendert
+
+  Das Rennen ist unzuverlaessig, nicht immer verloren: 54 Minuten spaeter war
+  derselbe Reload nach 279 ms wieder korrekt bei 0.11. Daher trat der Fehler
+  nur manchmal auf.
+- **Warum es niemand bemerkte:** Die Embed-API meldet weiter den alten Wert,
+  weil nur das Element auf 0 steht. `video.js` prueft ueber `player.getVolume()`
+  und sieht die Abweichung deshalb prinzipiell nicht — und der `PLAYING`-Handler
+  setzt die Lautstaerke nur bei `volumeReady === false`, also nie nach dem Start.
+- **Fix:** `renderer/lib/volume-guard.js` — DOM-freier Waechter (UMD, testbar),
+  per `main.js` an den Preload geliefert und VOR vaft ins iframe injiziert.
+  Er beobachtet das echte `<video>`-Element alle 300 ms und stellt die zuletzt
+  gueltige Lautstaerke wieder her.
+- **Erkennungsregel:** nur `muted === false && volume === 0`. Ueber die
+  Twitch-Oberflaeche ist das nicht erreichbar — wer den Regler auf 0 zieht,
+  bekommt zusaetzlich `muted=true`. Unmuted-auf-Null ist damit immer der kaputte
+  Zustand, nie eine Nutzerabsicht. Ein Nutzer-Mute bleibt unangetastet.
+- **Gegen Fehlalarm:** Beim gesunden Reload tritt `volume=0` ebenfalls kurz auf
+  (im Log 279 ms). Erst wenn der Zustand 1500 ms ueberdauert, wird eingegriffen.
+- **Nachweis:** 10 Unit-Tests (`test/volume-guard.test.js`, Zeitstempel aus dem
+  echten Vorfall) plus Ende-zu-Ende-Beleg in der laufenden App — kuenstlich
+  erzeugter Fehlzustand wurde nach 1,59 s repariert, Element danach stabil.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
