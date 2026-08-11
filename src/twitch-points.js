@@ -43,10 +43,12 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
     const res = await fetchImpl(ENDPUNKT, {
       method: 'POST',
       headers: {
+        ...(extraHeaders || {}),
+        // Diese drei muessen zuletzt kommen: extraHeaders duerfen obendrauf
+        // kommen, aber die Grundkopfzeilen niemals ersetzen.
         'Client-ID': WEB_CLIENT_ID,
         'Content-Type': 'application/json',
-        'Authorization': 'OAuth ' + token,
-        ...(extraHeaders || {})
+        'Authorization': 'OAuth ' + token
       },
       body: JSON.stringify({ query, variables })
     });

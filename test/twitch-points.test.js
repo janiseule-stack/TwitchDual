@@ -132,3 +132,16 @@ test('IntegrityCheckFailed ist als eigener Fehlertyp erkennbar', async () => {
   const api = createPointsApi({ fetchImpl: f });
   await assert.rejects(() => api.claim('geheim', '1', 'k1'), (e) => e.integrity === true);
 });
+
+// Review-Fund: extraHeaders duerfen die Grundkopfzeilen niemals ersetzen,
+// auch nicht durch Zufall oder boesen Willen eines kuenftigen Aufrufers.
+test('extraHeaders koennen Client-ID und Authorization nicht ueberschreiben', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 1, error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  await api.claim('geheim', '1', 'k1', {
+    'Client-ID': 'boesewicht', 'Authorization': 'OAuth boesewicht'
+  });
+  const h = f.aufrufe[0].opts.headers;
+  assert.equal(h['Client-ID'], 'kimne78kx3ncx6brgo4mv6wki5h1ko');
+  assert.equal(h['Authorization'], 'OAuth geheim');
+});
