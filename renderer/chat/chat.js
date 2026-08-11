@@ -1163,7 +1163,13 @@ async function starteWebLogin() {
     $pointsChip.classList.add('klickbar');
     return;
   }
+  // Angemeldet: Chip wartet auf den ersten Stand. Klickfaehigkeit MUSS jetzt
+  // weg - kommt kein points-update (Player nicht live oder pausiert), bliebe
+  // der Chip sonst dauerhaft klickbar und jeder weitere Klick oeffnete ein
+  // weiteres Anmeldefenster samt eigenem Abfrage-Takt.
   $pointsChip.textContent = '🪙 …';
+  $pointsChip.onclick = null;
+  $pointsChip.classList.remove('klickbar');
 }
 
 window.twitchDual.onPointsUpdate(zeigePunkte);
@@ -1192,6 +1198,25 @@ const $rewardsPanel = document.getElementById('rewards-panel');
 // DOM reissen, dessen Ergebnis dann niemand mehr sieht (verstoesst gegen
 // "Nichts scheitert still").
 let rewardsLoadId = 0;
+// Laufende Einloesungen, absichtlich AUSSERHALB des DOM. Das Panel wird bei
+// jedem Oeffnen komplett neu aufgebaut; ein Doppelklick-Schutz an el.disabled
+// verschwindet mit dem alten Knopf, und ein Zu-und-wieder-Auf waehrend einer
+// laufenden Einloesung liefert einen frischen, aktiven Knopf fuer dieselbe
+// Belohnung -> Twitch bekaeme zwei Transaktionen und buchte zweimal ab.
+const laufendeEinloesungen = new Set();
+const $redeemStatus = document.getElementById('redeem-status');
+
+// Ergebnis einer Einloesung anzeigen. Zielt bewusst auf ein Element neben dem
+// Panel: der ausloesende Knopf kann laengst aus dem DOM sein, dann saehe
+// niemand, ob echte Punkte geflossen sind ("Nichts scheitert still").
+function zeigeEinloeseErgebnis(text, ok) {
+  if (!$redeemStatus) return;
+  $redeemStatus.textContent = text;
+  $redeemStatus.classList.toggle('ok', !!ok);
+  $redeemStatus.classList.remove('hidden');
+  clearTimeout(zeigeEinloeseErgebnis._t);
+  zeigeEinloeseErgebnis._t = setTimeout(() => $redeemStatus.classList.add('hidden'), 6000);
+}
 
 async function oeffneBelohnungen() {
   $rewardsPanel.classList.toggle('hidden');
@@ -1207,15 +1232,30 @@ async function oeffneBelohnungen() {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'reward';
-    el.textContent = b.title + ' · ' + b.cost.toLocaleString('de-DE');
+    const beschriftung = b.title + ' · ' + b.cost.toLocaleString('de-DE');
+    el.textContent = beschriftung;
+    // Neu aufgebauter Knopf einer noch laufenden Einloesung bleibt gesperrt.
+    el.disabled = laufendeEinloesungen.has(b.id);
     // Punkte ausgeben ist nicht umkehrbar -> Rueckfrage ist verbindlich (siehe Task-Brief-Korrektur).
     el.onclick = async () => {
+      if (laufendeEinloesungen.has(b.id)) return; // Doppelausgabe verhindern
       if (!confirm('„' + b.title + '" für ' + b.cost.toLocaleString('de-DE') + ' Punkte einlösen?')) return;
+      laufendeEinloesungen.add(b.id);
       el.disabled = true;
-      // Bruecke will das ganze Objekt (id/title/cost), keine blosse ID -> siehe Korrektur Punkt 2.
-      const res = await window.twitchDual.redeemReward({ id: b.id, title: b.title, cost: b.cost }, '');
-      el.textContent = res.ok ? '✓ ' + b.title : '⚠ ' + (res.error || 'fehlgeschlagen');
-      if (!res.ok) el.disabled = false;
+      try {
+        // Bruecke will das ganze Objekt (id/title/cost), keine blosse ID -> siehe Korrektur Punkt 2.
+        const res = await window.twitchDual.redeemReward({ id: b.id, title: b.title, cost: b.cost }, '');
+        zeigeEinloeseErgebnis(res.ok ? '✓ ' + b.title + ' eingelöst'
+                                     : '⚠ ' + (res.error || 'fehlgeschlagen'), res.ok);
+      } catch (e) {
+        // Auch eine abgewiesene IPC-Zusage muss sichtbar werden statt zu verpuffen.
+        zeigeEinloeseErgebnis('⚠ ' + e.message, false);
+      } finally {
+        laufendeEinloesungen.delete(b.id);
+        // Nur anfassen, wenn der Knopf noch haengt - sonst schreibt man in
+        // einen abgehaengten Knoten, den niemand mehr sieht.
+        if (el.isConnected) { el.disabled = false; el.textContent = beschriftung; }
+      }
     };
     $rewardsPanel.appendChild(el);
   }

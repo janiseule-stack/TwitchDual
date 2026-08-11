@@ -358,13 +358,24 @@ button:focus-visible, input:focus-visible {
 #emote-btn { padding: 4px 6px; display: inline-flex; align-items: center; }
 #emote-btn img { height: 20px; width: auto; display: block; }
 #chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled), #rewards-btn:hover:not(:disabled) { border-color: var(--accent-dim); }
-#chat-send:disabled, #emote-btn:disabled, #rewards-btn:disabled { cursor: default; opacity: .5; }
+#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .5; }
 #chat-error {
   position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 4px;
   background: #4a1220; color: #ffb3c4; padding: 4px 8px; border-radius: 6px;
   font-size: 12px; animation: pop-in 120ms ease-out;
 }
 #chat-error.hidden { display: none; }
+/* Einloese-Ergebnis: gleiche Optik wie #chat-error, aber eine Zeile darueber
+   angesetzt - beide koennen gleichzeitig sichtbar sein und duerfen sich nicht
+   ueberdecken. Erfolg ist gruen, Fehlschlag rot: die beiden Ausgaenge muessen
+   auf einen Blick unterscheidbar sein, weil hier echte Punkte fliessen. */
+#redeem-status {
+  position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 30px;
+  background: #4a1220; color: #ffb3c4; padding: 4px 8px; border-radius: 6px;
+  font-size: 12px; animation: pop-in 120ms ease-out; z-index: 7;
+}
+#redeem-status.ok { background: #10331f; color: #8ff0b4; }
+#redeem-status.hidden { display: none; }
 /* Picker rechts angedockt statt volle Breite (Nutzerwunsch). */
 #emote-panel { position: absolute; bottom: 100%; right: 6px; left: auto; margin-bottom: 6px;
   width: 300px; max-width: calc(100% - 12px);

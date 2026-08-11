@@ -56,6 +56,10 @@
     <button id="rewards-btn" type="button" title="Belohnungen" aria-label="Belohnungen">🎁</button>
     <button id="chat-send" type="button" disabled>Senden</button>
     <div id="chat-error" class="hidden"></div>
+    <!-- Ergebnis einer Belohnungs-Einloesung. Geschwister von #rewards-panel,
+         damit ein Neuaufbau des Panels die Meldung nicht mitreisst. Eigenes
+         Element statt #chat-error: das gehoert den Sendefehlern. -->
+    <div id="redeem-status" class="hidden"></div>
     <div id="emote-panel" class="hidden">
       <div class="ep-section">Channel</div>
       <div id="ep-channel" class="ep-grid"></div>
