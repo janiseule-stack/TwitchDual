@@ -452,8 +452,17 @@ async function punkteTick() {
         return;
       }
       if (ctx.claimID && pointsState.darfClaimen(ctx.claimID)) {
-        const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
-        if (!r.ok) pointsState.claimFehlgeschlagen(ctx.claimID);
+        try {
+          const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
+          if (!r.ok) pointsState.claimFehlgeschlagen(ctx.claimID);
+        } catch (e) {
+          // Wirft kisteEinloesen (z.B. beide Integrity-Versuche mit
+          // IntegrityCheckFailed abgelehnt), zaehlt das genauso als
+          // Fehlversuch - sonst greift die Drei-Versuche-Sperre nie und die
+          // Kiste wird bei jedem zurueckgefahrenen Takt erneut versucht.
+          pointsState.claimFehlgeschlagen(ctx.claimID);
+          throw e;
+        }
       }
       broadcast('points-update', { balance: ctx.balance, displayName: ctx.displayName, fehler: null });
     } catch (e) {
