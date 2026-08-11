@@ -1178,3 +1178,38 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
     $pointsChip.classList.add('klickbar');
   }
 })();
+
+// --- Belohnungen-Panel (Web-Login, separat vom Device-Flow) ----------------
+// Laeuft ueber den Web-Token im Main-Prozess; deshalb bleibt der Knopf immer
+// klickbar (nicht an chatLoggedIn gekoppelt) und getRewards() meldet
+// "nicht angemeldet" selbst, statt dass hier vorab gefiltert wird.
+const $rewardsBtn = document.getElementById('rewards-btn');
+const $rewardsPanel = document.getElementById('rewards-panel');
+
+async function oeffneBelohnungen() {
+  $rewardsPanel.classList.toggle('hidden');
+  if ($rewardsPanel.classList.contains('hidden')) return;
+  $rewardsPanel.textContent = 'lädt …';
+  const r = await window.twitchDual.getRewards();
+  if (!r.ok) { $rewardsPanel.textContent = '⚠ ' + r.error; return; }
+  if (!r.rewards.length) { $rewardsPanel.textContent = 'Keine Belohnungen verfügbar.'; return; }
+  $rewardsPanel.innerHTML = '';
+  for (const b of r.rewards) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'reward';
+    el.textContent = b.title + ' · ' + b.cost.toLocaleString('de-DE');
+    // Punkte ausgeben ist nicht umkehrbar -> Rueckfrage ist verbindlich (siehe Task-Brief-Korrektur).
+    el.onclick = async () => {
+      if (!confirm('„' + b.title + '" für ' + b.cost.toLocaleString('de-DE') + ' Punkte einlösen?')) return;
+      el.disabled = true;
+      // Bruecke will das ganze Objekt (id/title/cost), keine blosse ID -> siehe Korrektur Punkt 2.
+      const res = await window.twitchDual.redeemReward({ id: b.id, title: b.title, cost: b.cost }, '');
+      el.textContent = res.ok ? '✓ ' + b.title : '⚠ ' + (res.error || 'fehlgeschlagen');
+      if (!res.ok) el.disabled = false;
+    };
+    $rewardsPanel.appendChild(el);
+  }
+}
+
+$rewardsBtn.addEventListener('click', oeffneBelohnungen);
