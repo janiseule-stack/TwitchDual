@@ -195,8 +195,11 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       };
       broadcast('load', payload);
       // Kanalwechsel: Chip sofort leeren statt bis zu 15s den alten Stand zu
-      // zeigen. Der neue Stand kommt innerhalb von 15s per Takt nach.
+      // zeigen. Der neue Stand kommt innerhalb von 15s per Takt nach. Die
+      // Basislinie muss mit, sonst meldet der neue Kanal seinen vollen
+      // Kontostand als Zuwachs.
       broadcast('points-update', { balance: null, displayName: null, fehler: null });
+      pointsState.standVergessen();
       punkteChannelId = null;
       // Ein erfolgreicher Ladevorgang heisst: das Home-Overlay ist zu. Der
       // Weg "aus Home heraus einen Kanal starten" schickt kein home-close
@@ -230,8 +233,10 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       badgeCatalog
     };
     broadcast('load', payload);
-    // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben.
+    // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben, inklusive der
+    // Basislinie.
     broadcast('points-update', { balance: null, displayName: null, fehler: null });
+    pointsState.standVergessen();
     punkteChannelId = null;
     punkteHomeOffen = false; // wie im Live-Zweig: geladen heisst Overlay zu
     currentLiveChannel = null;
@@ -494,10 +499,23 @@ async function punkteTick() {
         return;
       }
       pointsState.abfrageOk(Date.now());
+      // ctx.balance ist der Stand VOR einem Claim. Klappt die Kiste, liefert
+      // die Mutation den Stand danach - erst der ist aktuell, und die
+      // Differenz ist der Kistenbetrag.
+      let stand = ctx.balance;
+      let kistenBetrag = 0;
       if (ctx.claimID && pointsState.darfClaimen(ctx.claimID)) {
         try {
           const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
-          if (!r.ok) pointsState.claimFehlgeschlagen(ctx.claimID);
+          if (!r.ok) {
+            pointsState.claimFehlgeschlagen(ctx.claimID);
+          } else if (r.currentPoints != null) {
+            kistenBetrag = Math.max(0, r.currentPoints - ctx.balance);
+            stand = r.currentPoints;
+          }
+          // r.ok ohne currentPoints: Stand bleibt der aus context(), der
+          // Zuwachs faellt beim naechsten Takt als "passiv" auf. Lieber eine
+          // ungenaue Einordnung als gar keine Meldung.
         } catch (e) {
           // Wirft kisteEinloesen (z.B. beide Integrity-Versuche mit
           // IntegrityCheckFailed abgelehnt), zaehlt das genauso als
@@ -507,7 +525,15 @@ async function punkteTick() {
           throw e;
         }
       }
-      broadcast('points-update', { balance: ctx.balance, displayName: ctx.displayName, fehler: null });
+      broadcast('points-update', {
+        balance: stand,
+        displayName: ctx.displayName,
+        fehler: null,
+        zuwaechse: pointsState.zuwaechse(stand, kistenBetrag),
+        punkteName: ctx.punkteName,
+        iconUrl: ctx.iconUrl,
+        channelLogin: currentLiveChannel
+      });
     } catch (e) {
       // Abgelaufener Token: Takt anhalten (Spec). Der Chip zeigt die Meldung
       // samt Knopf zum Neuanmelden; ein Weiterklopfen mit totem Token bringt
