@@ -708,6 +708,9 @@ function applyTheme(prefs) {
       chip.classList.toggle('active', !!active && chip.dataset.id === active.id);
     }
   }
+  // Akzentfarbe bestimmt die Farbfamilie des Ersatz-Symbols - ohne das
+  // haengt nach einem Farbwechsel bis zu 15 s das alte Emote da.
+  if ($pointsValue && $pointsValue.textContent) setzePunkteSymbol(letzterIconUrl, letzterKanal);
 }
 
 window.twitchDual.getUiPrefs()
@@ -1131,6 +1134,38 @@ window.twitchDual.onChatRoom((r) => {
 // Zeigt Stand, Fehler oder den Anmelde-Knopf. Der Token selbst bleibt im
 // Main-Prozess; hier kommt nur der abgeleitete Punktestand per IPC an.
 const $pointsChip = document.getElementById('points-chip');
+const $pointsIcon = document.getElementById('points-icon');
+const $pointsSvg = document.getElementById('points-svg');
+const $pointsValue = document.getElementById('points-value');
+const $pointsGain = document.getElementById('points-gain');
+// Fuer die Symbolwahl: der Kanal kommt mit points-update, die Akzentfarbe aus
+// den Theme-Einstellungen. Gemerkt, damit ein Farbwechsel das Symbol neu
+// waehlen kann, ohne auf den naechsten Takt zu warten.
+let letzterIconUrl = null;
+let letzterKanal = null;
+
+// Ebene 1 Kanal-Icon, Ebene 2 passendes 7TV-Emote, Ebene 3 eingebautes SVG.
+// Ebene 3 ist bewusst kein Netzbild - sie muss auch dann noch da sein, wenn
+// gar nichts laedt.
+function setzePunkteSymbol(iconUrl, channelLogin) {
+  letzterIconUrl = iconUrl || null;
+  letzterKanal = channelLogin || null;
+  const emote = PointsIcon.waehleEmote(themePrefs.chatAccent, letzterKanal);
+  const ebene2 = emote ? emote.url : null;
+  const zeigeSvg = () => {
+    $pointsIcon.classList.add('hidden');
+    $pointsSvg.classList.remove('hidden');
+  };
+  const zeige = (url, weiter) => {
+    $pointsSvg.classList.add('hidden');
+    $pointsIcon.classList.remove('hidden');
+    $pointsIcon.onerror = weiter;
+    $pointsIcon.src = url;
+  };
+  if (letzterIconUrl) zeige(letzterIconUrl, () => (ebene2 ? zeige(ebene2, zeigeSvg) : zeigeSvg()));
+  else if (ebene2) zeige(ebene2, zeigeSvg);
+  else zeigeSvg();
+}
 
 function zeigePunkte(p) {
   if (!$pointsChip) return;
@@ -1139,7 +1174,9 @@ function zeigePunkte(p) {
     // Nichts scheitert still: Fehler steht im Chip, nicht nur in der Konsole.
     const abgelaufen = /abgelaufen/i.test(p.fehler);
     $pointsChip.classList.add(abgelaufen ? 'err' : 'stale');
-    $pointsChip.textContent = abgelaufen ? '⚠ Anmeldung abgelaufen' : '⚠ ' + p.fehler;
+    $pointsIcon.classList.add('hidden');
+    $pointsSvg.classList.add('hidden');
+    $pointsValue.textContent = abgelaufen ? '⚠ Anmeldung abgelaufen' : '⚠ ' + p.fehler;
     $pointsChip.onclick = abgelaufen ? starteWebLogin : null;
     $pointsChip.classList.toggle('klickbar', abgelaufen);
     return;
@@ -1148,9 +1185,16 @@ function zeigePunkte(p) {
   // (main.js). Bis der neue Stand da ist (binnen ~15s), lieber nichts zeigen
   // als eine falsche Zahl vom alten Kanal.
   if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); return; }
-  $pointsChip.textContent = '🪙 ' + p.balance.toLocaleString('de-DE');
+  setzePunkteSymbol(p.iconUrl, p.channelLogin);
+  $pointsChip.title = p.punkteName || 'Kanalpunkte';
+  $pointsValue.textContent = p.balance.toLocaleString('de-DE');
   $pointsChip.onclick = null;
   $pointsChip.classList.remove('klickbar');
+  if (p.zuwaechse && p.zuwaechse.length) spieleZuwaechse(p.zuwaechse);
+}
+
+function spieleZuwaechse(liste) {
+  // In Task 9 gefuellt.
 }
 
 async function starteWebLogin() {
@@ -1158,7 +1202,9 @@ async function starteWebLogin() {
   if (!r.ok) {
     $pointsChip.classList.remove('hidden');
     $pointsChip.classList.add('err');
-    $pointsChip.textContent = '⚠ ' + r.error;
+    $pointsIcon.classList.add('hidden');
+    $pointsSvg.classList.add('hidden');
+    $pointsValue.textContent = '⚠ ' + r.error;
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
     return;
@@ -1167,7 +1213,9 @@ async function starteWebLogin() {
   // weg - kommt kein points-update (Player nicht live oder pausiert), bliebe
   // der Chip sonst dauerhaft klickbar und jeder weitere Klick oeffnete ein
   // weiteres Anmeldefenster samt eigenem Abfrage-Takt.
-  $pointsChip.textContent = '🪙 …';
+  $pointsIcon.classList.add('hidden');
+  $pointsSvg.classList.add('hidden');
+  $pointsValue.textContent = '…';
   $pointsChip.onclick = null;
   $pointsChip.classList.remove('klickbar');
 }
@@ -1179,7 +1227,9 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
   const s = await window.twitchDual.webLoginStatus();
   if (!s.angemeldet) {
     $pointsChip.classList.remove('hidden');
-    $pointsChip.textContent = '🪙 Für Kanalpunkte anmelden';
+    $pointsIcon.classList.add('hidden');
+    $pointsSvg.classList.add('hidden');
+    $pointsValue.textContent = 'Für Kanalpunkte anmelden';
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
   }
