@@ -1243,8 +1243,11 @@ async function oeffneBelohnungen() {
       laufendeEinloesungen.add(b.id);
       el.disabled = true;
       try {
-        // Bruecke will das ganze Objekt (id/title/cost), keine blosse ID -> siehe Korrektur Punkt 2.
-        const res = await window.twitchDual.redeemReward({ id: b.id, title: b.title, cost: b.cost }, '');
+        // Bruecke will das ganze Objekt (id/title/cost/prompt), keine blosse ID.
+        // prompt gehoert zwingend dazu: Twitch vergleicht die Eigenschaften und
+        // antwortet sonst mit PROPERTIES_MISMATCH (live belegt 2026-08-12).
+        const res = await window.twitchDual.redeemReward(
+          { id: b.id, title: b.title, cost: b.cost, prompt: b.prompt || '' }, '');
         zeigeEinloeseErgebnis(res.ok ? '✓ ' + b.title + ' eingelöst'
                                      : '⚠ ' + (res.error || 'fehlgeschlagen'), res.ok);
       } catch (e) {

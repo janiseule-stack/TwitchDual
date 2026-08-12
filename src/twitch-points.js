@@ -23,7 +23,7 @@ const Q_REWARDS = `query($channelLogin: String!) {
   community: user(login: $channelLogin) {
     id
     channel { communityPointsSettings {
-      customRewards { id title cost isEnabled isPaused }
+      customRewards { id title cost prompt isEnabled isPaused }
     } }
   }
 }`;
@@ -101,12 +101,18 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
       const liste = (s && s.customRewards) || [];
       return liste
         .filter(r => r.isEnabled && !r.isPaused)
-        .map(r => ({ id: r.id, title: r.title, cost: r.cost, enabled: true }));
+        // prompt wird durchgereicht, weil redeem ihn zwingend mitschicken muss
+        // (sonst PROPERTIES_MISMATCH). null -> '' , damit die Mutation immer
+        // einen String bekommt.
+        .map(r => ({ id: r.id, title: r.title, cost: r.cost, prompt: r.prompt || '', enabled: true }));
     },
 
     // transactionID: von uns erzeugt, macht den Aufruf idempotent-faehig.
-    // cost und title verlangt Twitch zwingend (im Spike gemessen), sie muessen
-    // aus der Belohnungsliste durchgereicht werden.
+    // cost, title und prompt verlangt Twitch zwingend und vergleicht sie mit
+    // der Belohnung auf dem Server - damit niemand eine veraltete Fassung
+    // einloest. Fehlt einer davon, kommt PROPERTIES_MISMATCH zurueck (live
+    // belegt 2026-08-12 am Kanal tolkin: cost+title allein reichten nicht).
+    // Alle drei muessen deshalb aus der Belohnungsliste durchgereicht werden.
     async redeem(token, channelID, reward, textInput) {
       const d = await ruf(token, M_REDEEM, {
         input: {
@@ -114,6 +120,7 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
           rewardID: reward.id,
           cost: reward.cost,
           title: reward.title,
+          prompt: reward.prompt || '',
           transactionID: neueTransaktionsId(),
           textInput: textInput || ''
         }

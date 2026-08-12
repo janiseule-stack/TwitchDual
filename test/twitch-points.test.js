@@ -73,28 +73,51 @@ test('claim meldet Twitchs Fehlercode weiter', async () => {
 
 test('rewards liefert nur aktive Belohnungen', async () => {
   const f = fakeFetch({ data: { community: { id: '1', channel: { communityPointsSettings: { customRewards: [
-    { id: 'a', title: 'Hydrate', cost: 100, isEnabled: true, isPaused: false },
-    { id: 'b', title: 'Aus', cost: 50, isEnabled: false, isPaused: false },
-    { id: 'c', title: 'Pausiert', cost: 50, isEnabled: true, isPaused: true }
+    { id: 'a', title: 'Hydrate', cost: 100, prompt: 'Trink was', isEnabled: true, isPaused: false },
+    { id: 'b', title: 'Aus', cost: 50, prompt: '', isEnabled: false, isPaused: false },
+    { id: 'c', title: 'Pausiert', cost: 50, prompt: '', isEnabled: true, isPaused: true }
   ] } } } } });
   const api = createPointsApi({ fetchImpl: f });
-  assert.deepEqual(await api.rewards('geheim', 'x'), [{ id: 'a', title: 'Hydrate', cost: 100, enabled: true }]);
+  assert.deepEqual(await api.rewards('geheim', 'x'),
+    [{ id: 'a', title: 'Hydrate', cost: 100, prompt: 'Trink was', enabled: true }]);
+});
+
+// Ohne prompt im Abfrage-Ergebnis kann redeem ihn nicht mitschicken - und
+// genau daran scheiterte das Einloesen live mit PROPERTIES_MISMATCH.
+test('rewards gibt den prompt weiter, auch wenn Twitch null liefert', async () => {
+  const f = fakeFetch({ data: { community: { id: '1', channel: { communityPointsSettings: { customRewards: [
+    { id: 'a', title: 'Ohne Text', cost: 10, prompt: null, isEnabled: true, isPaused: false }
+  ] } } } } });
+  const api = createPointsApi({ fetchImpl: f });
+  assert.deepEqual(await api.rewards('geheim', 'x'),
+    [{ id: 'a', title: 'Ohne Text', cost: 10, prompt: '', enabled: true }]);
 });
 
 // Korrektur aus dem Spike (Task 1): redeem braucht cost, title und eine
 // selbst erzeugte transactionID -- die urspruengliche Plan-Form wurde von
 // Twitch mit einem Schema-Fehler abgelehnt.
 
-test('redeem schickt cost, title und eine transactionID mit', async () => {
+test('redeem schickt cost, title, prompt und eine transactionID mit', async () => {
   const f = fakeFetch({ data: { redeemCommunityPointsCustomReward: { error: null } } });
   const api = createPointsApi({ fetchImpl: f });
-  const r = await api.redeem('geheim', '78874179', { id: 'r1', title: 'Brot', cost: 200 }, '');
+  const r = await api.redeem('geheim', '78874179', { id: 'r1', title: 'Brot', cost: 200, prompt: 'Mit Butter' }, '');
   assert.deepEqual(r, { ok: true, error: null });
   const input = f.aufrufe[0].body.variables.input;
   assert.equal(input.rewardID, 'r1');
   assert.equal(input.cost, 200);          // Twitch verlangt Int! - im Spike gemessen
   assert.equal(input.title, 'Brot');      // Twitch verlangt String!
+  assert.equal(input.prompt, 'Mit Butter');
   assert.ok(input.transactionID && input.transactionID.length >= 16);
+});
+
+// Live belegt (2026-08-12, Kanal tolkin): mit cost+title allein antwortet
+// Twitch PROPERTIES_MISMATCH. Der Server vergleicht die sichtbaren
+// Eigenschaften der Belohnung - der prompt gehoert dazu.
+test('redeem schickt auch einen leeren prompt als String', async () => {
+  const f = fakeFetch({ data: { redeemCommunityPointsCustomReward: { error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  await api.redeem('geheim', '1', { id: 'r1', title: 'Brot', cost: 200 }, '');
+  assert.equal(f.aufrufe[0].body.variables.input.prompt, '');
 });
 
 // Review-Fund: claim hatte diesen Test, redeem nicht - dabei ist redeem der
