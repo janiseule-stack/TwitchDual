@@ -1201,8 +1201,30 @@ function zeigePunkte(p) {
   if (p.zuwaechse && p.zuwaechse.length) spieleZuwaechse(p.zuwaechse);
 }
 
+// Spielt die Zugewinne nacheinander ab. Zwei im selben Takt (Kiste plus
+// passiver Tropfen) sind moeglich - versetzt, sonst liegen zwei Zahlen
+// uebereinander.
 function spieleZuwaechse(liste) {
-  // In Task 9 gefuellt.
+  liste.forEach((z, i) => {
+    setTimeout(() => zeigeZuwachs(z), i * 450);
+  });
+}
+
+function zeigeZuwachs(z) {
+  if (!$pointsGain) return;
+  const kiste = z.quelle === 'kiste';
+  $pointsGain.textContent = '+' + z.betrag.toLocaleString('de-DE');
+  // Klasse weg -> Reflow erzwingen -> Klasse wieder dran. Ohne das Auslesen
+  // von offsetWidth fasst der Browser beide Aenderungen zusammen und die
+  // Animation laeuft beim zweiten Mal nicht erneut.
+  $pointsGain.className = '';
+  void $pointsGain.offsetWidth;
+  $pointsGain.classList.add(kiste ? 'kiste' : 'passiv');
+  if ($rewardsBtn) {
+    $rewardsBtn.classList.remove('wackelt-kiste', 'wackelt-passiv');
+    void $rewardsBtn.offsetWidth;
+    $rewardsBtn.classList.add(kiste ? 'wackelt-kiste' : 'wackelt-passiv');
+  }
 }
 
 async function starteWebLogin() {
@@ -1326,3 +1348,16 @@ async function oeffneBelohnungen() {
 }
 
 $rewardsBtn.addEventListener('click', oeffneBelohnungen);
+
+// animationend statt Timer: der Knoten verschwindet genau dann, wenn die
+// Animation wirklich durch ist - auch wenn sie unterwegs neu gestartet wurde.
+if ($pointsGain) {
+  $pointsGain.addEventListener('animationend', () => {
+    $pointsGain.className = 'hidden';
+  });
+}
+if ($rewardsBtn) {
+  $rewardsBtn.addEventListener('animationend', () => {
+    $rewardsBtn.classList.remove('wackelt-kiste', 'wackelt-passiv');
+  });
+}
