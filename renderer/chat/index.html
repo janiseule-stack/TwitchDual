@@ -84,7 +84,22 @@
   </div>
   <div id="footer">
     <span id="conn">nicht verbunden</span>
-    <span id="points-chip" class="hidden" title="Kanalpunkte"></span>
+    <span id="points-wrap">
+      <span id="points-chip" class="hidden" title="Kanalpunkte">
+        <img id="points-icon" class="hidden" alt="" />
+        <!-- Letzte Rueckfallebene: bewusst KEIN Netzbild. Eine Ebene, die
+             selbst an einem fremden CDN haengt, kann genau den Fehler haben,
+             den sie abfangen soll. Erbt ueber currentColor die Akzentfarbe. -->
+        <svg id="points-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="6.6" fill="none" stroke="currentColor" stroke-width="1.6" />
+          <circle cx="8" cy="8" r="2.6" fill="currentColor" />
+        </svg>
+        <span id="points-value"></span>
+      </span>
+      <!-- Geschwister, nicht Kind: als Kind wuerde jedes Schreiben in den
+           Chip die Animation mitreissen. -->
+      <span id="points-gain" class="hidden" aria-hidden="true"></span>
+    </span>
     <span id="rate"></span>
   </div>
 
