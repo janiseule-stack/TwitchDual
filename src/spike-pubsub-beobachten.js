@@ -10,12 +10,19 @@
 // Spike unberuehrt (Review-Vorgabe, git diff master dort leer).
 const DIRECTORY_URL = 'https://www.twitch.tv/directory';
 
-// Zugangsdaten duerfen nie ins Protokoll. Twitch schickt den Token im
-// LISTEN-Rahmen als "auth_token"; wir ersetzen den Wert vor dem Schreiben.
+// Zugangsdaten duerfen nie ins Protokoll. Der Token taucht in mehreren
+// Formen auf: PubSub/Hermes-LISTEN als "auth_token", Hermes-Authenticate als
+// "token", der IRC-Rahmen als "PASS oauth:<token>" (klein, mit Doppelpunkt),
+// und Kopfzeilen als "Authorization: OAuth <token>". Alle vier werden vor
+// dem Schreiben ersetzt. Reihenfolge bewusst: "oauth:" vor "PASS", sonst
+// wuerde "PASS \S+" schon vorher alles verschlucken - beides ist ok, solange
+// am Ende nichts Lesbares uebrig bleibt.
 function schwaerzen(text) {
   return String(text || '')
-    .replace(/("auth_token"\s*:\s*")[^"]*(")/g, '$1***$2')
-    .replace(/(OAuth\s+)[A-Za-z0-9]+/g, '$1***');
+    .replace(/("(?:auth_token|token|access_token)"\s*:\s*")[^"]*(")/gi, '$1***$2')
+    .replace(/(oauth:)[A-Za-z0-9]+/gi, '$1***')
+    .replace(/(OAuth\s+)[A-Za-z0-9]+/gi, '$1***')
+    .replace(/(PASS\s+)\S+/g, '$1***');
 }
 
 function kuerzen(text, max = 600) {
