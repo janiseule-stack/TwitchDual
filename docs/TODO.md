@@ -222,8 +222,21 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Alias fuer `user(login:)`, ein Wurzelfeld `community` gibt es nicht.
 - **Kisten-Claim braucht `Client-Integrity`-Kopfzeilen** aus einer echten
   Seitensitzung (selbst anfordern reicht nicht, mitlesen von `twitch.tv/directory`
-  genuegt). `redeem` verlangt zusaetzlich `cost`/`title`/`transactionID` — eine
-  blosse Belohnungs-ID wird abgewiesen.
+  genuegt). `redeem` verlangt zusaetzlich `cost`/`title`/`prompt`/`transactionID` —
+  eine blosse Belohnungs-ID wird abgewiesen.
+- **`prompt` ist beim Einloesen Pflicht (live belegt 2026-08-12).** Twitch
+  vergleicht die sichtbaren Eigenschaften der Belohnung mit denen auf dem
+  Server, damit niemand eine veraltete Fassung einloest. Fehlt der `prompt`,
+  antwortet die Mutation `PROPERTIES_MISMATCH`. Gleiche Belohnung, einziger
+  Unterschied: `ohne prompt -> ok:false PROPERTIES_MISMATCH`,
+  `mit prompt -> ok:true`. `null` muss dabei als `''` gehen.
+- **Feld `defaultCost` gibt es auf `CommunityPointsCustomReward` nicht** — eine
+  Abfrage, die es anfordert, wird komplett abgewiesen („Cannot query field").
+- **Einloesungen erscheinen NICHT im Chat.** Twitch verteilt sie ueber PubSub
+  (`community-points-channel-v1`), nicht ueber IRC; TwitchDuals Chat haengt am
+  IRC. Nur Belohnungen mit `isUserInputRequired: true` kommen als normale
+  Nachricht mit `custom-reward-id`-Tag durch. Beleg der Einloesung sind also
+  die „✓ eingeloest"-Meldung im Panel und der fallende Punktestand.
 - **Token verlaesst nie den Main-Prozess** (safeStorage-verschluesselt); ueber
   IPC gehen nur abgeleitete Werte: Bilanz, Belohnungsliste, Fehlertext.
 - **Takt:** alle 15 s, nur bei Live-Kanal + spielendem Player + Token. Fehler
