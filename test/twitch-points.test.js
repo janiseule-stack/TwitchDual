@@ -19,7 +19,8 @@ test('context liefert Punktestand und Kisten-ID', async () => {
   } } });
   const api = createPointsApi({ fetchImpl: f });
   const r = await api.context('geheim', 'krokoboss');
-  assert.deepEqual(r, { channelID: '78874179', displayName: 'krokoboss', balance: 34724, claimID: 'kiste-1' });
+  assert.deepEqual(r, { channelID: '78874179', displayName: 'krokoboss', balance: 34724, claimID: 'kiste-1',
+    punkteName: null, iconUrl: null });
 });
 
 test('context schickt die richtigen Header', async () => {
@@ -206,4 +207,63 @@ test('claim mit Fehler liefert ok=false und keinen Stand', async () => {
   assert.equal(r.ok, false);
   assert.equal(r.error, 'ALREADY_CLAIMED');
   assert.equal(r.currentPoints, null);
+});
+
+// Task 2: der Punkte-Chip im Renderer soll das kanaleigene Punktesymbol
+// zeigen statt eines starren Muenz-Emojis. Twitch liefert Name und Icon-URL
+// unauthentifiziert in derselben Kontext-Abfrage mit (belegt 2026-08-12,
+// Kanal Papaplatte) - kostet also keinen zusaetzlichen Netzverkehr.
+test('context liefert Name und Symbol der Kanalpunkte', async () => {
+  const f = fakeFetch({ data: { community: {
+    id: '50985620', displayName: 'Papaplatte',
+    channel: {
+      communityPointsSettings: { name: 'Papapoints', image: { url: 'https://cdn/icon-1.png' } },
+      self: { communityPoints: { balance: 4200, availableClaim: null } }
+    }
+  } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const c = await api.context('tok', 'papaplatte');
+  assert.equal(c.balance, 4200);
+  assert.equal(c.punkteName, 'Papapoints');
+  assert.equal(c.iconUrl, 'https://cdn/icon-1.png');
+});
+
+// Rund die Haelfte der Kanaele setzt beides nicht (belegt 2026-08-12 gegen
+// die echte API an xQc/shroud/Knossi) - der Rueckfall ist hier Pflicht.
+test('context ohne communityPointsSettings liefert beide Felder als null', async () => {
+  const f = fakeFetch({ data: { community: {
+    id: '1', displayName: 'xQc',
+    channel: {
+      communityPointsSettings: null,
+      self: { communityPoints: { balance: 10, availableClaim: null } }
+    }
+  } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const c = await api.context('tok', 'xqc');
+  assert.equal(c.punkteName, null);
+  assert.equal(c.iconUrl, null);
+});
+
+test('context mit Name aber ohne Bild liefert nur den Namen', async () => {
+  const f = fakeFetch({ data: { community: {
+    id: '1', displayName: 'Kanal',
+    channel: {
+      communityPointsSettings: { name: 'Sternchen', image: null },
+      self: { communityPoints: { balance: 10, availableClaim: null } }
+    }
+  } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const c = await api.context('tok', 'kanal');
+  assert.equal(c.punkteName, 'Sternchen');
+  assert.equal(c.iconUrl, null);
+});
+
+test('context ohne community liefert weiterhin lauter null', async () => {
+  const f = fakeFetch({ data: { community: null } });
+  const api = createPointsApi({ fetchImpl: f });
+  const c = await api.context('tok', 'gibtsnicht');
+  assert.equal(c.channelID, null);
+  assert.equal(c.balance, null);
+  assert.equal(c.punkteName, null);
+  assert.equal(c.iconUrl, null);
 });

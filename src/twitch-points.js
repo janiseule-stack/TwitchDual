@@ -11,7 +11,10 @@ const ENDPUNKT = 'https://gql.twitch.tv/gql';
 const Q_CONTEXT = `query($channelLogin: String!) {
   community: user(login: $channelLogin) {
     id displayName
-    channel { self { communityPoints { balance availableClaim { id } } } }
+    channel {
+      communityPointsSettings { name image { url } }
+      self { communityPoints { balance availableClaim { id } } }
+    }
   }
 }`;
 
@@ -78,13 +81,19 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
     async context(token, channelLogin) {
       const d = await ruf(token, Q_CONTEXT, { channelLogin });
       const c = d && d.community;
-      if (!c) return { channelID: null, displayName: null, balance: null, claimID: null };
+      if (!c) return { channelID: null, displayName: null, balance: null, claimID: null, punkteName: null, iconUrl: null };
       const cp = c.channel && c.channel.self && c.channel.self.communityPoints;
+      // Kanaleigenes Punkte-Symbol und -Name. Rund die Haelfte der Kanaele
+      // setzt beides nicht (am 2026-08-12 gegen die echte API geprueft) -
+      // der Renderer hat dafuer eine Rueckfallebene.
+      const cps = c.channel && c.channel.communityPointsSettings;
       return {
         channelID: c.id,
         displayName: c.displayName,
         balance: cp ? cp.balance : null,
-        claimID: cp && cp.availableClaim ? cp.availableClaim.id : null
+        claimID: cp && cp.availableClaim ? cp.availableClaim.id : null,
+        punkteName: (cps && cps.name) || null,
+        iconUrl: (cps && cps.image && cps.image.url) || null
       };
     },
 
