@@ -700,16 +700,19 @@ app.whenReady().then(async () => {
   createWindows();
 
   // SPIKE 2026-08-12 (wieder entfernen): Beobachtet, welche WebSockets die
-  // echte Twitch-Seite oeffnet. Nur mit TWITCHDUAL_PUBSUB_SPIKE=1.
+  // echte Twitch-Seite oeffnet. Nur mit TWITCHDUAL_PUBSUB_SPIKE=1. Eigenes
+  // Fenster statt ernteIntegrity: die haelt sonst 5 Minuten lang den
+  // einzigen onBeforeSendHeaders-Lauscher der Sitzung besetzt und wuerde
+  // einen gleichzeitigen Kisten-Claim verbrennen.
   if (process.env.TWITCHDUAL_PUBSUB_SPIKE === '1') {
-    const { beobachteWebSockets } = require('./src/spike-pubsub-beobachten');
+    const { beobachteEchteSeite } = require('./src/spike-pubsub-beobachten');
     setTimeout(() => {
-      ernteIntegrity({
+      beobachteEchteSeite({
         BrowserWindow,
         ses: session.defaultSession,
-        timeoutMs: 300000, // 5 Minuten offen lassen, damit Rahmen auflaufen
-        beiFenster: (wc) => beobachteWebSockets(wc, updaterLog)
-      }).then((satz) => updaterLog('spike-ernte-fertig', satz ? 'Satz erhalten' : 'ohne Satz'));
+        log: updaterLog,
+        dauerMs: 300000 // 5 Minuten zusehen, damit Rahmen auflaufen
+      });
     }, 5000);
   }
 
