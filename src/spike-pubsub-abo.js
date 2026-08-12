@@ -69,7 +69,12 @@ function starteAbo({ url = HERMES_URL, token, themen, log }) {
         return;
       }
 
-      if (typ === 'welcome') {
+      // Der gemessene Begruessungs-Rahmen (messung-stufe0.md) zeigte kein
+      // sichtbares "type" - der Mitschnitt war bei 600 Zeichen abgeschnitten,
+      // ob type dahinter noch kam ist ungemessen. Deshalb zusaetzlich am
+      // Feld "welcome" erkennen, damit diese Zeile (Beleg fuer "Verbindung
+      // steht") in beiden Faellen greift und nicht in den Sammel-Zweig faellt.
+      if (typ === 'welcome' || (rahmen && rahmen.welcome)) {
         // schwaerzen() ist hier ein No-Op (welcome traegt kein Token), aber
         // die bindende Vorgabe "alles roh Protokollierte vorher schwaerzen"
         // gilt ausnahmslos - lieber ein wirkungsloser Aufruf als eine Luecke.
