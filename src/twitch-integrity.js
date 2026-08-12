@@ -67,7 +67,7 @@ function createIntegrityStore({ haltbarkeitMs = 1200000 } = {}) {
 // Client-Integrity-Kopfzeile mit und schliesst das Fenster wieder zu - in
 // JEDEM Fall, sonst bleibt ein unsichtbares Fenster fuer immer offen.
 // Kein Aufruf von gql.twitch.tv/integrity: der Weg ist gemessen und wertlos.
-function ernteIntegrity({ BrowserWindow, ses, timeoutMs = 30000 }) {
+function ernteIntegrity({ BrowserWindow, ses, timeoutMs = 30000, beiFenster = null }) {
   return new Promise((resolve) => {
     let fertig = false;
     let win = null;
@@ -108,6 +108,13 @@ function ernteIntegrity({ BrowserWindow, ses, timeoutMs = 30000 }) {
         }
       });
       win.webContents.setAudioMuted(true);
+
+      // SPIKE-HAKEN (2026-08-12, wieder entfernen): erlaubt dem Aufrufer,
+      // sich an das Ernte-Fenster zu haengen. Fehler hier duerfen die Ernte
+      // nicht kippen - sie ist der wichtigere Vorgang.
+      if (beiFenster) {
+        try { beiFenster(win.webContents); } catch { /* Spike darf nie stoeren */ }
+      }
       win.on('closed', beiSchliessen);
       ses.webRequest.onBeforeSendHeaders(GQL_FILTER, beiAnfrage);
 

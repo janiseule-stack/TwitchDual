@@ -699,6 +699,20 @@ app.whenReady().then(async () => {
   webToken = webAuth.lesen(); // einmalig beim Start, siehe Kommentar oben bei der Deklaration
   createWindows();
 
+  // SPIKE 2026-08-12 (wieder entfernen): Beobachtet, welche WebSockets die
+  // echte Twitch-Seite oeffnet. Nur mit TWITCHDUAL_PUBSUB_SPIKE=1.
+  if (process.env.TWITCHDUAL_PUBSUB_SPIKE === '1') {
+    const { beobachteWebSockets } = require('./src/spike-pubsub-beobachten');
+    setTimeout(() => {
+      ernteIntegrity({
+        BrowserWindow,
+        ses: session.defaultSession,
+        timeoutMs: 300000, // 5 Minuten offen lassen, damit Rahmen auflaufen
+        beiFenster: (wc) => beobachteWebSockets(wc, updaterLog)
+      }).then((satz) => updaterLog('spike-ernte-fertig', satz ? 'Satz erhalten' : 'ohne Satz'));
+    }, 5000);
+  }
+
   // Kanalpunkte-Takt: tickt jede Sekunde, sollAbfragen() im punkteTick laesst
   // die eigentliche Abfrage nur alle 15s (bzw. seltener nach Fehlern) durch.
   // Erst hier starten, nicht auf Modulebene - sonst liefe der Takt schon vor
