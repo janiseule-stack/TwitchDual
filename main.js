@@ -692,6 +692,22 @@ process.on('unhandledRejection', (reason) => {
   updaterLog('unhandled-rejection', reason && reason.message ? reason.message : String(reason));
 });
 
+// SPIKE-Helfer (wieder entfernen): eigene Benutzerkennung ueber dieselbe
+// GQL-Anbindung, mit der die Punkte laufen.
+async function eigeneBenutzerId() {
+  const res = await fetch('https://gql.twitch.tv/gql', {
+    method: 'POST',
+    headers: {
+      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      'Content-Type': 'application/json',
+      'Authorization': 'OAuth ' + webToken
+    },
+    body: JSON.stringify({ query: '{ currentUser { id } }' })
+  });
+  const d = JSON.parse(await res.text());
+  return d && d.data && d.data.currentUser ? d.data.currentUser.id : null;
+}
+
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
@@ -714,6 +730,33 @@ app.whenReady().then(async () => {
         dauerMs: 300000 // 5 Minuten zusehen, damit Rahmen auflaufen
       });
     }, 5000);
+  }
+
+  // SPIKE 2026-08-12 (wieder entfernen): eigenes Hermes-Abo mit unserem Web-Token.
+  if (process.env.TWITCHDUAL_PUBSUB_SPIKE === '1') {
+    const { starteAbo } = require('./src/spike-pubsub-abo');
+    setTimeout(async () => {
+      try {
+        if (!webToken || !currentLiveChannel) {
+          updaterLog('spike-abo-absage', 'kein Token oder kein Live-Kanal');
+          return;
+        }
+        const ctx = await pointsApi.context(webToken, currentLiveChannel);
+        const eigeneId = await eigeneBenutzerId();
+        updaterLog('spike-abo-start', JSON.stringify({ kanal: ctx.channelID, ich: eigeneId }));
+        starteAbo({
+          token: webToken,
+          themen: [
+            'community-points-user-v1.' + eigeneId,
+            'community-points-channel-v1.' + ctx.channelID,
+            'pinned-chat-updates-v1.' + ctx.channelID
+          ],
+          log: updaterLog
+        });
+      } catch (e) {
+        updaterLog('spike-abo-fehler', e.message);
+      }
+    }, 30000); // erst nachdem ein Kanal geladen sein kann
   }
 
   // Kanalpunkte-Takt: tickt jede Sekunde, sollAbfragen() im punkteTick laesst
