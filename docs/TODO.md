@@ -203,6 +203,44 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   echten Vorfall) plus Ende-zu-Ende-Beleg in der laufenden App — kuenstlich
   erzeugter Fehlzustand wurde nach 1,59 s repariert, Element danach stabil.
 
+## Kanalpunkte mit Web-Login (v1.9.0)
+
+- **Warum ein zweiter Login:** Der Device-Flow-Token (v1.8.0) darf keine
+  Kanalpunkte lesen — dieselbe Anfrage liefert damit HTTP 401, mit einem
+  Web-Cookie-Token HTTP 200 samt `balance`. Gegenprobe ohne
+  `Authorization`-Header: `communityPoints: null`. Es haengt eindeutig am
+  Token-Typ, nicht an der API. Der frueher notierte Schluss „Kanalpunkte nicht
+  machbar" (2026-07-19) war damit falsch.
+- **Zwei Token nebeneinander, klar getrennt:** Device-Flow bleibt fuer Chat und
+  Gefolgt-Liste zustaendig, der Web-Token nur fuer Punkte. Ein Vollersatz geht
+  nicht: die Gefolgt-Liste ist fuer den Web-Token gesperrt (GQL „service error",
+  Helix „Client ID and OAuth token do not match").
+- **Rohe GraphQL-Queries statt Persisted-Hashes.** Twitch akzeptiert sie; der
+  kursierende Hash `9988086b…` ist tot (`PersistedQueryNotFound`). Uebliche
+  Auto-Claim-Tools schleppen solche Hashes mit und brechen bei jedem
+  Twitch-Deploy — davon ist die App unabhaengig. `community` ist dabei nur ein
+  Alias fuer `user(login:)`, ein Wurzelfeld `community` gibt es nicht.
+- **Kisten-Claim braucht `Client-Integrity`-Kopfzeilen** aus einer echten
+  Seitensitzung (selbst anfordern reicht nicht, mitlesen von `twitch.tv/directory`
+  genuegt). `redeem` verlangt zusaetzlich `cost`/`title`/`transactionID` — eine
+  blosse Belohnungs-ID wird abgewiesen.
+- **Token verlaesst nie den Main-Prozess** (safeStorage-verschluesselt); ueber
+  IPC gehen nur abgeleitete Werte: Bilanz, Belohnungsliste, Fehlertext.
+- **Takt:** alle 15 s, nur bei Live-Kanal + spielendem Player + Token. Fehler
+  fahren den Abstand hoch (max. 5 min), ein Kanal ohne Punkte wird gesperrt
+  statt endlos angefragt, dieselbe Kiste hoechstens dreimal versucht.
+- **Stolperstein (v1.9.0 gefixt):** `punkteHomeOffen` wurde nur vom
+  `home-close`-Signal zurueckgesetzt, das aber ausschliesslich
+  `closeHomeResume()` schickt. Der Normalweg — aus dem Home-Overlay heraus einen
+  Kanal starten — laeuft ueber `closeHome()` und blendet nur aus. Der Takt
+  schlief dadurch bis zum Programmende. Jetzt setzt ein erfolgreicher
+  Ladevorgang in `submit-load` das Flag selbst zurueck: das ist der Beleg fuers
+  geschlossene Overlay, unabhaengig vom Renderer-Pfad.
+- **Bekannt und bewusst so:** Der Anmelde-Chip ist nur sichtbar, solange kein
+  Kanal laeuft — beim Kanalwechsel leert `main.js` den Chip absichtlich
+  (`balance: null`), damit nicht 15 s lang der Stand des vorigen Kanals
+  stehenbleibt. Nach dem Anmelden steht dort ohnehin der Punktestand.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
