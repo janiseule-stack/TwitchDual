@@ -709,8 +709,10 @@ function applyTheme(prefs) {
     }
   }
   // Akzentfarbe bestimmt die Farbfamilie des Ersatz-Symbols - ohne das
-  // haengt nach einem Farbwechsel bis zu 15 s das alte Emote da.
-  if ($pointsValue && $pointsValue.textContent) setzePunkteSymbol(letzterIconUrl, letzterKanal);
+  // haengt nach einem Farbwechsel bis zu 15 s das alte Emote da. Der Merker
+  // zeigtEchtenStand statt reiner Textlaenge: Fehler-, Warte- und Anmeldetext
+  // sind auch Text, sollen aber symbolfrei bleiben.
+  if (zeigtEchtenStand) setzePunkteSymbol(letzterIconUrl, letzterKanal);
 }
 
 window.twitchDual.getUiPrefs()
@@ -1143,6 +1145,10 @@ const $pointsGain = document.getElementById('points-gain');
 // waehlen kann, ohne auf den naechsten Takt zu warten.
 let letzterIconUrl = null;
 let letzterKanal = null;
+// Merkt, ob der Chip GERADE einen echten Punktestand zeigt - Textlaenge
+// allein reicht als Wache nicht, denn Fehler-, Warte- und Anmeldetext sind
+// ebenfalls Text und duerften bei einem Farbwechsel kein Symbol bekommen.
+let zeigtEchtenStand = false;
 
 // Ebene 1 Kanal-Icon, Ebene 2 passendes 7TV-Emote, Ebene 3 eingebautes SVG.
 // Ebene 3 ist bewusst kein Netzbild - sie muss auch dann noch da sein, wenn
@@ -1176,6 +1182,7 @@ function zeigePunkte(p) {
     $pointsChip.classList.add(abgelaufen ? 'err' : 'stale');
     $pointsIcon.classList.add('hidden');
     $pointsSvg.classList.add('hidden');
+    zeigtEchtenStand = false;
     $pointsValue.textContent = abgelaufen ? '⚠ Anmeldung abgelaufen' : '⚠ ' + p.fehler;
     $pointsChip.onclick = abgelaufen ? starteWebLogin : null;
     $pointsChip.classList.toggle('klickbar', abgelaufen);
@@ -1184,10 +1191,11 @@ function zeigePunkte(p) {
   // balance == null ohne Fehler: bewusste Loeschung bei Quell-/Kanalwechsel
   // (main.js). Bis der neue Stand da ist (binnen ~15s), lieber nichts zeigen
   // als eine falsche Zahl vom alten Kanal.
-  if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); return; }
+  if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); zeigtEchtenStand = false; return; }
   setzePunkteSymbol(p.iconUrl, p.channelLogin);
   $pointsChip.title = p.punkteName || 'Kanalpunkte';
   $pointsValue.textContent = p.balance.toLocaleString('de-DE');
+  zeigtEchtenStand = true;
   $pointsChip.onclick = null;
   $pointsChip.classList.remove('klickbar');
   if (p.zuwaechse && p.zuwaechse.length) spieleZuwaechse(p.zuwaechse);
@@ -1204,6 +1212,7 @@ async function starteWebLogin() {
     $pointsChip.classList.add('err');
     $pointsIcon.classList.add('hidden');
     $pointsSvg.classList.add('hidden');
+    zeigtEchtenStand = false;
     $pointsValue.textContent = '⚠ ' + r.error;
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
@@ -1215,6 +1224,7 @@ async function starteWebLogin() {
   // weiteres Anmeldefenster samt eigenem Abfrage-Takt.
   $pointsIcon.classList.add('hidden');
   $pointsSvg.classList.add('hidden');
+  zeigtEchtenStand = false;
   $pointsValue.textContent = '…';
   $pointsChip.onclick = null;
   $pointsChip.classList.remove('klickbar');
@@ -1229,6 +1239,7 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
     $pointsChip.classList.remove('hidden');
     $pointsIcon.classList.add('hidden');
     $pointsSvg.classList.add('hidden');
+    zeigtEchtenStand = false;
     $pointsValue.textContent = 'Für Kanalpunkte anmelden';
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
