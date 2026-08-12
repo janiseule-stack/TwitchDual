@@ -36,6 +36,30 @@ test('verschiedene Kanaele koennen verschiedene Emotes liefern', () => {
   assert.ok(ids.size > 1, 'Auswahl haengt nicht vom Kanalnamen ab');
 });
 
+// Der Test oben nutzt Ein-Zeichen-Kanalnamen und nur zwei Kandidaten (Gold-
+// Paar) - dort liefert bereits das erste Zeichen allein genug Streuung, ganz
+// ohne die n*31-Rechnung von quersumme() zu brauchen. Dieser Test hier nimmt
+// mehrzeichige, echte Twitch-Kanalnamen mit demselben Anfangsbuchstaben und
+// eine Kandidatenmenge von fuenf statt zwei: ein quersumme(), das nur das
+// erste Zeichen auswertet, wuerde alle "p"-Namen auf denselben Kandidaten
+// abbilden und diesen Test durchfallen lassen.
+const LISTE_FUENF_KANDIDATEN = [
+  { name: 's1', id: 's1', farbton: 180 },
+  { name: 's2', id: 's2', farbton: 210 },
+  { name: 's3', id: 's3', farbton: 240 },
+  { name: 's4', id: 's4', farbton: 270 },
+  { name: 's5', id: 's5', farbton: 300 }
+];
+
+test('gleicher Anfangsbuchstabe liefert trotzdem unterschiedliche Emotes (echte Streuung, nicht nur erstes Zeichen)', () => {
+  // #0000ff ist reines Blau, Farbton 240 - alle fuenf Kandidaten liegen
+  // innerhalb von 60 Grad, also entscheidet erst quersumme() ueber den
+  // vollen Namen, nicht mehr die Farbfamilie.
+  const kanaele = ['papaplatte', 'pokimane', 'peter', 'pinguin'];
+  const ids = new Set(kanaele.map((k) => PointsIcon.waehleEmote('#0000ff', k, LISTE_FUENF_KANDIDATEN).id));
+  assert.ok(ids.size > 1, 'gleicher Anfangsbuchstabe darf nicht auf dasselbe Emote kollabieren');
+});
+
 test('leere Liste liefert null', () => {
   assert.equal(PointsIcon.waehleEmote('#ffb300', 'kanal', []), null);
 });
