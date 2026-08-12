@@ -254,6 +254,80 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   (`balance: null`), damit nicht 15 s lang der Stand des vorigen Kanals
   stehenbleibt. Nach dem Anmelden steht dort ohnehin der Punktestand.
 
+## Ereignis-Strom (Spike 2026-08-12)
+
+**Ergebnis in einem Satz:** Der Weg funktioniert. Mit dem Web-Token kann die
+App denselben Ereignis-Strom abonnieren wie die Twitch-Webseite und empfaengt
+darueber fremde Kanalpunkt-Einloesungen.
+
+- **Adresse:** `wss://hermes.twitch.tv/v1?clientId=kimne78kx3ncx6brgo4mv6wki5h1ko`.
+  `pubsub-edge.twitch.tv` ist tot — die Seite spricht heute mit „Hermes". Wer
+  das alte PubSub-Protokoll nachbaut, laeuft ins Leere. Daneben oeffnet die
+  Seite nur noch `wss://irc-ws.chat.twitch.tv/` (der Chat, kennen wir bereits).
+- **Ablauf:**
+  1. Verbinden. Der Server schickt sofort
+     `{"welcome":{"keepaliveSec":15,"recoveryUrl":"wss://hermes.twitch.tv/a/v1?…"}}`.
+     Dieser Rahmen traegt kein `type`-Feld — Erkennung am Feld `welcome`.
+  2. **Einmal** anmelden, fuer die ganze Verbindung:
+     `{"id":"<nonce>","type":"authenticate","authenticate":{"token":"<Web-Token>"},"timestamp":"<ISO>"}`
+     → `{"authenticateResponse":{"result":"ok"},"parentId":"<nonce>",…}`.
+     Das Token gehoert **nicht** in die einzelnen Abo-Rahmen (anders als im
+     alten PubSub).
+  3. Je Thema ein Abo:
+     `{"type":"subscribe","id":"<umschlag>","subscribe":{"id":"<abo>","type":"pubsub","pubsub":{"topic":"<thema>"}},"timestamp":"<ISO>"}`
+     → `{"subscribeResponse":{"subscription":{"id":"<abo>"},"result":"ok"},"parentId":"<umschlag>",…}`.
+     Die Zuordnung Antwort→Thema laeuft ueber `parentId` bzw. `subscription.id`.
+  4. Am Leben halten muss man nichts: der Server schickt von sich aus alle
+     ~10 s `{"type":"keepalive"}`. Ein eigener PING-Takt ist ueberfluessig.
+     Fuer Abrisse liefert `welcome` eine `recoveryUrl` mit.
+- **Themen — alle drei angenommen** (Namen wie im alten PubSub, nur im
+  Hermes-Umschlag). Keine Integrity-Sperre: das blanke Web-Token genuegt,
+  anders als beim Kisten-Claim.
+  - `community-points-user-v1.<user_id>` — Antwort ok, Nutzlast gemessen.
+  - `community-points-channel-v1.<channel_id>` — Antwort ok, Nutzlast gemessen.
+  - `pinned-chat-updates-v1.<channel_id>` — Antwort ok, **Nutzlast nicht
+    gemessen** (in der Messzeit hat niemand etwas angepinnt).
+- **Ereignisse — Umschlag:**
+  ```json
+  {"notification":{"subscription":{"id":"<abo>"},"type":"pubsub","pubsub":"<JSON als STRING>"},
+   "id":"…","type":"notification","timestamp":"<ISO>"}
+  ```
+  `notification.pubsub` ist ein String mit verschachteltem JSON — es muss
+  zweimal geparst werden. Wer das uebersieht, bekommt nur Zeichensalat.
+  Gemessene Nutzlast-Typen:
+  - `reward-redeemed` — kommt auf dem **Kanal**- und dem **Nutzer**-Thema.
+    Enthaelt alles, was eine Chat-Zeile braucht: `data.redemption.user.display_name`
+    und `data.redemption.reward.title` (dazu `cost`, `channel_id`,
+    `redeemed_at`, `reward.prompt`). Das ist die Grundlage fuer „X hat Y
+    eingeloest" — auch fuer fremde Zuschauer.
+  - `points-spent` — `data.balance.balance` liefert den neuen Punktestand
+    sofort. Damit ist der 15-Sekunden-Takt (siehe v1.9.0 oben) abloesbar.
+  - `channel-last-viewed-content-updated`, `global-last-viewed-content-updated`
+    — fuer uns uninteressant (merkt sich, welche Belohnungen der Nutzer
+    schon gesehen hat).
+- **Beweisfuehrung:** nicht abgewartet, sondern erzwungen: eine eigene
+  Einloesung im 🎁-Panel tauchte 0,1 Sekunden spaeter als `reward-redeemed`
+  auf dem Kanal-Thema auf, waehrend im Chat weiterhin nichts stand. Eine
+  Handlung, zwei Protokollzeilen, eindeutig.
+- **Wichtig fuer den Betrieb:** `WebSocket` gibt es im Electron-33-Hauptprozess
+  (Node 20.18) **nicht**. Fuer den Spike genuegte
+  `NODE_OPTIONS=--experimental-websocket`; fuer einen echten Ausbau ist das
+  keine tragfaehige Loesung (die Umgebungsvariable ist beim gepackten Start
+  nicht gesetzt). Ein Ausbau braucht also entweder das Paket `ws` oder einen
+  anderen Weg — **offener Punkt**.
+- **Offene Fragen fuer den Ausbau:**
+  - Nutzlast von `pinned-chat-updates-v1` ist ungemessen.
+  - Was bei Kanalwechsel passiert (abbestellen? neu abonnieren?) ist
+    ungemessen — der Umschlag legt nahe, dass `subscription.id` dafuer
+    gedacht ist.
+  - Wie sich die Verbindung bei einem Abriss verhaelt und ob die
+    `recoveryUrl` wirklich noetig ist, ist ungemessen.
+  - Wie lange das Web-Token traegt und was bei Ablauf passiert, ist
+    ungemessen.
+- Spike-Code (`src/spike-pubsub-*.js`, `main.js`-Verdrahtung hinter
+  `TWITCHDUAL_PUBSUB_SPIKE=1`) wieder entfernt, dieser Abschnitt ist der
+  einzige verbleibende Niederschlag (Branch `spike/pubsub`).
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
