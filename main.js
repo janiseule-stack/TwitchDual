@@ -198,6 +198,11 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       // zeigen. Der neue Stand kommt innerhalb von 15s per Takt nach.
       broadcast('points-update', { balance: null, displayName: null, fehler: null });
       punkteChannelId = null;
+      // Ein erfolgreicher Ladevorgang heisst: das Home-Overlay ist zu. Der
+      // Weg "aus Home heraus einen Kanal starten" schickt kein home-close
+      // (home.js closeHome() blendet nur aus; nur closeHomeResume() meldet
+      // sich), sonst bliebe der Takt bis zum Programmende schlafen.
+      punkteHomeOffen = false;
       currentLiveChannel = user.login;
       if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
@@ -228,6 +233,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben.
     broadcast('points-update', { balance: null, displayName: null, fehler: null });
     punkteChannelId = null;
+    punkteHomeOffen = false; // wie im Live-Zweig: geladen heisst Overlay zu
     currentLiveChannel = null;
     if (chatSender) chatSender.setChannel(null);
     pushHistory({
