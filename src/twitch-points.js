@@ -92,7 +92,11 @@ function createPointsApi({ fetchImpl = fetch } = {}) {
       const d = await ruf(token, M_CLAIM, { input: { channelID, claimID } }, extraHeaders);
       const r = d && d.claimCommunityPoints;
       const fehler = r && r.error ? r.error.code : null;
-      return { ok: !fehler, error: fehler };
+      // currentPoints ist der Stand NACH dem Einloesen. Die Kontext-Abfrage
+      // liefert den Stand davor - die Differenz ist der Kistenbetrag. Bei
+      // einem Fehlschlag ist der Wert bedeutungslos, deshalb null.
+      const stand = !fehler && r && typeof r.currentPoints === 'number' ? r.currentPoints : null;
+      return { ok: !fehler, error: fehler, currentPoints: stand };
     },
 
     async rewards(token, channelLogin) {

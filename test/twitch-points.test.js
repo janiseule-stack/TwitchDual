@@ -62,13 +62,13 @@ test('HTTP 401 wird als abgelaufener Token gemeldet', async () => {
 test('claim meldet Erfolg', async () => {
   const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 34774, error: null } } });
   const api = createPointsApi({ fetchImpl: f });
-  assert.deepEqual(await api.claim('geheim', '1', 'kiste-1'), { ok: true, error: null });
+  assert.deepEqual(await api.claim('geheim', '1', 'kiste-1'), { ok: true, error: null, currentPoints: 34774 });
 });
 
 test('claim meldet Twitchs Fehlercode weiter', async () => {
   const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: null, error: { code: 'ALREADY_CLAIMED' } } } });
   const api = createPointsApi({ fetchImpl: f });
-  assert.deepEqual(await api.claim('geheim', '1', 'k'), { ok: false, error: 'ALREADY_CLAIMED' });
+  assert.deepEqual(await api.claim('geheim', '1', 'k'), { ok: false, error: 'ALREADY_CLAIMED', currentPoints: null });
 });
 
 test('rewards liefert nur aktive Belohnungen', async () => {
@@ -155,7 +155,7 @@ test('claim schickt die Integrity-Kopfzeilen mit', async () => {
 test('claim ohne Zusatzkopfzeilen verhaelt sich wie bisher', async () => {
   const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 1, error: null } } });
   const api = createPointsApi({ fetchImpl: f });
-  assert.deepEqual(await api.claim('geheim', '1', 'k1'), { ok: true, error: null });
+  assert.deepEqual(await api.claim('geheim', '1', 'k1'), { ok: true, error: null, currentPoints: 1 });
   assert.equal(f.aufrufe[0].opts.headers['Client-Integrity'], undefined);
 });
 
@@ -177,4 +177,33 @@ test('extraHeaders koennen Client-ID und Authorization nicht ueberschreiben', as
   const h = f.aufrufe[0].opts.headers;
   assert.equal(h['Client-ID'], 'kimne78kx3ncx6brgo4mv6wki5h1ko');
   assert.equal(h['Authorization'], 'OAuth geheim');
+});
+
+// Task 1: main.js meldete nach einem Kisten-Claim bisher den Stand von
+// VOR dem Claim, weil claim() das Feld currentPoints wegwarf. Spaetere
+// Aufgaben brauchen den Stand NACH dem Einloesen, um den Kistenbetrag als
+// Differenz zu berechnen.
+test('claim reicht currentPoints durch', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { currentPoints: 1250, error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const r = await api.claim('tok', '123', 'claim-1', {});
+  assert.equal(r.ok, true);
+  assert.equal(r.currentPoints, 1250);
+});
+
+test('claim ohne currentPoints liefert null statt zu werfen', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { error: null } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const r = await api.claim('tok', '123', 'claim-1', {});
+  assert.equal(r.ok, true);
+  assert.equal(r.currentPoints, null);
+});
+
+test('claim mit Fehler liefert ok=false und keinen Stand', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { error: { code: 'ALREADY_CLAIMED' } } } });
+  const api = createPointsApi({ fetchImpl: f });
+  const r = await api.claim('tok', '123', 'claim-1', {});
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'ALREADY_CLAIMED');
+  assert.equal(r.currentPoints, null);
 });
