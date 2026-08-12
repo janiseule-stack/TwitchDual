@@ -93,3 +93,63 @@ test('gesperrter Kanal wird nicht mehr abgefragt', () => {
   assert.equal(s.sollAbfragen(an, 100000), false);
   assert.equal(s.sollAbfragen({ ...an, channelLogin: 'y' }, 100000), true);
 });
+
+test('erster Stand setzt nur die Basislinie', () => {
+  const s = createPointsState();
+  assert.deepEqual(s.zuwaechse(12350), []);
+});
+
+test('passiver Zuwachs ergibt einen passiv-Eintrag', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(1010), [{ betrag: 10, quelle: 'passiv' }]);
+});
+
+test('Kistenbetrag wird getrennt vom Rest gemeldet', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(1060, 50), [
+    { betrag: 10, quelle: 'passiv' },
+    { betrag: 50, quelle: 'kiste' }
+  ]);
+});
+
+test('reiner Kistengewinn ergibt nur einen kiste-Eintrag', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(1050, 50), [{ betrag: 50, quelle: 'kiste' }]);
+});
+
+test('Kistenbetrag ist auf den Gesamtzuwachs gedeckelt', () => {
+  // Zwischendurch eingeloest: der Stand steigt weniger als die Kiste hergab.
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(1020, 50), [{ betrag: 20, quelle: 'kiste' }]);
+});
+
+test('sinkender Stand loest nichts aus', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(400), []);
+});
+
+test('gleicher Stand loest nichts aus', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  assert.deepEqual(s.zuwaechse(1000), []);
+});
+
+test('standVergessen macht den naechsten Stand zur neuen Basislinie', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  s.standVergessen();
+  assert.deepEqual(s.zuwaechse(9999), []);
+  assert.deepEqual(s.zuwaechse(10009), [{ betrag: 10, quelle: 'passiv' }]);
+});
+
+test('zuruecksetzen loescht die Basislinie mit', () => {
+  const s = createPointsState();
+  s.zuwaechse(1000);
+  s.zuruecksetzen();
+  assert.deepEqual(s.zuwaechse(5000), []);
+});
