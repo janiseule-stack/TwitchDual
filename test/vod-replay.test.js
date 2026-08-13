@@ -307,5 +307,13 @@ test('ohne onLuecke laeuft alles wie bisher', async () => {
   });
   await core.onTime(100);          // darf nicht werfen
   await core.ensureCoverage(100);  // trifft den else-Zweig -> Default-onLuecke darf nicht werfen
-  assert.ok(true);
+  // Ein blosses "hat nicht geworfen" belegt hier nichts: der onLuecke-Aufruf
+  // in vod-replay.js:169 steckt in einem eigenen try/catch, das JEDEN Fehler
+  // verschluckt - auch ein TypeError aus dem Aufruf von undefined(...), wenn
+  // die Vorgabe-Zuweisung in :64 fehlen wuerde. Deshalb pruefen wir die
+  // Vorgabe direkt (typeof) statt uns auf Fehlerfreiheit zu verlassen, und
+  // sichern zusaetzlich coveredUntil == 130 zu, damit die typeof-Pruefung
+  // nicht an einem Testlauf haengt, der den else-Zweig gar nicht erreicht.
+  assert.equal(typeof core.onLuecke, 'function');
+  assert.equal(core.coveredUntil, 100 + VodReplayCore.VOD_GAP_STEP);
 });
