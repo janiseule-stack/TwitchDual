@@ -44,8 +44,8 @@ setInterval(() => {
   if (wasActive && !adState.overlayVisible) {
     // Kein 'end'-Signal gekommen, der 120-s-Watchdog hat aufgeraeumt. Genau
     // dieser Fall ist der Verdaechtige bei "Ton weg nach Werbung".
-    window.twitchDual.diag('video', 'watchdog', { was: 'Overlay nach Zeitablauf geraeumt' });
     renderAdOverlay();
+    window.twitchDual.diag('video', 'watchdog', { was: 'Overlay nach Zeitablauf geraeumt' });
   }
 }, 1000);
 
@@ -60,14 +60,16 @@ let playerPrefs = { volume: 0.15, quality: null };
 // gemerkten Wert) und den gewuenschten Wert auf PLAYING erneut setzen.
 let volumeReady = false;
 
-// Zuletzt an Main gemeldeter Player-Zustand. Twitch.Player.PLAYING und
-// Twitch.Player.PLAY sind zwei verschiedene Ereignisse, die aber beide auf
-// "playing" abbilden (sie feuern beim Anlaufen praktisch gleichzeitig) - ohne
-// diese Flanke ginge derselbe Zustand doppelt per IPC raus und stuende doppelt
-// im Diagnose-Protokoll. Bei jedem frischen Player-Mount zurueckgesetzt, damit
-// der erste echte Zustand des neuen Players immer gemeldet wird.
+// Zuletzt an Main gesendeter Player-Zustand (IPC 'player-state', daran haengt
+// u.a. punkteSpielt fuer den Kanalpunkte-Takt - keine Diagnose-Funktion,
+// daher "sende" statt "melde"). Twitch.Player.PLAYING und Twitch.Player.PLAY
+// sind zwei verschiedene Ereignisse, die aber beide auf "playing" abbilden
+// (sie feuern beim Anlaufen praktisch gleichzeitig) - ohne diese Flanke ginge
+// derselbe Zustand doppelt per IPC raus. Bei jedem frischen Player-Mount
+// zurueckgesetzt, damit der erste echte Zustand des neuen Players immer
+// gesendet wird.
 let letzterGesendeterPlayerZustand = null;
-function meldePlayerZustand(zustand) {
+function sendePlayerZustand(zustand) {
   if (zustand === letzterGesendeterPlayerZustand) return;
   letzterGesendeterPlayerZustand = zustand;
   window.twitchDual.sendPlayerState(zustand);
@@ -132,20 +134,20 @@ function mountPlayer(options) {
       setTimeout(() => { volumeReady = true; }, 500);
     }
     startTimeBroadcast();
-    meldePlayerZustand('playing');
+    sendePlayerZustand('playing');
     onAirPlayerState = 'playing'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.PAUSE, () => {
-    meldePlayerZustand('paused');
+    sendePlayerZustand('paused');
     onAirPlayerState = 'paused'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.PLAY, () => {
-    // Feuert oft im selben Moment wie PLAYING (siehe meldePlayerZustand oben).
-    meldePlayerZustand('playing');
+    // Feuert oft im selben Moment wie PLAYING (siehe sendePlayerZustand oben).
+    sendePlayerZustand('playing');
     onAirPlayerState = 'playing'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.ENDED, () => {
-    meldePlayerZustand('ended');
+    sendePlayerZustand('ended');
     onAirPlayerState = 'ended'; updateOnAir();
   });
 
@@ -171,14 +173,15 @@ function startTimeBroadcast() {
         const vChanged = typeof v === 'number' && v !== playerPrefs.volume;
         const qChanged = !!q && q !== playerPrefs.quality;
         if (vChanged || qChanged) {
-          if (qChanged) {
-            window.twitchDual.diag('video', 'qualitaet', { von: playerPrefs.quality, nach: q });
-          }
+          const vonQualitaet = playerPrefs.quality;
           playerPrefs = {
             volume: typeof v === 'number' ? v : playerPrefs.volume,
             quality: q || playerPrefs.quality
           };
           window.twitchDual.savePlayerPrefs(playerPrefs);
+          if (qChanged) {
+            window.twitchDual.diag('video', 'qualitaet', { von: vonQualitaet, nach: q });
+          }
         }
       }
     } catch (e) {

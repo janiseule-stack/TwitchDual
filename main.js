@@ -781,11 +781,6 @@ ipcMain.on('player-state', (_evt, state) => {
   }
 });
 
-// --- Auto-Update (GitHub Releases) -----------------------------------------
-// Laedt neue Versionen im Hintergrund; Installation beim naechsten Beenden.
-// Nur in der gepackten App aktiv; Fehler (offline, Rate-Limit) sind unkritisch.
-// Verdrahtung + Fehlerabfang stecken in src/auto-update.js (getestet).
-
 // --- Diagnose-Protokoll ----------------------------------------------------
 // Der Ringpuffer laeuft immer mit; der Schalter entscheidet nur ueber die
 // Datei. Beim Einschalten geht der Puffer als Vorgeschichte raus - genau das
@@ -832,6 +827,11 @@ ipcMain.on('set-diag-enabled', (_evt, an) => {
 ipcMain.on('open-diag-folder', () => {
   shell.openPath(app.getPath('userData')).catch(() => { /* Komfort, kein Muss */ });
 });
+
+// --- Auto-Update (GitHub Releases) -----------------------------------------
+// Laedt neue Versionen im Hintergrund; Installation beim naechsten Beenden.
+// Nur in der gepackten App aktiv; Fehler (offline, Rate-Limit) sind unkritisch.
+// Verdrahtung + Fehlerabfang stecken in src/auto-update.js (getestet).
 
 // Protokolliert Updater-Ereignisse sichtbar in eine Datei (console.* ist in der
 // gepackten App unsichtbar). Darf den Start nie blockieren.

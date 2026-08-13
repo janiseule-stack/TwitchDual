@@ -174,3 +174,27 @@ test('ein Token im detail steht AUCH im Puffer nur geschwaerzt', () => {
   log.setAktiv(true);
   assert.ok(!bloecke[0].includes(token), 'roher Token in der Vorgeschichte');
 });
+
+// bereich/ereignis kommen ueber 'diag-melde' letztlich aus Seitencode im
+// Twitch-Player-iframe (window.__twitchDualDiag) - roh und ungeprueft. Ohne
+// Schutz koennte ein ereignis mit "\n" eine zweite, frei erfundene Zeile mit
+// eigenem Zeitstempel ins Protokoll schmuggeln.
+test('ereignis mit Zeilenumbruch erzeugt keine zweite, gefaelschte Zeile', () => {
+  const { log } = bau();
+  log.melde('video', 'echt\n[2099-01-01T00:00:00.000Z] app:erfunden {"boese":true}');
+  const zeilen = log.puffer();
+  assert.equal(zeilen.length, 1, 'ein melde()-Aufruf darf nur einen Puffereintrag erzeugen');
+  assert.ok(!zeilen[0].includes('\n'), 'Zeile enthaelt einen rohen Zeilenumbruch: ' + zeilen[0]);
+});
+
+// Der Ringpuffer deckelt nur die ANZAHL der Zeilen, nicht ihre Groesse. Ohne
+// Kuerzung treibt eine Schleife mit riesigem ereignis den Hauptprozess in die
+// Hoehe und jede Zeile liefe vorher durch alle sieben Schwaerzungs-Regexe.
+test('eine ueberlange Zeile wird gekuerzt', () => {
+  const { log } = bau();
+  const riesig = 'x'.repeat(10000);
+  log.melde('video', riesig);
+  const zeile = log.puffer()[0];
+  assert.ok(zeile.length < 10000, 'Zeile wurde nicht gekuerzt, Laenge: ' + zeile.length);
+  assert.ok(zeile.endsWith('…[gekuerzt]'), 'kein Kuerzungs-Hinweis am Ende: ' + zeile.slice(-30));
+});

@@ -201,10 +201,10 @@ function buildMessageEl(name, color, tokens, opts = {}) {
       window.twitchDual.fetchUserBadges(opts.userId)
         .then((r) => userBadgeCache.set(opts.userId, (r && r.badges) || []))
         .catch((e) => {
+          userBadgeCache.set(opts.userId, []);
           window.twitchDual.diag('chat', 'badges-fehler', {
             quelle: '7tv/bttv/ffz', fehler: e && e.message
           });
-          userBadgeCache.set(opts.userId, []);
         });
     }
   }
@@ -847,8 +847,8 @@ async function doSend() {
   if (!r.ok) {
     // Inhalt der Nachricht wird NICHT protokolliert - nur, dass und warum es
     // schiefging.
-    window.twitchDual.diag('chat', 'senden-fehler', { grund: r.error, laenge: text.length });
     showChatError(r.error);
+    window.twitchDual.diag('chat', 'senden-fehler', { grund: r.error, laenge: text.length });
     return;
   }
   if (roomSlowSeconds > 0) startSlowCountdown(roomSlowSeconds);
@@ -1119,8 +1119,8 @@ document.addEventListener('mousedown', (e) => {
 // NOTICE (z.B. Slow-Mode aktiv, Follower-only) landet als Fehlermeldung im
 // gleichen Toast wie fehlgeschlagene Sendeversuche (showChatError, Task 9).
 window.twitchDual.onChatNotice((n) => {
-  window.twitchDual.diag('chat', 'senden-fehler', { msgId: n && n.id });
   showChatError(n.text);
+  window.twitchDual.diag('chat', 'senden-fehler', { msgId: n && n.id });
 });
 
 // ROOMSTATE zeigt aktive Raum-Einschraenkungen als kleinen Chip im Composer.

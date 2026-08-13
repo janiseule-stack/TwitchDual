@@ -12,6 +12,11 @@
 
 const { schwaerze } = require('./diag-redact');
 
+// Grenze fuer eine einzelne Protokollzeile - siehe Begruendung bei baueZeile.
+// Weit jenseits jeder echten Zeile (~150 Byte, Kommentar oben); greift nur
+// bei erzwungenen Riesenzeilen aus dem iframe-Pfad.
+const MAX_ZEILE = 4000;
+
 function createDiagLog({
   schreiben,
   groesse,
@@ -41,9 +46,29 @@ function createDiagLog({
   // Geschwaerzt wird beim EINTRITT, nicht beim Schreiben. Damit gilt die
   // Zusicherung "im Diagnose-System existiert nichts Ungeschwaerztes" auch
   // fuer den Ringpuffer im Speicher.
+  //
+  // bereich und ereignis kommen ueber den IPC-Kanal 'diag-melde' letztlich aus
+  // Seitencode im Twitch-Player-iframe (window.__twitchDualDiag im
+  // preload.js, main.js:812-814) - dort steht nichts, das sie begrenzt oder
+  // von Zeilenumbruechen befreit. Zwei Massnahmen darum HIER, am Engpass, den
+  // jede Zeile durchlaeuft:
+  // - Zeilenumbrueche raus. Sonst erzeugt ein ereignis mit "\n" mehrere
+  //   Zeilen mit frei erfundenem Zeitstempel und Bereich - eine gefaelschte,
+  //   formal einwandfreie Zeile in einem Protokoll, das nur dazu da ist, aus
+  //   der Vergangenheit auf eine Ursache zu schliessen.
+  // - Kuerzen auf MAX_ZEILE, und zwar VOR schwaerze(): die sieben Regexe dort
+  //   sollen ueber hoechstens 4000 Zeichen laufen, nicht ueber eine aus dem
+  //   iframe erzwungene Mega-Zeile. Ohne diese Reihenfolge treibt eine
+  //   Schleife mit 1-MB-ereignis den Hauptprozess auf mehrere GB (der
+  //   Ringpuffer deckelt nur die ANZAHL der Zeilen, nicht ihre Groesse), und
+  //   jede dieser Riesenzeilen liefe vorher durch alle sieben Regexe - die
+  //   Oberflaeche stuende waehrenddessen still.
   function baueZeile(bereich, ereignis, detail) {
     const stempel = new Date(jetzt()).toISOString();
-    return schwaerze(`[${stempel}] ${bereich}:${ereignis}${detailText(detail)}`);
+    const roh = `[${stempel}] ${bereich}:${ereignis}${detailText(detail)}`
+      .replace(/[\r\n]+/g, ' ');
+    const gekuerzt = roh.length > MAX_ZEILE ? roh.slice(0, MAX_ZEILE) + ' …[gekuerzt]' : roh;
+    return schwaerze(gekuerzt);
   }
 
   // Ein Block, ein Schreibvorgang. Wirft nie: eine nicht schreibbare Datei
