@@ -112,7 +112,7 @@ rein numerisch — alle drei bleiben unberuehrt. Der Test haelt das fest.
 
 ```js
 createDiagLog({ schreiben, groesse, umlegen, jetzt = Date.now,
-                maxPuffer = 200, maxBytes = 5 * 1024 * 1024 })
+                maxPuffer = 10000, maxBytes = 10 * 1024 * 1024 })
   .melde(bereich, ereignis, detail)   // detail optional
   .setAktiv(an)                       // an -> Vorgeschichte, dann mitschreiben
   .istAktiv()
@@ -132,19 +132,35 @@ kennt kein `fs`.
 faellt es auf `String(detail)` zurueck. **Protokollieren wirft nie** — ein
 Diagnose-Werkzeug, das die App abschiesst, ist schlimmer als keins.
 
-**Ringpuffer.** Feste Laenge `maxPuffer` (200), aelteste Zeile faellt raus.
-Nur fertige Textzeilen, kein Objektgeflecht — der Speicherbedarf ist damit
-gedeckelt und vorhersehbar.
+**Ringpuffer.** Feste Laenge `maxPuffer` (10000), aelteste Zeile faellt raus.
+Er ist nie „voll" im Sinne von Aufhoeren — er haelt immer die *letzten* 10000
+Ereignisse, ein wanderndes Fenster. Gespeichert werden nur fertige Textzeilen,
+kein Objektgeflecht: bei ~150 Byte je Zeile sind das rund **1,5 MB**, in einer
+Electron-App nicht messbar. Der Puffer laeuft immer mit, unabhaengig vom
+Schalter — genau das ist der Zweck.
+
+Warum so gross: Wie weit die Vorgeschichte zurueckreicht, haengt daran, wieviel
+gerade passiert. Im Ruhebetrieb sind das viele Stunden, waehrend einer
+Werbepause oder einer Reconnect-Serie deutlich weniger — und genau dann braucht
+man sie. Der Vorfall vom 2026-08-09 lief 53 Minuten.
 
 **Einschalten.** `setAktiv(true)` schreibt den Puffer **genau einmal** als
 Vorgeschichte, danach laeuft jede Meldung direkt mit. Ein zweiter Aufruf mit
 `true` schreibt sie nicht erneut. `setAktiv(false)` stoppt das Schreiben; der
 Puffer laeuft weiter, damit ein erneutes Einschalten wieder Vorgeschichte hat.
 
-**Groessengrenze.** Vor dem Schreiben `groesse()`; ueber `maxBytes` (5 MB) ruft
+**Die Vorgeschichte geht als EIN Schreibvorgang raus** — die Zeilen werden
+gejoint und einmal uebergeben, nicht 10000 mal einzeln. Bei 200 Zeilen waere
+das egal gewesen; bei 10000 synchronen Datei-Anhaengen friert die App beim
+Umlegen des Schalters sichtbar ein. `schreiben` bekommt daher einen fertigen
+Block, keine Einzelzeile-Schleife.
+
+**Groessengrenze.** Vor dem Schreiben `groesse()`; ueber `maxBytes` (10 MB) ruft
 das Modul `umlegen()`. Der Hauptprozess benennt dann `diagnose.log` nach
 `diagnose.1.log` um (vorhandene wird ueberschrieben) und faengt neu an. Also
-hoechstens zwei Dateien, hoechstens ~10 MB — es kann nie die Platte volllaufen.
+hoechstens zwei Dateien, hoechstens ~20 MB — es kann nie die Platte volllaufen.
+Die Datei waechst gegenueber dem Entwurf mit, weil die Vorgeschichte allein
+schon ~1,5 MB belegt.
 
 ## 4. Verdrahtung
 
@@ -226,6 +242,9 @@ Verbindungs- und Fehlerereignisse, keine Inhalte.
 - aus: nichts geschrieben, Puffer fuellt sich trotzdem
 - Puffer deckelt bei `maxPuffer`, aeltestes faellt raus
 - `setAktiv(true)` schreibt die Vorgeschichte genau einmal
+- die Vorgeschichte geht als **ein** `schreiben`-Aufruf raus, nicht als eine
+  Schleife ueber die Zeilen (bei 10000 Zeilen der Unterschied zwischen
+  „unmerklich" und „App haengt")
 - zweites `setAktiv(true)` schreibt sie nicht erneut
 - `setAktiv(false)` stoppt das Schreiben, Puffer laeuft weiter
 - Ueberschreiten von `maxBytes` ruft `umlegen()`
