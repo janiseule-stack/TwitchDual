@@ -211,6 +211,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       // sich), sonst bliebe der Takt bis zum Programmende schlafen.
       punkteHomeOffen = false;
       currentLiveChannel = user.login;
+      diagLog.melde('punkte', 'kanalwechsel', { modus: 'live', nach: user.login, userId: user.id });
       if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
       store.set('lastSource', user.login);
@@ -244,6 +245,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     punkteChannelId = null;
     punkteHomeOffen = false; // wie im Live-Zweig: geladen heisst Overlay zu
     currentLiveChannel = null;
+    diagLog.melde('punkte', 'kanalwechsel', { modus: 'vod', nach: null, videoId: parsed.value });
     if (chatSender) chatSender.setChannel(null);
     pushHistory({
       value: parsed.value,
@@ -361,6 +363,19 @@ let punkteHomeOffen = false;  // Home-Overlay offen -> Takt ruht
 let punkteLaeuft = false;     // verhindert ueberlappende Takt-Durchlaeufe
 let punkteChannelId = null;   // channelID des zuletzt abgefragten Kanals (fuer Redeem)
 
+// Zuletzt gemeldeter Grund, warum der Takt ruht. Der Tick laeuft jede Sekunde;
+// ohne diese Flanke waere 'takt-aus' eine Zeile pro Sekunde und der
+// 10000er-Ringpuffer reichte keine drei Stunden zurueck.
+let letzterTaktGrund = null;
+
+// Meldet nur, wenn sich der Grund geaendert hat. null = Takt laeuft.
+function meldeTaktGrund(grund) {
+  if (grund === letzterTaktGrund) return;
+  letzterTaktGrund = grund;
+  if (grund) diagLog.melde('punkte', 'takt-aus', { grund });
+  else diagLog.melde('punkte', 'takt-an');
+}
+
 // Ist ein brauchbarer Web-Token da? Ein abgelaufener zaehlt nicht.
 function webTokenNutzbar() {
   return !!webToken && !webTokenAbgelaufen;
@@ -384,6 +399,7 @@ ipcMain.handle('web-login-start', () => new Promise((resolve) => {
         webAuth.speichern(token);
         webToken = token;
         webTokenAbgelaufen = false;
+        diagLog.melde('punkte', 'anmeldung', { was: 'eingeloggt' });
         // Takt frisch anlaufen lassen: nach einem abgelaufenen Token steht
         // der Abstand sonst noch auf bis zu 5 Minuten und das Neuanmelden
         // bliebe so lange ohne sichtbare Wirkung.
@@ -401,6 +417,7 @@ ipcMain.handle('web-login-status', () => ({ angemeldet: webTokenNutzbar() }));
 ipcMain.handle('web-login-logout', () => {
   webAuth.loeschen();
   webToken = null;
+  diagLog.melde('punkte', 'anmeldung', { was: 'abgemeldet' });
   webTokenAbgelaufen = false;
   return { ok: true };
 });
@@ -426,8 +443,16 @@ ipcMain.handle('points-redeem', async (_e, { reward, textInput }) => {
       const ctx = await pointsApi.context(webToken, currentLiveChannel);
       channelID = ctx.channelID;
     }
-    return await pointsApi.redeem(webToken, channelID, reward, textInput);
+    const r = await pointsApi.redeem(webToken, channelID, reward, textInput);
+    diagLog.melde('punkte', 'einloesen', {
+      belohnung: reward && reward.title, kosten: reward && reward.cost,
+      ok: r.ok, code: r.error
+    });
+    return r;
   } catch (e) {
+    diagLog.melde('punkte', 'einloesen', {
+      belohnung: reward && reward.title, ok: false, code: e.message
+    });
     return { ok: false, error: e.message };
   }
 });
@@ -439,6 +464,7 @@ async function kisteEinloesen(channelID, claimID) {
   let satz = integrity.holen(Date.now());
   if (!satz) {
     satz = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
+    diagLog.melde('punkte', 'integrity-ernte', { ergebnis: satz ? 'ok' : 'fehlgeschlagen', grund: 'kein Satz im Speicher' });
     if (!satz) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
     integrity.setzen(satz, Date.now());
   }
@@ -455,6 +481,7 @@ async function kisteEinloesen(channelID, claimID) {
     // Abgelehnt -> Satz ist verbraucht, genau einmal neu holen und wiederholen.
     integrity.verwerfen();
     const neu = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
+    diagLog.melde('punkte', 'integrity-ernte', { ergebnis: neu ? 'ok' : 'fehlgeschlagen', grund: 'Satz abgelehnt, zweiter Versuch' });
     if (!neu) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
     integrity.setzen(neu, Date.now());
     return await pointsApi.claim(webToken, channelID, claimID, {
@@ -486,16 +513,34 @@ async function punkteTick() {
       hatToken: webTokenNutzbar(),
       channelLogin: kanal
     };
-    if (!pointsState.sollAbfragen(zustand, Date.now())) return;
+    if (!pointsState.sollAbfragen(zustand, Date.now())) {
+      // Genauer Grund statt Sammelbegriff - die Reihenfolge entspricht der
+      // Pruefreihenfolge in points-state.js sollAbfragen().
+      meldeTaktGrund(
+        !webToken ? 'kein Token'
+        : webTokenAbgelaufen ? 'Token abgelaufen'
+        : !kanal ? 'kein Live-Kanal'
+        : punkteHomeOffen ? 'Home offen'
+        : !punkteSpielt ? 'pausiert'
+        : pointsState.istKanalGesperrt(kanal) ? 'Kanal gesperrt'
+        : 'Abstand');
+      return;
+    }
+    meldeTaktGrund(null);
     try {
       const ctx = await pointsApi.context(webToken, kanal);
       if (currentLiveChannel !== kanal) return;
       punkteChannelId = ctx.channelID;
+      diagLog.melde('punkte', 'kontext', {
+        kanal, channelID: ctx.channelID, stand: ctx.balance,
+        claimID: ctx.claimID, punkteName: ctx.punkteName
+      });
       if (ctx.balance === null) {
         if (ctx.channelID != null) {
           // Kanal gibt es, er hat Kanalpunkte aus -> einmal melden, dann ruhen.
           pointsState.abfrageOk(Date.now());
           pointsState.kanalGesperrt(kanal);
+          diagLog.melde('punkte', 'kanal-gesperrt', { kanal });
           broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal hat keine Kanalpunkte' });
         } else {
           // Gar kein community-Objekt: Kanal unbekannt oder Antwort unbrauchbar.
@@ -514,22 +559,32 @@ async function punkteTick() {
       let stand = ctx.balance;
       let kistenBetrag = 0;
       if (ctx.claimID && pointsState.darfClaimen(ctx.claimID)) {
+        diagLog.melde('punkte', 'kiste-versuch', { kanal, claimID: ctx.claimID });
         try {
           const r = await kisteEinloesen(ctx.channelID, ctx.claimID);
           if (!r.ok) {
+            diagLog.melde('punkte', 'kiste-fehler', { claimID: ctx.claimID, code: r.error });
             pointsState.claimFehlgeschlagen(ctx.claimID);
           } else if (r.currentPoints != null) {
             kistenBetrag = Math.max(0, r.currentPoints - ctx.balance);
             stand = r.currentPoints;
+            diagLog.melde('punkte', 'kiste-ok', {
+              davor: ctx.balance, danach: r.currentPoints, betrag: kistenBetrag
+            });
+          } else {
+            // r.ok ohne currentPoints - der Zuwachs faellt beim naechsten Takt
+            // als "passiv" auf. Trotzdem festhalten, sonst sieht es aus, als
+            // waere die Kiste nie eingeloest worden.
+            diagLog.melde('punkte', 'kiste-ok', { davor: ctx.balance, danach: null, betrag: null });
           }
-          // r.ok ohne currentPoints: Stand bleibt der aus context(), der
-          // Zuwachs faellt beim naechsten Takt als "passiv" auf. Lieber eine
-          // ungenaue Einordnung als gar keine Meldung.
         } catch (e) {
           // Wirft kisteEinloesen (z.B. beide Integrity-Versuche mit
           // IntegrityCheckFailed abgelehnt), zaehlt das genauso als
           // Fehlversuch - sonst greift die Drei-Versuche-Sperre nie und die
           // Kiste wird bei jedem zurueckgefahrenen Takt erneut versucht.
+          diagLog.melde('punkte', 'kiste-fehler', {
+            claimID: ctx.claimID, code: e && e.message, integrity: !!(e && e.integrity)
+          });
           pointsState.claimFehlgeschlagen(ctx.claimID);
           throw e;
         }
@@ -553,7 +608,11 @@ async function punkteTick() {
       // Abgelaufener Token: Takt anhalten (Spec). Der Chip zeigt die Meldung
       // samt Knopf zum Neuanmelden; ein Weiterklopfen mit totem Token bringt
       // nichts und laesst web-login-status "angemeldet" luegen.
-      if (/abgelaufen/i.test(e.message)) webTokenAbgelaufen = true;
+      if (/abgelaufen/i.test(e.message)) {
+        webTokenAbgelaufen = true;
+        diagLog.melde('punkte', 'token-abgelaufen', { kanal });
+      }
+      diagLog.melde('punkte', 'abfrage-fehler', { kanal, fehler: e.message });
       pointsState.abfrageFehler(Date.now());
       broadcast('points-update', { balance: null, displayName: null, fehler: e.message });
     }
