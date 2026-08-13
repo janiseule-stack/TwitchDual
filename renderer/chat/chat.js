@@ -638,6 +638,24 @@ $optFont.addEventListener('input', () => {
 $optFont.addEventListener('change', () => window.twitchDual.saveChatPrefs(chatPrefs));
 
 // ---------------------------------------------------------------------------
+// Diagnose-Schalter. Einschalten IST das Sichern: der Ringpuffer im Main geht
+// dabei als Vorgeschichte in userData/diagnose.log.
+// ---------------------------------------------------------------------------
+const $optDiag = document.getElementById('opt-diag');
+const $optDiagOpen = document.getElementById('opt-diag-open');
+
+// Stand kommt aus dem Main (Store), nicht aus chatPrefs - der Schalter gilt
+// fuer die ganze App, nicht nur fuers Chat-Fenster.
+window.twitchDual.getDiagEnabled()
+  .then((an) => { $optDiag.checked = !!an; })
+  .catch(() => {}); // Diagnose ist Komfort - ohne Antwort bleibt der Haken aus
+
+$optDiag.addEventListener('change', () => {
+  window.twitchDual.setDiagEnabled($optDiag.checked);
+});
+$optDiagOpen.addEventListener('click', () => window.twitchDual.openDiagFolder());
+
+// ---------------------------------------------------------------------------
 // Randloses Fenster: Titelleisten-Buttons + Doppelklick auf die Kopfzeile.
 // ---------------------------------------------------------------------------
 document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));

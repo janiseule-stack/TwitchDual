@@ -361,12 +361,12 @@ button:focus-visible, input:focus-visible {
   width: 44px; height: 24px; padding: 0; border: 1px solid var(--line);
   border-radius: 4px; background: none; cursor: pointer;
 }
-#opt-color-reset {
+#opt-color-reset, #opt-diag-open {
   margin: 6px 6px 4px; align-self: stretch; text-align: center;
   background: var(--hover); border: 1px solid var(--accent-border); border-radius: 6px;
   color: var(--accent-title); font-size: 12px; padding: 6px 8px; cursor: pointer;
 }
-#opt-color-reset:hover { color: var(--text); border-color: var(--accent-dim); }
+#opt-color-reset:hover, #opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
 
 /* ⚙-Popup: Deckkraft-Slider (Glass-Transparenz). */
 .opt-alpha-row { display: flex; align-items: center; gap: 8px; }
