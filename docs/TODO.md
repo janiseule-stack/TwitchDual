@@ -388,6 +388,51 @@ darueber fremde Kanalpunkt-Einloesungen.
   Bildpfade muessen am laufenden Programm geprueft werden.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-12-punkte-anzeige-politur*`.
 
+## Diagnose-Schalter (v1.11.0)
+
+Ein Schalter im ⚙-Popup des Chat-Fensters schreibt ein Protokoll nach
+`%APPDATA%\twitchdual\diagnose.log`. Standard ist **aus**, und aus heisst:
+nichts auf der Platte.
+
+- **Ringpuffer:** Die letzten 10000 Ereignisse liegen immer im Speicher (~1,5 MB),
+  unabhaengig vom Schalter. Einschalten schreibt sie als **Vorgeschichte** in
+  einem einzigen Schreibvorgang in die Datei. Das ist der ganze Punkt: ein
+  Schalter, den man erst nach dem Symptom umlegt, haette bei keinem der letzten
+  drei Fehler geholfen.
+- **Bereiche:** `punkte`, `video`, `chat`, `app`. Einzelne Chat-Nachrichten
+  werden bewusst NICHT protokolliert.
+- **Schwaerzung:** `src/diag-redact.js`, geprueft gegen echt geformte Rahmen
+  (`test/diag-redact.test.js`) — Web-Cookie `auth-token`, GQL-`OAuth`,
+  Hermes-`"token"`, IRC-`PASS oauth:` (klein), `Client-Integrity`,
+  Cookie-Kopfzeilen, plus struktureller 30-Zeichen-Auffang. Die Gegenprobe
+  haelt fest, dass Fliesstext, Kanal-Logins, 7TV-ULIDs und VOD-IDs unberuehrt
+  bleiben.
+- **Groessengrenze:** ueber 10 MB wird nach `diagnose.1.log` umgelegt. Hoechstens
+  zwei Dateien, hoechstens ~20 MB.
+- **`updater.log` bleibt daneben bestehen**: Updater-Ereignisse gehen weiter
+  IMMER in eine Datei, auch bei ausgeschaltetem Schalter. Sie sind selten,
+  kosten nichts und haben schon zweimal eine Fehlersuche getragen.
+- **Zwei Befunde aus dem ersten Beweislauf behoben:** `video:player-zustand`
+  meldete jeden Wechsel doppelt, weil `Twitch.Player.PLAYING` und
+  `Twitch.Player.PLAY` beide auf denselben Zustand abbilden und praktisch
+  gleichzeitig feuern — `renderer/video/video.js` meldet Zustandswechsel jetzt
+  nur noch beim tatsaechlichen Wechsel. `punkte:takt-aus {"grund":"Abstand"}`
+  lief 14 von 15 Takten mit (~720 Zeilen/Stunde) und verkuerzte die
+  Vorgeschichte im Ringpuffer auf ~14h — der Abstand-Fall wird jetzt gar nicht
+  mehr gemeldet, ohne die Flanke fuer echte Ruhegruende anzutasten.
+- **Erster Beweislauf (13.08.2026):** Der Schalter hat auf Anhieb die Frage
+  beantwortet, ob die Kanalpunkte live funktionieren — mit einem unerwarteten
+  Ergebnis. Rund 20 Minuten durchgehende Wiedergabe brachten **null**
+  Zuwachs, `claimID` war in 45 Abfragen durchgehend `null` (es fiel also nie
+  eine Kiste), bei null Fehlern. Die Gegenprobe im Browser mit demselben
+  Konto, demselben Kanal und in derselben Minute brachte +10 Punkte — die App
+  sah den Sprung `22600 → 22610` binnen 15 Sekunden. Daraus folgt: der
+  Lesepfad ist exakt, aber **im eingebetteten Player (`Twitch.Player` auf
+  `player.twitch.tv`) werden keine Kanalpunkte verdient**. Das ist kein Fehler
+  in `src/twitch-points.js` und dort auch nicht behebbar; Punkte haengen an
+  einer Zuschauer-Sitzung auf `twitch.tv` selbst.
+- Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
