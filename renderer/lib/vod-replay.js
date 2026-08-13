@@ -52,6 +52,7 @@
     //   onMessage: (comment) => void   – Kommentar rendern
     //   onClear:   () => void          – Anzeige leeren (nach Seek)
     //   onError:   (message) => void   – Fehlermeldung anzeigen
+    //   onLuecke:  ({von, bis}) => void – stille Luecke uebersprungen (Diagnose)
     constructor(opts) {
       const o = opts || {};
       this.videoId = o.videoId;
@@ -60,6 +61,7 @@
       this.onMessage = o.onMessage || (() => {});
       this.onClear = o.onClear || (() => {});
       this.onError = o.onError || (() => {});
+      this.onLuecke = o.onLuecke || (() => {});
 
       this.buffer = [];        // sortiert nach offset, dedupliziert per id
       this.seen = new Set();   // bereits eingesammelte Kommentar-ids
@@ -160,7 +162,11 @@
       } else {
         // Komplett leere Antwort (hinter VOD-Ende / keine Daten) ->
         // grosszuegig ueberspringen, damit die Wiedergabe nicht haengt.
+        // ACHTUNG: eine Seitengrenzen-Kollision ist KEINE Luecke (siehe
+        // Kommentar bei fetchAtOffset) und wird hier bewusst nicht gemeldet.
+        const von = this.coveredUntil;
         this.coveredUntil = reqOffset + VOD_GAP_STEP;
+        try { this.onLuecke({ von: reqOffset, bis: this.coveredUntil, vorher: von }); } catch (e) {}
       }
     }
 

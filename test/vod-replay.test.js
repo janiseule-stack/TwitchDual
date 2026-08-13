@@ -271,3 +271,41 @@ test('fragmentsToTokens: emote.id-Variante, leere/kaputte Fragmente', () => {
   assert.deepEqual(VodReplayCore.fragmentsToTokens(null), []);
   assert.deepEqual(VodReplayCore.fragmentsToTokens([]), []);
 });
+
+test('leere Antwort -> Luecke wird gemeldet (von/bis)', async () => {
+  const luecken = [];
+  const core = new VodReplayCore({
+    videoId: '2467910019',
+    lengthSeconds: 3600,
+    fetchPage: async () => ({ ok: true, comments: [] }),   // hinter VOD-Ende / keine Daten
+    onMessage: () => {},
+    onClear: () => {},
+    onError: () => {},
+    onLuecke: (l) => luecken.push(l)
+  });
+  await core.onTime(100);          // erster Aufruf positioniert (seekTo), noch keine Luecke
+  // seekTo() ruft fetchAtOffset() direkt auf und laeuft NICHT durch
+  // ensureCoverage() (renderer/lib/vod-replay.js, seekTo()) - die
+  // Luecken-Meldung sitzt ausschliesslich im else-Zweig von ensureCoverage().
+  // Ein zweiter Aufruf ist noetig, um ihn zu erreichen - wie im bestehenden
+  // Test "ensureCoverage: kein Fortschritt -> Fenster um VOD_GAP_STEP
+  // verschieben" oben.
+  await core.ensureCoverage(100);  // stille Luecke
+  assert.equal(luecken.length, 1);
+  assert.equal(luecken[0].von, 100);
+  assert.equal(luecken[0].bis, 100 + VodReplayCore.VOD_GAP_STEP);
+});
+
+test('ohne onLuecke laeuft alles wie bisher', async () => {
+  const core = new VodReplayCore({
+    videoId: '2467910019',
+    lengthSeconds: 3600,
+    fetchPage: async () => ({ ok: true, comments: [] }),
+    onMessage: () => {},
+    onClear: () => {},
+    onError: () => {}
+  });
+  await core.onTime(100);          // darf nicht werfen
+  await core.ensureCoverage(100);  // trifft den else-Zweig -> Default-onLuecke darf nicht werfen
+  assert.ok(true);
+});

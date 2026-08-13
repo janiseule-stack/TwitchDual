@@ -200,7 +200,12 @@ function buildMessageEl(name, color, tokens, opts = {}) {
       userBadgeCache.set(opts.userId, true);
       window.twitchDual.fetchUserBadges(opts.userId)
         .then((r) => userBadgeCache.set(opts.userId, (r && r.badges) || []))
-        .catch(() => userBadgeCache.set(opts.userId, []));
+        .catch((e) => {
+          window.twitchDual.diag('chat', 'badges-fehler', {
+            quelle: '7tv/bttv/ffz', fehler: e && e.message
+          });
+          userBadgeCache.set(opts.userId, []);
+        });
     }
   }
 
@@ -409,6 +414,9 @@ function scheduleIrcReconnect() {
   if (!ircChannel || ircReconnectTimer) return;
   const wait = Backoff.delay(ircAttempts++);
   setConn(`getrennt – neuer Versuch in ${Math.round(wait / 1000)}s …`, 'err');
+  window.twitchDual.diag('chat', 'irc-reconnect', {
+    versuch: ircAttempts, wartezeitMs: Math.round(wait), kanal: ircChannel
+  });
   ircReconnectTimer = setTimeout(() => {
     ircReconnectTimer = null;
     if (ircChannel) connectIrc(ircChannel);
@@ -451,6 +459,7 @@ function connectIrc(channel) {
       } else if (msg.command === '366') {
         ircAttempts = 0; // erfolgreich im Channel -> Backoff zuruecksetzen
         setConn('verbunden ✓', 'ok');
+        window.twitchDual.diag('chat', 'irc-verbunden', { kanal: ircChannel });
       } else if (msg.command === 'RECONNECT') {
         // Twitch bittet um Neuverbindung (Server-Wartung).
         try { ws.close(); } catch (e) {}
@@ -460,9 +469,12 @@ function connectIrc(channel) {
     }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (ev) => {
     if (ircSocket !== ws) return; // gewollt geschlossen/ersetzt
     ircSocket = null;
+    window.twitchDual.diag('chat', 'irc-getrennt', {
+      kanal: ircChannel, code: ev && ev.code, grund: (ev && ev.reason) || null
+    });
     scheduleIrcReconnect();
   };
   ws.onerror = () => setConn('IRC-Fehler', 'err'); // onclose folgt -> Reconnect dort
@@ -497,7 +509,13 @@ function createVodReplay(payload) {
       { replay: true, timeSeconds: c.offset, badges: c.badges, userId: c.userId }
     ),
     onClear: () => { $messages.innerHTML = ''; $messages.classList.add('no-anim'); },
-    onError: (msg) => setConn('VOD-Fehler: ' + msg, 'err')
+    onError: (msg) => {
+      window.twitchDual.diag('chat', 'vod-fehler', { fehler: msg });
+      setConn('VOD-Fehler: ' + msg, 'err');
+    },
+    onLuecke: (l) => window.twitchDual.diag('chat', 'vod-luecke', {
+      videoId: payload.videoId, von: l.von, bis: l.bis
+    })
   });
 }
 
@@ -796,7 +814,10 @@ function updateComposerState() {
   $composerInput.dataset.placeholder = !chatLoggedIn ? 'Zum Chatten anmelden'
     : chatMode !== 'live' ? 'Chatten nur im Live-Modus'
     : 'Nachricht senden …';
-  if (canChat) ensureUserEmotes().catch(() => {}); // eigene Emotes fuer Inline-Wandlung vorladen
+  // eigene Emotes fuer Inline-Wandlung vorladen
+  if (canChat) ensureUserEmotes().catch((e) => {
+    window.twitchDual.diag('chat', 'emotes-fehler', { quelle: 'helix-user', fehler: e && e.message });
+  });
 }
 
 // Serialisiert das contenteditable-Feld zu reinem Text: Text-Knoten woertlich,
@@ -823,7 +844,13 @@ async function doSend() {
   clearComposer();
   clearAc();
   const r = await window.twitchDual.chatSend(text);
-  if (!r.ok) { showChatError(r.error); return; }
+  if (!r.ok) {
+    // Inhalt der Nachricht wird NICHT protokolliert - nur, dass und warum es
+    // schiefging.
+    window.twitchDual.diag('chat', 'senden-fehler', { grund: r.error, laenge: text.length });
+    showChatError(r.error);
+    return;
+  }
   if (roomSlowSeconds > 0) startSlowCountdown(roomSlowSeconds);
 }
 
@@ -1091,7 +1118,10 @@ document.addEventListener('mousedown', (e) => {
 // --- Sende-Fehler (NOTICE) + Raum-Status (ROOMSTATE) -----------------------
 // NOTICE (z.B. Slow-Mode aktiv, Follower-only) landet als Fehlermeldung im
 // gleichen Toast wie fehlgeschlagene Sendeversuche (showChatError, Task 9).
-window.twitchDual.onChatNotice((n) => { showChatError(n.text); });
+window.twitchDual.onChatNotice((n) => {
+  window.twitchDual.diag('chat', 'senden-fehler', { msgId: n && n.id });
+  showChatError(n.text);
+});
 
 // ROOMSTATE zeigt aktive Raum-Einschraenkungen als kleinen Chip im Composer.
 // Bei Slow-Mode laeuft nach dem Senden ein Countdown ("noch X s"), damit man
