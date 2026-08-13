@@ -162,6 +162,15 @@ hoechstens zwei Dateien, hoechstens ~20 MB — es kann nie die Platte volllaufen
 Die Datei waechst gegenueber dem Entwurf mit, weil die Vorgeschichte allein
 schon ~1,5 MB belegt.
 
+**Zeilenlaengengrenze.** `bereich` und `ereignis` kommen ueber `diag-melde`
+letztlich aus Seitencode im Twitch-Player-iframe (`window.__twitchDualDiag`)
+und laufen ungeprueft durch — die ~150-Byte-Rechnung oben gilt nur, solange
+niemand laengere Zeilen einspeisen kann. `baueZeile` kuerzt daher auf 4000
+Zeichen (weit jenseits jeder echten Zeile) und ersetzt Zeilenumbrueche durch
+Leerzeichen, **bevor** `schwaerze()` laeuft — sonst liefe eine erzwungene
+Mega-Zeile durch alle sieben Schwaerzungs-Regexe, und der Puffer deckelt nur
+die Anzahl der Zeilen, nicht ihre Groesse.
+
 ## 4. Verdrahtung
 
 **Main** (`main.js`): legt `diagLog` mit `fs`-Anbindung auf
@@ -205,10 +214,15 @@ weil die Vorgeschichte mitgeht. Der Ordner-Knopf spart das Wuehlen im AppData.
 ## 6. Ereignis-Katalog
 
 **`punkte`** — `takt-aus` (mit Grund: kein Token / nicht live / pausiert /
-Home offen / Kanal gesperrt / Abstand), `kontext` (Stand, claimID, Punktename),
+Home offen / Kanal gesperrt), `kontext` (Stand, claimID, Punktename),
 `kiste-versuch`, `kiste-ok` (davor/danach/Betrag), `kiste-fehler` (Code),
 `integrity-ernte` (ok/fehlgeschlagen), `einloesen` (Belohnung, ok, Code),
 `kanal-gesperrt`, `token-abgelaufen`, `kanalwechsel`.
+
+`Abstand` ist **kein** Ruhegrund und wird nicht gemeldet: `punkteTick()` laeuft
+jede Sekunde, abgefragt wird nur alle 15s — gemeldet haette das 14 von 15
+Takten „ich warte noch", ~720 Zeilen pro Stunde, die den Ringpuffer auf ~14h
+Vorgeschichte verkuerzt haetten. Bewusst wieder entfernt.
 
 **`video`** — `werbung-start`, `werbung-ende`, `watchdog`,
 `volume-guard-verdacht`, `volume-guard-wiederhergestellt`, `player-zustand`,

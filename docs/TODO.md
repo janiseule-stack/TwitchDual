@@ -408,7 +408,9 @@ nichts auf der Platte.
   haelt fest, dass Fliesstext, Kanal-Logins, 7TV-ULIDs und VOD-IDs unberuehrt
   bleiben.
 - **Groessengrenze:** ueber 10 MB wird nach `diagnose.1.log` umgelegt. Hoechstens
-  zwei Dateien, hoechstens ~20 MB.
+  zwei Dateien, hoechstens ~20 MB; einzelne Zeilen sind zusaetzlich auf 4000
+  Zeichen gekappt und gegen eingebettete Zeilenumbrueche abgesichert, da
+  `bereich`/`ereignis` letztlich aus dem Twitch-Player-iframe stammen.
 - **`updater.log` bleibt daneben bestehen**: Updater-Ereignisse gehen weiter
   IMMER in eine Datei, auch bei ausgeschaltetem Schalter. Sie sind selten,
   kosten nichts und haben schon zweimal eine Fehlersuche getragen.
