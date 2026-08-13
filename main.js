@@ -27,7 +27,8 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 }
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 },
+    diagEnabled: false   // Diagnose-Protokoll: Standard aus = nichts auf der Platte
   }
 });
 
@@ -114,6 +115,7 @@ function createWindows() {
 
   videoWin.loadURL(`http://localhost:${serverPort}/video/index.html`);
   chatWin.loadURL(`http://localhost:${serverPort}/chat/index.html`);
+  diagLog.melde('app', 'fenster', { welches: 'beide', was: 'auf' });
 
   // Fenster-Bounds bei jeder Aenderung merken.
   const save = () => {
@@ -133,10 +135,12 @@ function createWindows() {
   });
 
   videoWin.on('closed', () => {
+    diagLog.melde('app', 'fenster', { welches: 'video', was: 'zu' });
     videoWin = null;
     if (chatWin && !chatWin.isDestroyed()) chatWin.close();
   });
   chatWin.on('closed', () => {
+    diagLog.melde('app', 'fenster', { welches: 'chat', was: 'zu' });
     chatWin = null;
   });
 }
@@ -710,6 +714,53 @@ ipcMain.on('player-state', (_evt, state) => {
 // Nur in der gepackten App aktiv; Fehler (offline, Rate-Limit) sind unkritisch.
 // Verdrahtung + Fehlerabfang stecken in src/auto-update.js (getestet).
 
+// --- Diagnose-Protokoll ----------------------------------------------------
+// Der Ringpuffer laeuft immer mit; der Schalter entscheidet nur ueber die
+// Datei. Beim Einschalten geht der Puffer als Vorgeschichte raus - genau das
+// ist der Zweck (siehe docs/superpowers/specs/2026-08-13-diagnose-schalter-design.md).
+// Die Pfade werden bei jedem Zugriff frisch geholt, damit auf Modulebene kein
+// app.getPath() vor whenReady faellig wird.
+const createDiagLog = require('./src/diag-log');
+
+const diagPfad = () => path.join(app.getPath('userData'), 'diagnose.log');
+const diagAltPfad = () => path.join(app.getPath('userData'), 'diagnose.1.log');
+
+const diagLog = createDiagLog({
+  schreiben: (block) => fs.appendFileSync(diagPfad(), block),
+  groesse: () => { try { return fs.statSync(diagPfad()).size; } catch { return 0; } },
+  // Hoechstens zwei Dateien, hoechstens ~20 MB - es kann nie die Platte
+  // volllaufen. Eine vorhandene diagnose.1.log wird ueberschrieben.
+  umlegen: () => fs.renameSync(diagPfad(), diagAltPfad())
+});
+
+// Renderer melden IMMER, auch bei ausgeschaltetem Schalter - nur so fuellt sich
+// der Ringpuffer, und der ist der ganze Punkt. Vertretbar, weil der
+// Ereignis-Katalog bewusst duenn ist: einzelne Meldungen pro Minute, keine pro
+// Chat-Nachricht.
+ipcMain.on('diag-melde', (_evt, m) => {
+  if (!m) return;
+  diagLog.melde(String(m.bereich || 'app'), String(m.ereignis || '?'), m.detail);
+});
+
+ipcMain.handle('get-diag-enabled', () => diagLog.istAktiv());
+
+ipcMain.on('set-diag-enabled', (_evt, an) => {
+  const ein = !!an;
+  store.set('diagEnabled', ein);
+  if (ein) {
+    diagLog.setAktiv(true);          // schreibt die Vorgeschichte
+  } else {
+    diagLog.melde('app', 'diagnose-aus');   // noch in die Datei, dann Schluss
+    diagLog.setAktiv(false);
+  }
+});
+
+// Ordner statt Datei: beim ersten Einschalten existiert diagnose.log noch
+// nicht, showItemInFolder taete dann nichts.
+ipcMain.on('open-diag-folder', () => {
+  shell.openPath(app.getPath('userData')).catch(() => { /* Komfort, kein Muss */ });
+});
+
 // Protokolliert Updater-Ereignisse sichtbar in eine Datei (console.* ist in der
 // gepackten App unsichtbar). Darf den Start nie blockieren.
 function updaterLog(event, detail) {
@@ -719,6 +770,10 @@ function updaterLog(event, detail) {
   try {
     fs.appendFileSync(path.join(app.getPath('userData'), 'updater.log'), line + '\n');
   } catch { /* Logging ist best-effort */ }
+  // Zusaetzlich in die Diagnose. Der Ereignisname bleibt roh, damit
+  // 'gpu-status' und 'unhandled-rejection' im Diagnose-Protokoll so heissen,
+  // wie der Katalog es vorsieht - in updater.log behalten sie ihr 'update:'.
+  try { diagLog.melde('app', event, detail); } catch { /* nie stoeren */ }
 }
 
 // Defense-in-Depth: electron-updater laesst bei Download-Fehlern intern eine
@@ -732,6 +787,9 @@ process.on('unhandledRejection', (reason) => {
 app.whenReady().then(async () => {
   const { port } = await startServer(path.join(__dirname, 'renderer'));
   serverPort = port;
+  // Gemerkten Schalterstand anwenden, BEVOR das erste Ereignis faellt.
+  diagLog.setAktiv(store.get('diagEnabled', false));
+  diagLog.melde('app', 'start', { version: app.getVersion(), gepackt: app.isPackaged });
   initAuth();
   webToken = webAuth.lesen(); // einmalig beim Start, siehe Kommentar oben bei der Deklaration
   createWindows();
