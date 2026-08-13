@@ -30,6 +30,9 @@ test('GQL-Authorization', () => {
   const s = schwaerze('{"Authorization":"OAuth ' + TOKEN + '","Client-ID":"kimne78kx3ncx6brgo4mv6wki5h1ko"}');
   assert.ok(!s.includes(TOKEN));
   assert.ok(s.includes('OAuth ***'));
+  // Die Client-ID ist oeffentlich und darf nicht geschwaerzt werden - sie ist
+  // noetig, um die GQL-Anfragen im Protokoll lesbar zu halten.
+  assert.ok(s.includes('"Client-ID":"kimne78kx3ncx6brgo4mv6wki5h1ko"'));
 });
 
 test('Hermes-Anmelderahmen (docs/TODO.md:270)', () => {
@@ -107,6 +110,23 @@ test('Gegenprobe: 64-stelliger Persisted-Query-Hash bleibt unveraendert', () => 
   // Auffangnetz sorgen dafuer, dass er nicht mittendrin zerschnitten wird.
   const hash = 'b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf6a';
   assert.equal(schwaerze('gql:hash ' + hash), 'gql:hash ' + hash);
+});
+
+test('Gegenprobe: Twitchs Client-ID bleibt unveraendert', () => {
+  // src/twitch-points.js:8 und src/twitch-gql.js:20 - oeffentliche,
+  // nicht geheime Client-ID. Ist exakt 30 Zeichen [a-z0-9] und wird vom
+  // Auffangnetz erfasst, aber die Ausnahmeliste schont sie, weil sie im
+  // Klartext in jedem Request geht und im Protokoll brauchbar sein muss.
+  const s = schwaerze('Client-ID: kimne78kx3ncx6brgo4mv6wki5h1ko');
+  assert.equal(s, 'Client-ID: kimne78kx3ncx6brgo4mv6wki5h1ko');
+});
+
+test('Auffangnetz: echtes Token neben der Ausnahme wird trotzdem geschwaerzt', () => {
+  // Wenn ein echter Token neben der Client-ID steht, soll er trotzdem weg.
+  // Die Ausnahme darf nicht auf die Nachbarschaft abfaerben.
+  const s = schwaerze('TokenA=' + TOKEN + '&ClientID=kimne78kx3ncx6brgo4mv6wki5h1ko&TokenB=' + TOKEN);
+  assert.ok(!s.includes(TOKEN), 'Token sollte geschwaerzt sein: ' + s);
+  assert.ok(s.includes('kimne78kx3ncx6brgo4mv6wki5h1ko'), 'Client-ID sollte erhalten sein: ' + s);
 });
 
 test('nimmt alles entgegen und wirft nie', () => {

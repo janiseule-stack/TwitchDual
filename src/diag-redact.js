@@ -17,6 +17,14 @@
 // und numerische VOD-IDs ebenso.
 const AUFFANGNETZ = /\b[a-z0-9]{30}\b/g;
 
+// Oeffentliche, nicht geheime Bezeichner, die zufaellig wie ein Token aussehen.
+// Twitchs Web-Client-ID ist exakt 30 Zeichen [a-z0-9] und steht hartcodiert in
+// src/twitch-points.js:8 und src/twitch-gql.js:20 - sie geht bei jedem Request
+// im Klartext raus. Sie zu schwaerzen macht genau die GQL-Zeilen unlesbar, fuer
+// die dieses Werkzeug gebaut wurde. Nur EXAKTE Literale gehoeren hier rein,
+// niemals ein aufgeweichtes Muster.
+const UNVERFAENGLICH = new Set(['kimne78kx3ncx6brgo4mv6wki5h1ko']);
+
 function schwaerze(text) {
   if (text === null || text === undefined) return '';
   let s = String(text);
@@ -45,8 +53,9 @@ function schwaerze(text) {
   s = s.replace(/(Client-Integrity["']?\s*[:=]\s*["']?)[A-Za-z0-9._-]+/gi, '$1***');
 
   // Zuletzt das strukturelle Netz - es faengt den Token auch in einem Rahmen,
-  // den wir heute nicht kennen.
-  s = s.replace(AUFFANGNETZ, '***');
+  // den wir heute nicht kennen. Die Ersetzungsfunktion schont oeffentliche
+  // Bezeichner.
+  s = s.replace(AUFFANGNETZ, (treffer) => UNVERFAENGLICH.has(treffer) ? treffer : '***');
 
   return s;
 }
