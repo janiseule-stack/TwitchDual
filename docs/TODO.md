@@ -328,6 +328,66 @@ darueber fremde Kanalpunkt-Einloesungen.
   `TWITCHDUAL_PUBSUB_SPIKE=1`) wieder entfernt, dieser Abschnitt ist der
   einzige verbleibende Niederschlag (Branch `spike/pubsub`).
 
+## Punkte-Anzeige: Symbol und Zugewinn (v1.10.0)
+
+- **Warum:** v1.9.0 zeigte `🪙 12.350` und aenderte sich stumm. Man sah nie,
+  *dass* gerade Punkte dazukamen oder dass die Kiste geklappt hat.
+- **Mitbehobener Fehler:** `punkteTick` holte den Stand mit `context()` *vor*
+  dem Claim und sendete nach dem Einloesen genau diese alte Zahl weiter — der
+  Chip hinkte bis zu 15 s hinterher. Die Claim-Mutation fragt `currentPoints`
+  laengst ab, `claim()` warf den Wert nur weg. Aus der Differenz beider Staende
+  kommt jetzt der exakte Kistenbetrag, und der Stand stimmt nebenbei sofort.
+- **Symbol in drei Ebenen**, weil die oberste oft fehlt: Twitch gibt Name und
+  Icon der Kanalpunkte unauthentifiziert heraus, aber laengst nicht jeder Kanal
+  setzt sie (am 2026-08-12 geprueft: Papaplatte und Trymacs liefern beides,
+  shroud, xQc und Knossi fuer beide Felder `null`). Ebene 1 kanaleigenes Icon,
+  Ebene 2 ein 7TV-Emote passend zur Akzentfarbe, Ebene 3 ein Inline-SVG in
+  `var(--accent)`. **Ebene 3 ist bewusst kein Netzbild** — eine Rueckfallebene
+  von einem fremden CDN kann genau den Fehler haben, den sie abfangen soll.
+  Name und Bild koennen einzeln fehlen; der Tooltip faellt getrennt auf
+  „Kanalpunkte" zurueck.
+- **Emote-Wahl** (`renderer/lib/points-icon.js`, DOM-frei): Farbton der
+  Akzentfarbe, Kandidaten im 60°-Umkreis, sonst die drei naechstliegenden —
+  damit fehlt nie ein Symbol, egal welche Farbe der Farbwaehler liefert.
+  Ausgewaehlt wird per Quersumme des Kanalnamens: anderer Kanal, anderes
+  Emote — derselbe Kanal aber **immer dasselbe**, sonst flackert es im
+  15-s-Takt.
+- **Die Emote-Liste ist handverlesen und darf wachsen.** Von 17 gesichteten
+  7TV-Kandidaten waren 5 brauchbar: der Katalog ist ueberwiegend Foto-Material,
+  das bei 18 px zu Matsch wird, und **der Name sagt nichts ueber das Bild**
+  (`gem` ist das Foto eines Mannes, `crystallis` ein Gesicht). Neue Kandidaten
+  also erst in Originalgroesse ansehen. `EMOTES` ist reine Daten — Zuwachs
+  aendert weder Code noch Tests. Offen: Gruen und echtes Cyan fehlen, dort
+  greift die Ausweichregel und es bleibt praktisch bei `Diamond`. Die Farbtoene
+  sind geschaetzt, nicht per Pixelanalyse gemessen.
+- **Symbolhoehe 14 px → 18 px:** bei 14 px ist von einem 7TV-Emote nichts mehr
+  zu erkennen (an echten Bildern geprueft).
+- **Zugewinn-Anzeige:** Kiste und passiver Tropfen sind unterschiedlich laut
+  (`+50` in Akzentfarbe/fett/1,6 s gegen `+10` gedaempft/1,1 s), der
+  peepoMoney-Knopf wackelt entsprechend kraeftig oder leicht. Fallen beide im
+  selben Takt an, laufen sie 450 ms versetzt.
+- **`#points-gain` ist Geschwister des Chips, nicht sein Kind**, und liegt
+  absolut daneben (`left: 100%`) — sonst schoebe die auftauchende Zahl den
+  Footer auseinander. Aus demselben Grund hat der Chip jetzt eine feste
+  Struktur mit eigenem `#points-value`: das alte
+  `$pointsChip.textContent = …` haette Icon und Zugewinn bei jedem Takt
+  herausgerissen.
+- **Basislinie beim Kanalwechsel vergessen** (`standVergessen()`): ohne das
+  knallt beim Wechsel ein `+12.350` auf den Schirm. Der erste Stand eines
+  Kanals setzt nur die Basislinie und loest nie eine Animation aus; ein
+  sinkender Stand (Einloesung) ebenfalls nicht.
+- **Kein Hermes-Abo dafuer.** Der Spike liegt ungenutzt herum, aber der
+  bestehende 15-s-Takt liefert die Zahl bereits — eine zweite Datenquelle fuer
+  denselben Wert waere reine Doppelung.
+- **Animationen ohne `prefers-reduced-motion`-Zweig**, wie im Rest des
+  Projekts: auf Janis' Windows sind Animationseffekte systemweit aus, ein
+  solcher Zweig wuerde sie dauerhaft stumm schalten.
+- **Screenshot-Falle:** `tools/ui-shots.js` blockt alle http(s)-Requests. Im
+  Screenshot erscheint deshalb nie ein Kanal-Icon und nie ein 7TV-Emote — nur
+  Alt-Text. `npm run shots` deckt hier ausschliesslich das Layout ab, die
+  Bildpfade muessen am laufenden Programm geprueft werden.
+- Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-12-punkte-anzeige-politur*`.
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
