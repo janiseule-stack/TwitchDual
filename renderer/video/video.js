@@ -60,6 +60,19 @@ let playerPrefs = { volume: 0.15, quality: null };
 // gemerkten Wert) und den gewuenschten Wert auf PLAYING erneut setzen.
 let volumeReady = false;
 
+// Zuletzt an Main gemeldeter Player-Zustand. Twitch.Player.PLAYING und
+// Twitch.Player.PLAY sind zwei verschiedene Ereignisse, die aber beide auf
+// "playing" abbilden (sie feuern beim Anlaufen praktisch gleichzeitig) - ohne
+// diese Flanke ginge derselbe Zustand doppelt per IPC raus und stuende doppelt
+// im Diagnose-Protokoll. Bei jedem frischen Player-Mount zurueckgesetzt, damit
+// der erste echte Zustand des neuen Players immer gemeldet wird.
+let letzterGesendeterPlayerZustand = null;
+function meldePlayerZustand(zustand) {
+  if (zustand === letzterGesendeterPlayerZustand) return;
+  letzterGesendeterPlayerZustand = zustand;
+  window.twitchDual.sendPlayerState(zustand);
+}
+
 function setStatus(text, isError = false) {
   $status.textContent = text || '';
   $status.className = (isError ? 'err' : '') + (text ? '' : ' hidden');
@@ -84,6 +97,7 @@ function mountPlayer(options) {
   // Alten Player-Verweis freigeben; das iframe raeumt gleich innerHTML='' weg.
   player = null;
   $player.innerHTML = '';
+  letzterGesendeterPlayerZustand = null; // neuer Player -> erster Zustand zaehlt wieder als Wechsel
 
   if (typeof Twitch === 'undefined' || !Twitch.Player) {
     setStatus('Twitch-Embed nicht geladen (Internet?)');
@@ -118,19 +132,20 @@ function mountPlayer(options) {
       setTimeout(() => { volumeReady = true; }, 500);
     }
     startTimeBroadcast();
-    window.twitchDual.sendPlayerState('playing');
+    meldePlayerZustand('playing');
     onAirPlayerState = 'playing'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.PAUSE, () => {
-    window.twitchDual.sendPlayerState('paused');
+    meldePlayerZustand('paused');
     onAirPlayerState = 'paused'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.PLAY, () => {
-    window.twitchDual.sendPlayerState('playing');
+    // Feuert oft im selben Moment wie PLAYING (siehe meldePlayerZustand oben).
+    meldePlayerZustand('playing');
     onAirPlayerState = 'playing'; updateOnAir();
   });
   player.addEventListener(Twitch.Player.ENDED, () => {
-    window.twitchDual.sendPlayerState('ended');
+    meldePlayerZustand('ended');
     onAirPlayerState = 'ended'; updateOnAir();
   });
 

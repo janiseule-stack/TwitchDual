@@ -516,14 +516,23 @@ async function punkteTick() {
     if (!pointsState.sollAbfragen(zustand, Date.now())) {
       // Genauer Grund statt Sammelbegriff - die Reihenfolge entspricht der
       // Pruefreihenfolge in points-state.js sollAbfragen().
-      meldeTaktGrund(
+      const grund =
         !webToken ? 'kein Token'
         : webTokenAbgelaufen ? 'Token abgelaufen'
         : !kanal ? 'kein Live-Kanal'
         : punkteHomeOffen ? 'Home offen'
         : !punkteSpielt ? 'pausiert'
         : pointsState.istKanalGesperrt(kanal) ? 'Kanal gesperrt'
-        : 'Abstand');
+        : 'Abstand';
+      // "Abstand" ist kein Ruhegrund, sondern der normale Rhythmus: punkteTick
+      // laeuft jede Sekunde, abgefragt wird nur alle 15s, also melden 14 von
+      // 15 Takten "ich warte noch". Absichtlich NICHT ueber meldeTaktGrund
+      // melden UND letzterTaktGrund dabei unangetastet lassen - sonst wird
+      // aus 720 Rausch-Zeilen/Stunde nur eine andere Sorte Rauschen, und die
+      // Flanke fuer die echten Gruende (Token weg, Kanal gesperrt, pausiert,
+      // ...) geht kaputt: naechster echter Grundwechsel wuerde dann ein
+      // zusaetzliches, falsches takt-an dazwischenmelden.
+      if (grund !== 'Abstand') meldeTaktGrund(grund);
       return;
     }
     meldeTaktGrund(null);
