@@ -41,7 +41,12 @@ setInterval(() => {
   if (!adState) return;
   const wasActive = adState.overlayVisible;
   adState.tick(Date.now());
-  if (wasActive && !adState.overlayVisible) renderAdOverlay();
+  if (wasActive && !adState.overlayVisible) {
+    // Kein 'end'-Signal gekommen, der 120-s-Watchdog hat aufgeraeumt. Genau
+    // dieser Fall ist der Verdaechtige bei "Ton weg nach Werbung".
+    window.twitchDual.diag('video', 'watchdog', { was: 'Overlay nach Zeitablauf geraeumt' });
+    renderAdOverlay();
+  }
 }, 1000);
 
 let player = null;
@@ -151,6 +156,9 @@ function startTimeBroadcast() {
         const vChanged = typeof v === 'number' && v !== playerPrefs.volume;
         const qChanged = !!q && q !== playerPrefs.quality;
         if (vChanged || qChanged) {
+          if (qChanged) {
+            window.twitchDual.diag('video', 'qualitaet', { von: playerPrefs.quality, nach: q });
+          }
           playerPrefs = {
             volume: typeof v === 'number' ? v : playerPrefs.volume,
             quality: q || playerPrefs.quality

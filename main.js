@@ -648,8 +648,11 @@ ipcMain.on('window-control', (evt, action) => {
 // Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.
 ipcMain.on('adblock-state', (_evt, payload) => {
   const phase = payload && payload.phase;
-  if ((phase === 'start' || phase === 'end') && videoWin && !videoWin.isDestroyed()) {
-    videoWin.webContents.send('adblock-state', { phase });
+  if (phase === 'start' || phase === 'end') {
+    diagLog.melde('video', phase === 'start' ? 'werbung-start' : 'werbung-ende');
+    if (videoWin && !videoWin.isDestroyed()) {
+      videoWin.webContents.send('adblock-state', { phase });
+    }
   }
 });
 
@@ -763,6 +766,7 @@ ipcMain.on('player-time', (_evt, seconds) => {
 // Player-Zustand (Pause/Play/Ende) ebenso ans Chat-Fenster relayen.
 ipcMain.on('player-state', (_evt, state) => {
   punkteSpielt = (state === 'playing'); // Kanalpunkte-Takt fragt nur bei spielendem Player
+  diagLog.melde('video', 'player-zustand', { zustand: state });
   if (chatWin && !chatWin.isDestroyed()) {
     chatWin.webContents.send('player-state', state);
   }

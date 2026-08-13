@@ -31,7 +31,7 @@
     root.createVolumeGuard = factory();
   }
 })(typeof self !== 'undefined' ? self : this, function () {
-  function createVolumeGuard({ graceMs = 1500 } = {}) {
+  function createVolumeGuard({ graceMs = 1500, melde = () => {} } = {}) {
     let lastGoodVolume = null;  // zuletzt gesehene Lautstaerke > 0
     let suspectSince = null;    // seit wann steht unmuted auf volume=0?
 
@@ -53,7 +53,16 @@
         // Nie eine brauchbare Lautstaerke gesehen -> nichts zu restaurieren.
         if (lastGoodVolume === null) { suspectSince = null; return null; }
 
-        if (suspectSince === null) { suspectSince = nowMs; return null; }
+        if (suspectSince === null) {
+          suspectSince = nowMs;
+          // Genau EINMAL je Verdacht melden. Der Waechter wird alle 300 ms
+          // befragt - eine Meldung pro Messwert waere Dauerfeuer im
+          // Ringpuffer. Auch der kurze, gesunde Verdacht beim Reload wird
+          // gemeldet: erst der Vergleich "kurz vs. anhaltend" macht ein
+          // Protokoll auswertbar.
+          try { melde('volume-guard-verdacht', { lastGoodVolume }); } catch (e) {}
+          return null;
+        }
         if (nowMs - suspectSince < graceMs) return null;
 
         // Frist abgelaufen, Zustand haelt an -> wiederherstellen. Frist neu

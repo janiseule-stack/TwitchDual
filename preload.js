@@ -181,13 +181,18 @@ if (!isTwitchFrame) {
         // Oberflaeche den alten Wert anzeigt - hier korrigiert.
         (function(){
           if (!window.createVolumeGuard) return;
-          var guard = window.createVolumeGuard();
+          var guard = window.createVolumeGuard({
+            melde: function(ereignis, detail){
+              try { window.__twitchDualDiag('video', ereignis, detail); } catch(e){}
+            }
+          });
           setInterval(function(){
             try {
               var v = document.querySelector('video');
               var act = guard.observe(v ? { muted: v.muted, volume: v.volume } : null, Date.now());
               if (act && v) {
                 v.volume = act.restoreTo;
+                try { window.__twitchDualDiag('video', 'volume-guard-wiederhergestellt', { auf: act.restoreTo }); } catch(e){}
                 console.log('[TwitchDual] Lautstaerke nach Player-Neustart wiederhergestellt: ' + act.restoreTo);
               }
             } catch(e){}

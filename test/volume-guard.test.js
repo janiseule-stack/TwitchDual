@@ -85,3 +85,25 @@ test('merkt sich den zuletzt gueltigen Wert, nicht den ersten', () => {
   g.observe({ muted: false, volume: 0 }, 200);
   assert.deepEqual(g.observe({ muted: false, volume: 0 }, 1800), { restoreTo: 0.11 });
 });
+
+test('meldet den Verdacht genau einmal, nicht bei jedem Messwert', () => {
+  const meldungen = [];
+  const g = createVolumeGuard({ graceMs: 1500, melde: (e, d) => meldungen.push([e, d]) });
+  g.observe({ muted: false, volume: 0.11 }, 0);
+  g.observe({ muted: false, volume: 0 }, 100);   // Verdacht beginnt
+  g.observe({ muted: false, volume: 0 }, 200);   // gleicher Verdacht
+  g.observe({ muted: false, volume: 0 }, 300);
+  assert.equal(meldungen.length, 1, 'sonst 3 Meldungen pro Sekunde im Ringpuffer');
+  assert.equal(meldungen[0][0], 'volume-guard-verdacht');
+  assert.equal(meldungen[0][1].lastGoodVolume, 0.11);
+});
+
+test('gesunder Reload meldet auch: kurzer Verdacht ist eine echte Beobachtung', () => {
+  const meldungen = [];
+  const g = createVolumeGuard({ graceMs: 1500, melde: (e) => meldungen.push(e) });
+  g.observe({ muted: false, volume: 0.11 }, 0);
+  g.observe({ muted: false, volume: 0 }, 618);
+  g.observe({ muted: false, volume: 0.11 }, 897);   // Verdacht vorbei
+  g.observe({ muted: false, volume: 0 }, 2000);     // neuer Verdacht
+  assert.deepEqual(meldungen, ['volume-guard-verdacht', 'volume-guard-verdacht']);
+});
