@@ -349,7 +349,7 @@ darueber fremde Kanalpunkt-Einloesungen.
 - **Emote-Wahl** (`renderer/lib/points-icon.js`, DOM-frei): Farbton der
   Akzentfarbe, Kandidaten im 60°-Umkreis, sonst die drei naechstliegenden —
   damit fehlt nie ein Symbol, egal welche Farbe der Farbwaehler liefert.
-  Ausgewaehlt wird per Quersumme des Kanalnamens: anderer Kanal, anderes
+  Ausgewaehlt wird ueber einen Hash des Kanalnamens: anderer Kanal, anderes
   Emote — derselbe Kanal aber **immer dasselbe**, sonst flackert es im
   15-s-Takt.
 - **Die Emote-Liste ist handverlesen und darf wachsen.** Von 17 gesichteten

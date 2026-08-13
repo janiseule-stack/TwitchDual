@@ -40,6 +40,24 @@ test('context nutzt eine rohe Query, keinen Persisted-Hash', async () => {
   assert.equal(f.aufrufe[0].body.extensions, undefined);
 });
 
+// Die Antworten unten sind alle von Hand gebaut. Faellt das Feld aus der
+// Abfrage, blieben sie gruen, waehrend Ebene 1 in echt fuer JEDEN Kanal stirbt.
+// Nur diese beiden Zusicherungen haengen am tatsaechlich abgeschickten Text.
+test('context fragt Name und Bild der Kanalpunkte mit ab', async () => {
+  const f = fakeFetch({ data: { community: null } });
+  const api = createPointsApi({ fetchImpl: f });
+  await api.context('geheim', 'krokoboss');
+  assert.ok(f.aufrufe[0].body.query.includes('communityPointsSettings'));
+  assert.ok(f.aufrufe[0].body.query.includes('image'));
+});
+
+test('claim fragt den Stand nach dem Einloesen mit ab', async () => {
+  const f = fakeFetch({ data: { claimCommunityPoints: { claim: { id: 'kiste-1' } } } });
+  const api = createPointsApi({ fetchImpl: f });
+  await api.claim('geheim', '1', 'kiste-1');
+  assert.ok(f.aufrufe[0].body.query.includes('currentPoints'));
+});
+
 test('Kanal ohne Punkte ergibt balance null statt Absturz', async () => {
   const f = fakeFetch({ data: { community: { id: '1', displayName: 'x', channel: { self: { communityPoints: null } } } } });
   const api = createPointsApi({ fetchImpl: f });

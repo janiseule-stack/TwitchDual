@@ -472,21 +472,26 @@ async function punkteTick() {
   if (punkteLaeuft) return;
   punkteLaeuft = true;
   try {
+    // Kanal EINMAL festhalten. Waehrend der Abfrage kann submit-load den Kanal
+    // wechseln; alles, was danach kommt, gehoert zum alten Kanal und darf den
+    // neuen nicht anfassen.
+    const kanal = currentLiveChannel;
     const zustand = {
-      live: !!currentLiveChannel && !punkteHomeOffen,
+      live: !!kanal && !punkteHomeOffen,
       playing: punkteSpielt,
       hatToken: webTokenNutzbar(),
-      channelLogin: currentLiveChannel
+      channelLogin: kanal
     };
     if (!pointsState.sollAbfragen(zustand, Date.now())) return;
     try {
-      const ctx = await pointsApi.context(webToken, currentLiveChannel);
+      const ctx = await pointsApi.context(webToken, kanal);
+      if (currentLiveChannel !== kanal) return;
       punkteChannelId = ctx.channelID;
       if (ctx.balance === null) {
         if (ctx.channelID != null) {
           // Kanal gibt es, er hat Kanalpunkte aus -> einmal melden, dann ruhen.
           pointsState.abfrageOk(Date.now());
-          pointsState.kanalGesperrt(currentLiveChannel);
+          pointsState.kanalGesperrt(kanal);
           broadcast('points-update', { balance: null, displayName: null, fehler: 'Kanal hat keine Kanalpunkte' });
         } else {
           // Gar kein community-Objekt: Kanal unbekannt oder Antwort unbrauchbar.
@@ -525,6 +530,12 @@ async function punkteTick() {
           throw e;
         }
       }
+      // Zweite Wache: die Kisten-Einloesung samt Integrity-Ernte dauert
+      // Sekunden. Kam der Wechsel erst danach, wuerde zuwaechse() die frisch
+      // von standVergessen() geleerte Basislinie mit dem Stand des ALTEN
+      // Kanals neu setzen - der naechste Takt meldete dann den kompletten
+      // Kontostand des neuen Kanals als Zuwachs.
+      if (currentLiveChannel !== kanal) return;
       broadcast('points-update', {
         balance: stand,
         displayName: ctx.displayName,
@@ -532,7 +543,7 @@ async function punkteTick() {
         zuwaechse: pointsState.zuwaechse(stand, kistenBetrag),
         punkteName: ctx.punkteName,
         iconUrl: ctx.iconUrl,
-        channelLogin: currentLiveChannel
+        channelLogin: kanal
       });
     } catch (e) {
       // Abgelaufener Token: Takt anhalten (Spec). Der Chip zeigt die Meldung

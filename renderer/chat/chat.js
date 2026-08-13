@@ -1140,6 +1140,9 @@ const $pointsIcon = document.getElementById('points-icon');
 const $pointsSvg = document.getElementById('points-svg');
 const $pointsValue = document.getElementById('points-value');
 const $pointsGain = document.getElementById('points-gain');
+// Steht hier oben, nicht erst beim Belohnungen-Panel: zeigeZuwachs() laesst den
+// Knopf mitwackeln und liefe sonst auf eine noch nicht initialisierte const.
+const $rewardsBtn = document.getElementById('rewards-btn');
 // Fuer die Symbolwahl: der Kanal kommt mit points-update, die Akzentfarbe aus
 // den Theme-Einstellungen. Gemerkt, damit ein Farbwechsel das Symbol neu
 // waehlen kann, ohne auf den naechsten Takt zu warten.
@@ -1149,6 +1152,10 @@ let letzterKanal = null;
 // allein reicht als Wache nicht, denn Fehler-, Warte- und Anmeldetext sind
 // ebenfalls Text und duerften bei einem Farbwechsel kein Symbol bekommen.
 let zeigtEchtenStand = false;
+// Womit das aktuell haengende Symbol gebaut wurde. Ohne diese Wache setzt
+// jeder Takt eine tote Kanal-Icon-URL erneut ein, der schon gefundene
+// Ersatz blinkt weg und die Rueckfallkette laeuft alle 15s von vorn.
+let letzterSymbolSchluessel = null;
 
 // Ebene 1 Kanal-Icon, Ebene 2 passendes 7TV-Emote, Ebene 3 eingebautes SVG.
 // Ebene 3 ist bewusst kein Netzbild - sie muss auch dann noch da sein, wenn
@@ -1156,7 +1163,13 @@ let zeigtEchtenStand = false;
 function setzePunkteSymbol(iconUrl, channelLogin) {
   letzterIconUrl = iconUrl || null;
   letzterKanal = channelLogin || null;
-  const emote = PointsIcon.waehleEmote(themePrefs.chatAccent, letzterKanal);
+  // Die Akzentfarbe gehoert in den Schluessel, sonst bliebe das Symbol beim
+  // Farbwechsel stehen - genau dafuer ruft applyTheme hier noch einmal.
+  const akzent = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
+  const schluessel = (letzterIconUrl || '') + '|' + (letzterKanal || '') + '|' + akzent;
+  if (schluessel === letzterSymbolSchluessel) return;
+  letzterSymbolSchluessel = schluessel;
+  const emote = PointsIcon.waehleEmote(akzent, letzterKanal);
   const ebene2 = emote ? emote.url : null;
   const zeigeSvg = () => {
     $pointsIcon.classList.add('hidden');
@@ -1173,6 +1186,18 @@ function setzePunkteSymbol(iconUrl, channelLogin) {
   else zeigeSvg();
 }
 
+// Symbolfreie Zustaende (Fehler, Anmeldung, Warten). Muss den Schluessel
+// mitloeschen: sonst haelt die Wache in setzePunkteSymbol den naechsten Aufruf
+// fuer ueberfluessig und der Chip kaeme ohne Symbol zurueck. Der Tooltip geht
+// mit, sonst klebt "Papapoints" am Fehlertext des naechsten Kanals.
+function verbergePunkteSymbol() {
+  $pointsIcon.classList.add('hidden');
+  $pointsSvg.classList.add('hidden');
+  $pointsChip.title = 'Kanalpunkte';
+  letzterSymbolSchluessel = null;
+  zeigtEchtenStand = false;
+}
+
 function zeigePunkte(p) {
   if (!$pointsChip) return;
   $pointsChip.classList.remove('hidden', 'err', 'stale', 'klickbar');
@@ -1180,9 +1205,7 @@ function zeigePunkte(p) {
     // Nichts scheitert still: Fehler steht im Chip, nicht nur in der Konsole.
     const abgelaufen = /abgelaufen/i.test(p.fehler);
     $pointsChip.classList.add(abgelaufen ? 'err' : 'stale');
-    $pointsIcon.classList.add('hidden');
-    $pointsSvg.classList.add('hidden');
-    zeigtEchtenStand = false;
+    verbergePunkteSymbol();
     $pointsValue.textContent = abgelaufen ? '⚠ Anmeldung abgelaufen' : '⚠ ' + p.fehler;
     $pointsChip.onclick = abgelaufen ? starteWebLogin : null;
     $pointsChip.classList.toggle('klickbar', abgelaufen);
@@ -1191,7 +1214,7 @@ function zeigePunkte(p) {
   // balance == null ohne Fehler: bewusste Loeschung bei Quell-/Kanalwechsel
   // (main.js). Bis der neue Stand da ist (binnen ~15s), lieber nichts zeigen
   // als eine falsche Zahl vom alten Kanal.
-  if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); zeigtEchtenStand = false; return; }
+  if (!p || p.balance == null) { $pointsChip.classList.add('hidden'); verbergePunkteSymbol(); return; }
   setzePunkteSymbol(p.iconUrl, p.channelLogin);
   $pointsChip.title = p.punkteName || 'Kanalpunkte';
   $pointsValue.textContent = p.balance.toLocaleString('de-DE');
@@ -1232,9 +1255,7 @@ async function starteWebLogin() {
   if (!r.ok) {
     $pointsChip.classList.remove('hidden');
     $pointsChip.classList.add('err');
-    $pointsIcon.classList.add('hidden');
-    $pointsSvg.classList.add('hidden');
-    zeigtEchtenStand = false;
+    verbergePunkteSymbol();
     $pointsValue.textContent = '⚠ ' + r.error;
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
@@ -1244,9 +1265,7 @@ async function starteWebLogin() {
   // weg - kommt kein points-update (Player nicht live oder pausiert), bliebe
   // der Chip sonst dauerhaft klickbar und jeder weitere Klick oeffnete ein
   // weiteres Anmeldefenster samt eigenem Abfrage-Takt.
-  $pointsIcon.classList.add('hidden');
-  $pointsSvg.classList.add('hidden');
-  zeigtEchtenStand = false;
+  verbergePunkteSymbol();
   $pointsValue.textContent = '…';
   $pointsChip.onclick = null;
   $pointsChip.classList.remove('klickbar');
@@ -1259,9 +1278,7 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
   const s = await window.twitchDual.webLoginStatus();
   if (!s.angemeldet) {
     $pointsChip.classList.remove('hidden');
-    $pointsIcon.classList.add('hidden');
-    $pointsSvg.classList.add('hidden');
-    zeigtEchtenStand = false;
+    verbergePunkteSymbol();
     $pointsValue.textContent = 'Für Kanalpunkte anmelden';
     $pointsChip.onclick = starteWebLogin;
     $pointsChip.classList.add('klickbar');
@@ -1272,7 +1289,6 @@ window.twitchDual.onPointsUpdate(zeigePunkte);
 // Laeuft ueber den Web-Token im Main-Prozess; deshalb bleibt der Knopf immer
 // klickbar (nicht an chatLoggedIn gekoppelt) und getRewards() meldet
 // "nicht angemeldet" selbst, statt dass hier vorab gefiltert wird.
-const $rewardsBtn = document.getElementById('rewards-btn');
 const $rewardsPanel = document.getElementById('rewards-panel');
 // Generation-Zaehler: schnelles Zu-Auf-Zu kann mehrere getRewards()-Aufrufe
 // ueberlappend in Flug haben. Ohne Wache wuerde eine spaet zurueckkommende
