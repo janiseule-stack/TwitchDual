@@ -98,7 +98,16 @@ if (!isTwitchFrame) {
     webLogout: () => ipcRenderer.invoke('web-login-logout'),
     getRewards: () => ipcRenderer.invoke('points-rewards'),
     redeemReward: (reward, textInput) => ipcRenderer.invoke('points-redeem', { reward, textInput }),
-    onPointsUpdate: (cb) => { ipcRenderer.on('points-update', (_e, p) => cb(p)); }
+    onPointsUpdate: (cb) => { ipcRenderer.on('points-update', (_e, p) => cb(p)); },
+
+    // Diagnose: melden geht IMMER (fuellt den Ringpuffer im Main), der
+    // Schalter entscheidet nur ueber die Datei. Feuert und vergisst - ein
+    // Protokollaufruf darf nie einen Renderer-Pfad blockieren.
+    diag: (bereich, ereignis, detail) =>
+      ipcRenderer.send('diag-melde', { bereich, ereignis, detail }),
+    getDiagEnabled: () => ipcRenderer.invoke('get-diag-enabled'),
+    setDiagEnabled: (an) => ipcRenderer.send('set-diag-enabled', !!an),
+    openDiagFolder: () => ipcRenderer.send('open-diag-folder')
   });
 }
 
@@ -119,6 +128,13 @@ if (!isTwitchFrame) {
           (d.phase === 'start' || d.phase === 'end')) {
         ipcRenderer.send('adblock-state', { phase: d.phase });
       }
+      // Diagnose aus der Main World des Players (dort gibt es kein
+      // window.twitchDual - siehe Kommentar oben bei isTwitchFrame).
+      if (d && d.source === 'twitchdual-diag' && d.ereignis) {
+        ipcRenderer.send('diag-melde', {
+          bereich: d.bereich || 'video', ereignis: d.ereignis, detail: d.detail
+        });
+      }
     });
 
     // Vendor-Datei kommt aus dem Main-Prozess (Sandbox: kein fs im Preload).
@@ -138,6 +154,12 @@ if (!isTwitchFrame) {
       (function(){
         window.__twitchDualAd = function(phase){
           try { window.postMessage({ source: 'twitchdual-adblock', phase: phase }, '*'); } catch(e){}
+        };
+        window.__twitchDualDiag = function(bereich, ereignis, detail){
+          try {
+            window.postMessage({ source: 'twitchdual-diag',
+              bereich: bereich, ereignis: ereignis, detail: detail }, '*');
+          } catch(e){}
         };
         var _log = console.log.bind(console);
         console.log = function(){
