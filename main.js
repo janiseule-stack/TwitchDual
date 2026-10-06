@@ -13,6 +13,7 @@ const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
 const { cachedLoader } = require('./src/session-cache');
 const ThemeLib = require('./renderer/lib/theme');
+const ThemeKatalog = require('./renderer/lib/themes');
 const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
@@ -28,7 +29,7 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100 },
+    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal' },
     diagEnabled: false   // Diagnose-Protokoll: Standard aus = nichts auf der Platte
   }
 });
@@ -287,14 +288,9 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 });
 
-// Theme-Farben aus dem Store koennen Muell sein -> immer saeubern (ThemeLib).
+// Saeuberung lebt in renderer/lib/themes.js (getestet, auch fuer theme/effekte).
 function cleanThemePrefs(prefs) {
-  const d = ThemeLib.DEFAULTS;
-  return {
-    videoAccent: ThemeLib.normalizeHex(prefs && prefs.videoAccent, d.videoAccent),
-    chatAccent: ThemeLib.normalizeHex(prefs && prefs.chatAccent, d.chatAccent),
-    chatAlpha: ThemeLib.clampAlpha(prefs && prefs.chatAlpha)
-  };
+  return ThemeKatalog.cleanThemePrefs(prefs);
 }
 
 // UI-Voreinstellungen fuers Video-Fenster (Verlauf, Prefill, Player-Prefs).
@@ -333,13 +329,15 @@ ipcMain.on('save-chat-prefs', (_evt, prefs) => {
 
 // Fensterfarben: speichern broadcastet an BEIDE Fenster (Wirkung sofort);
 // preview broadcastet nur (Live-Vorschau beim Ziehen im Farbwaehler).
+// Teil-Updates (nur Farben, nur Theme, nur Stufe) mit dem Gespeicherten
+// mischen - sonst setzt z.B. ein Preset-Klick Theme und Effekte zurueck.
 ipcMain.on('save-theme-prefs', (_evt, prefs) => {
-  const clean = cleanThemePrefs(prefs);
+  const clean = ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs);
   store.set('themePrefs', clean);
   broadcast('theme-changed', clean);
 });
 ipcMain.on('preview-theme-prefs', (_evt, prefs) => {
-  broadcast('theme-changed', cleanThemePrefs(prefs));
+  broadcast('theme-changed', ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs));
 });
 
 // vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)
