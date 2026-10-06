@@ -89,7 +89,8 @@ EFFEKT_FAKTOR        = { aus: 0, wenig: 0.4, normal: 1, viel: 1.8 }
    keine Datei — seine Farben kommen wie bisher aus `accentVars`).
 3. Laufende Welt stoppen (`welt.stop()`, Engine raeumt alle Partikel weg),
    neue Welt per `<script>` nachladen und starten. Gleiches Theme + nur andere
-   Stufe → Welt bleibt, nur `engine.setFaktor()`.
+   Stufe → Welt bleibt, nur `engine.setFaktor()`; Stufe `aus` → Welt stoppen
+   und nicht neu starten (siehe 8.).
 4. Bei Neon Dual bleibt `applyTheme` wie heute (accentVars); bei anderen Themes
    setzt die Theme-CSS die Variablen (`--bg`, `--panel`, `--accent`, ...), und
    `accentVars` wird uebersprungen. Nur `chatAlpha` wirkt weiter, ueber eine
@@ -199,21 +200,26 @@ engine.intervall(fn, ms)  // Ambient-Takt, haelt bei unsichtbarem Fenster an
 - Theme-CSS laedt nicht → Fallback auf Neon Dual, Protokoll `theme:css-fehler`.
 - Unbekanntes Theme im Store → `cleanThemePrefs` macht Neon Dual daraus.
 
-## 8. Leistung (League laeuft parallel)
+## 8. Leistung: „Aus" kostet nichts
 
-- Partikel-Obergrenze 40 je Fenster bei `normal` (72 bei `viel`), Ambient-Takte
-  so gewaehlt, dass im Mittel 6–12 Partikel gleichzeitig leben.
-- Keine Dauer-Schleife: Wald und Koi brauchen eine rAF-Schleife fuer die
-  Bewegung — sie laeuft nur bei sichtbarem Fenster und bei `aus` gar nicht.
-- **Abnahme-Messung:** CPU- und GPU-Last beider Fenster (Task-Manager-Werte per
-  `Get-Counter`/CDP-Performance) mit Sakura `normal` gegen Neon Dual, je 60 s
-  bei laufendem Live-Stream. Ziel: Mehrlast unter 3 % CPU; sonst Obergrenzen
-  senken, bevor es ausgeliefert wird.
+Vorgabe von Janis: Wenn die Effekte beim Zocken stoeren, werden sie auf
+**Aus** gestellt — dann darf keine Leistung verloren gehen. Deshalb:
+
+- **Stufe `aus` = nichts laeuft.** Keine Welt wird geladen oder gestartet,
+  keine rAF-Schleife, kein Intervall, kein Maus-/Klick-Listener, keine
+  Gastauftritte, keine Ereignis-Effekte. Die Effekt-Ebenen bleiben leer. Es
+  wirken nur die Farben und Formen der Theme-CSS. Umschalten auf `aus` stoppt
+  eine laufende Welt sofort (wie ein Theme-Wechsel).
+- Ueber `aus` hinaus keine Leistungs-Abnahme. Als Schutz bleiben eine
+  Partikel-Obergrenze je Fenster (40 bei `normal`, skaliert mit dem Faktor) und
+  die Pause bei unsichtbarem Fenster.
 
 ## 9. Tests
 
 - `test/themes.test.js`: Liste vollstaendig, `themeById`/`cleanTheme`/
   `cleanEffekte` mit Muell-Eingaben, `EFFEKT_FAKTOR` monoton.
+- `test/theme-runtime.test.js` (Attrappen): Stufe `aus` startet keine Welt,
+  registriert keine Listener/Intervalle; Wechsel auf `aus` stoppt die laufende Welt.
 - `test/fx-engine.test.js` (DOM-Attrappe, Fake-Zeit): Obergrenze greift,
   Faktor 0 erzeugt nichts, `stop()` raeumt alles, unsichtbares Fenster pausiert
   Intervalle, Partikel entfernen sich nach Ablauf.
@@ -227,7 +233,8 @@ engine.intervall(fn, ms)  // Ambient-Takt, haelt bei unsichtbarem Fenster an
 - **Live-Abnahme** per CDP in der laufenden App: jedes Theme durchschalten
   (Screenshot beider Fenster), Kiste/Punkte-Ereignis kuenstlich ausloesen,
   Gastauftritt erzwingen, Nur-Video-Modus pruefen (keine Effekte), Stufe `aus`
-  pruefen (keine Partikel-Elemente), Lastmessung aus 8.
+  pruefen: keine Partikel-Elemente, keine laufenden Animationen
+  (`document.getAnimations().length === 0`) und keine Welt geladen.
 
 ## 10. Betroffene Dateien
 
