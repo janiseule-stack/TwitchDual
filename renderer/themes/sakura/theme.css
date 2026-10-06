@@ -1,0 +1,28 @@
+/* Sakura (hell): Pastell-Rosa/Lila, runde Formen. Flaechen tragen
+   --chat-alpha (Glass-Transparenz), Akzente bleiben voll. */
+:root[data-theme="sakura"] {
+  --bg: rgb(255 244 248 / var(--chat-alpha, 1));
+  --panel: rgb(255 232 241 / var(--chat-alpha, 1));
+  --hover: rgb(255 222 235 / var(--chat-alpha, 1));
+  --line: #f6cfdd;
+  --text: #5a3446;
+  --muted: #9a6f82;
+  --ts: #c09aab;
+  --accent: #e0659a;
+  --accent-title: #c2507a;
+  --accent-border: rgba(224, 101, 154, .45);
+  --accent-glow: rgba(224, 101, 154, .18);
+  --accent-dim: rgba(224, 101, 154, .3);
+  --accent-contrast: #ffffff;
+  --onair-from: #ffb3cc;
+  --onair-to: #d7b8ff;
+}
+/* Helle Flaeche: helle Twitch-Namensfarben (z.B. #FFFF00) abdunkeln. */
+:root[data-theme="sakura"] .msg .user,
+:root[data-theme="sakura"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 55%, #000); }
+:root[data-theme="sakura"] #messages::-webkit-scrollbar-thumb { background: #f2b8cc; }
+:root[data-theme="sakura"] #emote-panel,
+:root[data-theme="sakura"] #ac-bar { background: #fff5f9; }
+:root[data-theme="sakura"] #settings-pop,
+:root[data-theme="sakura"] .galerie-karte,
+:root[data-theme="sakura"] #composer { border-radius: 12px; }
