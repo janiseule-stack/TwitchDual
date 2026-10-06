@@ -435,6 +435,25 @@ nichts auf der Platte.
   einer Zuschauer-Sitzung auf `twitch.tv` selbst.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
 
+## Lebendige Themes, Welle 1 (unveroeffentlicht, Branch feat/sammel-verbesserungen)
+
+- Theme-System: `renderer/lib/{themes,fx-engine,theme-runtime}.js`, je Theme ein
+  Ordner `renderer/themes/<id>/` (theme.css + welt.js). Galerie aus dem ⚙-Popup,
+  Effekte-Regler Aus/Wenig/Normal/Viel (Aus = es laeuft nichts).
+- Welle 1: Sakura, Wald, Koi-Teich, Seifenblasen + Neon-Dual-Funkenregen.
+  Kiste/Punkte loesen Effekte am Punkte-Chip aus, Gastauftritte uebers Video.
+- main.js mischt Teil-Speicherungen (`mergeThemePrefs`) - ein Preset-Klick
+  setzt Theme/Effekte nicht mehr zurueck.
+- Namensfarbe laeuft ueber `--name`; helle Themes dunkeln per `color-mix` ab.
+- Dev-Werkzeug `tools/cdp-eval.js` (App mit `--remote-debugging-port=9333`).
+- Spec/Plan: `docs/superpowers/{specs,plans}/2026-10-07-lebendige-themes*.md`.
+
+### Offen: Themes Welle 2/3
+Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
+Regenfenster (Abstimmung 2026-10-07). Je Theme: Ordner + Eintrag in
+`renderer/lib/themes.js` (THEMES) + Test-Liste in `test/themes.test.js`.
+Raid-/Abo-Ereignisse folgen mit dem Feature "Abos/Raids im Chat".
+
 ## Releases / Auto-Update (seit v1.0.0)
 
 - Repo: https://github.com/janiseule-stack/TwitchDual (öffentlich, nötig
