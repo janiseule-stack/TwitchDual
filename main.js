@@ -11,6 +11,7 @@ const twitch = require('./src/twitch-api');
 const browse = require('./src/twitch-browse');
 const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
+const { cachedLoader } = require('./src/session-cache');
 const ThemeLib = require('./renderer/lib/theme');
 const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
@@ -158,12 +159,23 @@ function broadcast(channel, payload) {
 let thirdPartyBadges = {};        // twitchUserId -> [{url, title}] (BTTV+FFZ)
 const sevenTvCache = new Map();   // twitchUserId -> Promise<[{url, title}]>
 
+// Globale Listen aendern sich selten -> eine Stunde merken (src/session-cache.js).
+// BTTV/FFZ ohne Wiederholungen: FFZ haengt zeitweise 10 s+ (gemessen), und mit
+// 2 Retries waren das bis zu 31 s fuer ein Schmuck-Badge. Leer wird nicht
+// gemerkt, der naechste Ladevorgang versucht es also erneut.
+const LISTEN_TTL_MS = 60 * 60 * 1000;
+const DRITT_OPTS = { retries: 0, timeoutMs: 5000 };
+const ladeGlobal7tv = cachedLoader(() => twitch.fetch7tvGlobal(), { ttlMs: LISTEN_TTL_MS });
+const ladeGlobalBadges = cachedLoader(() => badgeSources.fetchGlobalBadges(), { ttlMs: LISTEN_TTL_MS });
+const ladeBttvBadges = cachedLoader(() => badgeSources.fetchBttvBadges(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
+const ladeFfzBadges = cachedLoader(() => badgeSources.fetchFfzBadges(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
+
 async function loadBadgeData(channelId) {
   const [globalBadges, channelBadges, bttv, ffz] = await Promise.all([
-    badgeSources.fetchGlobalBadges(),
+    ladeGlobalBadges(),
     badgeSources.fetchChannelBadges(channelId),
-    badgeSources.fetchBttvBadges(),
-    badgeSources.fetchFfzBadges()
+    ladeBttvBadges(),
+    ladeFfzBadges()
   ]);
   thirdPartyBadges = { ...bttv };
   for (const [id, list] of Object.entries(ffz)) {
@@ -174,7 +186,25 @@ async function loadBadgeData(channelId) {
 
 // --- IPC: zentrale Lade-Logik ---------------------------------------------
 // Das gemeinsame Eingabefeld (im Video-Fenster) schickt 'submit-load'.
-// Wir parsen, loesen IDs + 7TV-Emotes auf und broadcasten 'load' an beide.
+// Zwei Stufen: 'load' geht raus, sobald der Kanal/das VOD aufgeloest ist
+// (eine GQL-Abfrage) - Player und Chat starten sofort. Emotes + Badges sind
+// Schmuck und kommen parallel als 'load-extras' hinterher. Vorher warteten
+// Player und Chat auf alles, seriell: normal 2,5-4,5 s, bei FFZ-Haenger 30 s+.
+let ladeZaehler = 0;
+
+function ladeExtras(ladeId, ownerId) {
+  Promise.all([
+    ladeGlobal7tv(),
+    ownerId ? twitch.fetch7tvEmotes(ownerId) : {},
+    loadBadgeData(ownerId)
+  ]).then(([globalEmotes, channelEmotes, badgeCatalog]) => {
+    if (ladeId !== ladeZaehler) return; // inzwischen anderer Kanal geladen
+    broadcast('load-extras', { ladeId, emotes: { ...globalEmotes, ...channelEmotes }, badgeCatalog });
+  }).catch((e) => {
+    diagLog.melde('app', 'extras-fehler', { fehler: e && e.message });
+  });
+}
+
 ipcMain.handle('submit-load', async (_evt, raw) => {
   const parsed = parseInput(raw);
   if (!parsed.mode) {
@@ -182,22 +212,20 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 
   try {
-    const globalEmotes = await twitch.fetch7tvGlobal();
-
     if (parsed.mode === 'live') {
       const user = await twitch.resolveUserId(parsed.value);
-      const channelEmotes = await twitch.fetch7tvEmotes(user.id);
-      const emotes = { ...globalEmotes, ...channelEmotes };
-      const badgeCatalog = await loadBadgeData(user.id);
+      const ladeId = ++ladeZaehler;
       const payload = {
         mode: 'live',
         channel: user.login,
         displayName: user.displayName,
         userId: user.id,
-        emotes,
-        badgeCatalog
+        ladeId,
+        emotes: {},
+        badgeCatalog: {}
       };
       broadcast('load', payload);
+      ladeExtras(ladeId, user.id);
       // Kanalwechsel: Chip sofort leeren statt bis zu 15s den alten Stand zu
       // zeigen. Der neue Stand kommt innerhalb von 15s per Takt nach. Die
       // Basislinie muss mit, sonst meldet der neue Kanal seinen vollen
@@ -215,7 +243,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
       store.set('lastSource', user.login);
-      return { ok: true, ...payload, emoteCount: Object.keys(emotes).length };
+      return { ok: true, ...payload };
     }
 
     // VOD
@@ -225,19 +253,19 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     } catch (e) {
       // Owner-Aufloesung optional; ohne sie gibt es nur globale Emotes.
     }
-    const channelEmotes = owner.id ? await twitch.fetch7tvEmotes(owner.id) : {};
-    const emotes = { ...globalEmotes, ...channelEmotes };
-    const badgeCatalog = await loadBadgeData(owner.id);
+    const ladeId = ++ladeZaehler;
     const payload = {
       mode: 'vod',
       videoId: parsed.value,
       displayName: owner.displayName,
       channel: owner.login,
       lengthSeconds: owner.lengthSeconds || 0,
-      emotes,
-      badgeCatalog
+      ladeId,
+      emotes: {},
+      badgeCatalog: {}
     };
     broadcast('load', payload);
+    ladeExtras(ladeId, owner.id);
     // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben, inklusive der
     // Basislinie.
     broadcast('points-update', { balance: null, displayName: null, fehler: null });
@@ -253,7 +281,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       label: (owner.displayName || 'VOD') + ' · VOD ' + parsed.value
     });
     store.set('lastSource', parsed.value);
-    return { ok: true, ...payload, emoteCount: Object.keys(emotes).length };
+    return { ok: true, ...payload };
   } catch (e) {
     return { ok: false, error: e.message || String(e) };
   }
@@ -367,6 +395,8 @@ let punkteChannelId = null;   // channelID des zuletzt abgefragten Kanals (fuer 
 // ohne diese Flanke waere 'takt-aus' eine Zeile pro Sekunde und der
 // 10000er-Ringpuffer reichte keine drei Stunden zurueck.
 let letzterTaktGrund = null;
+// Zuletzt gemeldeter Punkte-Kontext (gleiche Idee: nur Aenderungen melden).
+let letzterKontextSchluessel = null;
 
 // Meldet nur, wenn sich der Grund geaendert hat. null = Takt laeuft.
 function meldeTaktGrund(grund) {
@@ -540,10 +570,17 @@ async function punkteTick() {
       const ctx = await pointsApi.context(webToken, kanal);
       if (currentLiveChannel !== kanal) return;
       punkteChannelId = ctx.channelID;
-      diagLog.melde('punkte', 'kontext', {
+      // Nur bei Aenderung melden: unveraendert alle 15s war 88 % des
+      // Protokolls und verdraengte die echten Ereignisse aus dem Ringpuffer.
+      const kontext = {
         kanal, channelID: ctx.channelID, stand: ctx.balance,
         claimID: ctx.claimID, punkteName: ctx.punkteName
-      });
+      };
+      const kontextSchluessel = JSON.stringify(kontext);
+      if (kontextSchluessel !== letzterKontextSchluessel) {
+        letzterKontextSchluessel = kontextSchluessel;
+        diagLog.melde('punkte', 'kontext', kontext);
+      }
       if (ctx.balance === null) {
         if (ctx.channelID != null) {
           // Kanal gibt es, er hat Kanalpunkte aus -> einmal melden, dann ruhen.

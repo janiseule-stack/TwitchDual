@@ -564,6 +564,19 @@ function applySource(payload) {
 }
 window.twitchDual.onLoad(applySource);
 
+// Emotes + Badges kommen nach dem Start hinterher, damit der Chat nicht auf
+// langsame Drittanbieter (FFZ, 7TV) warten muss. Nur fuer die aktuelle Quelle
+// uebernehmen; currentPayload mit aktualisieren, sonst baut home-close den
+// Chat ohne Emotes wieder auf.
+window.twitchDual.onLoadExtras((extras) => {
+  if (!currentPayload || !extras || extras.ladeId !== currentPayload.ladeId) return;
+  emoteMap = extras.emotes || {};
+  badgeCatalog = extras.badgeCatalog || {};
+  userBadgeCache = new Map(); // vor den BTTV/FFZ-Listen abgefragte User neu nachschlagen
+  currentPayload = { ...currentPayload, emotes: emoteMap, badgeCatalog };
+  $mode.textContent = `${Object.keys(emoteMap).length} 7TV-Emotes`;
+});
+
 // Player-Zustand aus dem Video-Fenster (fuer die Statuszeile im Replay).
 let playerState = 'playing';
 window.twitchDual.onPlayerState((state) => {

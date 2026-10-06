@@ -20,6 +20,10 @@ if (!isTwitchFrame) {
     onLoad: (cb) => {
       ipcRenderer.on('load', (_e, payload) => cb(payload));
     },
+    // Emotes + Badges kommen nach 'load' hinterher (main.js ladeExtras).
+    onLoadExtras: (cb) => {
+      ipcRenderer.on('load-extras', (_e, extras) => cb(extras));
+    },
 
     // Home-Overlay geoeffnet -> Chat trennt die laufende Quelle.
     notifyHomeOpen: () => ipcRenderer.send('home-open'),
