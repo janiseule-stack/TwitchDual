@@ -172,9 +172,18 @@
       padding: 6px 10px; font-size: 12px; cursor: pointer;
     }
     #video-exit:hover { background: rgba(0, 0, 0, .85); }
+    /* Lebendige Themes: Home-Ebene liegt unter dem Home-Inhalt, Gast-Ebene
+       ueber dem Player. Beide fangen nie einen Klick ab. */
+    .fx-ebene { pointer-events: none; overflow: hidden; }
+    #fx-gast { position: fixed; inset: 0; z-index: 30; }
+    #home > #fx-hinten { position: absolute; inset: 0; z-index: 0; }
+    #home > :not(#fx-hinten):not(#home-version) { position: relative; z-index: 1; }
+    body.video-only #fx-gast { display: none; }
   </style>
 </head>
 <body>
+  <!-- Gastauftritte: einzelne Partikel quer uebers Video, nie klickbar. -->
+  <div id="fx-gast" class="fx-ebene"></div>
   <div id="onair-bar">
     <span class="oa-line"></span>
     <span id="oa-label">● ON AIR</span>
@@ -209,6 +218,7 @@
 
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
   <div id="home" class="hidden">
+    <div id="fx-hinten" class="fx-ebene"></div>
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
       <button id="tab-followed" type="button" class="hidden">Gefolgt</button>
@@ -266,6 +276,9 @@
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
   <script src="../lib/ad-overlay-state.js"></script>
   <script src="../lib/theme.js"></script>
+  <script src="../lib/themes.js"></script>
+  <script src="../lib/fx-engine.js"></script>
+  <script src="../lib/theme-runtime.js"></script>
   <script src="video.js"></script>
   <script src="home.js"></script>
 </body>

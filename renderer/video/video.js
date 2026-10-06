@@ -315,17 +315,38 @@ document.addEventListener('mousemove', showControlsBriefly);
 // Neon Dual - On Air (v1.5.0): Fensterfarbe (Video = videoAccent) als CSS-
 // Variablen; On-Air-Leiste haengt an load-Modus + eigenem Player-Zustand.
 // ---------------------------------------------------------------------------
+// Farben, data-theme, Theme-CSS und Welt setzt die Runtime (Spec Lebendige
+// Themes). Im Video-Fenster lebt die Welt nur im Home-Overlay; uebers Video
+// fliegen nur Gastauftritte.
+const themeRuntime = ThemeRuntime.createRuntime({
+  fenster: 'video',
+  doc: document,
+  win: window,
+  ebenen: { hinten: document.getElementById('fx-hinten'), gast: document.getElementById('fx-gast') },
+  melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
+});
 function applyTheme(prefs) {
-  const t = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(t.videoAccent); // Video-Fenster ist opak (kein Alpha)
-  for (const [k, v] of Object.entries(vars)) {
-    document.documentElement.style.setProperty(k, v);
-  }
-  document.documentElement.style.setProperty('--onair-from',
-    ThemeLib.normalizeHex(t.videoAccent, ThemeLib.DEFAULTS.videoAccent));
-  document.documentElement.style.setProperty('--onair-to',
-    ThemeLib.normalizeHex(t.chatAccent, ThemeLib.DEFAULTS.chatAccent));
+  themeRuntime.anwenden(prefs);
 }
+
+// Ambient nur bei offenem Home und nie im Nur-Video-Modus.
+const $homeFx = document.getElementById('home');
+function aktualisiereFxPause() {
+  themeRuntime.pausieren($homeFx.classList.contains('hidden') || document.body.classList.contains('video-only'));
+}
+new MutationObserver(aktualisiereFxPause).observe($homeFx, { attributes: true, attributeFilter: ['class'] });
+new MutationObserver(aktualisiereFxPause).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+aktualisiereFxPause();
+
+// Gastauftritte nur bei laufendem Player und nicht im Nur-Video-Modus.
+themeRuntime.setzeGastBedingung(() =>
+  letzterGesendeterPlayerZustand === 'playing' && !document.body.classList.contains('video-only'));
+// Kiste eingesammelt -> sofort ein Gast (die Punkte-Anzeige selbst lebt im Chat).
+window.twitchDual.onPointsUpdate((p) => {
+  if (p && Array.isArray(p.zuwaechse) && p.zuwaechse.some((z) => z && z.quelle === 'kiste')) {
+    themeRuntime.gastJetzt();
+  }
+});
 
 window.twitchDual.getUiPrefs()
   .then((prefs) => {
