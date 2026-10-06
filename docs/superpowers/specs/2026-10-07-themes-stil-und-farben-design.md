@@ -111,7 +111,7 @@ damit Farbwaehler und „Zuruecksetzen" sie kennen.
 `flaechenVars(hintergrundHex, alphaPct) → { --bg, --panel, --hover, --line, --text, --muted, --ts }`
 — `--panel`/`--hover` 6 %/12 % Richtung Kontrast verschoben, Textfarben nach
 Leuchtdichte des Hintergrunds (hell → dunkle Schrift, dunkel → helle Schrift).
-`istHell(hex) → boolean` (relative Leuchtdichte > 0,5).
+`istHell(hex) → boolean` (relative Leuchtdichte > 0,179 — WCAG-Kreuzungspunkt, ab dem dunkle Schrift mehr Kontrast hat als helle).
 
 **Anwenden (Runtime):** nach der Theme-CSS setzt die Runtime fuer jedes
 vorhandene Feld Inline-Variablen (Inline schlaegt die CSS):
