@@ -84,7 +84,8 @@ EFFEKT_FAKTOR        = { aus: 0, wenig: 0.4, normal: 1, viel: 1.8 }
 **`theme-runtime.js`** – in beiden Fenstern eingebunden. Bei jedem
 `applyTheme(prefs)`:
 
-1. `document.body.dataset.theme = id`.
+1. `document.documentElement.dataset.theme = id` (also `<html data-theme>`, damit die
+   Theme-CSS mit `:root[data-theme="…"]` arbeiten kann).
 2. Theme-CSS als `<link id="theme-css">` setzen bzw. tauschen (Neon Dual hat
    keine Datei — seine Farben kommen wie bisher aus `accentVars`).
 3. Laufende Welt stoppen (`welt.stop()`, Engine raeumt alle Partikel weg),
@@ -126,9 +127,11 @@ Jede `welt.js` registriert sich als `window.TwitchDualWelten[id] = erzeugeWelt`
 und bekommt beim Start:
 
 ```js
-erzeugeWelt({ engine, ebeneHinten, ebeneVorn, fenster: 'chat'|'video', faktor })
+erzeugeWelt({ engine, fenster: 'chat'|'video'|'vorschau', FxEngine })
 → { start(), stop(), maus(x, y), klickInsLeere(x, y),
-    ereignis(art, { betrag, ursprung: {x, y} }), gast(ebeneVideo) }
+    ereignis(art, { betrag, ursprung: {x, y} }), gast() }
+// Ebenen + Faktor stecken in der Engine; Partikel-Stile sind inline, damit
+// Galerie-Vorschauen ohne die jeweilige theme.css funktionieren.
 ```
 
 **Ebenen** (beide `position: fixed`, `pointer-events: none`):
@@ -144,7 +147,7 @@ erzeugeWelt({ engine, ebeneHinten, ebeneVorn, fenster: 'chat'|'video', faktor })
 
 | Theme | Ambient | Maus | Klick ins Leere | Kiste (gross) | Punkte (klein) | Gast uebers Video |
 |---|---|---|---|---|---|---|
-| Sakura (hell, Rosa/Lila-Pastell, runde Formen) | 6–10 Blueten segeln, drehen sich | Blueten weichen aus | kleiner Bluetenwirbel | Bluetenexplosion aus dem Punkte-Chip, Blueten segeln 3 s ueber den Chat | 4–6 Blueten am Chip | eine Bluete segelt diagonal durchs Bild |
+| Sakura (hell, Rosa/Lila-Pastell, runde Formen) | 6–10 Blueten segeln, drehen sich | streut ab und zu eine Bluete vom Zeiger | kleiner Bluetenwirbel | Bluetenexplosion aus dem Punkte-Chip, Blueten segeln 3 s ueber den Chat | 4–6 Blueten am Chip | eine Bluete segelt diagonal durchs Bild |
 | Wald (dunkel, Moosgruen) | 5–8 Gluehwuermchen schwirren, pulsieren | folgen der Maus locker | Gluehwuermchen-Funke | Schwarm fliegt zum Chip, leuchtet hell auf | 2–3 kommen zum Chip | ein Gluehwuermchen kreuzt das Bild |
 | Koi-Teich (dunkel, Petrol + Orange) | 3–4 Kois ziehen Kreise | Wellenringe unter der Maus (gedrosselt) | Welle, Kois fluechten | goldene Lotusbluete oeffnet sich am Chip, Kois schwimmen hin, grosse Welle | Koi springt am Chip | ein Koi gleitet durchs Bild |
 | Seifenblasen (hell, Himmelblau/Flieder) | Blasen steigen auf, schillern | — | Treffer: Blase platzt in Funken; daneben: neue Blase | Blasen-Schwall, eine grosse Blase traegt „+N" | 1 Blase mit „+N" steigt auf | eine Blase schwebt durchs Bild |
@@ -176,11 +179,13 @@ einer. Nicht im Nur-Video-Modus, nicht bei pausiertem Player.
 ## 6. Partikel-Engine (`fx-engine.js`)
 
 ```js
-createEngine({ ebene, max = 40, jetzt, raf, sichtbar })
-engine.spawn({ klasse, x, y, inhalt, keyframes, dauerMs, easing }) → Partikel|null
+createEngine({ ebenen: { hinten, vorn, gast }, doc, max = 40, faktor, sichtbar, raf, ... })
+engine.spawn({ ebene, inhalt, stil, keyframes, dauerMs, easing }) → Element|null
+engine.element({ ebene, inhalt, stil })   // dauerhaft (Fisch, Gluehwuermchen)
 engine.setFaktor(f)   // 0..1.8, skaliert max und Spawn-Raten der Welt
 engine.stop()         // alle Partikel + Timer weg
 engine.intervall(fn, ms)  // Ambient-Takt, haelt bei unsichtbarem Fenster an
+engine.schleife(fn)       // Bewegung pro Frame, fordert pausiert KEINEN Frame an
 ```
 
 - Animation nur ueber `transform` und `opacity` per Web Animations API
