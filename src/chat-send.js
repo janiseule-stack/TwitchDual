@@ -4,7 +4,7 @@
 // sendet PRIVMSG. Eingehende NOTICE/ROOMSTATE werden ausgewertet und ueber
 // Callbacks ans Chat-Fenster gemeldet. Reine Logik liegt in chat-send-core.js.
 
-const { formatPrivmsg, RateLimiter, noticeText, parseRoomstate } = require('./chat-send-core');
+const { formatPrivmsg, RateLimiter, noticeText, isNoticeInfo, parseRoomstate } = require('./chat-send-core');
 const IrcParse = require('../renderer/lib/irc');
 
 const IRC_URL = 'wss://irc-ws.chat.twitch.tv:443';
@@ -88,7 +88,7 @@ class ChatSender {
         if (this.channel) { try { this.ws.send('JOIN #' + this.channel); } catch {} }
       } else if (msg.command === 'NOTICE') {
         const id = msg.tags && msg.tags['msg-id'];
-        this.onNotice({ text: noticeText(id, IrcParse.privmsgText(msg.params)), id: id || null });
+        this.onNotice({ text: noticeText(id, IrcParse.privmsgText(msg.params)), id: id || null, info: isNoticeInfo(id) });
       } else if (msg.command === 'ROOMSTATE') {
         this.onRoom(parseRoomstate(msg.tags || {}));
       }

@@ -31,11 +31,33 @@ const NOTICE_MAP = {
   msg_banned: 'Du bist in diesem Channel gebannt.',
   msg_timedout: 'Du bist aktuell getimed out.',
   msg_channel_suspended: 'Dieser Channel ist gesperrt.',
-  msg_verified_email: 'Zum Chatten ist eine verifizierte E-Mail nötig.'
+  msg_verified_email: 'Zum Chatten ist eine verifizierte E-Mail nötig.',
+  msg_requires_verified_phone_number: 'Zum Chatten ist eine verifizierte Telefonnummer nötig.'
 };
 
+// Raum-Modus-Wechsel: Twitch schickt sie an ALLE Zuschauer, wenn ein Mod den
+// Modus umschaltet. Das sind Infos, keine Sendefehler (das Diagnose-Protokoll
+// zeigte sie als 62 von 74 "senden-fehler").
+const NOTICE_INFO = {
+  emote_only_on: 'Nur-Emote-Modus ist jetzt an.',
+  emote_only_off: 'Nur-Emote-Modus ist jetzt aus.',
+  slow_on: 'Slow-Mode ist jetzt an.',
+  slow_off: 'Slow-Mode ist jetzt aus.',
+  subs_on: 'Nur Abonnenten dürfen jetzt schreiben.',
+  subs_off: 'Abonnenten-Modus ist jetzt aus.',
+  followers_on: 'Nur Follower dürfen jetzt schreiben.',
+  followers_on_zero: 'Nur Follower dürfen jetzt schreiben.',
+  followers_off: 'Follower-Modus ist jetzt aus.',
+  r9k_on: 'R9K-Modus ist jetzt an.',
+  r9k_off: 'R9K-Modus ist jetzt aus.'
+};
+
+function isNoticeInfo(msgId) {
+  return Object.prototype.hasOwnProperty.call(NOTICE_INFO, msgId);
+}
+
 function noticeText(msgId, rawParams) {
-  return NOTICE_MAP[msgId] || String(rawParams || '');
+  return NOTICE_MAP[msgId] || NOTICE_INFO[msgId] || String(rawParams || '');
 }
 
 function parseRoomstate(tags) {
@@ -49,4 +71,4 @@ function parseRoomstate(tags) {
   };
 }
 
-module.exports = { formatPrivmsg, RateLimiter, noticeText, parseRoomstate };
+module.exports = { formatPrivmsg, RateLimiter, noticeText, isNoticeInfo, parseRoomstate };

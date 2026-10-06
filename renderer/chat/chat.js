@@ -1118,7 +1118,14 @@ document.addEventListener('mousedown', (e) => {
 // --- Sende-Fehler (NOTICE) + Raum-Status (ROOMSTATE) -----------------------
 // NOTICE (z.B. Slow-Mode aktiv, Follower-only) landet als Fehlermeldung im
 // gleichen Toast wie fehlgeschlagene Sendeversuche (showChatError, Task 9).
+// Ausnahme: Raum-Modus-Wechsel (n.info) bekommt jeder Zuschauer - das ist
+// eine Info, also leise Systemzeile im Chat statt rotem Toast.
 window.twitchDual.onChatNotice((n) => {
+  if (n && n.info) {
+    appendSystem(n.text);
+    window.twitchDual.diag('chat', 'raum-modus', { msgId: n.id });
+    return;
+  }
   showChatError(n.text);
   window.twitchDual.diag('chat', 'senden-fehler', { msgId: n && n.id });
 });
