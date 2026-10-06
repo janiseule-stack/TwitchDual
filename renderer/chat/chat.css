@@ -459,3 +459,16 @@ button:focus-visible, input:focus-visible {
   max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ac-item.active { background: var(--accent-dim, #333); }
 .ac-item.active .ac-name { color: var(--text); }
+
+/* --- Lebendige Themes: Effekt-Ebenen --------------------------------------
+   fx-hinten liegt UNTER Kopf/Nachrichten/Composer/Footer (die bekommen eine
+   eigene Ebene 1), fx-vorn ueber allem fuer kurze Ereignis-Effekte. Beide
+   fangen nie einen Klick ab. */
+.fx-ebene { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+#fx-hinten { z-index: 0; opacity: .55; }
+#fx-vorn { z-index: 40; }
+#head, #messages, #composer, #footer { position: relative; z-index: 1; }
+
+/* Namensfarbe als Variable: helle Themes koennen sie per color-mix
+   abdunkeln, ohne dass alte Nachrichten neu gerendert werden muessen. */
+.msg .user, #uc-name { color: var(--name, #bf94ff); }

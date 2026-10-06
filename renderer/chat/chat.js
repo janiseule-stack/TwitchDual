@@ -212,7 +212,7 @@ function buildMessageEl(name, color, tokens, opts = {}) {
   const user = document.createElement('span');
   user.className = 'user';
   user.textContent = name;
-  user.style.color = color || '#bf94ff';
+  user.style.setProperty('--name', color || '#bf94ff');
   user.title = 'Klick: User-Info';
   user.addEventListener('click', (e) => openUserCard(e, name, color || '#bf94ff', div));
   div.appendChild(user);
@@ -354,7 +354,7 @@ function closeUserCard() { $userCard.classList.add('hidden'); }
 
 function openUserCard(evt, name, color, msgDiv) {
   $ucName.textContent = name;
-  $ucName.style.color = color;
+  $ucName.style.setProperty('--name', color || '#bf94ff');
   $ucBadges.innerHTML = '';
   for (const b of msgDiv.querySelectorAll('.badge, .chip')) {
     $ucBadges.appendChild(b.cloneNode(true));
@@ -708,7 +708,16 @@ const $alphaChat = document.getElementById('opt-alpha-chat');
 const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
 const $presets = document.getElementById('opt-presets');
 
-let themePrefs = { ...ThemeLib.DEFAULTS };
+let themePrefs = ThemeKatalog.cleanThemePrefs(null);
+
+// Effekte + Farben dieses Fensters (Spec Lebendige Themes).
+const themeRuntime = ThemeRuntime.createRuntime({
+  fenster: 'chat',
+  doc: document,
+  win: window,
+  ebenen: { hinten: document.getElementById('fx-hinten'), vorn: document.getElementById('fx-vorn') },
+  melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
+});
 
 // Preset-Chips (Zwei-Ton: Video-Farbe ↖ / Chat-Farbe ↘) einmalig rendern.
 // Klick uebernimmt beide Akzente wie der Reset-Button; Deckkraft bleibt.
@@ -734,15 +743,9 @@ if ($presets) {
 }
 
 function applyTheme(prefs) {
-  themePrefs = { ...ThemeLib.DEFAULTS, ...(prefs || {}) };
-  const vars = ThemeLib.accentVars(themePrefs.chatAccent, themePrefs.chatAlpha);
-  for (const [k, v] of Object.entries(vars)) {
-    document.documentElement.style.setProperty(k, v);
-  }
-  document.documentElement.style.setProperty('--onair-from',
-    ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent));
-  document.documentElement.style.setProperty('--onair-to',
-    ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent));
+  themePrefs = ThemeKatalog.cleanThemePrefs(prefs);
+  // Farben, data-theme, Theme-CSS und Welt setzt die Runtime.
+  themeRuntime.anwenden(themePrefs);
   // Farbwaehler im ⚙-Popup spiegeln den aktiven Zustand.
   if ($colorVideo) $colorVideo.value = ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent);
   if ($colorChat) $colorChat.value = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
