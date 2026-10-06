@@ -1,0 +1,21 @@
+/* Koi-Teich (dunkel): Petrol-Wasser, Koi-Orange als Akzent. */
+:root[data-theme="koi"] {
+  --bg: rgb(8 38 37 / var(--chat-alpha, 1));
+  --panel: rgb(12 52 49 / var(--chat-alpha, 1));
+  --hover: rgb(16 64 60 / var(--chat-alpha, 1));
+  --line: #1d5a52;
+  --text: #e0fff6;
+  --muted: #8fc4b6;
+  --ts: #5f9a8c;
+  --accent: #ff8a3d;
+  --accent-title: #ffc49a;
+  --accent-border: rgba(255, 138, 61, .4);
+  --accent-glow: rgba(255, 138, 61, .2);
+  --accent-dim: rgba(255, 138, 61, .3);
+  --accent-contrast: #2a0e00;
+  --onair-from: #ff8a3d;
+  --onair-to: #ffd6a8;
+}
+:root[data-theme="koi"] #messages::-webkit-scrollbar-thumb { background: #1d5a52; }
+:root[data-theme="koi"] #emote-panel,
+:root[data-theme="koi"] #ac-bar { background: #0a2e2c; }
