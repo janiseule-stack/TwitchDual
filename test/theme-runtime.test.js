@@ -1,0 +1,204 @@
+const { test } = require('node:test');
+const assert = require('node:assert');
+const { createRuntime } = require('../renderer/lib/theme-runtime');
+
+function aufbau({ fenster = 'chat', welten = {}, ladeFehler = false } = {}) {
+  const styleProps = new Map();
+  const listener = new Map();          // typ -> Set(fn)
+  const elemente = new Map();          // id -> el
+  const doc = {
+    documentElement: {
+      dataset: {},
+      style: { setProperty: (k, v) => styleProps.set(k, v), removeProperty: (k) => styleProps.delete(k) }
+    },
+    head: { appendChild: (el) => { if (el.id) elemente.set(el.id, el); } },
+    getElementById: (id) => elemente.get(id) || null,
+    createElement: () => {
+      const attr = {};
+      const el = {
+        id: '', rel: '', onerror: null,
+        setAttribute: (k, v) => { attr[k] = v; }, getAttribute: (k) => attr[k],
+        remove: () => { elemente.delete(el.id); }
+      };
+      return el;
+    },
+    addEventListener: (t, fn) => { if (!listener.has(t)) listener.set(t, new Set()); listener.get(t).add(fn); },
+    removeEventListener: (t, fn) => { if (listener.has(t)) listener.get(t).delete(fn); }
+  };
+  const timer = new Map(); let tid = 0;
+  const win = {
+    TwitchDualWelten: {},
+    requestAnimationFrame: (fn) => { fn(0); return 1; },
+    cancelAnimationFrame: () => {},
+    setTimeout: (fn, ms) => { timer.set(++tid, { fn, ms }); return tid; },
+    clearTimeout: (id) => timer.delete(id)
+  };
+  const geladen = [];
+  const ladeSkript = (url) => {
+    geladen.push(url);
+    if (ladeFehler) return Promise.reject(new Error('404'));
+    const id = url.split('/').slice(-2)[0];
+    if (welten[id]) win.TwitchDualWelten[id] = welten[id];
+    return Promise.resolve();
+  };
+  const engines = [];
+  const erzeugeEngine = (opts) => {
+    const e = { opts, gestoppt: false, faktor: opts.faktor, pausiert: false, weiterAufrufe: 0,
+      stop() { e.gestoppt = true; }, setFaktor(f) { e.faktor = f; }, pausieren(p) { e.pausiert = p; }, weiter() { e.weiterAufrufe++; } };
+    engines.push(e);
+    return e;
+  };
+  const meldungen = [];
+  const ebenen = { hinten: { getBoundingClientRect: () => ({ left: 0, top: 0 }) }, vorn: {}, gast: {} };
+  const rt = createRuntime({ fenster, doc, win, ebenen, ladeSkript, erzeugeEngine,
+    melde: (b, e, d) => meldungen.push({ b, e, d }) });
+  const anzahlListener = () => [...listener.values()].reduce((n, s) => n + s.size, 0);
+  return { rt, doc, win, styleProps, listener, anzahlListener, geladen, engines, meldungen, timer, elemente };
+}
+
+// Eine Welt-Attrappe, die ihre Aufrufe protokolliert.
+function protokollWelt(log, extra = {}) {
+  return () => ({
+    start: () => log.push('start'), stop: () => log.push('stop'),
+    ereignis: (art) => log.push('ereignis:' + art), gast: () => log.push('gast'),
+    ...extra
+  });
+}
+
+test('Stufe aus: Farben + CSS ja, aber keine Welt, kein Listener, kein Timer', async () => {
+  const log = [];
+  const a = aufbau({ welten: { sakura: protokollWelt(log) } });
+  await a.rt.anwenden({ theme: 'sakura', effekte: 'aus' });
+  assert.equal(a.doc.documentElement.dataset.theme, 'sakura');
+  assert.equal(a.elemente.get('theme-css').getAttribute('href'), '../themes/sakura/theme.css');
+  assert.deepEqual(a.geladen, []);
+  assert.deepEqual(log, []);
+  assert.equal(a.anzahlListener(), 0);
+  assert.equal(a.timer.size, 0);
+  assert.equal(a.rt.weltAktiv, false);
+});
+
+test('Wechsel normal -> aus beendet Welt, Engine und Listener restlos', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { sakura: protokollWelt(log) } });
+  a.rt.setzeGastBedingung(() => true);
+  await a.rt.anwenden({ theme: 'sakura', effekte: 'normal' });
+  assert.deepEqual(log, ['start']);
+  assert.ok(a.anzahlListener() > 0);
+  assert.equal(a.timer.size, 1, 'Gast-Timer laeuft');
+  await a.rt.anwenden({ theme: 'sakura', effekte: 'aus' });
+  assert.deepEqual(log, ['start', 'stop']);
+  assert.equal(a.engines[0].gestoppt, true);
+  assert.equal(a.anzahlListener(), 0);
+  assert.equal(a.timer.size, 0);
+  a.rt.gastJetzt();
+  a.rt.ereignis('kiste', {});
+  assert.deepEqual(log, ['start', 'stop']);
+});
+
+test('Neon Dual setzt Akzent-Variablen, andere Themes entfernen sie wieder', async () => {
+  const a = aufbau({ welten: { 'neon-dual': protokollWelt([]), sakura: protokollWelt([]) } });
+  await a.rt.anwenden({ theme: 'neon-dual', chatAccent: '#ff4fa3', chatAlpha: 50 });
+  assert.equal(a.styleProps.get('--accent'), '#ff4fa3');
+  assert.equal(a.styleProps.get('--chat-alpha'), '0.5');
+  assert.equal(a.elemente.get('theme-css'), undefined);
+  await a.rt.anwenden({ theme: 'sakura', chatAlpha: 50 });
+  assert.equal(a.styleProps.has('--accent'), false);
+  assert.equal(a.styleProps.has('--onair-from'), false);
+  assert.equal(a.styleProps.get('--chat-alpha'), '0.5');
+  await a.rt.anwenden({ theme: 'neon-dual' });
+  assert.equal(a.elemente.get('theme-css'), undefined, 'Theme-CSS wieder entfernt');
+});
+
+test('Video-Fenster: --chat-alpha immer 1, Neon nutzt videoAccent', async () => {
+  const a = aufbau({ fenster: 'video', welten: { 'neon-dual': protokollWelt([]) } });
+  await a.rt.anwenden({ theme: 'neon-dual', videoAccent: '#112233', chatAlpha: 30 });
+  assert.equal(a.styleProps.get('--chat-alpha'), '1');
+  assert.equal(a.styleProps.get('--accent'), '#112233');
+});
+
+test('Gleiches Theme, andere Stufe: nur Faktor, kein Neuladen', async () => {
+  const log = [];
+  const a = aufbau({ welten: { koi: protokollWelt(log) } });
+  await a.rt.anwenden({ theme: 'koi', effekte: 'normal' });
+  await a.rt.anwenden({ theme: 'koi', effekte: 'viel' });
+  assert.deepEqual(log, ['start']);
+  assert.equal(a.engines.length, 1);
+  assert.equal(a.engines[0].faktor, 1.8);
+});
+
+test('Ueberholter Ladevorgang: nur das zuletzt gewaehlte Theme startet', async () => {
+  const log = [];
+  const a = aufbau({ welten: { sakura: protokollWelt(log, { start: () => log.push('sakura') }), wald: protokollWelt(log, { start: () => log.push('wald') }) } });
+  const p1 = a.rt.anwenden({ theme: 'sakura' });
+  const p2 = a.rt.anwenden({ theme: 'wald' });
+  await Promise.all([p1, p2]);
+  assert.deepEqual(log, ['wald']);
+  assert.equal(a.engines.length, 1);
+});
+
+test('Welt wirft beim Start: Diagnose, keine Listener, App laeuft weiter', async () => {
+  const a = aufbau({ welten: { blasen: () => ({ start() { throw new Error('kaputt'); }, stop() {} }) } });
+  await a.rt.anwenden({ theme: 'blasen' });
+  assert.equal(a.rt.weltAktiv, false);
+  assert.equal(a.anzahlListener(), 0);
+  assert.deepEqual(a.meldungen[0], { b: 'theme', e: 'welt-fehler', d: { theme: 'blasen', phase: 'start', fehler: 'kaputt' } });
+  assert.equal(a.doc.documentElement.dataset.theme, 'blasen', 'Farben bleiben');
+});
+
+test('Welt-Skript laedt nicht: Diagnose phase laden', async () => {
+  const a = aufbau({ ladeFehler: true });
+  await a.rt.anwenden({ theme: 'wald' });
+  assert.equal(a.meldungen[0].e, 'welt-fehler');
+  assert.equal(a.meldungen[0].d.phase, 'laden');
+  assert.equal(a.rt.weltAktiv, false);
+});
+
+test('Ereignis: fehlender Anschluss ist ok, werfender stoppt die Welt', async () => {
+  const log = [];
+  const a = aufbau({ welten: { sakura: () => ({ start() {}, stop() { log.push('stop'); } }), wald: () => ({ start() {}, stop() {}, ereignis() { throw new Error('bumm'); } }) } });
+  await a.rt.anwenden({ theme: 'sakura' });
+  a.rt.ereignis('kiste', { betrag: 50, ursprung: { x: 1, y: 2 } });
+  assert.equal(a.rt.weltAktiv, true);
+  await a.rt.anwenden({ theme: 'wald' });
+  a.rt.ereignis('kiste', {});
+  assert.equal(a.rt.weltAktiv, false);
+  assert.equal(a.meldungen.at(-1).d.phase, 'ereignis');
+});
+
+test('Gast: nur im Video-Fenster, nur wenn die Bedingung stimmt', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { koi: protokollWelt(log) } });
+  let darf = false;
+  a.rt.setzeGastBedingung(() => darf);
+  await a.rt.anwenden({ theme: 'koi' });
+  a.rt.gastJetzt();
+  assert.deepEqual(log, ['start']);
+  darf = true;
+  a.rt.gastJetzt();
+  assert.deepEqual(log, ['start', 'gast']);
+  const c = aufbau({ fenster: 'chat', welten: { koi: protokollWelt([]) } });
+  c.rt.setzeGastBedingung(() => true);
+  await c.rt.anwenden({ theme: 'koi' });
+  assert.equal(c.timer.size, 0, 'Chat plant keine Gaeste');
+});
+
+test('Klick: nur ins Leere, Koordinaten relativ zur hinteren Ebene', async () => {
+  const klicks = [];
+  const a = aufbau({ welten: { blasen: () => ({ start() {}, stop() {}, klickInsLeere: (x, y) => klicks.push([x, y]) }) } });
+  await a.rt.anwenden({ theme: 'blasen' });
+  const klick = [...a.listener.get('click')][0];
+  klick({ target: { closest: () => ({}) }, clientX: 5, clientY: 5 });       // Knopf
+  klick({ target: { closest: () => null }, clientX: 40, clientY: 60 });     // Hintergrund
+  assert.deepEqual(klicks, [[40, 60]]);
+});
+
+test('pausieren reicht an die Engine weiter, Aufheben weckt Schleifen', async () => {
+  const a = aufbau({ welten: { wald: protokollWelt([]) } });
+  await a.rt.anwenden({ theme: 'wald' });
+  a.rt.pausieren(true);
+  assert.equal(a.engines[0].pausiert, true);
+  a.rt.pausieren(false);
+  assert.equal(a.engines[0].pausiert, false);
+  assert.equal(a.engines[0].weiterAufrufe, 1);
+});
