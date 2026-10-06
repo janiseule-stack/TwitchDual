@@ -1,0 +1,21 @@
+/* Wald (dunkel): Moosgruen, warmes Gluehwuermchen-Gelbgruen als Akzent. */
+:root[data-theme="wald"] {
+  --bg: rgb(14 31 20 / var(--chat-alpha, 1));
+  --panel: rgb(20 40 26 / var(--chat-alpha, 1));
+  --hover: rgb(26 52 34 / var(--chat-alpha, 1));
+  --line: #24432d;
+  --text: #e3f0d6;
+  --muted: #9fb894;
+  --ts: #6d8a66;
+  --accent: #9fe07a;
+  --accent-title: #cfe8b0;
+  --accent-border: rgba(159, 224, 122, .4);
+  --accent-glow: rgba(159, 224, 122, .2);
+  --accent-dim: rgba(159, 224, 122, .3);
+  --accent-contrast: #10200f;
+  --onair-from: #6fbf5a;
+  --onair-to: #e8ff7a;
+}
+:root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: #2f5a3a; }
+:root[data-theme="wald"] #emote-panel,
+:root[data-theme="wald"] #ac-bar { background: #102116; }
