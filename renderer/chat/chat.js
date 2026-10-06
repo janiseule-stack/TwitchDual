@@ -765,12 +765,90 @@ function applyTheme(prefs) {
   // zeigtEchtenStand statt reiner Textlaenge: Fehler-, Warte- und Anmeldetext
   // sind auch Text, sollen aber symbolfrei bleiben.
   if (zeigtEchtenStand) setzePunkteSymbol(letzterIconUrl, letzterKanal);
+  if (typeof spiegleThemeUi === 'function') spiegleThemeUi();
 }
 
 window.twitchDual.getUiPrefs()
   .then((prefs) => applyTheme(prefs && prefs.themePrefs))
   .catch(() => applyTheme(null)); // Defaults, App startet nie ohne Farben
 window.twitchDual.onThemeChanged(applyTheme);
+
+// ---------------------------------------------------------------------------
+// Lebendige Themes: Theme-Zeile, Effekte-Regler, Galerie (Spec Abschnitt 3).
+// Gespeichert wird immer nur das geaenderte Feld - main.js mischt.
+// ---------------------------------------------------------------------------
+const $themeBtn = document.getElementById('opt-theme');
+const $themeName = document.getElementById('opt-theme-name');
+const $effekte = document.getElementById('opt-effekte');
+const $neonFarben = document.getElementById('opt-neon-farben');
+const $galerie = document.getElementById('theme-galerie');
+const $galerieListe = document.getElementById('galerie-liste');
+const $head = document.getElementById('head');
+const STUFEN_TEXT = { aus: 'Aus', wenig: 'Wenig', normal: 'Normal', viel: 'Viel' };
+let vorschauStopps = [];
+
+for (const stufe of ThemeKatalog.EFFEKT_STUFEN) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.dataset.stufe = stufe;
+  b.textContent = STUFEN_TEXT[stufe];
+  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ effekte: stufe }));
+  $effekte.appendChild(b);
+}
+
+// Spiegelt themePrefs in Popup + offene Galerie (aus applyTheme aufgerufen).
+function spiegleThemeUi() {
+  const t = ThemeKatalog.themeById(themePrefs.theme);
+  $themeName.textContent = t.name;
+  for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
+  $neonFarben.classList.toggle('hidden', !t.farbenFrei);
+  for (const k of $galerieListe.children) k.classList.toggle('aktiv', k.dataset.id === themePrefs.theme);
+}
+
+function baueGalerie() {
+  $galerieListe.innerHTML = '';
+  for (const t of ThemeKatalog.THEMES) {
+    const karte = document.createElement('button');
+    karte.type = 'button';
+    karte.className = 'galerie-karte' + (t.id === themePrefs.theme ? ' aktiv' : '');
+    karte.dataset.id = t.id;
+    const bild = document.createElement('div');
+    bild.className = 'galerie-bild';
+    bild.style.background = t.vorschau;
+    const name = document.createElement('div');
+    name.className = 'galerie-name';
+    const n = document.createElement('span'); n.textContent = t.name;
+    const check = document.createElement('span'); check.className = 'galerie-check'; check.textContent = '✓';
+    const info = document.createElement('span'); info.className = 'galerie-info';
+    info.textContent = (t.hell ? 'hell' : 'dunkel') + ' · ' + t.info;
+    name.append(n, check, info);
+    karte.append(bild, name);
+    karte.addEventListener('click', () => window.twitchDual.saveThemePrefs({ theme: t.id }));
+    $galerieListe.appendChild(karte);
+    themeRuntime.starteVorschau(bild, t.id).then((stopp) => {
+      if ($galerie.classList.contains('hidden')) stopp(); else vorschauStopps.push(stopp);
+    }).catch(() => {});
+  }
+}
+
+function oeffneGalerie() {
+  $settingsPop.classList.add('hidden');
+  $galerie.style.top = $head.getBoundingClientRect().bottom + 'px';
+  $galerie.classList.remove('hidden');
+  baueGalerie();
+}
+function schliesseGalerie() {
+  $galerie.classList.add('hidden');
+  for (const stopp of vorschauStopps) stopp();
+  vorschauStopps = [];
+  $galerieListe.innerHTML = '';
+}
+$themeBtn.addEventListener('click', oeffneGalerie);
+document.getElementById('galerie-zu').addEventListener('click', schliesseGalerie);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$galerie.classList.contains('hidden')) schliesseGalerie();
+});
+spiegleThemeUi();
 
 // input = Live-Vorschau in BEIDEN Fenstern (Broadcast ohne Store-Write),
 // change = speichern. Muster wie beim Schriftgroessen-Slider.

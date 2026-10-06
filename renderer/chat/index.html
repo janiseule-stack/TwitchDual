@@ -35,25 +35,35 @@
     </div>
     <div class="opt-group">
       <div class="opt-group-title">Darstellung</div>
-      <div class="opt-presets-label">Presets</div>
-      <div id="opt-presets" class="opt-presets"></div>
-      <label class="opt-color-row opt-row">Video-Akzent
-        <input type="color" id="opt-color-video" value="#35e0ff" />
-      </label>
-      <label class="opt-color-row opt-row">Chat-Akzent
-        <input type="color" id="opt-color-chat" value="#ff4fa3" />
-      </label>
+      <button id="opt-theme" type="button" class="opt-theme-row">🎨 Theme: <b id="opt-theme-name">Neon Dual</b><span class="opt-theme-pfeil">›</span></button>
+      <div class="opt-row">Effekte
+        <div id="opt-effekte" class="opt-segment" role="group" aria-label="Effekte"></div>
+      </div>
+      <div id="opt-neon-farben">
+        <div class="opt-presets-label">Presets</div>
+        <div id="opt-presets" class="opt-presets"></div>
+        <label class="opt-color-row opt-row">Video-Akzent
+          <input type="color" id="opt-color-video" value="#35e0ff" />
+        </label>
+        <label class="opt-color-row opt-row">Chat-Akzent
+          <input type="color" id="opt-color-chat" value="#ff4fa3" />
+        </label>
+        <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
+      </div>
       <label class="opt-alpha-row opt-row">Deckkraft (Chat)
         <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
         <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
       </label>
     </div>
-    <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
     <div class="opt-group">
       <div class="opt-group-title">Diagnose</div>
       <label class="opt-check"><input type="checkbox" id="opt-diag" /> Protokoll mitschreiben</label>
       <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
     </div>
+  </div>
+  <div id="theme-galerie" class="hidden">
+    <div class="galerie-kopf"><span>🎨 Themes</span><button id="galerie-zu" type="button" title="Schließen">✕</button></div>
+    <div id="galerie-liste"></div>
   </div>
   <div id="messages"></div>
   <div id="composer">
