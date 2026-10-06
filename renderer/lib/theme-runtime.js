@@ -89,7 +89,10 @@
         ? ebenen.hinten.getBoundingClientRect() : { left: 0, top: 0 };
       return { x: x - r.left, y: y - r.top };
     }
+    // Pausiert (Home zu / Nur-Video) erzeugen Maus und Klick nichts - sonst
+    // entstuenden unsichtbare Partikel in der versteckten Ebene.
     function onMaus(e) {
+      if (pausiert) return;
       mausPos = { x: e.clientX, y: e.clientY };
       if (mausFrame !== null) return;
       mausFrame = win.requestAnimationFrame(() => {
@@ -99,6 +102,7 @@
       });
     }
     function onKlick(e) {
+      if (pausiert) return;
       if (!Katalog.istKlickInsLeere(e.target)) return;
       const p = relativ(e.clientX, e.clientY);
       rufe('klick', (w) => w.klickInsLeere && w.klickInsLeere(p.x, p.y));

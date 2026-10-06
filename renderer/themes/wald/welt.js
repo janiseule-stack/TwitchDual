@@ -10,6 +10,13 @@
     };
     let fliegen = [];
     let maus = null;
+    // Startet die Welt bei unsichtbarer Ebene (Home zu -> 0x0), wird erst im
+    // ersten Frame mit echter Groesse verteilt - sonst klumpt alles in der Ecke.
+    let verteilt = false;
+    function verteile(w, h) {
+      for (const f of fliegen) { f.x = rnd(0, w); f.y = rnd(0, h); }
+      verteilt = true;
+    }
 
     function funke(ebene, x0, y0, x1, y1, ms) {
       engine.spawn({
@@ -33,8 +40,10 @@
           if (!el) break;
           fliegen.push({ el, x: rnd(0, w), y: rnd(0, h), vx: rnd(-0.3, 0.3), vy: rnd(-0.3, 0.3), phase: rnd(0, 6.28) });
         }
+        if (w > 0 && h > 0) verteilt = true;
         engine.schleife((dt) => {
           const { w: W, h: H } = engine.groesse('hinten');
+          if (!verteilt && W > 0 && H > 0) verteile(W, H);
           const k = dt / 16;
           for (const f of fliegen) {
             f.phase += dt * 0.004;

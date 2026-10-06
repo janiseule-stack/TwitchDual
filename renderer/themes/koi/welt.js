@@ -14,6 +14,12 @@
     let letzteWelle = 0;
     let lockUntil = 0;
     let lockZiel = null;
+    // Wie im Wald: bei unsichtbarer Ebene (0x0) erst im ersten echten Frame verteilen.
+    let verteilt = false;
+    function verteile(w, h) {
+      for (const f of fische) { f.x = rnd(20, Math.max(21, w - 20)); f.y = rnd(20, Math.max(21, h - 20)); }
+      verteilt = true;
+    }
 
     function schwanz(el) {
       const s = document.createElement('div');
@@ -44,8 +50,10 @@
           schwanz(el);
           fische.push({ el, x: rnd(20, w - 20), y: rnd(20, h - 20), a: rnd(0, 6.28), v: 0.5 });
         }
+        if (w > 0 && h > 0) verteilt = true;
         engine.schleife((dt) => {
           const { w: W, h: H } = engine.groesse('hinten');
+          if (!verteilt && W > 0 && H > 0) verteile(W, H);
           const k = dt / 16;
           const locken = lockZiel && Date.now() < lockUntil;
           for (const f of fische) {

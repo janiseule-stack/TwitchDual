@@ -202,3 +202,19 @@ test('pausieren reicht an die Engine weiter, Aufheben weckt Schleifen', async ()
   assert.equal(a.engines[0].pausiert, false);
   assert.equal(a.engines[0].weiterAufrufe, 1);
 });
+
+// Review I2: pausiert (Home zu / Nur-Video) duerfen Maus und Klick nichts
+// erzeugen - sonst entstehen unsichtbare Partikel im versteckten Home.
+test('pausiert: Maus und Klick erreichen die Welt nicht', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { sakura: () => ({ start() {}, stop() {},
+    maus: () => log.push('maus'), klickInsLeere: () => log.push('klick') }) } });
+  await a.rt.anwenden({ theme: 'sakura' });
+  a.rt.pausieren(true);
+  for (const fn of a.listener.get('mousemove') || []) fn({ clientX: 1, clientY: 1 });
+  for (const fn of a.listener.get('click') || []) fn({ target: { closest: () => null }, clientX: 1, clientY: 1 });
+  assert.deepEqual(log, []);
+  a.rt.pausieren(false);
+  for (const fn of a.listener.get('click') || []) fn({ target: { closest: () => null }, clientX: 1, clientY: 1 });
+  assert.deepEqual(log, ['klick']);
+});
