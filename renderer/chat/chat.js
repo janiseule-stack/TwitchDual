@@ -1385,6 +1385,14 @@ function spieleZuwaechse(liste) {
 function zeigeZuwachs(z) {
   if (!$pointsGain) return;
   const kiste = z.quelle === 'kiste';
+  // Lebendige Themes: Effekt am Punkte-Chip (Kiste gross, passiv klein).
+  if ($pointsChip) {
+    const r = $pointsChip.getBoundingClientRect();
+    themeRuntime.ereignis(kiste ? 'kiste' : 'punkte', {
+      betrag: z.betrag,
+      ursprung: { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    });
+  }
   $pointsGain.textContent = '+' + z.betrag.toLocaleString('de-DE');
   // Klasse weg -> Reflow erzwingen -> Klasse wieder dran. Ohne das Auslesen
   // von offsetWidth fasst der Browser beide Aenderungen zusammen und die
