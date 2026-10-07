@@ -23,7 +23,7 @@
 html, body {
   margin: 0; height: 100%;
   background: var(--bg); color: var(--text);
-  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--schrift, 'Inter', 'Segoe UI', Roboto, sans-serif);
   overflow: hidden;
 }
 body { display: flex; flex-direction: column; }
@@ -520,3 +520,10 @@ button:focus-visible, input:focus-visible {
 .galerie-info { margin-left: auto; font-size: 10px; font-weight: 400; color: var(--muted); }
 .galerie-check { display: none; color: var(--accent); }
 .galerie-karte.aktiv .galerie-check { display: inline; }
+
+/* --- Welle 1b: Deko + Titel-Schrift + Namens-Abdunklung ------------------- */
+.theme-deko { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#title, .galerie-kopf, .opt-group-title { font-family: var(--schrift-titel, inherit); }
+/* Heller (auch selbst gewaehlter) Grund: helle Twitch-Namen abdunkeln. */
+:root[data-hell="1"] .msg .user,
+:root[data-hell="1"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 45%, #000); }

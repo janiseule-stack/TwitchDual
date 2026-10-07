@@ -27,7 +27,7 @@
     html, body {
       margin: 0; height: 100%;
       background: var(--bg); color: var(--text);
-      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      font-family: var(--schrift, 'Inter', 'Segoe UI', Roboto, sans-serif);
       overflow: hidden;
     }
     body { display: flex; flex-direction: column; }
@@ -177,7 +177,9 @@
     .fx-ebene { pointer-events: none; overflow: hidden; }
     #fx-gast { position: fixed; inset: 0; z-index: 30; }
     #home > #fx-hinten { position: absolute; inset: 0; z-index: 0; }
-    #home > :not(#fx-hinten):not(#home-version) { position: relative; z-index: 1; }
+    #home > :not(#fx-hinten):not(.theme-deko):not(#home-version) { position: relative; z-index: 1; }
+    #home > .theme-deko { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    #home-title, .lc-name, .fav .name { font-family: var(--schrift-titel, inherit); }
     body.video-only #fx-gast { display: none; }
   </style>
 </head>
@@ -219,6 +221,7 @@
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
   <div id="home" class="hidden">
     <div id="fx-hinten" class="fx-ebene"></div>
+    <div class="theme-deko" aria-hidden="true"></div>
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
       <button id="tab-followed" type="button" class="hidden">Gefolgt</button>

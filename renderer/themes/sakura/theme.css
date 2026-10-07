@@ -17,9 +17,6 @@
   --onair-from: #ffb3cc;
   --onair-to: #d7b8ff;
 }
-/* Helle Flaeche: helle Twitch-Namensfarben (z.B. #FFFF00) abdunkeln. */
-:root[data-theme="sakura"] .msg .user,
-:root[data-theme="sakura"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 55%, #000); }
 :root[data-theme="sakura"] #messages::-webkit-scrollbar-thumb { background: #f2b8cc; }
 :root[data-theme="sakura"] #emote-panel,
 :root[data-theme="sakura"] #ac-bar { background: #fff5f9; }

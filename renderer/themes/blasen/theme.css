@@ -16,8 +16,6 @@
   --onair-from: #9ad0ff;
   --onair-to: #e0b0ff;
 }
-:root[data-theme="blasen"] .msg .user,
-:root[data-theme="blasen"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 55%, #000); }
 :root[data-theme="blasen"] #messages::-webkit-scrollbar-thumb { background: #c3cbff; }
 :root[data-theme="blasen"] #emote-panel,
 :root[data-theme="blasen"] #ac-bar { background: #f5f7ff; }
