@@ -19,3 +19,6 @@
 :root[data-theme="koi"] #messages::-webkit-scrollbar-thumb { background: #1d5a52; }
 :root[data-theme="koi"] #emote-panel,
 :root[data-theme="koi"] #ac-bar { background: #0a2e2c; }
+/* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
+:root[data-theme="koi"] #messages, :root[data-theme="koi"] #home-fav-view,
+:root[data-theme="koi"] #home-vod-view, :root[data-theme="koi"] #followed-view { scrollbar-color: #1d5a52 transparent; }

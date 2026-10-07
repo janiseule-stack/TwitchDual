@@ -22,3 +22,6 @@
 :root[data-theme="blasen"] #settings-pop,
 :root[data-theme="blasen"] .galerie-karte,
 :root[data-theme="blasen"] #composer { border-radius: 14px; }
+/* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
+:root[data-theme="blasen"] #messages, :root[data-theme="blasen"] #home-fav-view,
+:root[data-theme="blasen"] #home-vod-view, :root[data-theme="blasen"] #followed-view { scrollbar-color: #c3cbff transparent; }

@@ -19,3 +19,6 @@
 :root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: #2f5a3a; }
 :root[data-theme="wald"] #emote-panel,
 :root[data-theme="wald"] #ac-bar { background: #102116; }
+/* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
+:root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-fav-view,
+:root[data-theme="wald"] #home-vod-view, :root[data-theme="wald"] #followed-view { scrollbar-color: #6b4a33 transparent; }
