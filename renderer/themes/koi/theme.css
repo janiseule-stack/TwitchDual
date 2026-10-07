@@ -15,6 +15,8 @@
   --accent-contrast: #2a0e00;
   --onair-from: #ff8a3d;
   --onair-to: #ffd6a8;
+  --schrift: "Yu Gothic UI", "Segoe UI", sans-serif;
+  --schrift-titel: "Yu Gothic UI Light", "Yu Gothic UI", sans-serif;
 }
 :root[data-theme="koi"] #messages::-webkit-scrollbar-thumb { background: #1d5a52; }
 :root[data-theme="koi"] #emote-panel,
@@ -22,3 +24,59 @@
 /* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
 :root[data-theme="koi"] #messages, :root[data-theme="koi"] #home-fav-view,
 :root[data-theme="koi"] #home-vod-view, :root[data-theme="koi"] #followed-view { scrollbar-color: #1d5a52 transparent; }
+
+/* --- Welle 1b: Teich von oben --------------------------------------------- */
+:root[data-theme="koi"] #home { background: radial-gradient(ellipse at 40% 60%, #1f7a6a 0, #0f4a45 45%, #072b29 100%); }
+:root[data-theme="koi"] #home-title, :root[data-theme="koi"] #title { letter-spacing: .2em; font-weight: 300; color: #fff2e0; }
+:root[data-theme="koi"] #bar, :root[data-theme="koi"] #home-head, :root[data-theme="koi"] #head {
+  background: repeating-linear-gradient(90deg, #6b4a33 0 22px, #4a3324 22px 24px);
+  box-shadow: 0 4px 0 #2a1a10; border-bottom: none;
+}
+:root[data-theme="koi"] .live-card, :root[data-theme="koi"] .vod {
+  background: rgba(10, 50, 46, .55); border: 1px solid rgba(200, 255, 240, .3);
+  border-radius: 16px; backdrop-filter: blur(3px);
+}
+:root[data-theme="koi"] .fav {
+  background: rgba(10, 50, 46, .5); border: 1px solid rgba(200, 255, 240, .25);
+  border-radius: 999px; backdrop-filter: blur(3px);
+}
+:root[data-theme="koi"] .lc-thumbwrap { margin: 8px 8px 0; border-radius: 12px; }
+:root[data-theme="koi"] .lc-name, :root[data-theme="koi"] .fav .name { color: #ffc49a; letter-spacing: .06em; }
+:root[data-theme="koi"] .lc-live {
+  background: #ff3d2e; border-radius: 50%; width: 30px; height: 30px; padding: 0;
+  justify-content: center; font-size: 7px; box-shadow: 0 0 0 3px rgba(255, 61, 46, .25);
+}
+:root[data-theme="koi"] .lc-live::before { display: none; }
+:root[data-theme="koi"] .lc-actions button, :root[data-theme="koi"] .fav .actions button,
+:root[data-theme="koi"] #home-head button, :root[data-theme="koi"] #auth-bar button,
+:root[data-theme="koi"] #home-btn, :root[data-theme="koi"] #emote-btn, :root[data-theme="koi"] #rewards-btn {
+  background: rgba(255, 138, 61, .15); color: #ffb27a; border: 1px solid #ff8a3d; border-radius: 10px;
+}
+:root[data-theme="koi"] #load, :root[data-theme="koi"] #chat-send, :root[data-theme="koi"] .fav .watch,
+:root[data-theme="koi"] #home-head button.active, :root[data-theme="koi"] #fav-tools-toggle.active {
+  background: #ff8a3d; color: #2a0e00; border-radius: 10px; font-weight: 700;
+}
+:root[data-theme="koi"] #channel, :root[data-theme="koi"] #chat-input,
+:root[data-theme="koi"] #filter-input, :root[data-theme="koi"] #add-input {
+  background: rgba(0, 0, 0, .25); border: 1px solid rgba(200, 255, 240, .3); border-radius: 10px;
+}
+:root[data-theme="koi"] .fav .avatar { box-shadow: 0 0 0 3px rgba(255, 138, 61, .3); }
+:root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card {
+  border-radius: 14px; backdrop-filter: blur(6px);
+}
+/* Deko: Seerosenblaetter, Steine, statische Wasserringe */
+:root[data-theme="koi"] .theme-deko::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 8% 70%, #2f8f4f 0 22px, #1f6b3a 23px 24px, transparent 25px),
+    radial-gradient(circle at 78% 92%, #2f8f4f 0 17px, #1f6b3a 18px 19px, transparent 20px),
+    radial-gradient(circle at 93% 38%, #2f8f4f 0 14px, #1f6b3a 15px 16px, transparent 17px),
+    radial-gradient(ellipse 18px 11px at 52% 96%, #7d8884 0 95%, transparent 100%),
+    radial-gradient(ellipse 12px 8px at 97% 55%, #6b7672 0 95%, transparent 100%),
+    radial-gradient(circle at 85% 15%, transparent 0 14px, rgba(200,255,240,.22) 15px 16px, transparent 17px 26px, rgba(200,255,240,.14) 27px 28px, transparent 29px),
+    radial-gradient(circle at 15% 30%, transparent 0 10px, rgba(200,255,240,.18) 11px 12px, transparent 13px);
+}
+:root[data-theme="koi"] .theme-deko::after {
+  content: "🌸"; position: absolute; left: calc(8% - 9px); top: calc(70% - 12px);
+  font-size: 16px; filter: hue-rotate(-20deg) saturate(1.3);
+}
