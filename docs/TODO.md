@@ -435,6 +435,14 @@ nichts auf der Platte.
   einer Zuschauer-Sitzung auf `twitch.tv` selbst.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
 
+## v1.13.0 - Sakura gezeichnet, Theme-Fenster (Release 2026-10-07)
+- Sakura ist zurueck als gezeichnete Welt mit 8 Varianten (Details unten
+  "Sakura gezeichnet"), verschiedene Bluetenformen, eigene Effekte fuer
+  Kiste/Punkte/Abo/Raid/Gast.
+- 🎨 neben ⚙ im Chatkopf: eigenes Fenster mit Themes / Farben / Effekte;
+  ⚙ hat nur noch Chat + Mehr.
+- Galerie zeigt Neon Dual, Sakura, Koi; Wald/Blasen weiter ausgeblendet.
+
 ## v1.12.0 - Koi-Teich, Abos/Raids, Updater (Release 2026-10-07)
 - Theme-Galerie zeigt nur Neon Dual + Koi (5 Varianten). Sakura/Wald/Seifen-
   blasen sind `ausgeblendet` (Code bleibt), kommen neu gezeichnet zurueck.
