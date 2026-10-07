@@ -33,8 +33,8 @@ test('EFFEKT_FAKTOR: aus=0, steigt monoton', () => {
 
 test('cleanThemePrefs: Bestandsdaten ohne theme -> Neon Dual, Farben bleiben', () => {
   const p = K.cleanThemePrefs({ videoAccent: '#ABC', chatAccent: '#ff4fa3', chatAlpha: 60 });
-  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal' });
-  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal' });
+  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {} });
+  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {} });
 });
 
 test('mergeThemePrefs: Teil-Speicherung behaelt theme und effekte', () => {
@@ -60,5 +60,54 @@ test('istKlickInsLeere: App-Elemente nie, Hintergrund ja', () => {
   assert.equal(K.istKlickInsLeere({}), false);
   for (const sel of ['button', 'a', 'input', 'textarea', '[contenteditable]', '.msg', '#composer', '#settings-pop', '#theme-galerie', 'iframe']) {
     assert.ok(K.KLICK_SPERRE.split(',').map((s) => s.trim()).includes(sel), sel);
+  }
+});
+
+// --- Welle 1b ----------------------------------------------------------------
+test('THEMES: jedes Theme hat gueltige Originalfarben', () => {
+  for (const t of K.THEMES) {
+    for (const k of ['akzent', 'hintergrund', 'partikel']) assert.match(t.farben[k], /^#[0-9a-f]{6}$/, t.id + '.' + k);
+  }
+});
+
+test('cleanAnpassungen: nur Nicht-Neon-Themes, nur drei Schluessel, nur Hex', () => {
+  const roh = {
+    sakura: { akzent: '#ABC', hintergrund: 'rot', partikel: '#112233', fremd: '#000000' },
+    'neon-dual': { akzent: '#123456' },
+    gibtsnicht: { akzent: '#123456' },
+    koi: 'kaputt'
+  };
+  assert.deepEqual(K.cleanAnpassungen(roh), { sakura: { akzent: '#aabbcc', partikel: '#112233' } });
+  assert.deepEqual(K.cleanAnpassungen(null), {});
+});
+
+test('cleanThemePrefs liefert anpassungen, Standard leer', () => {
+  assert.deepEqual(K.cleanThemePrefs(null).anpassungen, {});
+});
+
+test('mergeThemePrefs: Anpassung eines Themes laesst andere stehen', () => {
+  const g = { theme: 'koi', anpassungen: { sakura: { akzent: '#111111' }, koi: { partikel: '#222222' } } };
+  const neu = K.mergeThemePrefs(g, { anpassungen: { koi: { hintergrund: '#333333' } } });
+  assert.deepEqual(neu.anpassungen.sakura, { akzent: '#111111' });
+  assert.deepEqual(neu.anpassungen.koi, { hintergrund: '#333333' });
+  // Zuruecksetzen = leeres Objekt -> Theme faellt aus den Anpassungen raus
+  assert.equal(K.mergeThemePrefs(neu, { anpassungen: { koi: {} } }).anpassungen.koi, undefined);
+});
+
+test('effektiveFarben: Anpassung schlaegt Original', () => {
+  const p = K.cleanThemePrefs({ theme: 'sakura', anpassungen: { sakura: { partikel: '#00ff00' } } });
+  assert.deepEqual(K.effektiveFarben(p), { akzent: K.themeById('sakura').farben.akzent, hintergrund: K.themeById('sakura').farben.hintergrund, partikel: '#00ff00' });
+});
+
+test('balkenFarbe: Neon null, sonst effektiver Hintergrund', () => {
+  assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'neon-dual' })), null);
+  assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'blasen' })), K.themeById('blasen').farben.hintergrund);
+  assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'wald', anpassungen: { wald: { hintergrund: '#101010' } } })), '#101010');
+});
+
+test('istSichereFarbe: nur Hex und rgb/rgba', () => {
+  for (const ok of ['#fff', '#fff4f8', '#fff4f8cc', 'rgb(1, 2, 3)', 'rgba(1,2,3,.5)']) assert.equal(K.istSichereFarbe(ok), true, ok);
+  for (const boese of ['red; } body { display:none', '#fff;}', 'url(x)', 'rgb(1,2,3)) ; x', '', null, 42, 'expression(alert(1))']) {
+    assert.equal(K.istSichereFarbe(boese), false, String(boese));
   }
 });
