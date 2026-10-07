@@ -35,6 +35,8 @@
     let maus = null;
     let fluchtBis = 0;
     let lock = null;             // { x, y, bis }
+    let lockPauseBis = 0;        // nach einem Lockruf eine Weile kein neuer
+    const LOCK_PAUSE_MS = 8000;
     let letzteMausWelle = 0;
     let t = 0;
     let acc = 0;
@@ -109,15 +111,27 @@
     }
 
     // --- Bewegung -----------------------------------------------------------
-    function bewege(f, k, nun) {
+    function bewege(f, k, nun, alle) {
       const rand = 30;
       let wunsch;
       let rate = 0.03;
       const flieht = nun < fluchtBis;
+      const gelockt = lock && nun < lock.bis && f.lockt;
+      if (f.nachLock && !gelockt) {
+        // Lockruf vorbei: jeder in eine eigene Richtung, damit kein Haufen bleibt.
+        f.nachLock = false;
+        f.zerstreuWinkel = rnd(0, TAU);
+        f.zerstreuBis = nun + 1800;
+      }
       if (f.x < rand || f.x > L.w - rand || f.y < rand || f.y > L.h - rand) {
         wunsch = Math.atan2(L.h / 2 - f.y, L.w / 2 - f.x);
-      } else if (lock && nun < lock.bis) {
-        wunsch = Math.atan2(lock.y - f.y, lock.x - f.x); rate = 0.08;
+      } else if (gelockt) {
+        // Jeder Fisch hat seinen eigenen Platz auf einem Ring um den Punkt.
+        const zx = lock.x + Math.cos(f.ringWinkel) * f.ringR, zy = lock.y + Math.sin(f.ringWinkel) * f.ringR;
+        wunsch = Math.hypot(zx - f.x, zy - f.y) > 14 ? Math.atan2(zy - f.y, zx - f.x) : f.a + 0.05;
+        rate = 0.08;
+      } else if (nun < (f.zerstreuBis || 0)) {
+        wunsch = f.zerstreuWinkel; rate = 0.06;
       } else if (flieht && maus) {
         wunsch = Math.atan2(f.y - maus.y, f.x - maus.x); rate = 0.12;
       } else if (maus && nun - maus.zeit < MAUS_ALT_MS) {
@@ -126,9 +140,23 @@
       } else {
         wunsch = f.a + Math.sin(t * 0.01 + f.phase) * 0.6;
       }
+      // Abstand halten: Nachbarn, die zu nah sind, schieben die Wunschrichtung weg.
+      if (!flieht) {
+        let sx = 0, sy = 0;
+        for (const o of alle) {
+          if (o === f) continue;
+          const dx = f.x - o.x, dy = f.y - o.y, d = Math.hypot(dx, dy), nah = (f.laenge + o.laenge) * 0.55;
+          if (d > 0 && d < nah) { const w = (nah - d) / nah; sx += dx / d * w; sy += dy / d * w; }
+        }
+        if (sx || sy) {
+          const wx = Math.cos(wunsch) + sx * 2.2, wy = Math.sin(wunsch) + sy * 2.2;
+          wunsch = Math.atan2(wy, wx);
+          rate = Math.max(rate, 0.06);
+        }
+      }
       const diff = Math.atan2(Math.sin(wunsch - f.a), Math.cos(wunsch - f.a));
       f.a += diff * Math.min(1, rate * k);
-      const eile = flieht ? 3.2 : (lock && nun < lock.bis ? 2.2 : 1);
+      const eile = flieht ? 3.2 : (gelockt ? 2.2 : 1);
       const v = f.v * eile * skala() * k;
       f.x += Math.cos(f.a) * v; f.y += Math.sin(f.a) * v;
       f.segs[0].x = f.x; f.segs[0].y = f.y;
@@ -269,9 +297,24 @@
         if (!erst) for (const f of fische) { f.x = Math.min(f.x, L.w - 31); f.y = Math.min(f.y, L.h - 31); }
       }
       passeAnzahl();
-      for (const f of fische) bewege(f, k, nun);
+      for (const f of fische) bewege(f, k, nun, fische);
       bewegeSchwarm(k);
       bild(nun);
+    }
+
+    // Lockruf: etwa 2 von 3 Fischen kommen, jeder auf seinen Platz im Ring.
+    // Danach LOCK_PAUSE_MS kein neuer - dichte Abos stapeln sonst endlos.
+    function locke(x, y, ms) {
+      const nun = jetzt();
+      if (nun < lockPauseBis) return;
+      lockPauseBis = nun + LOCK_PAUSE_MS;
+      lock = { x, y, bis: nun + ms };
+      for (const f of fische) {
+        f.lockt = Math.random() < 0.67;
+        f.ringWinkel = rnd(0, TAU);
+        f.ringR = rnd(35, 75) * skala();
+        f.nachLock = f.lockt;
+      }
     }
 
     function welle(x, y, gross, verzug, vorn) { wellen.push({ x, y, t: -(verzug || 0), gross, vorn: !!vorn }); }
@@ -300,6 +343,8 @@
         engine.schleife(frame);
       },
       stop() { fische = []; blaetter = []; schwarm = []; L = null; V = null; bg = null; },
+      // Fuer Tests: wo die Fische gerade sind.
+      fischPositionen() { return fische.map((f) => ({ x: f.x, y: f.y })); },
       maus(x, y) {
         const nun = jetzt();
         maus = { x, y, zeit: nun };
@@ -329,17 +374,17 @@
           if (!daten.zeilen && daten.monate > 1) text.push(daten.monate + ' Monate');
           lotus.push({ x, y, start: jetzt(), dauer: 4500, L: 20, dreh: rnd(0, TAU), text });
           for (let i = 0; i < 3; i++) welle(x, y, true, i * 22, true);
-          lock = { x, y, bis: jetzt() + 3500 };
+          locke(x, y, 3500);
           return;
         }
         // fx-hinten/-vorn liegen im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
         // Die Kiste selbst zeichnet die Leiste (kiste.js) - hier nur Wasser + Fische.
         if (art === 'kiste') {
           welle(u.x, u.y, true, 0, true); welle(u.x, u.y, true, 30, true);
-          lock = { x: u.x, y: u.y, bis: jetzt() + 3000 };
+          locke(u.x, u.y, 3000);
         } else {
           welle(u.x, u.y, true, 0, true);
-          lock = { x: u.x, y: u.y, bis: jetzt() + 1500 };
+          locke(u.x, u.y, 1500);
         }
       },
       gast() {

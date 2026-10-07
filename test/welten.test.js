@@ -166,3 +166,37 @@ test('koi: unbekannte Variante faellt auf Aquarell zurueck', () => {
   for (let i = 0; i < 5; i++) for (const fn of schleifen) fn(40);
   assert.ok(farben.has('#dfeae2'), 'Aquarell-Grund gezeichnet');
 });
+
+test('koi: waehrend einer Abo-Welle bilden die Fische keinen Haufen', () => {
+  const farben = new Set();
+  const fabrik = ladeKoi(farben);
+  const { engine, ebene, schleifen } = koiEngine(farben);
+  let jetzt = 0;
+  const echt = Date.now;
+  Date.now = () => jetzt;
+  try {
+    const welt = fabrik({ engine, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' }, variante: 'lofi' });
+    welt.start();
+    ebene.clientWidth = 1000; ebene.clientHeight = 600;
+    const tick = (ms) => { for (let t = 0; t < ms; t += 33) { jetzt += 33; for (const fn of schleifen) fn(33); } };
+    tick(500);
+    // Abo-Welle: 15 Abos im Abstand von 1,5 s, gemessen MITTEN in der Welle.
+    const messungen = [];
+    for (let i = 0; i < 15; i++) {
+      welt.ereignis('abo', { name: 'A' + i, ursprung: { x: 900, y: 80 } });
+      tick(1500);
+      if (i >= 8) messungen.push(welt.fischPositionen());
+    }
+    const p = messungen[messungen.length - 1];
+    if (process.env.KOI_DEBUG) console.log('Abstaende', messungen.map((m) => { let s2 = 0, n = 0; for (let i = 0; i < m.length; i++) for (let j = i + 1; j < m.length; j++) { s2 += Math.hypot(m[i].x - m[j].x, m[i].y - m[j].y); n++; } return Math.round(s2 / n); }).join(','));
+    let summe = 0, paare = 0, kleinster = Infinity;
+    for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) {
+      const d = Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y);
+      summe += d; paare++; kleinster = Math.min(kleinster, d);
+    }
+    assert.ok(summe / paare > 150, 'mittlerer Abstand ' + Math.round(summe / paare));
+    assert.ok(kleinster > 15, 'kleinster Abstand ' + Math.round(kleinster));
+  } finally {
+    Date.now = echt;
+  }
+});
