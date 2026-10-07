@@ -19,9 +19,22 @@
     { id: 'wald', name: 'Wald', hell: false, farbenFrei: false, info: 'Glühwürmchen',
       vorschau: 'linear-gradient(180deg, #16301e, #0a150d)',
       farben: { akzent: '#9fe07a', hintergrund: '#0e1f14', partikel: '#e8ff7a' } },
-    { id: 'koi', name: 'Koi-Teich', hell: false, farbenFrei: false, info: 'Koi-Fische',
-      vorschau: 'radial-gradient(ellipse at 40% 60%, #1b6b5f, #0d3b3a 55%, #062221)',
-      farben: { akzent: '#ff8a3d', hintergrund: '#082625', partikel: '#ff7a2a' } },
+    // Gezeichnete Welt mit Varianten (Canvas): Theme-Farben = erste Variante.
+    { id: 'koi', name: 'Koi-Teich', hell: true, farbenFrei: false, info: 'Koi-Fische',
+      vorschau: 'radial-gradient(ellipse at 40% 60%, #cfe3d8, #a9c9bf 60%, #8fb5aa)',
+      farben: { akzent: '#c0583a', hintergrund: '#e4ede6', partikel: '#e0714f' },
+      varianten: [
+        { id: 'aquarell', name: 'Aquarell', hell: true,
+          farben: { akzent: '#c0583a', hintergrund: '#e4ede6', partikel: '#e0714f' } },
+        { id: 'lofi', name: 'Lofi-Abend', hell: false,
+          farben: { akzent: '#ff9a6e', hintergrund: '#2c2c63', partikel: '#ff8f5a' } },
+        { id: 'holzschnitt', name: 'Holzschnitt', hell: true,
+          farben: { akzent: '#c0392b', hintergrund: '#efe3c8', partikel: '#d2452e' } },
+        { id: 'tusche', name: 'Tusche', hell: true,
+          farben: { akzent: '#b0302a', hintergrund: '#f4efe3', partikel: '#b8332b' } },
+        { id: 'bleiglas', name: 'Bleiglas', hell: false,
+          farben: { akzent: '#ffb35a', hintergrund: '#1a2440', partikel: '#ff6a3a' } }
+      ] },
     { id: 'blasen', name: 'Seifenblasen', hell: true, farbenFrei: false, info: 'Seifenblasen',
       vorschau: 'linear-gradient(180deg, #dff3ff, #f4eaff)',
       farben: { akzent: '#7b6cff', hintergrund: '#f0f7ff', partikel: '#aac8ff' } }
@@ -59,6 +72,28 @@
     return aus;
   }
 
+  // Varianten (gezeichnete Welten): pro Theme die gewaehlte Variante, nur
+  // gueltige Ids; fehlt sie, gilt die erste. Themes ohne Varianten -> null.
+  function cleanVariante(roh) {
+    const aus = {};
+    if (!roh || typeof roh !== 'object') return aus;
+    for (const t of THEMES) {
+      if (!t.varianten) continue;
+      const v = roh[t.id];
+      if (typeof v === 'string' && t.varianten.some((x) => x.id === v)) aus[t.id] = v;
+    }
+    return aus;
+  }
+  function varianteVon(themeId, varianteId) {
+    const t = themeById(themeId);
+    if (!t.varianten) return null;
+    return t.varianten.find((v) => v.id === varianteId) || t.varianten[0];
+  }
+  function varianteFuer(prefs) {
+    const p = prefs || {};
+    return varianteVon(p.theme, p.variante && p.variante[cleanTheme(p.theme)]);
+  }
+
   function themeById(id) {
     return THEMES.find((t) => t.id === id) || THEMES[0];
   }
@@ -78,7 +113,8 @@
       chatAlpha: ThemeLib.clampAlpha(p.chatAlpha),
       theme: cleanTheme(p.theme),
       effekte: cleanEffekte(p.effekte),
-      anpassungen: cleanAnpassungen(p.anpassungen)
+      anpassungen: cleanAnpassungen(p.anpassungen),
+      variante: cleanVariante(p.variante)
     };
   }
 
@@ -90,7 +126,8 @@
     // anpassungen pro Theme mischen: ein Update fuer Koi laesst Sakura stehen.
     const neu = u.anpassungen && typeof u.anpassungen === 'object' ? u.anpassungen : {};
     const anpassungen = { ...(g.anpassungen || {}), ...neu };
-    return cleanThemePrefs({ ...g, ...u, anpassungen });
+    const variante = { ...(g.variante || {}), ...(u.variante && typeof u.variante === 'object' ? u.variante : {}) };
+    return cleanThemePrefs({ ...g, ...u, anpassungen, variante });
   }
 
   function anpassungFuer(prefs) {
@@ -99,7 +136,8 @@
   }
   function effektiveFarben(prefs) {
     const t = themeById(prefs && prefs.theme);
-    return { ...t.farben, ...anpassungFuer(prefs) };
+    const v = varianteFuer(prefs);
+    return { ...t.farben, ...(v ? v.farben : {}), ...anpassungFuer(prefs) };
   }
   // Farbe der Balken ueber/unter dem Video; Neon behaelt Twitchs Schwarz.
   function balkenFarbe(prefs) {
@@ -115,6 +153,7 @@
   return {
     THEMES, STANDARD_THEME, EFFEKT_STUFEN, STANDARD_EFFEKTE, EFFEKT_FAKTOR, KLICK_SPERRE,
     themeById, cleanTheme, cleanEffekte, cleanThemePrefs, mergeThemePrefs, istKlickInsLeere,
+    cleanVariante, varianteVon, varianteFuer,
     FARB_SCHLUESSEL, SICHERE_FARBE, istSichereFarbe, cleanAnpassungen, anpassungFuer, effektiveFarben, balkenFarbe
   };
 });

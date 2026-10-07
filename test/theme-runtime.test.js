@@ -259,3 +259,27 @@ test('Partikelfarbe aendern startet die Welt neu (genau eine), Akzent nicht', as
   assert.deepEqual(log, ['start', 'stop', 'start']);
   assert.equal(a.engines.filter((e) => !e.gestoppt).length, 1);
 });
+
+// --- Gezeichnete Welten: Varianten -------------------------------------------
+test('Variante: data-variante, stile.js vor welt.js, Wechsel startet neu', async () => {
+  const log = [];
+  const a = aufbau({ welten: { koi: (o) => ({ start: () => log.push('start:' + o.variante), stop: () => log.push('stop') }) } });
+  await a.rt.anwenden({ theme: 'koi', variante: { koi: 'tusche' } });
+  assert.equal(a.doc.documentElement.dataset.variante, 'tusche');
+  assert.deepEqual(a.geladen, ['../themes/koi/stile.js', '../themes/koi/welt.js']);
+  await a.rt.anwenden({ theme: 'koi', variante: { koi: 'tusche' }, effekte: 'viel' });
+  assert.deepEqual(log, ['start:tusche'], 'nur Faktor');
+  await a.rt.anwenden({ theme: 'koi', variante: { koi: 'lofi' } });
+  assert.deepEqual(log, ['start:tusche', 'stop', 'start:lofi']);
+  assert.equal(a.geladen.length, 2, 'Skripte nur einmal');
+  await a.rt.anwenden({ theme: 'sakura' });
+  assert.equal(a.doc.documentElement.dataset.variante, undefined);
+});
+
+test('Vorschau einer Variante bekommt deren Id', async () => {
+  const gesehen = [];
+  const a = aufbau({ welten: { koi: (o) => { gesehen.push(o.variante + '/' + o.farben.partikel); return {}; } } });
+  await a.rt.starteVorschau({}, 'koi', 'bleiglas');
+  await a.rt.starteVorschau({}, 'koi');
+  assert.deepEqual(gesehen, ['bleiglas/#ff6a3a', 'aquarell/#e0714f']);
+});

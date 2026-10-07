@@ -827,7 +827,42 @@ function spiegleThemeUi() {
     const f = ThemeKatalog.effektiveFarben(themePrefs);
     for (const k of Object.keys(TF)) TF[k].value = f[k];
   }
-  for (const k of $galerieListe.children) k.classList.toggle('aktiv', k.dataset.id === themePrefs.theme);
+  for (const k of $galerieListe.children) {
+    if (k.dataset.id) k.classList.toggle('aktiv', k.dataset.id === themePrefs.theme);
+  }
+  // Varianten-Knoepfe: aktiv = gewaehlte Variante des aktiven Themes.
+  const v = ThemeKatalog.varianteFuer(themePrefs);
+  for (const b of $galerieListe.querySelectorAll('.galerie-variante')) {
+    b.classList.toggle('aktiv', b.dataset.theme === themePrefs.theme && !!v && b.dataset.variante === v.id);
+  }
+}
+
+// Gezeichnete Themes: Reihe mit einem Knopf pro Variante (eigene Mini-Vorschau).
+// Steht NEBEN der Karte, nicht darin - Knopf in Knopf ist kein gueltiges HTML.
+function baueVariantenReihe(t) {
+  const reihe = document.createElement('div');
+  reihe.className = 'galerie-varianten';
+  const aktiv = ThemeKatalog.varianteFuer({ ...themePrefs, theme: t.id });
+  for (const v of t.varianten) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'galerie-variante' + (t.id === themePrefs.theme && aktiv && aktiv.id === v.id ? ' aktiv' : '');
+    b.dataset.theme = t.id;
+    b.dataset.variante = v.id;
+    b.title = v.name + (v.hell ? ' (hell)' : ' (dunkel)');
+    const mini = document.createElement('div');
+    mini.className = 'galerie-variante-bild';
+    mini.style.background = v.farben.hintergrund;
+    const name = document.createElement('span');
+    name.textContent = v.name;
+    b.append(mini, name);
+    b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ theme: t.id, variante: { [t.id]: v.id } }));
+    reihe.appendChild(b);
+    themeRuntime.starteVorschau(mini, t.id, v.id).then((stopp) => {
+      if ($galerie.classList.contains('hidden')) stopp(); else vorschauStopps.push(stopp);
+    }).catch(() => {});
+  }
+  return reihe;
 }
 
 function baueGalerie() {
@@ -845,11 +880,13 @@ function baueGalerie() {
     const n = document.createElement('span'); n.textContent = t.name;
     const check = document.createElement('span'); check.className = 'galerie-check'; check.textContent = '✓';
     const info = document.createElement('span'); info.className = 'galerie-info';
-    info.textContent = (t.hell ? 'hell' : 'dunkel') + ' · ' + t.info;
+    const tv = ThemeKatalog.varianteFuer({ ...themePrefs, theme: t.id });
+    info.textContent = (tv ? tv.name + ' · ' : '') + ((tv ? tv.hell : t.hell) ? 'hell' : 'dunkel') + ' · ' + t.info;
     name.append(n, check, info);
     karte.append(bild, name);
     karte.addEventListener('click', () => window.twitchDual.saveThemePrefs({ theme: t.id }));
     $galerieListe.appendChild(karte);
+    if (t.varianten) $galerieListe.appendChild(baueVariantenReihe(t));
     themeRuntime.starteVorschau(bild, t.id).then((stopp) => {
       if ($galerie.classList.contains('hidden')) stopp(); else vorschauStopps.push(stopp);
     }).catch(() => {});

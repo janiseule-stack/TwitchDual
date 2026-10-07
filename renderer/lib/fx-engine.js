@@ -24,6 +24,7 @@
     const clearI = o.clearInterval || ((id) => clearInterval(id));
     const raf = o.raf || ((fn) => requestAnimationFrame(fn));
     const caf = o.caf || ((id) => cancelAnimationFrame(id));
+    const dpr = () => o.dpr || (typeof devicePixelRatio === 'number' ? devicePixelRatio : 1) || 1;
 
     let faktor = typeof o.faktor === 'number' ? o.faktor : 1;
     let pausiert = false;
@@ -32,6 +33,7 @@
     const elemente = new Set();   // dauerhafte Elemente
     const intervalle = new Set();
     const schleifen = new Set();  // { id, letzte, tick }
+    const leinwaende = new Set(); // Canvas der gezeichneten Welten
 
     function grenze() { return Math.round(max * faktor); }
     function laeuft() { return !gestoppt && !pausiert && faktor > 0 && sichtbar(); }
@@ -86,6 +88,37 @@
         elemente.delete(el);
         el.remove();
       },
+      // Zeichenflaeche ueber die ganze Ebene (gezeichnete Welten). Zaehlt nicht
+      // gegen max - sie ist der Hintergrund, kein Partikel. passe() gleicht
+      // Groesse/Pixeldichte an und meldet true, wenn neu gezeichnet werden muss.
+      leinwand(ebeneName) {
+        const ebene = ebenen[ebeneName || 'hinten'];
+        if (gestoppt || !ebene || !doc) return null;
+        const el = doc.createElement('canvas');
+        el.style.position = 'absolute';
+        el.style.left = '0';
+        el.style.top = '0';
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.pointerEvents = 'none';
+        ebene.appendChild(el);
+        leinwaende.add(el);
+        const ctx = el.getContext('2d');
+        const l = {
+          el, ctx, w: 0, h: 0, dpr: 0,
+          passe() {
+            const w = ebene.clientWidth || 0, h = ebene.clientHeight || 0, d = dpr();
+            if (w === l.w && h === l.h && d === l.dpr) return false;
+            l.w = w; l.h = h; l.dpr = d;
+            el.width = Math.max(1, Math.round(w * d));
+            el.height = Math.max(1, Math.round(h * d));
+            if (ctx && ctx.setTransform) ctx.setTransform(d, 0, 0, d, 0, 0);
+            return true;
+          }
+        };
+        l.passe();
+        return l;
+      },
       intervall(fn, ms) {
         const id = setI(() => { if (laeuft()) fn(); }, ms);
         intervalle.add(id);
@@ -132,6 +165,8 @@
         partikel.clear();
         for (const el of elemente) el.remove();
         elemente.clear();
+        for (const el of leinwaende) el.remove();
+        leinwaende.clear();
       }
     };
   }

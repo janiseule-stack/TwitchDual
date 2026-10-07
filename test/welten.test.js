@@ -38,7 +38,7 @@ function positionen(e) {
   });
 }
 
-for (const id of ['wald', 'koi']) {
+for (const id of ['wald']) {
   test(id + ': Start bei unsichtbarer Ebene verteilt sich, sobald sie Groesse hat', () => {
     const fabrik = ladeWelt(id);
     const e = fakeEngine();
@@ -66,7 +66,7 @@ function sammelEngine() {
   };
   return { e, stile };
 }
-for (const id of ['sakura', 'wald', 'koi', 'blasen']) {
+for (const id of ['sakura', 'wald', 'blasen']) {
   test(id + ': Partikel nutzen farben.partikel', () => {
     const fabrik = ladeWelt(id);
     const { e, stile } = sammelEngine();
@@ -76,3 +76,90 @@ for (const id of ['sakura', 'wald', 'koi', 'blasen']) {
     assert.ok(stile.some((s) => s.includes('#12ab34')), 'Farbe taucht in Partikel-Stilen auf: ' + stile.slice(0, 3).join(' | '));
   });
 }
+
+// --- Koi (gezeichnet): jede Variante mit Ersatz-Canvas -----------------------
+// Kontext-Attrappe: jede Methode ist ein No-op, Erzeuger liefern brauchbare
+// Objekte, Farb-Zuweisungen werden mitgeschrieben.
+function fakeCtx(farben) {
+  const ziel = {};
+  return new Proxy(ziel, {
+    get(o, k) {
+      if (k in o) return o[k];
+      if (k === 'getImageData' || k === 'createImageData') {
+        return (...a) => { const w = a.length === 4 ? a[2] : a[0], h = a.length === 4 ? a[3] : a[1]; return { data: new Uint8ClampedArray(Math.max(1, w * h) * 4) }; };
+      }
+      if (k === 'createRadialGradient' || k === 'createLinearGradient') return () => ({ addColorStop() {} });
+      if (k === 'createPattern') return () => ({});
+      return () => {};
+    },
+    set(o, k, v) { if (k === 'fillStyle' || k === 'strokeStyle') farben.add(String(v)); o[k] = v; return true; }
+  });
+}
+function canvasDoc(farben) {
+  return {
+    createElement: (tag) => {
+      const el = { tag, style: {}, width: 0, height: 0, kinder: [], appendChild(c) { el.kinder.push(c); }, remove() {},
+        animate: () => ({ cancel() {} }) };
+      if (tag === 'canvas') el.getContext = () => fakeCtx(farben);
+      return el;
+    }
+  };
+}
+function ladeKoi(farben) {
+  global.window = global.window || {};
+  global.document = canvasDoc(farben);
+  for (const datei of ['stile.js', 'welt.js']) {
+    const p = path.join(__dirname, '..', 'renderer', 'themes', 'koi', datei);
+    delete require.cache[p];
+    require(p);
+  }
+  return global.window.TwitchDualWelten.koi;
+}
+function koiEngine(farben) {
+  const ebene = { clientWidth: 0, clientHeight: 0, kinder: [], appendChild(c) { ebene.kinder.push(c); } };
+  const engine = FxEngine.createEngine({
+    ebenen: { hinten: ebene, gast: ebene }, doc: canvasDoc(farben), dpr: 1,
+    sichtbar: () => true, raf: () => 1, caf: () => {}, setInterval: () => 1, clearInterval: () => {}
+  });
+  const schleifen = [];
+  const orig = engine.schleife;
+  engine.schleife = (fn) => { schleifen.push(fn); return orig.call(engine, () => {}); };
+  return { engine, ebene, schleifen };
+}
+
+const KOI_VARIANTEN = require('../renderer/lib/themes').themeById('koi').varianten.map((v) => v.id);
+for (const variante of KOI_VARIANTEN) {
+  test('koi/' + variante + ': startet bei 0x0, zeichnet sobald sichtbar, Partikelfarbe kommt vor', () => {
+    const farben = new Set();
+    const fabrik = ladeKoi(farben);
+    assert.ok(global.window.KoiStile.stile[variante], 'Stil vorhanden');
+    const { engine, ebene, schleifen } = koiEngine(farben);
+    const welt = fabrik({ engine, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' }, variante });
+    welt.start();
+    assert.equal(ebene.kinder.length, 1, 'eine Leinwand');
+    for (const fn of schleifen) fn(40);           // unsichtbar: darf nicht werfen
+    ebene.clientWidth = 360; ebene.clientHeight = 500;
+    for (let i = 0; i < 20; i++) for (const fn of schleifen) fn(40);
+    welt.maus(100, 100);
+    welt.klickInsLeere(120, 140);
+    welt.ereignis('kiste', { ursprung: { x: 300, y: 480 } });
+    welt.ereignis('punkte', { ursprung: { x: 300, y: 480 } });
+    for (let i = 0; i < 10; i++) for (const fn of schleifen) fn(40);
+    assert.ok(farben.has('#12ab34'), 'Partikelfarbe benutzt');
+    welt.gast();
+    welt.stop();
+    engine.stop();
+    assert.equal(ebene.kinder.length >= 1, true);
+  });
+}
+
+test('koi: unbekannte Variante faellt auf Aquarell zurueck', () => {
+  const farben = new Set();
+  const fabrik = ladeKoi(farben);
+  const { engine, ebene, schleifen } = koiEngine(farben);
+  const welt = fabrik({ engine, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' }, variante: 'gibtsnicht' });
+  welt.start();
+  ebene.clientWidth = 200; ebene.clientHeight = 200;
+  for (let i = 0; i < 5; i++) for (const fn of schleifen) fn(40);
+  assert.ok(farben.has('#dfeae2'), 'Aquarell-Grund gezeichnet');
+});

@@ -1,140 +1,243 @@
-// Koi-Teich: Kois ziehen Kreise, Maus macht leise Wellen, Klick = Welle und
-// die Fische fluechten. Kiste = goldene Lotusbluete am Punkte-Chip.
+// Koi-Teich (gezeichnet): Kois mit Wirbelsaeule schwimmen auf einer Leinwand,
+// der Stil kommt aus stile.js (Variante). Maus in der Naehe lockt sie an,
+// Klick ins Leere = Welle + Flucht, Kiste = Lotus am Punkte-Chip und alle
+// schwimmen hin, Punkte = kleine Welle. Gast = ein Koi zieht uebers Video.
+// Gezeichnet wird hoechstens alle 33 ms (30 Bilder/s) - Rechenzeit fuer
+// Spiele daneben; der Hintergrund entsteht nur bei Groessenwechsel neu.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben }) {
-    const { tr, rnd } = FxEngine;
-    const FARBE = (farben && farben.partikel) || '#ff7a2a';
-    const FISCH = {
-      width: '18px', height: '8px', marginLeft: '-9px', marginTop: '-4px',
-      borderRadius: '50% 60% 60% 50%',
-      background: 'radial-gradient(circle at 25% 50%, #fff 0 2px, transparent 3px), ' + FARBE,
-      boxShadow: '0 0 6px ' + FARBE + '99'
-    };
+  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben, variante }) {
+    const { rnd } = FxEngine;
+    const KS = window.KoiStile;
+    const W = KS.werkzeug;
+    const TAU = W.TAU;
+    const S = KS.stile[variante] || KS.stile.aquarell;
+    const PARTIKEL = (farben && farben.partikel) || '#e0714f';
+    const BILD_MS = 33;
+    const BG_RUHE_MS = 200;     // Hintergrund erst neu, wenn die Groesse ruht
+    const MAUS_RADIUS = 260;
+    const MAUS_ALT_MS = 2000;   // stillstehende Maus lockt nicht ewig
+
+    let L = null;
+    let bg = null;
+    let bgFaellig = 0;
+    const zustand = {};          // Stil-eigene Daten (z. B. Sterne)
     let fische = [];
-    let letzteWelle = 0;
-    let lockUntil = 0;
-    let lockZiel = null;
-    // Wie im Wald: bei unsichtbarer Ebene (0x0) erst im ersten echten Frame verteilen.
-    let verteilt = false;
-    function verteile(w, h) {
-      for (const f of fische) { f.x = rnd(20, Math.max(21, w - 20)); f.y = rnd(20, Math.max(21, h - 20)); }
-      verteilt = true;
+    let blaetter = [];
+    const wellen = [];
+    const lotus = [];
+    let maus = null;
+    let fluchtBis = 0;
+    let lock = null;             // { x, y, bis }
+    let letzteMausWelle = 0;
+    let t = 0;
+    let acc = 0;
+
+    function jetzt() { return Date.now(); }
+    function skala() {
+      if (!L || !L.w) return 1;
+      return Math.max(0.45, Math.min(1.5, Math.min(L.w, L.h) / 330));
+    }
+    function farbe(f) { return f === null ? PARTIKEL : f; }
+
+    function neuerFisch(i) {
+      const paar = S.fischFarben[i % S.fischFarben.length];
+      const w = L.w, h = L.h;
+      const f = {
+        x: rnd(w * 0.1, w * 0.9), y: rnd(h * 0.1, h * 0.9), a: rnd(0, TAU), v: rnd(0.55, 0.8),
+        phase: rnd(0, TAU), laenge: rnd(46, 62) * skala(),
+        farben: [farbe(paar[0]), farbe(paar[1])], segs: [], flecken: []
+      };
+      for (let s = 0; s < 12; s++) f.segs.push({ x: f.x - Math.cos(f.a) * s * 4, y: f.y - Math.sin(f.a) * s * 4 });
+      const n = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < n; k++) f.flecken.push({ s: Math.floor(rnd(1, 9)), dx: rnd(-0.5, 0.5), r: rnd(0.55, 1.0) });
+      return f;
+    }
+    function passeAnzahl() {
+      const ziel = Math.max(2, Math.round(5 * engine.faktor));
+      while (fische.length < ziel) fische.push(neuerFisch(fische.length));
+      if (fische.length > ziel) fische.length = ziel;
+    }
+    function verteileBlaetter() {
+      const n = Math.max(3, Math.min(12, Math.round(6 * W.dichte(L.w, L.h))));
+      blaetter = [];
+      // Mit Abstand verteilen: bis zu 25 Wuerfe pro Blatt, sonst weglassen.
+      for (let b = 0; b < n; b++) {
+        const r = rnd(16, 28) * skala();
+        for (let versuch = 0; versuch < 25; versuch++) {
+          const x = rnd(16, L.w - 16), y = rnd(16, L.h - 16);
+          if (blaetter.every((o) => Math.hypot(o.x - x, o.y - y) > o.r + r + 10)) {
+            blaetter.push({ x, y, r, a: rnd(0, TAU), bluete: b % 3 === 1 });
+            break;
+          }
+        }
+      }
     }
 
-    function schwanz(el) {
-      const s = document.createElement('div');
-      s.style.position = 'absolute'; s.style.right = '-7px'; s.style.top = '0';
-      s.style.borderTop = '4px solid transparent'; s.style.borderBottom = '4px solid transparent';
-      s.style.borderLeft = '7px solid ' + FARBE;
-      el.appendChild(s);
+    function baueHintergrund() {
+      const d = L.dpr || 1;
+      const c = W.leinwand(L.w * d, L.h * d);
+      const g = c.getContext('2d');
+      g.setTransform(d, 0, 0, d, 0, 0);
+      S.hintergrund(g, L.w, L.h, W, zustand);
+      if (S.koernung) { g.setTransform(1, 0, 0, 1, 0, 0); W.koernung(g, c.width, c.height, S.koernung); g.setTransform(d, 0, 0, d, 0, 0); }
+      if (S.stempel && L.w > 120) W.stempel(g, L.w - 44, 56);
+      bg = c;
     }
-    function welle(ebene, x, y, gross) {
-      engine.spawn({
-        ebene,
-        stil: { width: '12px', height: '12px', marginLeft: '-6px', marginTop: '-6px', borderRadius: '50%', border: '1.5px solid rgba(200, 255, 240, .8)' },
-        keyframes: [
-          { transform: tr(x, y, ' scale(1)'), opacity: 1 },
-          { transform: tr(x, y, ' scale(' + (gross ? 12 : 6) + ')'), opacity: 0 }
-        ],
-        dauerMs: gross ? 1600 : 1000, easing: 'ease-out'
-      });
+
+    // --- Bewegung -----------------------------------------------------------
+    function bewege(f, k, nun) {
+      const rand = 30;
+      let wunsch;
+      let rate = 0.03;
+      const flieht = nun < fluchtBis;
+      if (f.x < rand || f.x > L.w - rand || f.y < rand || f.y > L.h - rand) {
+        wunsch = Math.atan2(L.h / 2 - f.y, L.w / 2 - f.x);
+      } else if (lock && nun < lock.bis) {
+        wunsch = Math.atan2(lock.y - f.y, lock.x - f.x); rate = 0.08;
+      } else if (flieht && maus) {
+        wunsch = Math.atan2(f.y - maus.y, f.x - maus.x); rate = 0.12;
+      } else if (maus && nun - maus.zeit < MAUS_ALT_MS) {
+        const dz = Math.hypot(maus.x - f.x, maus.y - f.y);
+        wunsch = dz < MAUS_RADIUS && dz > 40 ? Math.atan2(maus.y - f.y, maus.x - f.x) : f.a + Math.sin(t * 0.01 + f.phase) * 0.6;
+      } else {
+        wunsch = f.a + Math.sin(t * 0.01 + f.phase) * 0.6;
+      }
+      const diff = Math.atan2(Math.sin(wunsch - f.a), Math.cos(wunsch - f.a));
+      f.a += diff * Math.min(1, rate * k);
+      const eile = flieht ? 3.2 : (lock && nun < lock.bis ? 2.2 : 1);
+      const v = f.v * eile * skala() * k;
+      f.x += Math.cos(f.a) * v; f.y += Math.sin(f.a) * v;
+      f.segs[0].x = f.x; f.segs[0].y = f.y;
+      const abst = f.laenge / 11;
+      for (let i = 1; i < f.segs.length; i++) {
+        const p = f.segs[i - 1], q = f.segs[i], wi = Math.atan2(q.y - p.y, q.x - p.x);
+        q.x = p.x + Math.cos(wi) * abst; q.y = p.y + Math.sin(wi) * abst;
+      }
+      f.phase += (flieht ? 0.35 : 0.12) * k;
+    }
+
+    // --- Zeichnen -----------------------------------------------------------
+    function zeichneLotus(g, lo, nun) {
+      const p = (nun - lo.start) / 2600;
+      if (p >= 1) return false;
+      const s = Math.min(1, p * 3) * 1.6 * skala();
+      g.save(); g.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
+      g.translate(lo.x, lo.y - p * 30); g.scale(s, s);
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * TAU + p;
+        g.fillStyle = PARTIKEL;
+        g.beginPath(); g.ellipse(Math.cos(a) * 8, Math.sin(a) * 8, 9, 4.2, a, 0, TAU); g.fill();
+      }
+      g.fillStyle = '#ffe9a8'; g.beginPath(); g.arc(0, 0, 4.5, 0, TAU); g.fill();
+      g.restore();
+      return true;
+    }
+
+    function bild(nun) {
+      const g = L.ctx;
+      g.drawImage(bg, 0, 0, L.w, L.h);
+      if (S.unter) S.unter(g, t, L.w, L.h, W, zustand);
+      for (const f of fische) S.fisch(g, f, W);
+      for (const bl of blaetter) {
+        bl.a += 0.0008;
+        g.save(); g.translate(bl.x, bl.y); g.rotate(bl.a); S.blatt(g, bl, W); g.restore();
+      }
+      if (Math.random() < 0.025) wellen.push({ x: rnd(0, L.w), y: rnd(0, L.h), t: 0, gross: false });
+      for (let i = wellen.length - 1; i >= 0; i--) {
+        const we = wellen[i];
+        we.t += 2;
+        if (we.t < 0) continue;
+        const max = we.gross ? 90 : 55, r = we.t * (we.gross ? 0.9 : 0.5) * skala(), a = 1 - r / (max * skala());
+        if (a <= 0) { wellen.splice(i, 1); continue; }
+        g.save(); g.globalAlpha = a; S.welle(g, we.x, we.y, r, W); g.restore();
+      }
+      for (let i = lotus.length - 1; i >= 0; i--) if (!zeichneLotus(g, lotus[i], nun)) lotus.splice(i, 1);
+      if (S.ueber) S.ueber(g, t, L.w, L.h, W, zustand);
+    }
+
+    function frame(dt) {
+      acc += dt;
+      if (acc < BILD_MS) return;
+      const k = acc / 16;
+      acc = 0;
+      t += k;
+      const nun = jetzt();
+      if (L.passe()) bgFaellig = nun + BG_RUHE_MS;
+      if (!L.w || !L.h) return;            // Ebene unsichtbar (Home zu)
+      if (!bg || (bgFaellig && nun >= bgFaellig)) {
+        bgFaellig = 0;
+        const erst = !bg;
+        baueHintergrund();
+        verteileBlaetter();
+        if (!erst) for (const f of fische) { f.x = Math.min(f.x, L.w - 31); f.y = Math.min(f.y, L.h - 31); }
+      }
+      passeAnzahl();
+      for (const f of fische) bewege(f, k, nun);
+      bild(nun);
+    }
+
+    function welle(x, y, gross, verzug) { wellen.push({ x, y, t: -(verzug || 0), gross }); }
+
+    // Gast: ein gezeichneter Koi als Bild, das per Animation uebers Video zieht.
+    function gastBild() {
+      const dpr = (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1;
+      const c = W.leinwand(140 * dpr, 60 * dpr);
+      const g = c.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const paar = S.fischFarben[0];
+      const f = { x: 100, y: 30, a: 0, phase: 0, laenge: 78, farben: [farbe(paar[0]), farbe(paar[1])], segs: [],
+        flecken: [{ s: 2, dx: 0.2, r: 0.9 }, { s: 6, dx: -0.3, r: 0.7 }] };
+      for (let s = 0; s < 12; s++) f.segs.push({ x: 100 - s * 7.1, y: 30 + Math.sin(s * 0.5) * 2 });
+      S.fisch(g, f, W);
+      c.style.width = '140px'; c.style.height = '60px'; c.style.display = 'block';
+      return c;
     }
 
     return {
       start() {
-        const { w, h } = engine.groesse('hinten');
-        const n = Math.max(2, Math.round(4 * engine.faktor));
-        for (let i = 0; i < n; i++) {
-          const el = engine.element({ ebene: 'hinten', stil: FISCH });
-          if (!el) break;
-          schwanz(el);
-          fische.push({ el, x: rnd(20, w - 20), y: rnd(20, h - 20), a: rnd(0, 6.28), v: 0.5 });
-        }
-        if (w > 0 && h > 0) verteilt = true;
-        engine.schleife((dt) => {
-          const { w: W, h: H } = engine.groesse('hinten');
-          if (!verteilt && W > 0 && H > 0) verteile(W, H);
-          const k = dt / 16;
-          const locken = lockZiel && Date.now() < lockUntil;
-          for (const f of fische) {
-            if (locken) {
-              const ziel = Math.atan2(lockZiel.y - f.y, lockZiel.x - f.x);
-              f.a += Math.atan2(Math.sin(ziel - f.a), Math.cos(ziel - f.a)) * 0.08;
-            } else {
-              f.a += rnd(-0.07, 0.07);
-            }
-            f.x += Math.cos(f.a) * f.v * k;
-            f.y += Math.sin(f.a) * f.v * k;
-            if (f.x < 8 || f.x > W - 8 || f.y < 8 || f.y > H - 8) {
-              f.a += Math.PI * 0.9;
-              f.x = Math.max(8, Math.min(W - 8, f.x));
-              f.y = Math.max(8, Math.min(H - 8, f.y));
-            }
-            f.v += (0.5 - f.v) * 0.02;
-            // Kopf ist links (Glanzpunkt bei 25 %) -> um 180 Grad drehen.
-            f.el.style.transform = tr(f.x, f.y, ' rotate(' + (f.a + Math.PI) + 'rad)');
-          }
-        });
+        L = engine.leinwand('hinten');
+        if (!L) return;
+        engine.schleife(frame);
       },
-      stop() { fische = []; },
+      stop() { fische = []; blaetter = []; L = null; bg = null; },
       maus(x, y) {
-        const jetzt = Date.now();
-        if (jetzt - letzteWelle < 300) return;
-        letzteWelle = jetzt;
-        welle('hinten', x, y, false);
+        const nun = jetzt();
+        maus = { x, y, zeit: nun };
+        if (nun - letzteMausWelle > 700) { letzteMausWelle = nun; welle(x, y, false); }
       },
       klickInsLeere(x, y) {
-        welle('hinten', x, y, false);
-        setTimeout(() => welle('hinten', x, y, false), 180);
-        for (const f of fische) {
-          if (Math.hypot(f.x - x, f.y - y) < 90) { f.a = Math.atan2(f.y - y, f.x - x); f.v = 3.5; }
-        }
+        welle(x, y, true); welle(x, y, true, 24);
+        maus = { x, y, zeit: jetzt() };
+        fluchtBis = jetzt() + 1500;
       },
       ereignis(art, daten) {
         const u = daten.ursprung || { x: 0, y: 0 };
+        // fx-hinten liegt im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
         if (art === 'kiste') {
-          engine.spawn({
-            ebene: 'vorn', inhalt: '🪷', stil: { fontSize: '30px', lineHeight: '1', marginLeft: '-15px', marginTop: '-15px' },
-            keyframes: [
-              { transform: tr(u.x, u.y, ' scale(0)'), opacity: 0 },
-              { transform: tr(u.x, u.y - 10, ' scale(1.3)'), opacity: 1, offset: 0.3 },
-              { transform: tr(u.x, u.y - 40, ' scale(1)'), opacity: 0 }
-            ],
-            dauerMs: 2600, easing: 'ease-out'
-          });
-          welle('vorn', u.x, u.y, true);
-          setTimeout(() => welle('vorn', u.x, u.y, true), 250);
-          // hinten liegt im Chat ebenfalls fixed inset 0 -> gleiche Koordinaten.
-          lockZiel = { x: u.x, y: u.y };
-          lockUntil = Date.now() + 3000;
-          for (const f of fische) f.v = 2.5;
+          welle(u.x, u.y, true); welle(u.x, u.y, true, 30);
+          lotus.push({ x: u.x, y: u.y, start: jetzt() });
+          lock = { x: u.x, y: u.y, bis: jetzt() + 3000 };
         } else {
-          engine.spawn({
-            ebene: 'vorn', stil: FISCH,
-            keyframes: [
-              { transform: tr(u.x - 25, u.y, ' rotate(200deg)'), opacity: 0 },
-              { transform: tr(u.x, u.y - 34, ' rotate(180deg)'), opacity: 1, offset: 0.5 },
-              { transform: tr(u.x + 25, u.y, ' rotate(160deg)'), opacity: 0 }
-            ],
-            dauerMs: 900, easing: 'ease-in-out'
-          });
-          welle('vorn', u.x + 25, u.y, false);
+          welle(u.x, u.y, false);
+          lock = { x: u.x, y: u.y, bis: jetzt() + 1200 };
         }
       },
       gast() {
         const { w, h } = engine.groesse('gast');
         const y = rnd(h * 0.3, h * 0.7);
-        engine.spawn({
-          ebene: 'gast', stil: { ...FISCH, width: '28px', height: '12px' },
+        const el = engine.spawn({
+          ebene: 'gast', stil: { width: '140px', height: '60px', marginLeft: '-70px', marginTop: '-30px' },
           keyframes: [
-            { transform: tr(-40, y, ' rotate(180deg)'), opacity: 0 },
-            { opacity: 0.8, offset: 0.15 },
-            { transform: tr(w * 0.5, y + rnd(-30, 30), ' rotate(175deg)'), opacity: 0.8, offset: 0.5 },
-            { transform: tr(w + 40, y, ' rotate(185deg)'), opacity: 0 }
+            { transform: FxEngine.tr(-80, y, ' rotate(4deg)'), opacity: 0 },
+            { opacity: 0.9, offset: 0.15 },
+            { transform: FxEngine.tr(w * 0.5, y + rnd(-30, 30), ' rotate(-3deg)'), opacity: 0.9, offset: 0.5 },
+            { opacity: 0.9, offset: 0.85 },
+            { transform: FxEngine.tr(w + 80, y, ' rotate(5deg)'), opacity: 0 }
           ],
-          dauerMs: 6000, easing: 'ease-in-out'
+          dauerMs: 7000, easing: 'ease-in-out'
         });
+        if (el && el.appendChild) el.appendChild(gastBild());
       }
     };
   };

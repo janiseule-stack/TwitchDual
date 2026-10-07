@@ -143,3 +143,26 @@ test('groesse und rechteck lesen die Ebene', () => {
   assert.deepEqual(engine.groesse('gast'), { w: 0, h: 0 });
   assert.equal(engine.rechteck('hinten').left, 10);
 });
+
+// --- Gezeichnete Welten: Leinwand ---------------------------------------------
+test('leinwand: fuellt die Ebene, folgt Groesse und Pixeldichte, stop raeumt weg', () => {
+  const transforms = [];
+  const ctx = { setTransform: (...a) => transforms.push(a) };
+  const doc = { visibilityState: 'visible', createElement: (tag) => { const el = fakeEl(); el.tag = tag; el.getContext = () => ctx; return el; } };
+  const { engine, hinten } = aufbau({ doc, dpr: 2 });
+  const l = engine.leinwand('hinten');
+  assert.equal(l.el.tag, 'canvas');
+  assert.ok(hinten.kinder.has(l.el));
+  assert.equal(l.el.width, 600);
+  assert.equal(l.el.height, 400);
+  assert.deepEqual(transforms.pop(), [2, 0, 0, 2, 0, 0]);
+  assert.equal(l.passe(), false, 'nichts geaendert');
+  hinten.clientWidth = 100;
+  assert.equal(l.passe(), true);
+  assert.equal(l.el.width, 200);
+  assert.equal(l.w, 100);
+  assert.equal(engine.anzahl(), 0, 'zaehlt nicht als Partikel');
+  engine.stop();
+  assert.equal(hinten.kinder.size, 0);
+  assert.equal(engine.leinwand('hinten'), null, 'nach stop keine neue');
+});

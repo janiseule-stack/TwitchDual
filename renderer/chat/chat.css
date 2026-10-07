@@ -520,6 +520,17 @@ button:focus-visible, input:focus-visible {
 .galerie-info { margin-left: auto; font-size: 10px; font-weight: 400; color: var(--muted); }
 .galerie-check { display: none; color: var(--accent); }
 .galerie-karte.aktiv .galerie-check { display: inline; }
+/* Varianten eines gezeichneten Themes: Reihe unter der Karte */
+.galerie-varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-top: -4px; flex-shrink: 0; }
+.galerie-variante {
+  padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer;
+  background: var(--hover); color: var(--text); font: inherit; font-size: 10px; text-align: center;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+.galerie-variante:hover { transform: translateY(-1px); border-color: var(--accent-border); }
+.galerie-variante.aktiv { border: 2px solid var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.galerie-variante-bild { height: 54px; position: relative; overflow: hidden; }
+.galerie-variante span { display: block; padding: 3px 2px; }
 
 /* --- Welle 1b: Deko + Titel-Schrift + Namens-Abdunklung ------------------- */
 .theme-deko { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }

@@ -460,6 +460,23 @@ nichts auf der Platte.
 - Scrollleisten der Themes ueber `scrollbar-color` (schlaegt `::-webkit-scrollbar`).
 - Spec/Plan: `docs/superpowers/{specs,plans}/2026-10-07-themes-stil-und-farben*.md`.
 
+### Gezeichnete Welten: Koi mit Varianten (unveroeffentlicht)
+- Janis (2026-10-07): DOM-Partikel wirkten "billig", Ziel-Look gezeichnet/Lofi.
+  Koi ist jetzt eine Canvas-Welt mit 5 Varianten: Aquarell, Lofi-Abend,
+  Holzschnitt, Tusche, Bleiglas (Auswahl per Klick im Brainstorm-Browser).
+- Katalog: `varianten` am Theme, Wahl in `themePrefs.variante[themeId]`,
+  Farben Theme -> Variante -> Anpassung. Runtime setzt `data-variante`, laedt
+  `<id>/stile.js` vor `welt.js`, Variantenwechsel startet die Welt neu.
+- Engine: `engine.leinwand(ebene)` (Canvas in Ebenengroesse, DPR, `passe()`).
+- Koi: `welt.js` = Bewegung (Wirbelsaeule, Maus lockt im Umkreis, Klick =
+  Flucht, Kiste = Lotus + alle hin), max. 30 Bilder/s, Hintergrund nur bei
+  Groessenwechsel neu (200 ms Ruhe). `stile.js` = wie gezeichnet wird.
+  `theme.css` = Variablen pro Variante, Regeln gemeinsam.
+- Galerie: Reihe mit Varianten-Knoepfen + Mini-Vorschau unter der Karte.
+- **Ablauf fuer weitere Themes:** Varianten im Brainstorm-Browser zeigen ->
+  Janis klickt -> `<theme>/stile.js` + Varianten in `themes.js` + CSS ->
+  in TwitchDual anschauen und nachschaerfen.
+
 ### Offen: Themes Welle 2/3
 Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
 Regenfenster (Abstimmung 2026-10-07). Je Theme: Ordner + Eintrag in

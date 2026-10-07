@@ -43,6 +43,7 @@
     let engine = null;
     let weltId = null;
     let weltPartikel = null;   // Partikelfarbe der laufenden Welt
+    let weltVariante = null;   // Variante der laufenden (gezeichneten) Welt
     let lauf = 0;                 // Generation gegen ueberholte Ladevorgaenge
     let pausiert = false;
     let gastBedingung = null;
@@ -79,6 +80,8 @@
       // Heller (auch selbst gewaehlter) Grund -> Namens-Abdunklung (chat.css).
       r.dataset.hell = prefs.theme !== 'neon-dual' && ThemeLib.istHell(Katalog.effektiveFarben(prefs).hintergrund) ? '1' : '0';
       r.dataset.theme = prefs.theme;
+      const v = Katalog.varianteFuer(prefs);
+      if (v) r.dataset.variante = v.id; else delete r.dataset.variante;
     }
 
     function setzeCss(id) {
@@ -161,6 +164,7 @@
       engine = null;
       weltId = null;
       weltPartikel = null;
+      weltVariante = null;
     }
     function weltFehler(phase, e) {
       melde('theme', 'welt-fehler', { theme: weltId, phase, fehler: String((e && e.message) || e) });
@@ -171,11 +175,20 @@
       try { fn(welt); } catch (e) { weltFehler(phase, e); }
     }
 
-    async function starteWelt(id, faktor, meinLauf, partikel) {
+    // Gezeichnete Welten bringen ihre Stile in einer eigenen Datei mit.
+    async function ladeWelt(id) {
+      if (geladen.has(id)) return;
+      if (Katalog.themeById(id).varianten) await ladeSkript(basis + id + '/stile.js');
+      await ladeSkript(basis + id + '/welt.js');
+      geladen.add(id);
+    }
+
+    async function starteWelt(id, faktor, meinLauf, partikel, variante) {
       weltId = id;
       weltPartikel = partikel;
+      weltVariante = variante;
       try {
-        if (!geladen.has(id)) { await ladeSkript(basis + id + '/welt.js'); geladen.add(id); }
+        await ladeWelt(id);
       } catch (e) {
         if (meinLauf === lauf) weltFehler('laden', e);
         return;
@@ -186,7 +199,7 @@
       engine = erzeugeEngine({ ebenen, doc, faktor });
       engine.pausieren(pausiert);
       try {
-        welt = fabrik({ engine, fenster, FxEngine, farben: { partikel } }) || null;
+        welt = fabrik({ engine, fenster, FxEngine, farben: { partikel }, variante }) || null;
         if (welt && welt.start) welt.start();
       } catch (e) {
         if (!welt) welt = {};
@@ -206,19 +219,23 @@
       const faktor = Katalog.EFFEKT_FAKTOR[prefs.effekte];
       if (faktor === 0) { lauf++; stoppeWelt(); return; }
       const partikel = Katalog.effektiveFarben(prefs).partikel;
-      // Gleiche Welt + gleiche Partikelfarbe: nur Faktor. Neue Farbe -> Neustart.
-      if (weltId === prefs.theme && engine && weltPartikel === partikel) { engine.setFaktor(faktor); return; }
+      const v = Katalog.varianteFuer(prefs);
+      const variante = v ? v.id : null;
+      // Gleiche Welt + gleiche Partikelfarbe + gleiche Variante: nur Faktor.
+      if (weltId === prefs.theme && engine && weltPartikel === partikel && weltVariante === variante) {
+        engine.setFaktor(faktor); return;
+      }
       lauf++;
       stoppeWelt();
-      await starteWelt(prefs.theme, faktor, lauf, partikel);
+      await starteWelt(prefs.theme, faktor, lauf, partikel, variante);
     }
 
     // --- Galerie-Vorschau (eigene Engine, unabhaengig von der Stufe) --------
-    async function starteVorschau(container, id) {
+    async function starteVorschau(container, id, varianteId) {
       const nichts = () => {};
       if (!Katalog.THEMES.some((t) => t.id === id)) return nichts;
       try {
-        if (!geladen.has(id)) { await ladeSkript(basis + id + '/welt.js'); geladen.add(id); }
+        await ladeWelt(id);
       } catch (e) { return nichts; }
       const fabrik = win.TwitchDualWelten && win.TwitchDualWelten[id];
       if (typeof fabrik !== 'function') return nichts;
@@ -226,8 +243,13 @@
         faktor: Katalog.EFFEKT_FAKTOR.wenig });
       let w = null;
       try {
-        w = fabrik({ engine: eng, fenster: 'vorschau', FxEngine,
-          farben: { partikel: Katalog.effektiveFarben({ ...(letztePrefs || {}), theme: id }).partikel } });
+        const basisPrefs = letztePrefs || {};
+        const vp = varianteId ? { ...basisPrefs, theme: id, variante: { ...(basisPrefs.variante || {}), [id]: varianteId } }
+          : { ...basisPrefs, theme: id };
+        const v = Katalog.varianteFuer(vp);
+        // Variante in der Vorschau: ihre eigenen Farben, keine Anpassung des Nutzers.
+        const partikel = varianteId && v ? v.farben.partikel : Katalog.effektiveFarben(vp).partikel;
+        w = fabrik({ engine: eng, fenster: 'vorschau', FxEngine, farben: { partikel }, variante: v ? v.id : null });
         if (w && w.start) w.start();
       } catch (e) { eng.stop(); return nichts; }
       return () => { try { if (w && w.stop) w.stop(); } catch (e) { /* egal */ } eng.stop(); };

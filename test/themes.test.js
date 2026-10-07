@@ -33,8 +33,8 @@ test('EFFEKT_FAKTOR: aus=0, steigt monoton', () => {
 
 test('cleanThemePrefs: Bestandsdaten ohne theme -> Neon Dual, Farben bleiben', () => {
   const p = K.cleanThemePrefs({ videoAccent: '#ABC', chatAccent: '#ff4fa3', chatAlpha: 60 });
-  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {} });
-  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {} });
+  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {} });
+  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {} });
 });
 
 test('mergeThemePrefs: Teil-Speicherung behaelt theme und effekte', () => {
@@ -110,4 +110,46 @@ test('istSichereFarbe: nur Hex und rgb/rgba', () => {
   for (const boese of ['red; } body { display:none', '#fff;}', 'url(x)', 'rgb(1,2,3)) ; x', '', null, 42, 'expression(alert(1))']) {
     assert.equal(K.istSichereFarbe(boese), false, String(boese));
   }
+});
+
+// --- Gezeichnete Welten: Varianten ------------------------------------------
+test('Koi hat fuenf Varianten mit gueltigen Farben', () => {
+  const koi = K.themeById('koi');
+  assert.deepEqual(koi.varianten.map((v) => v.id), ['aquarell', 'lofi', 'holzschnitt', 'tusche', 'bleiglas']);
+  for (const v of koi.varianten) {
+    assert.equal(typeof v.name, 'string');
+    assert.equal(typeof v.hell, 'boolean');
+    for (const k of ['akzent', 'hintergrund', 'partikel']) assert.match(v.farben[k], /^#[0-9a-f]{6}$/, v.id + '.' + k);
+  }
+});
+
+test('cleanVariante: nur Themes mit Varianten, nur gueltige Ids', () => {
+  assert.deepEqual(K.cleanVariante({ koi: 'tusche', sakura: 'tusche', wald: 'x', gibtsnicht: 'a' }), { koi: 'tusche' });
+  assert.deepEqual(K.cleanVariante({ koi: 'quatsch' }), {});
+  assert.deepEqual(K.cleanVariante({ koi: { id: 'tusche' } }), {});
+  assert.deepEqual(K.cleanVariante(null), {});
+});
+
+test('varianteFuer: gewaehlte, sonst erste, ohne Varianten null', () => {
+  assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' } })).id, 'lofi');
+  assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'koi' })).id, 'aquarell');
+  assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'sakura', variante: { koi: 'lofi' } })), null);
+});
+
+test('mergeThemePrefs: Variante bleibt beim Theme-Wechsel und mischt pro Theme', () => {
+  const g = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'bleiglas' } });
+  const weg = K.mergeThemePrefs(g, { theme: 'sakura' });
+  assert.equal(weg.variante.koi, 'bleiglas');
+  const zurueck = K.mergeThemePrefs(weg, { theme: 'koi' });
+  assert.equal(K.varianteFuer(zurueck).id, 'bleiglas');
+  assert.equal(K.mergeThemePrefs(g, { variante: { koi: 'tusche' } }).variante.koi, 'tusche');
+});
+
+test('effektiveFarben: Variante schlaegt Theme, Anpassung schlaegt Variante', () => {
+  const lofi = K.varianteVon('koi', 'lofi');
+  const p = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' } });
+  assert.deepEqual(K.effektiveFarben(p), lofi.farben);
+  const q = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' }, anpassungen: { koi: { akzent: '#010203' } } });
+  assert.equal(K.effektiveFarben(q).akzent, '#010203');
+  assert.equal(K.effektiveFarben(q).hintergrund, lofi.farben.hintergrund);
 });
