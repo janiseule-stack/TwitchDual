@@ -297,3 +297,21 @@ test('gastErzwingen: nur im Video-Fenster, ohne Gast-Bedingung', async () => {
   c.rt.gastErzwingen();
   assert.deepEqual(log2, ['start']);
 });
+
+test('Gast: Haeufigkeit aus plant nichts, Wechsel plant neu, Schwarm kommt versetzt', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { koi: protokollWelt(log) } });
+  a.rt.setzeGastBedingung(() => true);
+  await a.rt.anwenden({ theme: 'koi', gastHaeufigkeit: 'aus' });
+  assert.equal(a.timer.size, 0, 'aus -> kein Timer');
+  await a.rt.anwenden({ theme: 'koi', gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' });
+  assert.equal(a.timer.size, 1, 'neu geplant');
+  const [plan] = [...a.timer.values()];
+  assert.ok(plan.ms >= 40000 && plan.ms <= 90000, 'Abstand aus "oft": ' + plan.ms);
+  a.rt.gastErzwingen();
+  assert.deepEqual(log.filter((x) => x === 'gast').length, 1, 'erster sofort');
+  const folge = [...a.timer.entries()].filter(([, t]) => t.ms < 5000);
+  assert.equal(folge.length, 4, 'vier weitere versetzt');
+  for (const [, t] of folge) t.fn();
+  assert.deepEqual(log.filter((x) => x === 'gast').length, 5);
+});

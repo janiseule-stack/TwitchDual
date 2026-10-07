@@ -33,8 +33,8 @@ test('EFFEKT_FAKTOR: aus=0, steigt monoton', () => {
 
 test('cleanThemePrefs: Bestandsdaten ohne theme -> Neon Dual, Farben bleiben', () => {
   const p = K.cleanThemePrefs({ videoAccent: '#ABC', chatAccent: '#ff4fa3', chatAlpha: 60 });
-  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {} });
-  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {} });
+  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
+  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
 });
 
 test('mergeThemePrefs: Teil-Speicherung behaelt theme und effekte', () => {
@@ -166,4 +166,18 @@ test('Anpassungen bei Varianten: pro Variante, alter Theme-Schluessel faellt weg
   // Ohne gewaehlte Variante gilt die erste
   assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'koi' })), 'koi:aquarell');
   assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'sakura' })), 'sakura');
+});
+
+test('Gast: Haeufigkeit und Anzahl bereinigt, Abstand und Anzahl stimmen', () => {
+  assert.equal(K.cleanThemePrefs({ gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' }).gastHaeufigkeit, 'oft');
+  assert.equal(K.cleanThemePrefs({ gastHaeufigkeit: 'dauernd' }).gastHaeufigkeit, 'normal');
+  assert.equal(K.cleanThemePrefs({ gastAnzahl: 99 }).gastAnzahl, 'eins');
+  assert.equal(K.gastIntervall({ gastHaeufigkeit: 'aus' }), null);
+  assert.deepEqual(K.gastIntervall({ gastHaeufigkeit: 'normal' }), [120000, 240000]);
+  assert.ok(K.gastIntervall({ gastHaeufigkeit: 'oft' })[1] < K.gastIntervall({ gastHaeufigkeit: 'selten' })[0]);
+  assert.equal(K.gastAnzahl({ gastAnzahl: 'eins' }), 1);
+  assert.equal(K.gastAnzahl({ gastAnzahl: 'schwarm' }), 5);
+  assert.equal(K.gastAnzahl({ gastAnzahl: 'wenige' }, () => 0.1), 2);
+  assert.equal(K.gastAnzahl({ gastAnzahl: 'wenige' }, () => 0.9), 3);
+  assert.equal(K.mergeThemePrefs({ gastAnzahl: 'schwarm' }, { theme: 'koi' }).gastAnzahl, 'schwarm', 'bleibt bei Theme-Wechsel');
 });

@@ -871,6 +871,15 @@ const $galerie = document.getElementById('theme-galerie');
 const $galerieListe = document.getElementById('galerie-liste');
 const $head = document.getElementById('head');
 const STUFEN_TEXT = { aus: 'Aus', wenig: 'Wenig', normal: 'Normal', viel: 'Viel' };
+// Gast im Video: Werte liegen in themePrefs (das Video-Fenster plant die Gaeste).
+const $gastOft = document.getElementById('opt-gast-oft');
+const $gastViele = document.getElementById('opt-gast-viele');
+for (const b of $gastOft.children) {
+  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ gastHaeufigkeit: b.dataset.wert }));
+}
+for (const b of $gastViele.children) {
+  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ gastAnzahl: b.dataset.wert }));
+}
 let vorschauStopps = [];
 
 for (const stufe of ThemeKatalog.EFFEKT_STUFEN) {
@@ -889,6 +898,8 @@ function spiegleThemeUi() {
   const tv = ThemeKatalog.varianteFuer(themePrefs);
   $themeName.textContent = tv ? t.name + ' · ' + tv.name : t.name;
   for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
+  for (const b of $gastOft.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastHaeufigkeit);
+  for (const b of $gastViele.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastAnzahl);
   $neonFarben.classList.toggle('hidden', !t.farbenFrei);
   $themeFarben.classList.toggle('hidden', t.farbenFrei);
   if (!t.farbenFrei) {

@@ -43,6 +43,19 @@
   const EFFEKT_STUFEN = ['aus', 'wenig', 'normal', 'viel'];
   const STANDARD_EFFEKTE = 'normal';
   const EFFEKT_FAKTOR = { aus: 0, wenig: 0.4, normal: 1, viel: 1.8 };
+  // Gast im Video (⚙ Effekte): wie oft (Abstand in ms, [min, max]) und wie viele.
+  const GAST_HAEUFIGKEIT = { aus: null, selten: [300000, 480000], normal: [120000, 240000], oft: [40000, 90000] };
+  const GAST_HAEUFIGKEITEN = ['aus', 'selten', 'normal', 'oft'];
+  const GAST_ANZAHLEN = ['eins', 'wenige', 'schwarm'];
+  function cleanGastHaeufigkeit(w) { return GAST_HAEUFIGKEITEN.includes(w) ? w : 'normal'; }
+  function cleanGastAnzahl(w) { return GAST_ANZAHLEN.includes(w) ? w : 'eins'; }
+  function gastIntervall(prefs) { return GAST_HAEUFIGKEIT[cleanGastHaeufigkeit(prefs && prefs.gastHaeufigkeit)]; }
+  function gastAnzahl(prefs, zufall) {
+    const a = cleanGastAnzahl(prefs && prefs.gastAnzahl);
+    if (a === 'schwarm') return 5;
+    if (a === 'wenige') return (zufall || Math.random)() < 0.5 ? 2 : 3;
+    return 1;
+  }
   // Klick-Ziele, die der App gehoeren. Nur Klicks AUSSERHALB davon sieht die
   // Welt als "Klick ins Leere" (die App bekommt jeden Klick trotzdem).
   const KLICK_SPERRE = 'button, a, input, textarea, select, label, [contenteditable], .msg, #composer, #settings-pop, #theme-galerie, iframe';
@@ -130,7 +143,9 @@
       theme: cleanTheme(p.theme),
       effekte: cleanEffekte(p.effekte),
       anpassungen: cleanAnpassungen(p.anpassungen),
-      variante: cleanVariante(p.variante)
+      variante: cleanVariante(p.variante),
+      gastHaeufigkeit: cleanGastHaeufigkeit(p.gastHaeufigkeit),
+      gastAnzahl: cleanGastAnzahl(p.gastAnzahl)
     };
   }
 
@@ -176,6 +191,7 @@
     THEMES, STANDARD_THEME, EFFEKT_STUFEN, STANDARD_EFFEKTE, EFFEKT_FAKTOR, KLICK_SPERRE,
     themeById, cleanTheme, cleanEffekte, cleanThemePrefs, mergeThemePrefs, istKlickInsLeere,
     cleanVariante, varianteVon, varianteFuer, anpassungsSchluessel, anpassungsSchluesselFuer,
+    GAST_HAEUFIGKEITEN, GAST_ANZAHLEN, cleanGastHaeufigkeit, cleanGastAnzahl, gastIntervall, gastAnzahl,
     FARB_SCHLUESSEL, SICHERE_FARBE, istSichereFarbe, cleanAnpassungen, anpassungFuer, effektiveFarben, balkenFarbe
   };
 });

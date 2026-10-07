@@ -18,8 +18,7 @@
   // Welle 1b: Anpassungen setzen diese als Inline-Variablen (schlagen die Theme-CSS).
   const AKZENT_VARS = ['--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim', '--accent-contrast'];
   const FLAECHEN_VARS = ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts'];
-  const GAST_MIN_MS = 120000;
-  const GAST_SPANNE_MS = 120000;
+  const GAST_VERSATZ_MS = 700;   // mehrere Gaeste kommen leicht nacheinander
 
   function createRuntime(o) {
     const fenster = o.fenster;
@@ -48,6 +47,8 @@
     let pausiert = false;
     let gastBedingung = null;
     let gastTimer = null;
+    let gastSchluessel = null;    // Haeufigkeit, mit der zuletzt geplant wurde
+    const gastFolge = new Set();  // Timer der versetzten Folge-Gaeste
     let mausFrame = null;
     let mausPos = null;
 
@@ -141,17 +142,33 @@
     }
 
     // --- Gaeste (nur Video-Fenster) -----------------------------------------
+    // Abstand aus ⚙ (Katalog.gastIntervall); 'aus' plant gar nichts.
     function planeGast() {
       if (fenster !== 'video' || !gastBedingung || !engine) return;
-      const ms = (GAST_MIN_MS + Math.random() * GAST_SPANNE_MS) / Math.max(engine.faktor, 0.4);
+      gastSchluessel = letztePrefs ? letztePrefs.gastHaeufigkeit : null;
+      const iv = Katalog.gastIntervall(letztePrefs);
+      if (!iv) return;
+      const ms = iv[0] + Math.random() * (iv[1] - iv[0]);
       gastTimer = win.setTimeout(() => { gastTimer = null; gastJetzt(); planeGast(); }, ms);
     }
     function stoppeGaeste() {
       if (gastTimer !== null) { win.clearTimeout(gastTimer); gastTimer = null; }
+      for (const id of gastFolge) win.clearTimeout(id);
+      gastFolge.clear();
+    }
+    // Erster Gast sofort, weitere (⚙ "wie viele") leicht versetzt.
+    function gastGruppe() {
+      const n = Katalog.gastAnzahl(letztePrefs);
+      rufe('gast', (w) => w.gast && w.gast());
+      for (let i = 1; i < n; i++) {
+        const id = win.setTimeout(() => { gastFolge.delete(id); rufe('gast', (w) => w.gast && w.gast()); },
+          i * GAST_VERSATZ_MS + Math.random() * 300);
+        gastFolge.add(id);
+      }
     }
     function gastJetzt() {
       if (fenster !== 'video' || !gastBedingung || !gastBedingung()) return;
-      rufe('gast', (w) => w.gast && w.gast());
+      gastGruppe();
     }
 
     // --- Welt ----------------------------------------------------------------
@@ -223,7 +240,10 @@
       const variante = v ? v.id : null;
       // Gleiche Welt + gleiche Partikelfarbe + gleiche Variante: nur Faktor.
       if (weltId === prefs.theme && engine && weltPartikel === partikel && weltVariante === variante) {
-        engine.setFaktor(faktor); return;
+        engine.setFaktor(faktor);
+        // Gast-Haeufigkeit geaendert -> neu planen (sonst gilt der alte Abstand weiter).
+        if (prefs.gastHaeufigkeit !== gastSchluessel) { stoppeGaeste(); planeGast(); }
+        return;
       }
       lauf++;
       stoppeWelt();
@@ -265,7 +285,7 @@
       setzeGastBedingung(fn) { gastBedingung = typeof fn === 'function' ? fn : null; },
       gastJetzt,
       // Effekte testen: Gast sofort, ohne Player-Bedingung (nur Video-Fenster).
-      gastErzwingen() { if (fenster === 'video') rufe('gast', (w) => w.gast && w.gast()); },
+      gastErzwingen() { if (fenster === 'video') gastGruppe(); },
       starteVorschau,
       stop() { lauf++; stoppeWelt(); },
       get weltAktiv() { return !!welt; }
