@@ -218,3 +218,44 @@ test('pausiert: Maus und Klick erreichen die Welt nicht', async () => {
   for (const fn of a.listener.get('click') || []) fn({ target: { closest: () => null }, clientX: 1, clientY: 1 });
   assert.deepEqual(log, ['klick']);
 });
+
+// --- Welle 1b ----------------------------------------------------------------
+test('Anpassung Akzent/Hintergrund setzt Inline-Variablen, Entfernen raeumt auf', async () => {
+  const a = aufbau({ welten: { sakura: protokollWelt([]) } });
+  await a.rt.anwenden({ theme: 'sakura', anpassungen: { sakura: { akzent: '#112233', hintergrund: '#101010' } } });
+  assert.equal(a.styleProps.get('--accent'), '#112233');
+  assert.equal(a.styleProps.get('--text'), '#ededf4');
+  assert.equal(a.doc.documentElement.dataset.hell, '0', 'dunkler eigener Grund -> keine Namens-Abdunklung');
+  await a.rt.anwenden({ theme: 'sakura' });
+  assert.equal(a.styleProps.has('--accent'), false);
+  assert.equal(a.styleProps.has('--text'), false);
+  assert.equal(a.doc.documentElement.dataset.hell, '1', 'Sakura-Original ist hell');
+});
+
+test('Neon: data-hell 0 und keine Flaechen-Inline-Reste', async () => {
+  const a = aufbau({ welten: { koi: protokollWelt([]), 'neon-dual': protokollWelt([]) } });
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { hintergrund: '#ffffff' } } });
+  assert.equal(a.doc.documentElement.dataset.hell, '1');
+  await a.rt.anwenden({ theme: 'neon-dual' });
+  assert.equal(a.doc.documentElement.dataset.hell, '0');
+  assert.equal(a.styleProps.has('--text'), false);
+  assert.equal(a.styleProps.has('--line'), false);
+});
+
+test('Welt bekommt die effektive Partikelfarbe', async () => {
+  let farben = null;
+  const a = aufbau({ welten: { wald: (ctx) => { farben = ctx.farben; return { start() {}, stop() {} }; } } });
+  await a.rt.anwenden({ theme: 'wald', anpassungen: { wald: { partikel: '#ff00ff' } } });
+  assert.deepEqual(farben, { partikel: '#ff00ff' });
+});
+
+test('Partikelfarbe aendern startet die Welt neu (genau eine), Akzent nicht', async () => {
+  const log = [];
+  const a = aufbau({ welten: { koi: protokollWelt(log) } });
+  await a.rt.anwenden({ theme: 'koi' });
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { akzent: '#123456' } } });
+  assert.deepEqual(log, ['start']);
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { akzent: '#123456', partikel: '#abcdef' } } });
+  assert.deepEqual(log, ['start', 'stop', 'start']);
+  assert.equal(a.engines.filter((e) => !e.gestoppt).length, 1);
+});

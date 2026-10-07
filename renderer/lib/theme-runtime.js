@@ -15,6 +15,9 @@
   // sie weg, sonst schlagen sie die Werte aus der Theme-CSS.
   const NEON_VARS = Object.keys(ThemeLib.accentVars(ThemeLib.DEFAULTS.videoAccent, 100))
     .concat(['--onair-from', '--onair-to']);
+  // Welle 1b: Anpassungen setzen diese als Inline-Variablen (schlagen die Theme-CSS).
+  const AKZENT_VARS = ['--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim', '--accent-contrast'];
+  const FLAECHEN_VARS = ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts'];
   const GAST_MIN_MS = 120000;
   const GAST_SPANNE_MS = 120000;
 
@@ -39,6 +42,7 @@
     let welt = null;
     let engine = null;
     let weltId = null;
+    let weltPartikel = null;   // Partikelfarbe der laufenden Welt
     let lauf = 0;                 // Generation gegen ueberholte Ladevorgaenge
     let pausiert = false;
     let gastBedingung = null;
@@ -50,6 +54,8 @@
     function setzeFarben(prefs) {
       const r = doc.documentElement;
       if (prefs.theme === 'neon-dual') {
+        // Reste einer Anpassung weg; accentVars setzt --bg/--panel/--hover neu.
+        for (const k of FLAECHEN_VARS) r.style.removeProperty(k);
         const vars = fenster === 'chat'
           ? ThemeLib.accentVars(prefs.chatAccent, prefs.chatAlpha)
           : ThemeLib.accentVars(prefs.videoAccent); // Video-Fenster ist opak
@@ -57,10 +63,21 @@
         r.style.setProperty('--onair-from', ThemeLib.normalizeHex(prefs.videoAccent, ThemeLib.DEFAULTS.videoAccent));
         r.style.setProperty('--onair-to', ThemeLib.normalizeHex(prefs.chatAccent, ThemeLib.DEFAULTS.chatAccent));
       } else {
-        for (const k of NEON_VARS) r.style.removeProperty(k);
+        for (const k of NEON_VARS.concat(FLAECHEN_VARS)) r.style.removeProperty(k);
+        const anp = Katalog.anpassungFuer(prefs);
+        if (anp.akzent) {
+          const v = ThemeLib.accentVars(anp.akzent, 100);
+          for (const k of AKZENT_VARS) r.style.setProperty(k, v[k]);
+        }
+        if (anp.hintergrund) {
+          const v = ThemeLib.flaechenVars(anp.hintergrund, fenster === 'chat' ? prefs.chatAlpha : 100);
+          for (const k of FLAECHEN_VARS) r.style.setProperty(k, v[k]);
+        }
       }
       const alpha = fenster === 'chat' ? ThemeLib.clampAlpha(prefs.chatAlpha) / 100 : 1;
       r.style.setProperty('--chat-alpha', String(alpha));
+      // Heller (auch selbst gewaehlter) Grund -> Namens-Abdunklung (chat.css).
+      r.dataset.hell = prefs.theme !== 'neon-dual' && ThemeLib.istHell(Katalog.effektiveFarben(prefs).hintergrund) ? '1' : '0';
       r.dataset.theme = prefs.theme;
     }
 
@@ -143,6 +160,7 @@
       welt = null;
       engine = null;
       weltId = null;
+      weltPartikel = null;
     }
     function weltFehler(phase, e) {
       melde('theme', 'welt-fehler', { theme: weltId, phase, fehler: String((e && e.message) || e) });
@@ -153,8 +171,9 @@
       try { fn(welt); } catch (e) { weltFehler(phase, e); }
     }
 
-    async function starteWelt(id, faktor, meinLauf) {
+    async function starteWelt(id, faktor, meinLauf, partikel) {
       weltId = id;
+      weltPartikel = partikel;
       try {
         if (!geladen.has(id)) { await ladeSkript(basis + id + '/welt.js'); geladen.add(id); }
       } catch (e) {
@@ -167,7 +186,7 @@
       engine = erzeugeEngine({ ebenen, doc, faktor });
       engine.pausieren(pausiert);
       try {
-        welt = fabrik({ engine, fenster, FxEngine }) || null;
+        welt = fabrik({ engine, fenster, FxEngine, farben: { partikel } }) || null;
         if (welt && welt.start) welt.start();
       } catch (e) {
         if (!welt) welt = {};
@@ -186,10 +205,12 @@
       setzeCss(prefs.theme);
       const faktor = Katalog.EFFEKT_FAKTOR[prefs.effekte];
       if (faktor === 0) { lauf++; stoppeWelt(); return; }
-      if (weltId === prefs.theme && engine) { engine.setFaktor(faktor); return; }
+      const partikel = Katalog.effektiveFarben(prefs).partikel;
+      // Gleiche Welt + gleiche Partikelfarbe: nur Faktor. Neue Farbe -> Neustart.
+      if (weltId === prefs.theme && engine && weltPartikel === partikel) { engine.setFaktor(faktor); return; }
       lauf++;
       stoppeWelt();
-      await starteWelt(prefs.theme, faktor, lauf);
+      await starteWelt(prefs.theme, faktor, lauf, partikel);
     }
 
     // --- Galerie-Vorschau (eigene Engine, unabhaengig von der Stufe) --------
@@ -205,7 +226,8 @@
         faktor: Katalog.EFFEKT_FAKTOR.wenig });
       let w = null;
       try {
-        w = fabrik({ engine: eng, fenster: 'vorschau', FxEngine });
+        w = fabrik({ engine: eng, fenster: 'vorschau', FxEngine,
+          farben: { partikel: Katalog.effektiveFarben({ ...(letztePrefs || {}), theme: id }).partikel } });
         if (w && w.start) w.start();
       } catch (e) { eng.stop(); return nichts; }
       return () => { try { if (w && w.stop) w.stop(); } catch (e) { /* egal */ } eng.stop(); };
