@@ -181,3 +181,7 @@ test('Gast: Haeufigkeit und Anzahl bereinigt, Abstand und Anzahl stimmen', () =>
   assert.equal(K.gastAnzahl({ gastAnzahl: 'wenige' }, () => 0.9), 3);
   assert.equal(K.mergeThemePrefs({ gastAnzahl: 'schwarm' }, { theme: 'koi' }).gastAnzahl, 'schwarm', 'bleibt bei Theme-Wechsel');
 });
+
+test('Galerie zeigt fuer v1.12.0 nur Neon Dual und Koi', () => {
+  assert.deepEqual(K.sichtbareThemes().map((t) => t.id), ['neon-dual', 'koi']);
+});

@@ -66,3 +66,44 @@ test('setupAutoUpdate: error-Event wird protokolliert', () => {
   updater.emit('error', new Error('boom'));
   assert.ok(log.lines.some((l) => l.startsWith('error') && l.includes('boom')));
 });
+
+// --- Zustand fuer die Anzeige + sofort installieren ----------------------------
+const { naechsterZustand } = require('../src/auto-update');
+
+test('naechsterZustand: suche -> laedt mit Prozent -> bereit; Fehler/aktuell zerstoeren "bereit" nicht', () => {
+  let z = { phase: 'suche' };
+  z = naechsterZustand(z, 'available', '1.12.0');
+  assert.deepEqual(z, { phase: 'laedt', version: '1.12.0', prozent: 0 });
+  z = naechsterZustand(z, 'progress', 45);
+  assert.deepEqual(z, { phase: 'laedt', version: '1.12.0', prozent: 45 });
+  z = naechsterZustand(z, 'downloaded', '1.12.0');
+  assert.deepEqual(z, { phase: 'bereit', version: '1.12.0' });
+  assert.equal(naechsterZustand(z, 'checking'), z, 'spaeterer Check laesst bereit stehen');
+  assert.equal(naechsterZustand(z, 'up-to-date'), z);
+  assert.equal(naechsterZustand(z, 'error', 'x'), z);
+  assert.deepEqual(naechsterZustand({ phase: 'suche' }, 'error', '403'), { phase: 'fehler', fehler: '403' });
+  assert.deepEqual(naechsterZustand({ phase: 'suche' }, 'up-to-date'), { phase: 'aktuell' });
+});
+
+test('setupAutoUpdate: meldet Zustaende und installiert nur, wenn fertig geladen', async () => {
+  const log = collectLog();
+  const updater = fakeUpdater(async () => ({}));
+  let installiert = null;
+  updater.quitAndInstall = (still, neustart) => { installiert = { still, neustart }; };
+  const gemeldet = [];
+  const st = setupAutoUpdate(updater, log, { isPackaged: true, setInterval: () => 0, onZustand: (z) => gemeldet.push(z.phase) });
+  assert.equal(updater.autoDownload, true);
+  assert.equal(updater.autoInstallOnAppQuit, true);
+  assert.equal(st.installieren(), false, 'noch nichts geladen');
+  updater.emit('checking-for-update');
+  updater.emit('update-available', { version: '1.12.0' });
+  updater.emit('download-progress', { percent: 50.4 });
+  updater.emit('download-progress', { percent: 50.2 });   // gleiche Prozentzahl -> keine neue Meldung
+  updater.emit('update-downloaded', { version: '1.12.0' });
+  assert.deepEqual(gemeldet, ['laedt', 'laedt', 'bereit']);
+  assert.deepEqual(st.zustand(), { phase: 'bereit', version: '1.12.0' });
+  assert.equal(st.installieren(), true);
+  await new Promise((r) => setImmediate(r));
+  assert.deepEqual(installiert, { still: true, neustart: true });
+  await st.initialCheck;
+});

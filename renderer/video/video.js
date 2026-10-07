@@ -350,6 +350,37 @@ new MutationObserver(aktualisiereFxPause).observe($homeFx, { attributes: true, a
 new MutationObserver(aktualisiereFxPause).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 aktualisiereFxPause();
 
+// Updater-Anzeige: laedt -> Prozent, bereit -> Knopf "Neu starten", Fehler
+// -> Hinweis (Grund im Tooltip). Sonst unsichtbar.
+const $updateChip = document.getElementById('update-chip');
+function zeigeUpdate(z) {
+  const p = z && z.phase;
+  $updateChip.className = '';
+  $updateChip.disabled = p !== 'bereit';
+  if (p === 'laedt') {
+    $updateChip.textContent = '⬇ Update ' + (z.version || '') + ' · ' + (z.prozent || 0) + ' %';
+    $updateChip.title = 'Neue Version wird im Hintergrund geladen';
+  } else if (p === 'bereit') {
+    $updateChip.classList.add('bereit');
+    $updateChip.textContent = '🔄 Neu starten für ' + (z.version || 'Update');
+    $updateChip.title = 'Installiert das Update und startet TwitchDual neu (ein paar Sekunden)';
+  } else if (p === 'fehler') {
+    $updateChip.classList.add('fehler');
+    $updateChip.textContent = '⚠ Update fehlgeschlagen';
+    $updateChip.title = (z.fehler || 'unbekannter Fehler') + ' – wird später automatisch erneut versucht';
+  } else {
+    $updateChip.classList.add('hidden');
+  }
+}
+$updateChip.addEventListener('click', () => {
+  if (!$updateChip.classList.contains('bereit')) return;
+  $updateChip.textContent = 'Startet neu …';
+  $updateChip.disabled = true;
+  window.twitchDual.updateInstallieren();
+});
+window.twitchDual.getUpdateZustand().then(zeigeUpdate).catch(() => {});
+window.twitchDual.onUpdateZustand(zeigeUpdate);
+
 // Effekte testen (⚙ im Chat): Gast sofort, Raid/Abo auch im Home-Teich.
 window.twitchDual.onFxTest((art) => {
   if (art === 'gast') themeRuntime.gastErzwingen();

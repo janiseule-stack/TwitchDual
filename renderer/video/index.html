@@ -185,6 +185,16 @@
     #home > .theme-deko { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     #home-title, .lc-name, .fav .name { font-family: var(--schrift-titel, inherit); }
     body.video-only #fx-gast { display: none; }
+    /* Updater in der Leiste: Fortschritt, dann "Neu starten" als Knopf */
+    #update-chip {
+      padding: 3px 9px; margin-right: 6px; border-radius: 999px; font: inherit; font-size: 11px;
+      border: 1px solid var(--accent-border); background: var(--accent-glow); color: var(--text);
+      cursor: default; white-space: nowrap; -webkit-app-region: no-drag;
+    }
+    #update-chip.hidden { display: none; }
+    #update-chip.bereit { background: var(--accent); color: var(--accent-contrast); font-weight: 700; cursor: pointer; }
+    #update-chip.bereit:hover { filter: brightness(1.1); }
+    #update-chip.fehler { border-color: #eb0400; color: #ff8a80; background: transparent; }
   </style>
 </head>
 <body>
@@ -205,6 +215,7 @@
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span id="ads-dot"></span>Ads blocked</span>
     </div>
     <div class="bar-right">
+      <button id="update-chip" class="hidden" type="button"></button>
       <span id="status">bereit</span>
       <button id="video-only-btn" title="Nur Video (Fenster füllen)">⛶</button>
       <div id="win-controls">

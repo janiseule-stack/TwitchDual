@@ -435,7 +435,19 @@ nichts auf der Platte.
   einer Zuschauer-Sitzung auf `twitch.tv` selbst.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
 
-## Lebendige Themes, Welle 1 (unveroeffentlicht, Branch feat/sammel-verbesserungen)
+## v1.12.0 - Koi-Teich, Abos/Raids, Updater (Release 2026-10-07)
+- Theme-Galerie zeigt nur Neon Dual + Koi (5 Varianten). Sakura/Wald/Seifen-
+  blasen sind `ausgeblendet` (Code bleibt), kommen neu gezeichnet zurueck.
+- Echte Abos/Geschenke/Raids aus dem Chat, Kiste/Punkte in der Leiste,
+  ⚙ mit Reitern, Effekte im Video (wie oft / wie viele), Home einklappbar.
+- Fixes: Stream startet wieder von selbst (Gast-Ebene verdeckte den Player),
+  Fische ueber dem Video pausieren nicht mehr (isVisible im Player),
+  Senden nach Token-Erneuerung, Chat-Fenster klinkt sich nach Neuladen ein.
+- Updater: Fortschritt + Knopf "Neu starten fuer X" in der Video-Leiste
+  (quitAndInstall). Greift erst AB 1.12.0 - das Update 1.11 -> 1.12 laeuft
+  noch ueber den alten Weg (App ganz schliessen, kurz warten, neu oeffnen).
+
+## Lebendige Themes, Welle 1 (in v1.12.0 ausgeblendet)
 
 - Theme-System: `renderer/lib/{themes,fx-engine,theme-runtime}.js`, je Theme ein
   Ordner `renderer/themes/<id>/` (theme.css + welt.js). Galerie aus dem ⚙-Popup,

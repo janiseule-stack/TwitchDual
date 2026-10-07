@@ -13,10 +13,11 @@
     { id: 'neon-dual', name: 'Neon Dual', hell: false, farbenFrei: true, info: 'Farben frei wählbar',
       vorschau: 'linear-gradient(90deg, #35e0ff, #ff4fa3)',
       farben: { akzent: '#35e0ff', hintergrund: '#0b0b11', partikel: '#35e0ff' } },
-    { id: 'sakura', name: 'Sakura', hell: true, farbenFrei: false, info: 'Kirschblüten',
+    // ausgeblendet: noch im alten Stil, werden spaeter neu gezeichnet (v1.12.0).
+    { id: 'sakura', name: 'Sakura', hell: true, ausgeblendet: true, farbenFrei: false, info: 'Kirschblüten',
       vorschau: 'linear-gradient(160deg, #fff0f5, #ffe4ec 50%, #f3e8ff)',
       farben: { akzent: '#e0659a', hintergrund: '#fff4f8', partikel: '#ffb3cc' } },
-    { id: 'wald', name: 'Wald', hell: false, farbenFrei: false, info: 'Glühwürmchen',
+    { id: 'wald', name: 'Wald', hell: false, ausgeblendet: true, farbenFrei: false, info: 'Glühwürmchen',
       vorschau: 'linear-gradient(180deg, #16301e, #0a150d)',
       farben: { akzent: '#9fe07a', hintergrund: '#0e1f14', partikel: '#e8ff7a' } },
     // Gezeichnete Welt mit Varianten (Canvas): Theme-Farben = erste Variante.
@@ -35,7 +36,7 @@
         { id: 'bleiglas', name: 'Bleiglas', hell: false,
           farben: { akzent: '#ffb35a', hintergrund: '#1a2440', partikel: '#ff6a3a' } }
       ] },
-    { id: 'blasen', name: 'Seifenblasen', hell: true, farbenFrei: false, info: 'Seifenblasen',
+    { id: 'blasen', name: 'Seifenblasen', hell: true, ausgeblendet: true, farbenFrei: false, info: 'Seifenblasen',
       vorschau: 'linear-gradient(180deg, #dff3ff, #f4eaff)',
       farben: { akzent: '#7b6cff', hintergrund: '#f0f7ff', partikel: '#aac8ff' } }
   ];
@@ -123,6 +124,9 @@
     return varianteVon(p.theme, p.variante && p.variante[cleanTheme(p.theme)]);
   }
 
+  // Was die Galerie anbietet (ausgeblendete Themes bleiben im Code).
+  function sichtbareThemes() { return THEMES.filter((t) => !t.ausgeblendet); }
+
   function themeById(id) {
     return THEMES.find((t) => t.id === id) || THEMES[0];
   }
@@ -190,7 +194,7 @@
   return {
     THEMES, STANDARD_THEME, EFFEKT_STUFEN, STANDARD_EFFEKTE, EFFEKT_FAKTOR, KLICK_SPERRE,
     themeById, cleanTheme, cleanEffekte, cleanThemePrefs, mergeThemePrefs, istKlickInsLeere,
-    cleanVariante, varianteVon, varianteFuer, anpassungsSchluessel, anpassungsSchluesselFuer,
+    sichtbareThemes, cleanVariante, varianteVon, varianteFuer, anpassungsSchluessel, anpassungsSchluesselFuer,
     GAST_HAEUFIGKEITEN, GAST_ANZAHLEN, cleanGastHaeufigkeit, cleanGastAnzahl, gastIntervall, gastAnzahl,
     FARB_SCHLUESSEL, SICHERE_FARBE, istSichereFarbe, cleanAnpassungen, anpassungFuer, effektiveFarben, balkenFarbe
   };

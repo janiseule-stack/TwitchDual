@@ -952,7 +952,7 @@ function baueVariantenReihe(t) {
 
 function baueGalerie() {
   $galerieListe.innerHTML = '';
-  for (const t of ThemeKatalog.THEMES) {
+  for (const t of ThemeKatalog.sichtbareThemes()) {
     const karte = document.createElement('button');
     karte.type = 'button';
     karte.className = 'galerie-karte' + (t.id === themePrefs.theme ? ' aktiv' : '');

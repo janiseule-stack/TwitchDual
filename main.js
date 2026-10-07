@@ -907,6 +907,14 @@ function updaterLog(event, detail) {
   try { diagLog.melde('app', event, detail); } catch { /* nie stoeren */ }
 }
 
+// Anzeige in der Video-Leiste: Zustand abholen + "Neu starten" ausloesen.
+let updateSteuerung = null;
+ipcMain.handle('update-zustand', () =>
+  (updateSteuerung && updateSteuerung.zustand ? updateSteuerung.zustand() : { phase: 'aus' }));
+ipcMain.on('update-installieren', () => {
+  if (updateSteuerung && updateSteuerung.installieren) updateSteuerung.installieren();
+});
+
 // Defense-in-Depth: electron-updater laesst bei Download-Fehlern intern eine
 // nicht abgefangene Rejection stehen (AppUpdater.js: `void downloadPromise.then`),
 // die wir von aussen nicht catchen koennen. Ein Hintergrund-Update darf die App
@@ -943,7 +951,10 @@ app.whenReady().then(async () => {
     const acc = await authManager.getAccess();
     if (acc) chatSender.login({ login: acc.login, accessToken: acc.accessToken });
   }
-  setupAutoUpdate(autoUpdater, updaterLog, { isPackaged: app.isPackaged });
+  updateSteuerung = setupAutoUpdate(autoUpdater, updaterLog, {
+    isPackaged: app.isPackaged,
+    onZustand: (z) => broadcast('update-zustand', z)
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindows();

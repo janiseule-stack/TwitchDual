@@ -20,6 +20,10 @@ if (!isTwitchFrame) {
     onLoad: (cb) => {
       ipcRenderer.on('load', (_e, payload) => cb(payload));
     },
+    // Updater: Zustand fuer die Leiste + sofort installieren.
+    getUpdateZustand: () => ipcRenderer.invoke('update-zustand'),
+    onUpdateZustand: (cb) => { ipcRenderer.on('update-zustand', (_e, z) => cb(z)); },
+    updateInstallieren: () => ipcRenderer.send('update-installieren'),
     // Neu geladenes Chat-Fenster: laufende Quelle abholen (oder null).
     getAktuelleQuelle: () => ipcRenderer.invoke('aktuelle-quelle'),
     // Emotes + Badges kommen nach 'load' hinterher (main.js ladeExtras).
