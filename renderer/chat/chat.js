@@ -665,6 +665,22 @@ $settingsBtn.addEventListener('click', () => {
   $settingsPop.classList.toggle('hidden');
 });
 
+// ⚙-Reiter: zuletzt offener wird gemerkt (nur Komfort, darf fehlen).
+const $optReiter = document.getElementById('opt-reiter');
+function zeigeReiter(name) {
+  const gueltig = [...$optReiter.children].some((b) => b.dataset.reiter === name) ? name : 'chat';
+  for (const b of $optReiter.children) {
+    b.classList.toggle('aktiv', b.dataset.reiter === gueltig);
+    b.setAttribute('aria-selected', String(b.dataset.reiter === gueltig));
+  }
+  for (const seite of $settingsPop.querySelectorAll('.opt-seite')) seite.classList.toggle('aktiv', seite.dataset.seite === gueltig);
+  try { localStorage.setItem('optReiter', gueltig); } catch { /* egal */ }
+}
+for (const b of $optReiter.children) b.addEventListener('click', () => zeigeReiter(b.dataset.reiter));
+let startReiter = 'chat';
+try { startReiter = localStorage.getItem('optReiter') || 'chat'; } catch { /* egal */ }
+zeigeReiter(startReiter);
+
 for (const [el, key] of [[$optTs, 'showTimestamps'], [$optBadges, 'showBadges']]) {
   el.addEventListener('change', () => {
     chatPrefs[key] = el.checked;
@@ -832,7 +848,9 @@ for (const stufe of ThemeKatalog.EFFEKT_STUFEN) {
 // Spiegelt themePrefs in Popup + offene Galerie (aus applyTheme aufgerufen).
 function spiegleThemeUi() {
   const t = ThemeKatalog.themeById(themePrefs.theme);
-  $themeName.textContent = t.name;
+  // Bei Themes mit Varianten gleich mitsagen, welche gerade aktiv ist.
+  const tv = ThemeKatalog.varianteFuer(themePrefs);
+  $themeName.textContent = tv ? t.name + ' · ' + tv.name : t.name;
   for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
   $neonFarben.classList.toggle('hidden', !t.farbenFrei);
   $themeFarben.classList.toggle('hidden', t.farbenFrei);

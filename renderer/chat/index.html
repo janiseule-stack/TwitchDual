@@ -25,64 +25,95 @@
     </div>
   </div>
   <div id="settings-pop" class="hidden">
-    <div class="opt-group">
-      <div class="opt-group-title">Chat</div>
-      <label class="opt-check"><input type="checkbox" id="opt-ts" checked /> Zeitstempel</label>
-      <label class="opt-check"><input type="checkbox" id="opt-badges" checked /> Badges</label>
-      <label id="opt-font-row" class="opt-row">Schriftgröße
-        <input type="range" id="opt-font" min="11" max="22" step="1" />
-        <span id="opt-font-val"></span>
-      </label>
+    <!-- Reiter: Chat / Aussehen / Effekte / Mehr. IDs der Bedienelemente
+         bleiben gleich, chat.js haengt weiter daran. -->
+    <div id="opt-reiter" class="opt-reiter" role="tablist">
+      <button type="button" role="tab" data-reiter="chat">💬 Chat</button>
+      <button type="button" role="tab" data-reiter="aussehen">🎨 Aussehen</button>
+      <button type="button" role="tab" data-reiter="effekte">✨ Effekte</button>
+      <button type="button" role="tab" data-reiter="mehr">🛠 Mehr</button>
     </div>
-    <div class="opt-group">
-      <div class="opt-group-title">Darstellung</div>
-      <button id="opt-theme" type="button" class="opt-theme-row">🎨 Theme: <b id="opt-theme-name">Neon Dual</b><span class="opt-theme-pfeil">›</span></button>
-      <div class="opt-row">Effekte
-        <div id="opt-effekte" class="opt-segment" role="group" aria-label="Effekte"></div>
+
+    <div class="opt-seite" data-seite="chat">
+      <div class="opt-group">
+        <label class="opt-check"><input type="checkbox" id="opt-ts" checked />
+          <span class="opt-text">Zeitstempel<small>Uhrzeit vor jeder Nachricht</small></span></label>
+        <label class="opt-check"><input type="checkbox" id="opt-badges" checked />
+          <span class="opt-text">Abzeichen vor Namen<small>Mod, Abo, VIP, 7TV …</small></span></label>
+        <label id="opt-font-row" class="opt-row">Schriftgröße
+          <input type="range" id="opt-font" min="11" max="22" step="1" />
+          <span id="opt-font-val"></span>
+        </label>
       </div>
-      <div class="opt-row">Kiste
-        <div id="opt-kiste" class="opt-segment" role="group" aria-label="Kiste">
-          <button type="button" data-stil="geschenk">🎁 Geschenk</button>
-          <button type="button" data-stil="pixel">👾 Pixel</button>
+    </div>
+
+    <div class="opt-seite" data-seite="aussehen">
+      <div class="opt-group">
+        <button id="opt-theme" type="button" class="opt-theme-row">🎨 Theme: <b id="opt-theme-name">Neon Dual</b><span class="opt-theme-pfeil">›</span></button>
+      </div>
+      <div class="opt-group">
+        <div class="opt-group-title">Farben</div>
+        <div id="opt-neon-farben">
+          <div class="opt-presets-label">Fertige Farbpaare</div>
+          <div id="opt-presets" class="opt-presets"></div>
+          <label class="opt-color-row opt-row"><span class="opt-text">Farbe Video-Fenster<small>Leuchtfarbe von Rahmen und Knöpfen im Video</small></span>
+            <input type="color" id="opt-color-video" value="#35e0ff" />
+          </label>
+          <label class="opt-color-row opt-row"><span class="opt-text">Farbe Chat-Fenster<small>Leuchtfarbe von Rahmen und Knöpfen im Chat</small></span>
+            <input type="color" id="opt-color-chat" value="#ff4fa3" />
+          </label>
+          <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
+        </div>
+        <div id="opt-theme-farben" class="hidden">
+          <label class="opt-color-row opt-row"><span class="opt-text">Hervorhebung<small>Knöpfe, Titel, Rahmen, Kiste</small></span>
+            <input type="color" id="opt-tf-akzent" /></label>
+          <label class="opt-color-row opt-row"><span class="opt-text">Hintergrund<small>Fläche hinter Chat und Übersicht</small></span>
+            <input type="color" id="opt-tf-hintergrund" /></label>
+          <label class="opt-color-row opt-row"><span class="opt-text">Tiere &amp; Teilchen<small>Fische, Blüten, Glühwürmchen, Funken</small></span>
+            <input type="color" id="opt-tf-partikel" /></label>
+          <button id="opt-tf-reset" type="button">Original-Farben</button>
         </div>
       </div>
-      <div id="opt-neon-farben">
-        <div class="opt-presets-label">Presets</div>
-        <div id="opt-presets" class="opt-presets"></div>
-        <label class="opt-color-row opt-row">Video-Akzent
-          <input type="color" id="opt-color-video" value="#35e0ff" />
+      <div class="opt-group">
+        <label class="opt-alpha-row opt-row"><span class="opt-text">Chat-Deckkraft<small>weniger = Desktop scheint durch</small></span>
+          <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
+          <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
         </label>
-        <label class="opt-color-row opt-row">Chat-Akzent
-          <input type="color" id="opt-color-chat" value="#ff4fa3" />
-        </label>
-        <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
       </div>
-      <div id="opt-theme-farben" class="hidden">
-        <label class="opt-color-row opt-row">Akzent <input type="color" id="opt-tf-akzent" /></label>
-        <label class="opt-color-row opt-row">Hintergrund <input type="color" id="opt-tf-hintergrund" /></label>
-        <label class="opt-color-row opt-row">Partikel <input type="color" id="opt-tf-partikel" /></label>
-        <button id="opt-tf-reset" type="button">Farben zurücksetzen</button>
-      </div>
-      <label class="opt-alpha-row opt-row">Deckkraft (Chat)
-        <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
-        <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
-      </label>
     </div>
-    <div class="opt-group">
-      <div class="opt-group-title">Effekte testen</div>
-      <div id="opt-fx-test" class="opt-fx-test">
-        <button type="button" data-art="kiste">🎁 Kiste</button>
-        <button type="button" data-art="punkte">✨ Punkte</button>
-        <button type="button" data-art="raid">🚀 Raid</button>
-        <button type="button" data-art="abo">⭐ Abo</button>
-        <button type="button" data-art="gast">🎬 Gast</button>
+
+    <div class="opt-seite" data-seite="effekte">
+      <div class="opt-group">
+        <div class="opt-row opt-stapel"><span class="opt-text">Animationen<small>wie viel sich im Hintergrund bewegt</small></span>
+          <div id="opt-effekte" class="opt-segment" role="group" aria-label="Animationen"></div>
+        </div>
+        <div class="opt-row opt-stapel"><span class="opt-text">Kiste<small>erscheint beim Einsammeln neben den Punkten</small></span>
+          <div id="opt-kiste" class="opt-segment" role="group" aria-label="Kiste">
+            <button type="button" data-stil="geschenk">🎁 Geschenk</button>
+            <button type="button" data-stil="pixel">👾 Pixel</button>
+          </div>
+        </div>
       </div>
-      <div class="opt-hinweis">Spielt das Ereignis im aktuellen Theme ab. Bei Effekte „Aus" passiert nichts.</div>
+      <div class="opt-group">
+        <div class="opt-group-title">Ausprobieren</div>
+        <div id="opt-fx-test" class="opt-fx-test">
+          <button type="button" data-art="kiste">🎁 Kiste</button>
+          <button type="button" data-art="punkte">✨ Punkte</button>
+          <button type="button" data-art="raid">🚀 Raid</button>
+          <button type="button" data-art="abo">⭐ Abo</button>
+          <button type="button" data-art="gast">🎬 Gast</button>
+        </div>
+        <div class="opt-hinweis">Spielt das Ereignis mit Beispieldaten im aktuellen Theme ab. „Gast" schwimmt im Video-Fenster. Bei Animationen „Aus" bewegt sich nur die Kiste.</div>
+      </div>
     </div>
-    <div class="opt-group">
-      <div class="opt-group-title">Diagnose</div>
-      <label class="opt-check"><input type="checkbox" id="opt-diag" /> Protokoll mitschreiben</label>
-      <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
+
+    <div class="opt-seite" data-seite="mehr">
+      <div class="opt-group">
+        <div class="opt-group-title">Diagnose</div>
+        <label class="opt-check"><input type="checkbox" id="opt-diag" />
+          <span class="opt-text">Protokoll mitschreiben<small>hilft bei der Fehlersuche, bleibt auf deinem PC</small></span></label>
+        <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
+      </div>
     </div>
   </div>
   <div id="theme-galerie" class="hidden">
