@@ -221,17 +221,24 @@
       // Raid: Kaertchen gleitet weich ueber dem Schwarm mit (feste Hoehe, kein
       // Nachspringen), haelt am rechten Rand an und blendet nach der Rast aus.
       if (schwarmText) {
-        const st = schwarmText, rand = 90;
-        if (schwarm.length) {
+        const st = schwarmText, rand = 90, rechts = L.w - rand;
+        // Unterwegs folgt es dem Schwarm weich in x UND y (schwimmt mit hoch und
+        // runter); ist es rechts angekommen, steht es fest.
+        if (!st.fest && schwarm.length) {
           const vorn = Math.max(...schwarm.map((f) => f.x));
-          const ziel = Math.min(Math.max(vorn - 30, rand), L.w - rand);
-          st.x += (ziel - st.x) * Math.min(1, 0.06 * (nun - (st.letzte || nun) + 16) / 16);
-          st.letzte = nun;
-          st.rastBis = 0;
-        } else {
-          st.x += (L.w - rand - st.x) * 0.1;
-          if (!st.rastBis) st.rastBis = nun + RAST_MS;
+          let my = 0;
+          for (const f of schwarm) my += f.y;
+          my /= schwarm.length;
+          const zielX = Math.min(Math.max(vorn - 30, rand), rechts);
+          const zielY = Math.max(8, my - 56 * skala());
+          st.x += (zielX - st.x) * 0.08;
+          st.y += (zielY - st.y) * 0.05;
+          if (st.x >= rechts - 2) { st.x = rechts; st.fest = true; }
+        } else if (!st.fest) {
+          st.x += (rechts - st.x) * 0.1;
+          if (st.x >= rechts - 2) { st.x = rechts; st.fest = true; }
         }
+        if (!schwarm.length && !st.rastBis) st.rastBis = nun + RAST_MS;
         const ein = Math.min(1, (nun - st.start) / 500);
         const aus = st.rastBis ? Math.max(0, 1 - (nun - st.rastBis) / 500) : 1;
         if (aus <= 0) {
@@ -311,7 +318,7 @@
           const n = Number(daten.anzahl) || 0;
           if (oben !== undefined) {
             schwarmText = { zeilen: [String(daten.name || 'Raid'), 'raidet mit ' + n.toLocaleString('de-DE') + (n === 1 ? ' Zuschauer' : ' Zuschauern')],
-              x: 90, y: Math.max(8, oben - 56 * skala()), start: jetzt(), rastBis: 0, letzte: 0 };
+              x: 90, y: Math.max(8, oben - 56 * skala()), start: jetzt(), rastBis: 0, fest: false };
           }
           return;
         }
