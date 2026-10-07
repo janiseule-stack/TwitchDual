@@ -61,6 +61,75 @@
     }
   }
 
+  // --- Fallende Formen ----------------------------------------------------------
+  // Ein Blatt als Teilpfad (ohne beginPath): v 0 = gekerbt, 1 = rund, 2 = schmal.
+  function blattTeil(g, s, v) {
+    if (v === 1) {
+      g.moveTo(0, s * 0.5);
+      g.bezierCurveTo(s * 0.62, s * 0.3, s * 0.55, -s * 0.5, 0, -s * 0.5);
+      g.bezierCurveTo(-s * 0.55, -s * 0.5, -s * 0.62, s * 0.3, 0, s * 0.5);
+    } else if (v === 2) {
+      g.moveTo(0, s * 0.55);
+      g.bezierCurveTo(s * 0.38, s * 0.2, s * 0.32, -s * 0.45, s * 0.1, -s * 0.55);
+      g.lineTo(0, -s * 0.42);
+      g.lineTo(-s * 0.1, -s * 0.55);
+      g.bezierCurveTo(-s * 0.32, -s * 0.45, -s * 0.38, s * 0.2, 0, s * 0.55);
+    } else {
+      g.moveTo(0, s * 0.5);
+      g.bezierCurveTo(s * 0.6, s * 0.25, s * 0.5, -s * 0.42, s * 0.14, -s * 0.5);
+      g.lineTo(0, -s * 0.34);
+      g.lineTo(-s * 0.14, -s * 0.5);
+      g.bezierCurveTo(-s * 0.5, -s * 0.42, -s * 0.6, s * 0.25, 0, s * 0.5);
+    }
+    g.closePath();
+  }
+  // Pfad fuer ein fallendes Teil: einzelnes Blatt, Paar, ganze oder gefuellte
+  // (Yae-)Bluete. Mitte = 0,0; ein einziger Pfad -> ein fill() pro Teil.
+  function formPfad(g, p) {
+    const s = p.s;
+    g.beginPath();
+    if (p.form === 'bluete' || p.form === 'yae') {
+      const lagen = p.form === 'yae' ? [[s * 0.62, 0], [s * 0.42, TAU / 10]] : [[s * 0.62, 0]];
+      for (const [r, dreh] of lagen) {
+        for (let i = 0; i < 5; i++) {
+          g.save(); g.rotate(dreh + i / 5 * TAU); g.translate(0, -r * 0.55); blattTeil(g, r * 1.05, 0); g.restore();
+        }
+      }
+    } else if (p.form === 'paar') {
+      for (const a of [-0.5, 0.5]) {
+        g.save(); g.rotate(a); g.translate(0, -s * 0.3); blattTeil(g, s * 0.8, p.v || 0); g.restore();
+      }
+    } else {
+      blattTeil(g, s, p.v || 0);
+    }
+  }
+  // Mitte einer ganzen Bluete (Staubgefaesse als Punkt).
+  function mitte(g, p, farbe) {
+    if (p.form !== 'bluete' && p.form !== 'yae') return;
+    g.fillStyle = farbe; g.beginPath(); g.arc(0, 0, Math.max(1, p.s * 0.12), 0, TAU); g.fill();
+  }
+  function istBluete(p) { return p.form === 'bluete' || p.form === 'yae'; }
+
+  // --- Blueten am Zweig ----------------------------------------------------------
+  // art: einfach | yae (gefuellt, zwei Lagen) | halb (drei Blaetter, halb offen)
+  // | knospe. je(teil) fuellt: 'blatt' | 'innen' | 'knospe' | 'mitte'.
+  function astBluete(g, bl, je) {
+    g.save(); g.translate(bl.x, bl.y); g.rotate(bl.a);
+    if (bl.art === 'knospe') {
+      g.beginPath(); g.ellipse(0, 0, bl.r * 0.35, bl.r * 0.5, 0, 0, TAU); je('knospe');
+    } else if (bl.art === 'halb') {
+      for (const a of [-0.6, 0, 0.6]) {
+        g.save(); g.rotate(a); g.translate(0, -bl.r * 0.45); blattPfad(g, bl.r * 0.95); je('blatt'); g.restore();
+      }
+      g.beginPath(); g.arc(0, 0, Math.max(1.2, bl.r * 0.2), 0, TAU); je('mitte');
+    } else {
+      bluetenPfad(g, bl.r, () => je('blatt'));
+      if (bl.art === 'yae') { g.rotate(TAU / 10); bluetenPfad(g, bl.r * 0.64, () => je('innen')); }
+      g.beginPath(); g.arc(0, 0, Math.max(1.3, bl.r * 0.22), 0, TAU); je('mitte');
+    }
+    g.restore();
+  }
+
   // Ast: verzweigte Linien von einer oberen Ecke. Groesse waechst mit der Flaeche.
   function baueAst(w, h, vonRechts) {
     const sk = Math.max(0.8, Math.min(2, Math.min(w, h) / 420));
@@ -95,7 +164,9 @@
     for (const s of stellen) {
       const k = 1 + Math.floor(Math.random() * 3);
       for (let j = 0; j < k; j++) {
-        aus.blueten.push({ x: s.x + rnd(-9, 9) * sk, y: s.y + rnd(-9, 9) * sk, r: rnd(5, 8.5) * sk, a: rnd(0, TAU), knospe: Math.random() < 0.15 });
+        const z = Math.random();
+        const art = z < 0.12 ? 'knospe' : z < 0.25 ? 'halb' : z < 0.45 ? 'yae' : 'einfach';
+        aus.blueten.push({ x: s.x + rnd(-9, 9) * sk, y: s.y + rnd(-9, 9) * sk, r: rnd(5, 8.5) * sk * (art === 'yae' ? 1.15 : 1), a: rnd(0, TAU), art });
       }
     }
     return aus;
@@ -109,18 +180,15 @@
     }
   }
   // Bluetenbueschel am Ast: flach gefuellt, optional mit Rand und Mitte.
+  // o.innen = innere Lage gefuellter Blueten (sonst etwas heller als fuell).
   function flacheBlueten(g, A, o) {
     for (const bl of A.blueten) {
-      g.save(); g.translate(bl.x, bl.y); g.rotate(bl.a);
-      if (o.rand) { g.strokeStyle = o.rand; g.lineWidth = o.randBreite || 1; }
-      if (bl.knospe) {
-        g.beginPath(); g.arc(0, 0, bl.r * 0.45, 0, TAU); g.fillStyle = o.knospe; g.fill();
-        if (o.rand) g.stroke();
-      } else {
-        bluetenPfad(g, bl.r, () => { g.fillStyle = o.fuell; g.fill(); if (o.rand) g.stroke(); });
-        if (o.mitte) { g.fillStyle = o.mitte; g.beginPath(); g.arc(0, 0, Math.max(1.3, bl.r * 0.22), 0, TAU); g.fill(); }
-      }
-      g.restore();
+      astBluete(g, bl, (teil) => {
+        if (teil === 'mitte') { if (o.mitte) { g.fillStyle = o.mitte; g.fill(); } return; }
+        g.fillStyle = teil === 'knospe' ? o.knospe : teil === 'innen' ? (o.innen || o.fuell) : o.fuell;
+        g.fill();
+        if (o.rand) { g.strokeStyle = o.rand; g.lineWidth = o.randBreite || 1; g.stroke(); }
+      });
     }
   }
 
@@ -207,17 +275,28 @@
       g.globalAlpha = 0.35;
       for (let d = 0; d < 3; d++) astLinien(g, A.seg, 1, '#5a4048', 1.6);
       g.globalAlpha = 1;
+      // Nasse Farbtupfer: Knospe klein und kraeftig, gefuellte gross mit zweitem Tupfer.
+      const GROESSE = { knospe: 0.6, halb: 1.2, einfach: 1.6, yae: 1.9 };
       for (const bl of A.blueten) {
-        const rg = g.createRadialGradient(bl.x, bl.y, 0, bl.x, bl.y, bl.r * 1.6);
-        rg.addColorStop(0, 'rgba(255,240,245,.95)'); rg.addColorStop(0.5, 'rgba(247,160,192,.7)'); rg.addColorStop(1, 'rgba(247,160,192,0)');
-        g.fillStyle = rg; g.beginPath(); g.arc(bl.x, bl.y, bl.r * 1.6, 0, TAU); g.fill();
-        g.fillStyle = 'rgba(200,70,110,.6)'; g.beginPath(); g.arc(bl.x, bl.y, 1.3, 0, TAU); g.fill();
+        const R = bl.r * GROESSE[bl.art], kn = bl.art === 'knospe';
+        const rg = g.createRadialGradient(bl.x, bl.y, 0, bl.x, bl.y, R);
+        rg.addColorStop(0, kn ? 'rgba(230,110,150,.9)' : 'rgba(255,240,245,.95)');
+        rg.addColorStop(0.5, kn ? 'rgba(220,90,135,.6)' : 'rgba(247,160,192,.7)'); rg.addColorStop(1, 'rgba(247,160,192,0)');
+        g.fillStyle = rg; g.beginPath(); g.arc(bl.x, bl.y, R, 0, TAU); g.fill();
+        if (bl.art === 'yae') {
+          const x = bl.x + Math.cos(bl.a) * bl.r * 0.6, y = bl.y + Math.sin(bl.a) * bl.r * 0.6;
+          const rg2 = g.createRadialGradient(x, y, 0, x, y, bl.r);
+          rg2.addColorStop(0, 'rgba(250,190,212,.8)'); rg2.addColorStop(1, 'rgba(250,190,212,0)');
+          g.fillStyle = rg2; g.beginPath(); g.arc(x, y, bl.r, 0, TAU); g.fill();
+        }
+        if (!kn) { g.fillStyle = 'rgba(200,70,110,.6)'; g.beginPath(); g.arc(bl.x, bl.y, 1.3, 0, TAU); g.fill(); }
       }
     },
     koernung: 14,
     blatt(g, p) {
       g.globalAlpha *= 0.85;
-      blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill();
+      formPfad(g, p); g.fillStyle = p.farbe; g.fill();
+      if (istBluete(p)) { mitte(g, p, 'rgba(200,70,110,.75)'); return; }
       g.globalAlpha *= 0.5; g.fillStyle = '#fff'; g.beginPath(); g.ellipse(0, p.s * 0.1, p.s * 0.16, p.s * 0.26, 0, 0, TAU); g.fill();
     }
   };
@@ -247,7 +326,7 @@
       g.lineTo(w, h); g.lineTo(0, h); g.fill();
       astLinien(g, A.seg, 1, '#120f26');
       g.shadowColor = 'rgba(255,170,210,.9)'; g.shadowBlur = 10;
-      flacheBlueten(g, A, { fuell: '#ffc4dd', knospe: '#ff8ab8' });
+      flacheBlueten(g, A, { fuell: '#ffc4dd', innen: '#ffe3ef', knospe: '#ff8ab8', mitte: '#ff6a9a' });
       g.shadowBlur = 0;
     },
     koernung: 8,
@@ -283,8 +362,9 @@
     // Leuchten ohne shadowBlur (der kostet pro Blatt zu viel Rechenzeit).
     blatt(g, p) {
       const a = g.globalAlpha;
-      g.globalAlpha = a * 0.22; blattPfad(g, p.s * 1.8); g.fillStyle = '#ff9ec8'; g.fill();
-      g.globalAlpha = a; blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill();
+      g.globalAlpha = a * 0.22; g.beginPath(); g.arc(0, 0, p.s * 0.85, 0, TAU); g.fillStyle = '#ff9ec8'; g.fill();
+      g.globalAlpha = a; formPfad(g, p); g.fillStyle = p.farbe; g.fill();
+      mitte(g, p, '#ff6a9a');
     }
   };
 
@@ -315,13 +395,14 @@
       g.quadraticCurveTo(w * 0.5, h * 0.74, w, h * 0.8); g.lineTo(w, h); g.lineTo(0, h); g.fill(); g.stroke();
       astLinien(g, A.seg, 1.25, '#1c1a18');
       astLinien(g, A.seg, 0.8, '#6b4a34');
-      flacheBlueten(g, A, { fuell: '#f5b8c6', knospe: '#d24a6a', rand: '#1c1a18', randBreite: 1.1, mitte: '#c0392b' });
+      flacheBlueten(g, A, { fuell: '#f5b8c6', innen: '#fbdbe2', knospe: '#d24a6a', rand: '#1c1a18', randBreite: 1.1, mitte: '#c0392b' });
       if (w > 120) stempel(g, w - 40, bh * 4 + 16);
     },
     koernung: 18,
     blatt(g, p) {
-      blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill();
+      formPfad(g, p); g.fillStyle = p.farbe; g.fill();
       g.strokeStyle = '#1c1a18'; g.lineWidth = 1.1; g.stroke();
+      mitte(g, p, '#c0392b');
     }
   };
 
@@ -350,13 +431,22 @@
         }
       }
       g.globalAlpha = 1;
+      // Tupfer pro Bluete: Knospe 1 (kraeftig), halb 3, einfach 5, gefuellt 5 + 5 innen.
       for (const bl of A.blueten) {
-        for (let j = 0; j < 5; j++) {
-          const a = bl.a + j / 5 * TAU, x = bl.x + Math.cos(a) * bl.r * 0.6, y = bl.y + Math.sin(a) * bl.r * 0.6;
-          const rg = g.createRadialGradient(x, y, 0, x, y, bl.r * 0.65);
-          rg.addColorStop(0, 'rgba(232,130,160,.55)'); rg.addColorStop(0.8, 'rgba(232,130,160,.35)'); rg.addColorStop(1, 'rgba(232,130,160,0)');
-          g.fillStyle = rg; g.beginPath(); g.arc(x, y, bl.r * 0.65, 0, TAU); g.fill();
+        const tupfer = [];
+        if (bl.art === 'knospe') tupfer.push([0, 0, bl.r * 0.45, 'rgba(200,80,115,.7)']);
+        else {
+          const n = bl.art === 'halb' ? 3 : 5, bogen = bl.art === 'halb' ? 0.35 : 1;
+          for (let j = 0; j < n; j++) tupfer.push([bl.a + (j / n - 0.5) * TAU * bogen, bl.r * 0.6, bl.r * 0.65, 'rgba(232,130,160,.55)']);
+          if (bl.art === 'yae') for (let j = 0; j < 5; j++) tupfer.push([bl.a + (j + 0.5) / 5 * TAU, bl.r * 0.3, bl.r * 0.45, 'rgba(240,160,185,.5)']);
         }
+        for (const [a, d, r, f] of tupfer) {
+          const x = bl.x + Math.cos(a) * d, y = bl.y + Math.sin(a) * d;
+          const rg = g.createRadialGradient(x, y, 0, x, y, r);
+          rg.addColorStop(0, f); rg.addColorStop(0.8, f.replace(/[\d.]+\)$/, '.35)')); rg.addColorStop(1, 'rgba(232,130,160,0)');
+          g.fillStyle = rg; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+        }
+        if (bl.art === 'knospe') continue;
         g.fillStyle = '#2a2a2a';
         for (let d = 0; d < 4; d++) { g.beginPath(); g.arc(bl.x + rnd(-2, 2), bl.y + rnd(-2, 2), 0.8, 0, TAU); g.fill(); }
       }
@@ -371,8 +461,9 @@
     koernung: 10,
     blatt(g, p) {
       g.globalAlpha *= 0.75;
-      blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill();
+      formPfad(g, p); g.fillStyle = p.farbe; g.fill();
       g.globalAlpha *= 0.65; g.strokeStyle = '#3a3a3a'; g.lineWidth = 0.5; g.stroke();
+      mitte(g, p, '#2a2a2a');
     }
   };
 
@@ -410,12 +501,13 @@
       g.fillStyle = hl; g.fillRect(0, 0, w, h);
       astLinien(g, A.seg, 1.6, '#0d0d12');
       astLinien(g, A.seg, 0.9, '#7a4a2a');
+      g.strokeStyle = '#0d0d12'; g.lineWidth = 1.6;
       for (const bl of A.blueten) {
-        g.save(); g.translate(bl.x, bl.y); g.rotate(bl.a);
-        g.strokeStyle = '#0d0d12'; g.lineWidth = 1.6;
-        bluetenPfad(g, bl.r * 1.1, () => { g.fillStyle = Math.random() < 0.5 ? '#ff9ec4' : '#ffc0d8'; g.fill(); g.stroke(); });
-        g.fillStyle = '#ffd54a'; g.beginPath(); g.arc(0, 0, 2.2, 0, TAU); g.fill(); g.stroke();
-        g.restore();
+        astBluete(g, { ...bl, r: bl.r * 1.1 }, (teil) => {
+          g.fillStyle = teil === 'mitte' ? '#ffd54a' : teil === 'knospe' ? '#e8508a' : teil === 'innen' ? '#ffe0ec'
+            : (Math.random() < 0.5 ? '#ff9ec4' : '#ffc0d8');
+          g.fill(); g.stroke();
+        });
       }
     },
     ueber(g, t, w, h) {
@@ -426,9 +518,15 @@
       gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,250,220,.1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
       g.fillStyle = gr; g.fillRect(0, 0, w, h); g.restore();
     },
+    // Einzelblaetter sind Glassplitter, ganze Blueten Glasblueten mit Bleirand.
     blatt(g, p) {
-      g.beginPath(); g.moveTo(0, -p.s * 0.55); g.lineTo(p.s * 0.4, p.s * 0.1); g.lineTo(0, p.s * 0.5); g.lineTo(-p.s * 0.35, -p.s * 0.05); g.closePath();
+      if (p.form === 'blatt' || !p.form) {
+        g.beginPath(); g.moveTo(0, -p.s * 0.55); g.lineTo(p.s * 0.4, p.s * 0.1); g.lineTo(0, p.s * 0.5); g.lineTo(-p.s * 0.35, -p.s * 0.05); g.closePath();
+      } else {
+        formPfad(g, p);
+      }
       g.fillStyle = p.farbe; g.fill(); g.strokeStyle = '#0d0d12'; g.lineWidth = 1.6; g.lineJoin = 'round'; g.stroke();
+      mitte(g, p, '#ffd54a');
     }
   };
 
@@ -472,16 +570,35 @@
       }
       for (const bl of A.blueten) {
         const cx = Math.round(bl.x / PX), cy = Math.round(bl.y / PX);
-        g.fillStyle = '#ff9cc7'; g.fillRect(cx - 2, cy - 1, 5, 3); g.fillRect(cx - 1, cy - 2, 3, 5);
+        if (bl.art === 'knospe') { g.fillStyle = '#d0407a'; g.fillRect(cx, cy - 1, 2, 2); continue; }
+        if (bl.art === 'halb') {
+          g.fillStyle = '#ff9cc7'; g.fillRect(cx - 1, cy - 2, 3, 3);
+          g.fillStyle = '#d0407a'; g.fillRect(cx, cy, 1, 1);
+          continue;
+        }
+        const yae = bl.art === 'yae';
+        g.fillStyle = yae ? '#ffb3d4' : '#ff9cc7';
+        g.fillRect(cx - 2, cy - 1, 5, 3); g.fillRect(cx - 1, cy - 2, 3, 5);
+        if (yae) { g.fillRect(cx - 3, cy, 7, 1); g.fillRect(cx, cy - 3, 1, 7); g.fillStyle = '#ff74ad'; g.fillRect(cx - 1, cy - 1, 3, 3); }
         g.fillStyle = '#ffd6e8'; g.fillRect(cx - 1, cy - 1, 1, 1);
-        g.fillStyle = '#d0407a'; g.fillRect(cx, cy, 1, 1);
+        g.fillStyle = yae ? '#ffd54a' : '#d0407a'; g.fillRect(cx, cy, 1, 1);
       }
     },
-    // Ohne Drehung, direkt in Welt-Koordinaten: Block auf dem Raster + Glanzpixel.
+    // Ohne Drehung, direkt in Welt-Koordinaten, Bloecke auf dem Raster:
+    // Blatt = 2x2 + Glanz, Paar = zwei schraeg, Bluete = Kreuz, Yae = grosses Kreuz.
     blattPixel(g, p) {
       const P = PX * Math.max(1, Math.round(p.s / 9)), x = Math.round(p.x / P) * P, y = Math.round(p.y / P) * P;
       const flach = Math.abs(Math.cos(p.flip)) < 0.4;
-      g.fillStyle = p.farbe; g.fillRect(x, y, P * 2, flach ? P : P * 2);
+      g.fillStyle = p.farbe;
+      if (istBluete(p)) {
+        const n = p.form === 'yae' ? 2 : 1;
+        g.fillRect(x - P * n, y, P * (2 * n + 1), P); g.fillRect(x, y - P * n, P, P * (2 * n + 1));
+        if (n === 2) g.fillRect(x - P, y - P, P * 3, P * 3);
+        g.fillStyle = '#ffd54a'; g.fillRect(x, y, P, P);
+        return;
+      }
+      if (p.form === 'paar') { g.fillRect(x, y, P * 2, P); g.fillRect(x + P, y + P, P * 2, P); return; }
+      g.fillRect(x, y, P * 2, flach ? P : P * 2);
       if (!flach) { g.fillStyle = '#fff0f6'; g.fillRect(x, y, P, P); }
     }
   };
@@ -516,7 +633,7 @@
       g.fillStyle = sp; g.fillRect(0, fy, w, 50);
       g.fillStyle = '#c7b9a3'; g.fillRect(0, fy, w, 2);
       astLinien(g, A.seg, 1, '#4a3238');
-      flacheBlueten(g, A, { fuell: '#fbc3d6', knospe: '#e8608e', mitte: '#d0507e' });
+      flacheBlueten(g, A, { fuell: '#fbc3d6', innen: '#ffe4ec', knospe: '#e8608e', mitte: '#d0507e' });
       Z.linien = [];
       for (let l = 0; l < 18 * Math.sqrt(dichte(w, h)); l++) Z.linien.push({ y: rnd(fy + 8, h), off: rnd(0, w + 80), len: rnd(18, 40), v: rnd(0.6, 1.1) });
     },
@@ -531,7 +648,8 @@
     },
     blatt(g, p) {
       if (p.schwimmt) { g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(0, 0, p.s * 0.9, p.s * 0.7, 0, 0, TAU); g.fill(); }
-      blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill();
+      formPfad(g, p); g.fillStyle = p.farbe; g.fill();
+      if (istBluete(p)) { mitte(g, p, '#d0507e'); return; }
       g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.ellipse(0, p.s * 0.1, p.s * 0.12, p.s * 0.24, 0, 0, TAU); g.fill();
     }
   };
@@ -562,11 +680,7 @@
       sg.filter = 'blur(2.5px)';
       astLinien(sg, A.seg, 1.1, '#3a2830');
       sg.fillStyle = '#3a2830';
-      for (const bl of A.blueten) {
-        sg.save(); sg.translate(bl.x, bl.y); sg.rotate(bl.a);
-        bluetenPfad(sg, bl.r * 1.1, () => sg.fill());
-        sg.restore();
-      }
+      for (const bl of A.blueten) astBluete(sg, { ...bl, r: bl.r * 1.1 }, (teil) => { if (teil !== 'mitte') sg.fill(); });
       Z.schatten = sc;
       Z.dreh = { x: w + 10, y: Math.min(h * 0.35, Math.max(56, h * 0.1)) };
       // Holzgitter
@@ -593,7 +707,7 @@
       g.restore();
     },
     ueber(g, t, w, h, Wz, Z) { if (Z.gitter) g.drawImage(Z.gitter, 0, 0, w, h); },
-    blatt(g, p) { g.globalAlpha *= 0.3; blattPfad(g, p.s); g.fillStyle = p.farbe; g.fill(); }
+    blatt(g, p) { g.globalAlpha *= 0.3; formPfad(g, p); g.fillStyle = p.farbe; g.fill(); }
   };
 
   const ziel = typeof window !== 'undefined' ? window : globalThis;

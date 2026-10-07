@@ -17,6 +17,7 @@
   <div id="head">
     <span id="title">Chat</span>
     <span id="mode"></span>
+    <button id="theme-btn" title="Themes, Farben &amp; Effekte">🎨</button>
     <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
     <div id="win-controls">
       <button id="win-min" title="Minimieren">─</button>
@@ -25,12 +26,9 @@
     </div>
   </div>
   <div id="settings-pop" class="hidden">
-    <!-- Reiter: Chat / Aussehen / Effekte / Mehr. IDs der Bedienelemente
-         bleiben gleich, chat.js haengt weiter daran. -->
+    <!-- Reiter: Chat / Mehr. Aussehen + Effekte stehen im 🎨-Fenster. -->
     <div id="opt-reiter" class="opt-reiter" role="tablist">
       <button type="button" role="tab" data-reiter="chat">💬 Chat</button>
-      <button type="button" role="tab" data-reiter="aussehen">🎨 Aussehen</button>
-      <button type="button" role="tab" data-reiter="effekte">✨ Effekte</button>
       <button type="button" role="tab" data-reiter="mehr">🛠 Mehr</button>
     </div>
 
@@ -47,10 +45,28 @@
       </div>
     </div>
 
-    <div class="opt-seite" data-seite="aussehen">
+    <div class="opt-seite" data-seite="mehr">
       <div class="opt-group">
-        <button id="opt-theme" type="button" class="opt-theme-row">🎨 Theme: <b id="opt-theme-name">Neon Dual</b><span class="opt-theme-pfeil">›</span></button>
+        <div class="opt-group-title">Diagnose</div>
+        <label class="opt-check"><input type="checkbox" id="opt-diag" />
+          <span class="opt-text">Protokoll mitschreiben<small>hilft bei der Fehlersuche, bleibt auf deinem PC</small></span></label>
+        <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
       </div>
+    </div>
+  </div>
+  <!-- 🎨-Fenster: Themes / Farben / Effekte (IDs wie frueher im ⚙). -->
+  <div id="theme-galerie" class="hidden">
+    <div class="galerie-kopf"><span>🎨 <b id="opt-theme-name">Neon Dual</b></span><button id="galerie-zu" type="button" title="Schließen">✕</button></div>
+    <div id="theme-reiter" class="opt-reiter" role="tablist">
+      <button type="button" role="tab" data-reiter="themes">🖼 Themes</button>
+      <button type="button" role="tab" data-reiter="farben">🎨 Farben</button>
+      <button type="button" role="tab" data-reiter="effekte">✨ Effekte</button>
+    </div>
+    <div id="theme-seiten">
+    <div class="opt-seite" data-seite="themes">
+      <div id="galerie-liste"></div>
+    </div>
+    <div class="opt-seite" data-seite="farben">
       <div class="opt-group">
         <div class="opt-group-title">Farben</div>
         <div id="opt-neon-farben">
@@ -125,18 +141,7 @@
       </div>
     </div>
 
-    <div class="opt-seite" data-seite="mehr">
-      <div class="opt-group">
-        <div class="opt-group-title">Diagnose</div>
-        <label class="opt-check"><input type="checkbox" id="opt-diag" />
-          <span class="opt-text">Protokoll mitschreiben<small>hilft bei der Fehlersuche, bleibt auf deinem PC</small></span></label>
-        <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
-      </div>
     </div>
-  </div>
-  <div id="theme-galerie" class="hidden">
-    <div class="galerie-kopf"><span>🎨 Themes</span><button id="galerie-zu" type="button" title="Schließen">✕</button></div>
-    <div id="galerie-liste"></div>
   </div>
   <div id="messages"></div>
   <div id="composer">

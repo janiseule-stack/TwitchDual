@@ -294,3 +294,15 @@ test('sakura: Hanami-Fluss - Blueten landen im Wasser und treiben weg', () => {
   for (let i = 0; i < 400; i++) for (const fn of schleifen) fn(40);
   assert.ok(welt.schwimmZahl() > 0, 'es treiben Blueten');
 });
+
+test('sakura: es fallen verschiedene Formen (Blatt, Bluete, gefuellte, Paar)', () => {
+  const farben = new Set();
+  const fabrik = ladeGezeichnet('sakura', farben);
+  const { engine, ebene, schleifen } = koiEngine(farben);
+  const welt = fabrik({ engine, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' }, variante: 'holzschnitt' });
+  welt.start();
+  ebene.clientWidth = 400; ebene.clientHeight = 600;
+  for (let i = 0; i < 40; i++) welt.klickInsLeere(200, 200);   // viele Blaetter auf einmal
+  for (const fn of schleifen) fn(40);
+  assert.deepEqual(welt.formen(), ['blatt', 'bluete', 'paar', 'yae']);
+});

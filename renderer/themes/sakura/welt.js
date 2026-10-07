@@ -51,6 +51,15 @@
       const f = S.blattFarben[Math.floor(Math.random() * S.blattFarben.length)];
       return f === null ? PARTIKEL : f;
     }
+    // Was faellt: meist einzelne Blaetter (3 Formen), dazu ganze und gefuellte
+    // Blueten und Blaetterpaare. Ganze Blueten sind etwas groesser.
+    function form(p) {
+      const z = Math.random();
+      p.form = z < 0.58 ? 'blatt' : z < 0.78 ? 'bluete' : z < 0.88 ? 'yae' : 'paar';
+      p.v = Math.floor(Math.random() * 3);
+      if (p.form === 'bluete') p.s *= 1.2; else if (p.form === 'yae') p.s *= 1.4;
+      return p;
+    }
     function zielAnzahl() {
       const n = 18 * Math.pow(W.dichte(L.w, L.h), 0.8) * engine.faktor;
       return Math.max(4, Math.min(55, Math.round(n)));
@@ -61,12 +70,12 @@
         const bl = A.blueten[Math.floor(Math.random() * A.blueten.length)];
         x = bl.x; y = bl.y;
       }
-      return {
+      return form({
         x: x !== undefined ? x : rnd(-20, L.w), y: y !== undefined ? y : rnd(-30, -10),
         vx: vx !== undefined ? vx : rnd(-0.2, 0.4), vy: vy !== undefined ? vy : rnd(0.3, 0.6),
         rot: rnd(0, TAU), vrot: rnd(-0.04, 0.04), flip: rnd(0, TAU), vflip: rnd(0.04, 0.09),
         s: rnd(7, 11) * skala(), phase: rnd(0, TAU), tiefe: rnd(0.04, 0.9), farbe: farbe()
-      };
+      });
     }
 
     function baueHintergrund() {
@@ -288,12 +297,12 @@
       const n = 34 + Math.floor(Math.random() * 14);
       for (let i = 0; i < n; i++) {
         const start = -rnd(20, w * 0.45);
-        gaeste.push({
+        gaeste.push(form({
           x: richtung > 0 ? start : w - start, y: mitte + rnd(-band, band),
           vx: richtung * rnd(2.4, 3.4) * sk, vy: rnd(-0.3, 0.3), rot: rnd(0, TAU), vrot: rnd(-0.06, 0.06),
           flip: rnd(0, TAU), vflip: rnd(0.05, 0.11), s: rnd(10, 16) * sk, phase: rnd(0, TAU), farbe: farbe(),
           richtung, bogen: rnd(0.4, 1.1) * sk
-        });
+        }));
       }
     }
     function gastSchleife() {
@@ -334,6 +343,7 @@
       // Fuer Tests
       blattZahl() { return blaetter.length + funken.length + sturm.length; },
       schwimmZahl() { return blaetter.filter((p) => p.schwimmt).length; },
+      formen() { return [...new Set(blaetter.map((p) => p.form))].sort(); },
       maus(x, y) {
         const nun = jetzt();
         maus = { x, y, zeit: nun };
@@ -374,7 +384,7 @@
           // zeilen kommt aus chat-ereignisse.js (Name + was passiert ist).
           const text = Array.isArray(daten.zeilen) ? daten.zeilen.map(String).slice(0, 2) : [String(daten.name || '')];
           if (!daten.zeilen && daten.monate > 1) text.push(daten.monate + ' Monate');
-          grosse.push({ x, y, start: jetzt(), dauer: 4500, r: 34, dreh: rnd(0, TAU), text });
+          grosse.push({ x, y, start: jetzt(), dauer: 4500, r: 20, dreh: rnd(0, TAU), text });
           for (let i = 0; i < 22; i++) {
             const a = i / 22 * TAU, v = rnd(2.2, 3.6);
             funke(x, y, Math.cos(a) * v, Math.sin(a) * v - 0.6, rnd(2000, 3000));

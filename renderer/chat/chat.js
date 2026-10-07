@@ -705,24 +705,32 @@ window.twitchDual.getUiPrefs().then((prefs) => {
 }).catch(() => {}); // Prefs sind Komfort - ohne sie gelten die Defaults
 
 $settingsBtn.addEventListener('click', () => {
-  $settingsPop.classList.toggle('hidden');
+  if (!$settingsPop.classList.contains('hidden')) { $settingsPop.classList.add('hidden'); return; }
+  schliesseGalerie();
+  $settingsPop.classList.remove('hidden');
 });
 
-// ⚙-Reiter: zuletzt offener wird gemerkt (nur Komfort, darf fehlen).
-const $optReiter = document.getElementById('opt-reiter');
-function zeigeReiter(name) {
-  const gueltig = [...$optReiter.children].some((b) => b.dataset.reiter === name) ? name : 'chat';
-  for (const b of $optReiter.children) {
-    b.classList.toggle('aktiv', b.dataset.reiter === gueltig);
-    b.setAttribute('aria-selected', String(b.dataset.reiter === gueltig));
+// Reiter (⚙ und 🎨): zuletzt offener wird gemerkt (nur Komfort, darf fehlen).
+// beimWechsel(name) laeuft nach jedem Umschalten.
+function reiterLeiste(leiste, seiten, speicher, standard, beimWechsel) {
+  let aktuell = standard;
+  function zeige(name) {
+    aktuell = [...leiste.children].some((b) => b.dataset.reiter === name) ? name : standard;
+    for (const b of leiste.children) {
+      b.classList.toggle('aktiv', b.dataset.reiter === aktuell);
+      b.setAttribute('aria-selected', String(b.dataset.reiter === aktuell));
+    }
+    for (const seite of seiten.querySelectorAll('.opt-seite')) seite.classList.toggle('aktiv', seite.dataset.seite === aktuell);
+    try { localStorage.setItem(speicher, aktuell); } catch { /* egal */ }
+    if (beimWechsel) beimWechsel(aktuell);
   }
-  for (const seite of $settingsPop.querySelectorAll('.opt-seite')) seite.classList.toggle('aktiv', seite.dataset.seite === gueltig);
-  try { localStorage.setItem('optReiter', gueltig); } catch { /* egal */ }
+  for (const b of leiste.children) b.addEventListener('click', () => zeige(b.dataset.reiter));
+  let start = standard;
+  try { start = localStorage.getItem(speicher) || standard; } catch { /* egal */ }
+  return { zeige, start, get aktuell() { return aktuell; } };
 }
-for (const b of $optReiter.children) b.addEventListener('click', () => zeigeReiter(b.dataset.reiter));
-let startReiter = 'chat';
-try { startReiter = localStorage.getItem('optReiter') || 'chat'; } catch { /* egal */ }
-zeigeReiter(startReiter);
+const optReiter = reiterLeiste(document.getElementById('opt-reiter'), $settingsPop, 'optReiter', 'chat');
+optReiter.zeige(optReiter.start);
 
 for (const [el, key] of [[$optTs, 'showTimestamps'], [$optBadges, 'showBadges']]) {
   el.addEventListener('change', () => {
@@ -849,7 +857,7 @@ window.twitchDual.onThemeChanged(applyTheme);
 // Lebendige Themes: Theme-Zeile, Effekte-Regler, Galerie (Spec Abschnitt 3).
 // Gespeichert wird immer nur das geaenderte Feld - main.js mischt.
 // ---------------------------------------------------------------------------
-const $themeBtn = document.getElementById('opt-theme');
+const $themeBtn = document.getElementById('theme-btn');
 const $themeName = document.getElementById('opt-theme-name');
 const $effekte = document.getElementById('opt-effekte');
 const $neonFarben = document.getElementById('opt-neon-farben');
@@ -978,19 +986,31 @@ function baueGalerie() {
   }
 }
 
-function oeffneGalerie() {
-  $settingsPop.classList.add('hidden');
-  $galerie.style.top = $head.getBoundingClientRect().bottom + 'px';
-  $galerie.classList.remove('hidden');
-  baueGalerie();
-}
-function schliesseGalerie() {
-  $galerie.classList.add('hidden');
+// Vorschauen laufen nur, solange der Reiter "Themes" offen ist.
+function stoppeVorschauen() {
   for (const stopp of vorschauStopps) stopp();
   vorschauStopps = [];
   $galerieListe.innerHTML = '';
 }
-$themeBtn.addEventListener('click', oeffneGalerie);
+const themeReiter = reiterLeiste(document.getElementById('theme-reiter'), document.getElementById('theme-seiten'), 'themeReiter', 'themes',
+  (name) => {
+    if ($galerie.classList.contains('hidden')) return;
+    if (name === 'themes') { if (!$galerieListe.children.length) baueGalerie(); } else stoppeVorschauen();
+  });
+function oeffneGalerie() {
+  $settingsPop.classList.add('hidden');
+  $galerie.style.top = $head.getBoundingClientRect().bottom + 'px';
+  $galerie.classList.remove('hidden');
+  themeReiter.zeige(themeReiter.aktuell);
+}
+function schliesseGalerie() {
+  $galerie.classList.add('hidden');
+  stoppeVorschauen();
+}
+$themeBtn.addEventListener('click', () => {
+  if ($galerie.classList.contains('hidden')) oeffneGalerie(); else schliesseGalerie();
+});
+themeReiter.zeige(themeReiter.start);
 document.getElementById('galerie-zu').addEventListener('click', schliesseGalerie);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$galerie.classList.contains('hidden')) schliesseGalerie();

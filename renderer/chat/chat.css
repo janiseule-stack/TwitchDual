@@ -177,14 +177,15 @@ body { display: flex; flex-direction: column; }
 @keyframes msg-in { from { opacity: 0; } }
 #messages.no-anim .msg { animation: none; }
 
-/* ⚙-Menue: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
-#settings-btn {
+/* 🎨 + ⚙: Kopfzeile ist drag-Region -> Buttons explizit klickbar machen. */
+#theme-btn, #settings-btn {
   -webkit-app-region: no-drag;
   background: none; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
-  margin-left: auto; /* ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links */
 }
-#settings-btn:hover { color: var(--text); }
+#theme-btn { margin-left: auto; /* 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links */ }
+#settings-btn { margin-left: 8px; }
+#theme-btn:hover, #settings-btn:hover { color: var(--text); }
 
 /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
@@ -203,8 +204,8 @@ body { display: flex; flex-direction: column; }
   display: flex; flex-direction: column;
   box-shadow: 0 10px 28px rgba(0,0,0,.6), inset 0 0 30px -16px var(--accent-glow);
 }
-#settings-pop input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
-#settings-pop input[type="range"] { accent-color: var(--accent); }
+#settings-pop input[type="checkbox"], #theme-galerie input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+#settings-pop input[type="range"], #theme-galerie input[type="range"] { accent-color: var(--accent); }
 #settings-pop.hidden { display: none; }
 /* Abschnitte mit dezenter Ueberschrift und Trennlinie dazwischen. */
 .opt-group { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px; }
@@ -499,15 +500,7 @@ button:focus-visible, input:focus-visible {
    abdunkeln, ohne dass alte Nachrichten neu gerendert werden muessen. */
 .msg .user, #uc-name { color: var(--name, #bf94ff); }
 
-/* --- ⚙: Theme-Zeile + Effekte-Regler ---------------------------------------- */
-.opt-theme-row {
-  display: flex; align-items: center; gap: 6px; width: 100%;
-  padding: 7px 8px; border-radius: 6px; border: 1px solid var(--accent-border);
-  background: var(--accent-glow); color: var(--text); font: inherit; cursor: pointer; text-align: left;
-}
-.opt-theme-row:hover { filter: brightness(1.15); }
-.opt-theme-row b { color: var(--accent-title); }
-.opt-theme-pfeil { margin-left: auto; color: var(--muted); }
+/* --- 🎨: Effekte-Regler ------------------------------------------------------- */
 .opt-segment { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .opt-segment button {
   padding: 3px 7px; border: none; background: transparent; color: var(--muted);
@@ -532,7 +525,11 @@ button:focus-visible, input:focus-visible {
 .galerie-kopf button {
   margin-left: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px;
 }
-#galerie-liste { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+/* 🎨-Fenster: Reiter oben, darunter scrollt die aktive Seite. */
+#theme-reiter { margin: 6px 8px 0; }
+#theme-seiten { flex: 1; overflow-y: auto; font-size: 12px; padding: 0 6px 8px; }
+#theme-seiten .opt-seite[data-seite="farben"], #theme-seiten .opt-seite[data-seite="effekte"] { max-width: 420px; }
+#galerie-liste { padding: 10px 4px; display: flex; flex-direction: column; gap: 10px; }
 .galerie-karte {
   display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 8px;
   overflow: hidden; background: var(--hover); color: var(--text); cursor: pointer; text-align: left;
