@@ -86,12 +86,12 @@ test('cleanThemePrefs liefert anpassungen, Standard leer', () => {
 });
 
 test('mergeThemePrefs: Anpassung eines Themes laesst andere stehen', () => {
-  const g = { theme: 'koi', anpassungen: { sakura: { akzent: '#111111' }, koi: { partikel: '#222222' } } };
-  const neu = K.mergeThemePrefs(g, { anpassungen: { koi: { hintergrund: '#333333' } } });
+  const g = { theme: 'wald', anpassungen: { sakura: { akzent: '#111111' }, wald: { partikel: '#222222' } } };
+  const neu = K.mergeThemePrefs(g, { anpassungen: { wald: { hintergrund: '#333333' } } });
   assert.deepEqual(neu.anpassungen.sakura, { akzent: '#111111' });
-  assert.deepEqual(neu.anpassungen.koi, { hintergrund: '#333333' });
+  assert.deepEqual(neu.anpassungen.wald, { hintergrund: '#333333' });
   // Zuruecksetzen = leeres Objekt -> Theme faellt aus den Anpassungen raus
-  assert.equal(K.mergeThemePrefs(neu, { anpassungen: { koi: {} } }).anpassungen.koi, undefined);
+  assert.equal(K.mergeThemePrefs(neu, { anpassungen: { wald: {} } }).anpassungen.wald, undefined);
 });
 
 test('effektiveFarben: Anpassung schlaegt Original', () => {
@@ -149,7 +149,21 @@ test('effektiveFarben: Variante schlaegt Theme, Anpassung schlaegt Variante', ()
   const lofi = K.varianteVon('koi', 'lofi');
   const p = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' } });
   assert.deepEqual(K.effektiveFarben(p), lofi.farben);
-  const q = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' }, anpassungen: { koi: { akzent: '#010203' } } });
+  const q = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' }, anpassungen: { 'koi:lofi': { akzent: '#010203' } } });
   assert.equal(K.effektiveFarben(q).akzent, '#010203');
   assert.equal(K.effektiveFarben(q).hintergrund, lofi.farben.hintergrund);
+});
+
+test('Anpassungen bei Varianten: pro Variante, alter Theme-Schluessel faellt weg', () => {
+  assert.deepEqual(K.cleanAnpassungen({ koi: { akzent: '#111111' }, 'koi:tusche': { akzent: '#222222' }, 'koi:gibtsnicht': { akzent: '#333333' } }),
+    { 'koi:tusche': { akzent: '#222222' } });
+  const p = K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'tusche' }, anpassungen: { 'koi:tusche': { akzent: '#222222' } } });
+  assert.equal(K.anpassungsSchluesselFuer(p), 'koi:tusche');
+  assert.equal(K.effektiveFarben(p).akzent, '#222222');
+  // Andere Variante bleibt unberuehrt
+  const q = K.cleanThemePrefs({ ...p, variante: { koi: 'lofi' } });
+  assert.equal(K.effektiveFarben(q).akzent, K.varianteVon('koi', 'lofi').farben.akzent);
+  // Ohne gewaehlte Variante gilt die erste
+  assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'koi' })), 'koi:aquarell');
+  assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'sakura' })), 'sakura');
 });

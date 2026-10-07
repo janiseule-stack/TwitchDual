@@ -520,6 +520,14 @@ button:focus-visible, input:focus-visible {
 .galerie-info { margin-left: auto; font-size: 10px; font-weight: 400; color: var(--muted); }
 .galerie-check { display: none; color: var(--accent); }
 .galerie-karte.aktiv .galerie-check { display: inline; }
+/* ⚙ Effekte testen */
+.opt-fx-test { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.opt-fx-test button {
+  padding: 5px 4px; border: 1px solid var(--accent-border); border-radius: 6px;
+  background: var(--accent-glow); color: var(--text); font: inherit; font-size: 11px; cursor: pointer;
+}
+.opt-fx-test button:hover { filter: brightness(1.2); }
+.opt-hinweis { margin-top: 5px; font-size: 10px; color: var(--muted); }
 /* Varianten eines gezeichneten Themes: Reihe unter der Karte */
 .galerie-varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-top: -4px; flex-shrink: 0; }
 .galerie-variante {
@@ -540,3 +548,73 @@ button:focus-visible, input:focus-visible {
 :root[data-hell="1"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 45%, #000); }
 #opt-theme-farben { display: flex; flex-direction: column; gap: 8px; }
 #opt-theme-farben.hidden { display: none; }
+
+/* --- Kanalpunkte-Effekte in der Leiste (renderer/lib/kiste.js) --------------
+   Fuer alle Themes gleich gezeichnet, Farben aus den Theme-Variablen. */
+#points-wrap { overflow: visible; }
+.kfx-kiste {
+  position: absolute; left: 100%; bottom: -3px; margin-left: 6px;
+  width: 28px; height: 26px; z-index: 50; pointer-events: none;
+  animation: kfx-kiste 2.6s ease-out forwards;
+}
+/* +N rueckt bei der Kiste hinter die Kiste */
+#points-gain.kiste { margin-left: 40px; }
+.kfx-svg { width: 28px; height: 26px; display: block; overflow: visible; }
+@keyframes kfx-kiste {
+  0%   { opacity: 0; transform: translateY(10px) scale(.6); }
+  10%  { opacity: 1; transform: translateY(-4px) scale(1.06); }
+  18%  { transform: none; }
+  23%  { transform: rotate(-6deg); }
+  28%  { transform: rotate(6deg); }
+  33%  { transform: none; }
+  85%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+/* Geschenk: Paeckchen in Akzentfarbe, goldene Schleife, Deckel fliegt auf */
+.kfx-schatten { fill: rgba(0, 0, 0, .18); }
+.kfx-paket { fill: var(--accent); stroke: rgba(0, 0, 0, .35); stroke-width: .8; }
+.kfx-falz { fill: rgba(0, 0, 0, .12); }
+.kfx-schleife { fill: #ffd65a; }
+.kfx-masche { fill: #ffd65a; stroke: #b8862a; stroke-width: .6; }
+.kfx-knoten { fill: #f2b93a; }
+.kfx-deckel { transform-box: view-box; transform-origin: 12px 9px; animation: kfx-deckel 2.6s ease-out forwards; }
+@keyframes kfx-deckel {
+  0%, 33% { transform: none; }
+  43% { transform: translate(3px, -9px) rotate(24deg); }
+  70%, 100% { transform: translate(4px, -7px) rotate(30deg); }
+}
+/* Pixel-Kiste: harte Pixel, springt von zu auf */
+.kfx-pixel { shape-rendering: crispEdges; }
+.kfx-zu { animation: kfx-zu 2.6s steps(1) forwards; }
+.kfx-auf { opacity: 0; animation: kfx-auf 2.6s steps(1) forwards; }
+@keyframes kfx-zu { 0% { opacity: 1; } 35% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes kfx-auf { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 1; } }
+/* Teilchen: fliegen ab --verz (= Deckel auf) nach oben */
+.kfx-konfetti, .kfx-pix, .kfx-funke {
+  position: absolute; left: 50%; top: 35%; pointer-events: none;
+  animation: kfx-flug 1s ease-out var(--verz, 0ms) both;
+}
+.kfx-konfetti { width: 4px; height: 6px; margin-left: -2px; border-radius: 1px; background: #ffd65a; }
+.kfx-konfetti:nth-child(4n+2) { background: var(--accent); }
+.kfx-konfetti:nth-child(4n+3) { background: #7cc4ff; }
+.kfx-konfetti:nth-child(4n) { background: #ff7aa8; }
+.kfx-pix { width: 3px; height: 3px; margin-left: -1.5px; background: #ffd23a; box-shadow: 0 0 0 1px #8a5a10; }
+.kfx-funke {
+  width: 4px; height: 4px; margin-left: -2px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px 2px var(--accent-glow), 0 0 2px var(--accent);
+}
+@keyframes kfx-flug {
+  0%   { opacity: 0; transform: translate(0, 0) scale(.5); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
+}
+/* Punkte: Chip pulsiert, Funken steigen aus ihm auf */
+.kfx-punkte { position: absolute; left: 12px; bottom: 6px; width: 1px; height: 1px; z-index: 50; pointer-events: none; }
+.kfx-punkte .kfx-funke { top: 0; }
+#points-chip.kfx-puls { animation: kfx-puls .9s ease-out; }
+@keyframes kfx-puls {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.22) translateY(-2px); color: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+  100% { transform: scale(1); }
+}
+#points-gain.passiv { color: var(--accent); font-size: 12px; font-weight: 700; }

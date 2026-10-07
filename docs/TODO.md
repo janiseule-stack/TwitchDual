@@ -477,6 +477,20 @@ nichts auf der Platte.
   Janis klickt -> `<theme>/stile.js` + Varianten in `themes.js` + CSS ->
   in TwitchDual anschauen und nachschaerfen.
 
+### Effekte testen, Raid/Abo, Kiste (unveroeffentlicht)
+- ⚙ "Effekte testen": Kiste/Punkte/Raid/Abo/Gast mit Beispieldaten. IPC
+  `fx-test` (main broadcastet an beide Fenster); Gast per
+  `themeRuntime.gastErzwingen()` ohne Player-Bedingung.
+- Kiste/Punkte laufen ueber `zeigeZuwachs` wie echte Zugewinne: Kiste in der
+  Leiste (`renderer/lib/kiste.js`, Stil Geschenk/Pixel in
+  `chatPrefs.kisteStil`, ⚙ Darstellung), Punkte = Chip-Puls + Funken.
+- Koi: Raid = Schwarm, Abo = Lotus im Variantenstil + Namenskaertchen,
+  Ereignisse auf eigener Vordergrund-Leinwand (fx-vorn), sonst verdecken die
+  Leisten sie. Andere Themes: Raid/Abo erst beim Neuzeichnen.
+- Eigene Farben bei Themes mit Varianten pro Variante (`koi:tusche`), alte
+  Theme-Schluessel fallen weg.
+- Echte Raids/Abos aus IRC (USERNOTICE) sind NOCH NICHT ausgewertet.
+
 ### Offen: Themes Welle 2/3
 Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
 Regenfenster (Abstimmung 2026-10-07). Je Theme: Ordner + Eintrag in

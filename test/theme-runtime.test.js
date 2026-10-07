@@ -234,7 +234,7 @@ test('Anpassung Akzent/Hintergrund setzt Inline-Variablen, Entfernen raeumt auf'
 
 test('Neon: data-hell 0 und keine Flaechen-Inline-Reste', async () => {
   const a = aufbau({ welten: { koi: protokollWelt([]), 'neon-dual': protokollWelt([]) } });
-  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { hintergrund: '#ffffff' } } });
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { 'koi:aquarell': { hintergrund: '#ffffff' } } });
   assert.equal(a.doc.documentElement.dataset.hell, '1');
   await a.rt.anwenden({ theme: 'neon-dual' });
   assert.equal(a.doc.documentElement.dataset.hell, '0');
@@ -253,9 +253,9 @@ test('Partikelfarbe aendern startet die Welt neu (genau eine), Akzent nicht', as
   const log = [];
   const a = aufbau({ welten: { koi: protokollWelt(log) } });
   await a.rt.anwenden({ theme: 'koi' });
-  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { akzent: '#123456' } } });
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { 'koi:aquarell': { akzent: '#123456' } } });
   assert.deepEqual(log, ['start']);
-  await a.rt.anwenden({ theme: 'koi', anpassungen: { koi: { akzent: '#123456', partikel: '#abcdef' } } });
+  await a.rt.anwenden({ theme: 'koi', anpassungen: { 'koi:aquarell': { akzent: '#123456', partikel: '#abcdef' } } });
   assert.deepEqual(log, ['start', 'stop', 'start']);
   assert.equal(a.engines.filter((e) => !e.gestoppt).length, 1);
 });
@@ -282,4 +282,18 @@ test('Vorschau einer Variante bekommt deren Id', async () => {
   await a.rt.starteVorschau({}, 'koi', 'bleiglas');
   await a.rt.starteVorschau({}, 'koi');
   assert.deepEqual(gesehen, ['bleiglas/#ff6a3a', 'aquarell/#e0714f']);
+});
+
+test('gastErzwingen: nur im Video-Fenster, ohne Gast-Bedingung', async () => {
+  const log = [];
+  const v = aufbau({ fenster: 'video', welten: { koi: protokollWelt(log) } });
+  await v.rt.anwenden({ theme: 'koi' });
+  v.rt.setzeGastBedingung(() => false);
+  v.rt.gastErzwingen();
+  assert.deepEqual(log, ['start', 'gast']);
+  const log2 = [];
+  const c = aufbau({ fenster: 'chat', welten: { koi: protokollWelt(log2) } });
+  await c.rt.anwenden({ theme: 'koi' });
+  c.rt.gastErzwingen();
+  assert.deepEqual(log2, ['start']);
 });

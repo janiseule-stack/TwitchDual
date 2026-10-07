@@ -629,7 +629,8 @@ function formatTime(s) {
 // ---------------------------------------------------------------------------
 // ⚙ Chat-Einstellungen: wirken als CSS-Klassen sofort, ueberleben per Store.
 // ---------------------------------------------------------------------------
-let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT };
+let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT, kisteStil: KistenFx.STANDARD_STIL };
+const $optKiste = document.getElementById('opt-kiste');
 
 function applyChatPrefs() {
   $messages.classList.toggle('hide-ts', !chatPrefs.showTimestamps);
@@ -641,6 +642,18 @@ function applyChatPrefs() {
   $messages.style.setProperty('--chat-font-size', px + 'px');
   $optFont.value = String(px);
   $optFontVal.textContent = px + ' px';
+  const kisteStil = KistenFx.cleanStil(chatPrefs.kisteStil);
+  for (const b of $optKiste.children) b.classList.toggle('aktiv', b.dataset.stil === kisteStil);
+}
+
+// Kisten-Stil: Klick waehlt, speichert und zeigt die Kiste gleich zur Probe.
+for (const b of $optKiste.children) {
+  b.addEventListener('click', () => {
+    chatPrefs.kisteStil = KistenFx.cleanStil(b.dataset.stil);
+    applyChatPrefs();
+    window.twitchDual.saveChatPrefs(chatPrefs);
+    zeigeZuwachs({ quelle: 'kiste', betrag: 50 });
+  });
 }
 
 window.twitchDual.getUiPrefs().then((prefs) => {
@@ -790,7 +803,7 @@ const TF = {
 };
 // Alle drei Werte gehen zusammen raus (main mischt pro Theme).
 function themeFarbenAusWaehlern() {
-  return { anpassungen: { [themePrefs.theme]: {
+  return { anpassungen: { [ThemeKatalog.anpassungsSchluesselFuer(themePrefs)]: {
     akzent: TF.akzent.value, hintergrund: TF.hintergrund.value, partikel: TF.partikel.value
   } } };
 }
@@ -799,7 +812,7 @@ for (const el of Object.values(TF)) {
   el.addEventListener('change', () => window.twitchDual.saveThemePrefs(themeFarbenAusWaehlern()));
 }
 document.getElementById('opt-tf-reset').addEventListener('click', () => {
-  window.twitchDual.saveThemePrefs({ anpassungen: { [themePrefs.theme]: {} } });
+  window.twitchDual.saveThemePrefs({ anpassungen: { [ThemeKatalog.anpassungsSchluesselFuer(themePrefs)]: {} } });
 });
 const $galerie = document.getElementById('theme-galerie');
 const $galerieListe = document.getElementById('galerie-liste');
@@ -1444,17 +1457,44 @@ function spieleZuwaechse(liste) {
   });
 }
 
+// --- Effekte testen (⚙) ------------------------------------------------------
+// Beispieldaten wie von Twitch; Kiste/Punkte am Punkte-Chip, sonst (Chip
+// unsichtbar) unten rechts. Der Gast laeuft im Video-Fenster.
+for (const b of document.querySelectorAll('#opt-fx-test button')) {
+  b.addEventListener('click', () => window.twitchDual.fxTest(b.dataset.art));
+}
+// Mitte des Punkte-Chips; ohne sichtbaren Chip die Stelle in der Leiste,
+// an der er saesse (#points-wrap bleibt im Layout).
+function punkteUrsprung(extra) {
+  for (const el of [extra, $pointsChip, document.getElementById('points-wrap')]) {
+    const r = el ? el.getBoundingClientRect() : null;
+    if (r && (r.width > 0 || r.left > 0)) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  return { x: window.innerWidth - 70, y: window.innerHeight - 12 };
+}
+window.twitchDual.onFxTest((art) => {
+  // Kiste/Punkte laufen ueber denselben Weg wie echte Zugewinne.
+  if (art === 'kiste') zeigeZuwachs({ quelle: 'kiste', betrag: 50 });
+  else if (art === 'punkte') zeigeZuwachs({ quelle: 'passiv', betrag: 10 });
+  else if (art === 'raid') themeRuntime.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
+  else if (art === 'abo') {
+    themeRuntime.ereignis('abo', { name: 'TestZuschauer', monate: 12,
+      ursprung: { x: window.innerWidth / 2, y: window.innerHeight * 0.45 } });
+  }
+});
+
 function zeigeZuwachs(z) {
   if (!$pointsGain) return;
   const kiste = z.quelle === 'kiste';
-  // Lebendige Themes: Effekt am Punkte-Chip (Kiste gross, passiv klein).
-  if ($pointsChip) {
-    const r = $pointsChip.getBoundingClientRect();
-    themeRuntime.ereignis(kiste ? 'kiste' : 'punkte', {
-      betrag: z.betrag,
-      ursprung: { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-    });
+  // Leiste: Schatzkiste bzw. Chip-Puls (alle Themes gleich), dazu reagiert
+  // die Welt des Themes an derselben Stelle.
+  const $wrap = document.getElementById('points-wrap');
+  let $kiste = null;
+  if ($wrap) {
+    if (kiste) $kiste = KistenFx.spieleKiste({ doc: document, wirt: $wrap, stil: chatPrefs.kisteStil });
+    else KistenFx.spielePunkte({ doc: document, wirt: $wrap, chip: $pointsChip });
   }
+  themeRuntime.ereignis(kiste ? 'kiste' : 'punkte', { betrag: z.betrag, ursprung: punkteUrsprung($kiste) });
   $pointsGain.textContent = '+' + z.betrag.toLocaleString('de-DE');
   // Klasse weg -> Reflow erzwingen -> Klasse wieder dran. Ohne das Auslesen
   // von offsetWidth fasst der Browser beide Aenderungen zusammen und die

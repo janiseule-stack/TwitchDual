@@ -144,7 +144,10 @@ for (const variante of KOI_VARIANTEN) {
     welt.klickInsLeere(120, 140);
     welt.ereignis('kiste', { ursprung: { x: 300, y: 480 } });
     welt.ereignis('punkte', { ursprung: { x: 300, y: 480 } });
-    for (let i = 0; i < 10; i++) for (const fn of schleifen) fn(40);
+    welt.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
+    welt.ereignis('abo', { name: 'TestZuschauer', monate: 12, ursprung: { x: 180, y: 220 } });
+    welt.ereignis('abo', { name: 'Ohne Ort' });
+    for (let i = 0; i < 200; i++) for (const fn of schleifen) fn(40);   // Schwarm zieht ganz durch
     assert.ok(farben.has('#12ab34'), 'Partikelfarbe benutzt');
     welt.gast();
     welt.stop();

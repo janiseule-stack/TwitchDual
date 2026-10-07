@@ -1,7 +1,8 @@
 // Koi-Teich (gezeichnet): Kois mit Wirbelsaeule schwimmen auf einer Leinwand,
 // der Stil kommt aus stile.js (Variante). Maus in der Naehe lockt sie an,
 // Klick ins Leere = Welle + Flucht, Kiste = Lotus am Punkte-Chip und alle
-// schwimmen hin, Punkte = kleine Welle. Gast = ein Koi zieht uebers Video.
+// schwimmen hin, Punkte = kleine Welle, Raid = Schwarm kleiner Kois zieht
+// durchs Bild, Abo = grosse Lotusbluete mit Namen. Gast = Koi uebers Video.
 // Gezeichnet wird hoechstens alle 33 ms (30 Bilder/s) - Rechenzeit fuer
 // Spiele daneben; der Hintergrund entsteht nur bei Groessenwechsel neu.
 (function () {
@@ -19,6 +20,8 @@
     const MAUS_ALT_MS = 2000;   // stillstehende Maus lockt nicht ewig
 
     let L = null;
+    let V = null;               // Vordergrund (Chat: ueber den Leisten) fuer Ereignisse
+    let vornBelegt = false;
     let bg = null;
     let bgFaellig = 0;
     const zustand = {};          // Stil-eigene Daten (z. B. Sterne)
@@ -26,6 +29,7 @@
     let blaetter = [];
     const wellen = [];
     const lotus = [];
+    let schwarm = [];            // Raid-Fische, ziehen einmal durch und gehen
     let maus = null;
     let fluchtBis = 0;
     let lock = null;             // { x, y, bis }
@@ -123,20 +127,47 @@
     }
 
     // --- Zeichnen -----------------------------------------------------------
+    // Bluete oeffnet sich im ersten Drittel, verblasst im letzten Fuenftel.
     function zeichneLotus(g, lo, nun) {
-      const p = (nun - lo.start) / 2600;
+      const p = (nun - lo.start) / lo.dauer;
       if (p >= 1) return false;
-      const s = Math.min(1, p * 3) * 1.6 * skala();
-      g.save(); g.globalAlpha = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3;
-      g.translate(lo.x, lo.y - p * 30); g.scale(s, s);
-      for (let i = 0; i < 8; i++) {
-        const a = i / 8 * TAU + p;
-        g.fillStyle = PARTIKEL;
-        g.beginPath(); g.ellipse(Math.cos(a) * 8, Math.sin(a) * 8, 9, 4.2, a, 0, TAU); g.fill();
-      }
-      g.fillStyle = '#ffe9a8'; g.beginPath(); g.arc(0, 0, 4.5, 0, TAU); g.fill();
+      const o = 1 - Math.pow(1 - Math.min(1, p / 0.35), 3);
+      g.save();
+      g.globalAlpha = Math.min(1, p / 0.08) * (p < 0.8 ? 1 : 1 - (p - 0.8) / 0.2);
+      W.lotus(g, S, lo.x, lo.y, o, lo.L * skala(), lo.dreh);
+      if (lo.text) W.namensKarte(g, S, lo.x, lo.y + lo.L * skala() * 1.25 + 8, lo.text);
       g.restore();
       return true;
+    }
+
+    // Raid: kleiner Schwarm in einem Band, zieht von links nach rechts.
+    function starteSchwarm(anzahl) {
+      if (!L || !L.w) return;
+      const n = Math.max(8, Math.min(28, 8 + Math.round((anzahl || 0) / 10)));
+      const mitte = rnd(0.3, 0.7) * L.h, band = L.h * 0.15;
+      for (let i = 0; i < n; i++) {
+        const f = neuerFisch(Math.floor(Math.random() * S.fischFarben.length));
+        f.laenge = rnd(24, 34) * skala();
+        f.x = -rnd(20, 260) * skala(); f.y = mitte + rnd(-band, band);
+        f.a = rnd(-0.12, 0.12); f.v = rnd(2.2, 3.0);
+        for (let s2 = 0; s2 < f.segs.length; s2++) { f.segs[s2].x = f.x - s2 * 3; f.segs[s2].y = f.y; }
+        schwarm.push(f);
+      }
+      welle(12, mitte, true);
+    }
+    function bewegeSchwarm(k) {
+      for (const f of schwarm) {
+        f.a += (Math.sin(t * 0.05 + f.phase) * 0.18 - f.a) * 0.05 * k;
+        f.x += Math.cos(f.a) * f.v * skala() * k; f.y += Math.sin(f.a) * f.v * skala() * k;
+        f.segs[0].x = f.x; f.segs[0].y = f.y;
+        const abst = f.laenge / 11;
+        for (let i = 1; i < f.segs.length; i++) {
+          const p = f.segs[i - 1], q = f.segs[i], wi = Math.atan2(q.y - p.y, q.x - p.x);
+          q.x = p.x + Math.cos(wi) * abst; q.y = p.y + Math.sin(wi) * abst;
+        }
+        f.phase += 0.3 * k;
+      }
+      schwarm = schwarm.filter((f) => f.segs[f.segs.length - 1].x < L.w + 40);
     }
 
     function bild(nun) {
@@ -144,21 +175,34 @@
       g.drawImage(bg, 0, 0, L.w, L.h);
       if (S.unter) S.unter(g, t, L.w, L.h, W, zustand);
       for (const f of fische) S.fisch(g, f, W);
+      for (const f of schwarm) S.fisch(g, f, W);
       for (const bl of blaetter) {
         bl.a += 0.0008;
         g.save(); g.translate(bl.x, bl.y); g.rotate(bl.a); S.blatt(g, bl, W); g.restore();
       }
       if (Math.random() < 0.025) wellen.push({ x: rnd(0, L.w), y: rnd(0, L.h), t: 0, gross: false });
+      if (S.ueber) S.ueber(g, t, L.w, L.h, W, zustand);
+      // Ereignisse: im Chat auf die Vordergrund-Leinwand (sonst verdecken die
+      // Leisten den Punkte-Chip). Geloescht wird sie nur, wenn etwas lief.
+      const ev = V ? V.ctx : g;
+      if (V) {
+        V.passe();
+        if (vornBelegt) ev.clearRect(0, 0, V.w, V.h);
+      }
+      vornBelegt = false;
       for (let i = wellen.length - 1; i >= 0; i--) {
         const we = wellen[i];
         we.t += 2;
         if (we.t < 0) continue;
         const max = we.gross ? 90 : 55, r = we.t * (we.gross ? 0.9 : 0.5) * skala(), a = 1 - r / (max * skala());
         if (a <= 0) { wellen.splice(i, 1); continue; }
-        g.save(); g.globalAlpha = a; S.welle(g, we.x, we.y, r, W); g.restore();
+        const ziel = we.vorn ? ev : g;
+        if (we.vorn) vornBelegt = true;
+        ziel.save(); ziel.globalAlpha = a; S.welle(ziel, we.x, we.y, r, W); ziel.restore();
       }
-      for (let i = lotus.length - 1; i >= 0; i--) if (!zeichneLotus(g, lotus[i], nun)) lotus.splice(i, 1);
-      if (S.ueber) S.ueber(g, t, L.w, L.h, W, zustand);
+      for (let i = lotus.length - 1; i >= 0; i--) {
+        if (zeichneLotus(ev, lotus[i], nun)) vornBelegt = true; else lotus.splice(i, 1);
+      }
     }
 
     function frame(dt) {
@@ -179,10 +223,11 @@
       }
       passeAnzahl();
       for (const f of fische) bewege(f, k, nun);
+      bewegeSchwarm(k);
       bild(nun);
     }
 
-    function welle(x, y, gross, verzug) { wellen.push({ x, y, t: -(verzug || 0), gross }); }
+    function welle(x, y, gross, verzug, vorn) { wellen.push({ x, y, t: -(verzug || 0), gross, vorn: !!vorn }); }
 
     // Gast: ein gezeichneter Koi als Bild, das per Animation uebers Video zieht.
     function gastBild() {
@@ -203,9 +248,11 @@
       start() {
         L = engine.leinwand('hinten');
         if (!L) return;
+        // Im Video-Fenster gibt es keine vorn-Ebene -> Ereignisse auf den Teich.
+        V = engine.leinwand('vorn');
         engine.schleife(frame);
       },
-      stop() { fische = []; blaetter = []; L = null; bg = null; },
+      stop() { fische = []; blaetter = []; schwarm = []; L = null; V = null; bg = null; },
       maus(x, y) {
         const nun = jetzt();
         maus = { x, y, zeit: nun };
@@ -219,13 +266,27 @@
       ereignis(art, daten) {
         const u = daten.ursprung || { x: 0, y: 0 };
         // fx-hinten liegt im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
+        if (art === 'raid') {
+          starteSchwarm(daten.anzahl);
+          return;
+        }
+        if (art === 'abo') {
+          const x = daten.ursprung ? u.x : (L ? L.w / 2 : 0), y = daten.ursprung ? u.y : (L ? L.h / 2 : 0);
+          const text = [String(daten.name || '')];
+          if (daten.monate > 1) text.push(daten.monate + ' Monate');
+          lotus.push({ x, y, start: jetzt(), dauer: 4500, L: 20, dreh: rnd(0, TAU), text });
+          for (let i = 0; i < 3; i++) welle(x, y, true, i * 22, true);
+          lock = { x, y, bis: jetzt() + 3500 };
+          return;
+        }
+        // fx-hinten/-vorn liegen im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
+        // Die Kiste selbst zeichnet die Leiste (kiste.js) - hier nur Wasser + Fische.
         if (art === 'kiste') {
-          welle(u.x, u.y, true); welle(u.x, u.y, true, 30);
-          lotus.push({ x: u.x, y: u.y, start: jetzt() });
+          welle(u.x, u.y, true, 0, true); welle(u.x, u.y, true, 30, true);
           lock = { x: u.x, y: u.y, bis: jetzt() + 3000 };
         } else {
-          welle(u.x, u.y, false);
-          lock = { x: u.x, y: u.y, bis: jetzt() + 1200 };
+          welle(u.x, u.y, true, 0, true);
+          lock = { x: u.x, y: u.y, bis: jetzt() + 1500 };
         }
       },
       gast() {

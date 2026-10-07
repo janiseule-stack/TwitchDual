@@ -55,19 +55,35 @@
 
   // Eigene Farben pro Theme (Spec Welle 1b, 4.): nur Nicht-Neon-Themes, nur
   // die drei Schluessel, nur gueltige Hex - alles andere faellt still weg.
+  // Themes mit Varianten speichern pro Variante ("koi:tusche"), sonst
+  // legten sich die Farben einer Variante ueber alle anderen.
+  function anpassungsSchluessel(themeId, varianteId) {
+    const t = themeById(themeId);
+    if (!t.varianten) return t.id;
+    const v = varianteVon(t.id, varianteId);
+    return t.id + ':' + v.id;
+  }
+  function gueltigeSchluessel() {
+    const alle = [];
+    for (const t of THEMES) {
+      if (t.id === 'neon-dual') continue;
+      if (t.varianten) for (const v of t.varianten) alle.push(t.id + ':' + v.id);
+      else alle.push(t.id);
+    }
+    return alle;
+  }
   function cleanAnpassungen(roh) {
     const aus = {};
     if (!roh || typeof roh !== 'object') return aus;
-    for (const t of THEMES) {
-      if (t.id === 'neon-dual') continue;
-      const a = roh[t.id];
+    for (const schluessel of gueltigeSchluessel()) {
+      const a = roh[schluessel];
       if (!a || typeof a !== 'object') continue;
       const sauber = {};
       for (const k of FARB_SCHLUESSEL) {
         const hex = ThemeLib.normalizeHex(a[k], null);
         if (hex) sauber[k] = hex;
       }
-      if (Object.keys(sauber).length) aus[t.id] = sauber;
+      if (Object.keys(sauber).length) aus[schluessel] = sauber;
     }
     return aus;
   }
@@ -130,9 +146,15 @@
     return cleanThemePrefs({ ...g, ...u, anpassungen, variante });
   }
 
+  // Schluessel der Anpassung fuer die aktuelle Wahl (Theme bzw. Theme:Variante).
+  function anpassungsSchluesselFuer(prefs) {
+    const p = prefs || {};
+    const id = cleanTheme(p.theme);
+    return anpassungsSchluessel(id, p.variante && p.variante[id]);
+  }
   function anpassungFuer(prefs) {
     const p = prefs || {};
-    return (p.anpassungen && p.anpassungen[p.theme]) || {};
+    return (p.anpassungen && p.anpassungen[anpassungsSchluesselFuer(p)]) || {};
   }
   function effektiveFarben(prefs) {
     const t = themeById(prefs && prefs.theme);
@@ -153,7 +175,7 @@
   return {
     THEMES, STANDARD_THEME, EFFEKT_STUFEN, STANDARD_EFFEKTE, EFFEKT_FAKTOR, KLICK_SPERRE,
     themeById, cleanTheme, cleanEffekte, cleanThemePrefs, mergeThemePrefs, istKlickInsLeere,
-    cleanVariante, varianteVon, varianteFuer,
+    cleanVariante, varianteVon, varianteFuer, anpassungsSchluessel, anpassungsSchluesselFuer,
     FARB_SCHLUESSEL, SICHERE_FARBE, istSichereFarbe, cleanAnpassungen, anpassungFuer, effektiveFarben, balkenFarbe
   };
 });

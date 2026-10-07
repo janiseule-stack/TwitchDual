@@ -7,6 +7,7 @@
 //   blatt(g, bl, W)           Seerosenblatt (schon verschoben/gedreht)
 //   welle(g, x, y, r, W)      ein Wellenring (globalAlpha ist gesetzt)
 //   ueber(g, t, w, h, W)      optional, jedes Bild NACH allem
+//   schrift {...}, lotus {...}  Kaertchen + Bluete bei Kiste/Abo
 // W = Werkzeug (unten). Nur Canvas-API, kein DOM ausser createElement.
 (function () {
   const TAU = Math.PI * 2;
@@ -108,10 +109,82 @@
   }
   function dichte(w, h) { return Math.max(0.3, (w * h) / 141000); }
 
-  const W = { TAU, rnd, leinwand, koernung, stempel, koerper, flossen, flecken, augen, dichte };
+  // Lotus von oben: zwei Kraenze spitzer Blaetter + Samenkapsel, auf einem
+  // Seerosenblatt im Stil der Variante. o = Oeffnung 0..1, L = Blattlaenge.
+  function bluetenblatt(g, laenge, breite) {
+    g.beginPath(); g.moveTo(0, 0);
+    g.bezierCurveTo(breite, -laenge * 0.3, breite * 0.6, -laenge * 0.85, 0, -laenge);
+    g.bezierCurveTo(-breite * 0.6, -laenge * 0.85, -breite, -laenge * 0.3, 0, 0);
+  }
+  function lotus(g, stil, x, y, o, L, dreh) {
+    const st = stil.lotus;
+    g.save(); g.translate(x, y);
+    // Blatt darunter, etwas versetzt
+    g.save(); g.translate(L * 0.35, L * 0.25); g.rotate(dreh + 0.6);
+    stil.blatt(g, { r: L * 1.25, bluete: false }, W); g.restore();
+    if (st.filter) g.filter = st.filter;
+    g.rotate(dreh);
+    const kraenze = [
+      { n: 10, l: L, b: L * 0.42, farbe: st.aussen, off: 0 },
+      { n: 7, l: L * 0.7, b: L * 0.36, farbe: st.innen, off: 0.45 }
+    ];
+    for (const k of kraenze) {
+      const laenge = k.l * (0.3 + 0.7 * o);
+      for (let i = 0; i < k.n; i++) {
+        g.save(); g.rotate((i + k.off) / k.n * TAU);
+        bluetenblatt(g, laenge, k.b);
+        g.fillStyle = k.farbe; g.fill();
+        if (st.rand) { g.strokeStyle = st.rand; g.lineWidth = st.randBreite || 1; g.stroke(); }
+        if (st.ader) {
+          g.strokeStyle = st.ader; g.lineWidth = 0.7;
+          g.beginPath(); g.moveTo(0, -laenge * 0.15); g.lineTo(0, -laenge * 0.75); g.stroke();
+        }
+        g.restore();
+      }
+    }
+    g.filter = 'none';
+    const kr = L * 0.22;
+    g.beginPath(); g.arc(0, 0, kr, 0, TAU); g.fillStyle = st.kapsel || '#e6cf62'; g.fill();
+    if (st.rand) { g.strokeStyle = st.rand; g.lineWidth = (st.randBreite || 1) * 0.8; g.stroke(); }
+    g.fillStyle = 'rgba(90,110,40,.6)';
+    for (let i = 0; i < 6; i++) {
+      const a = i / 6 * TAU;
+      g.beginPath(); g.arc(Math.cos(a) * kr * 0.5, Math.sin(a) * kr * 0.5, Math.max(0.8, kr * 0.13), 0, TAU); g.fill();
+    }
+    g.restore();
+  }
+  // Namens-Kaertchen (Abo) im Stil der Variante.
+  function namensKarte(g, stil, x, y, zeilen) {
+    const sch = stil.schrift;
+    g.save();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    let breite = 0;
+    zeilen.forEach((z, i) => {
+      g.font = i === 0 ? sch.font : sch.fontKlein;
+      const m = g.measureText(z);
+      breite = Math.max(breite, (m && m.width) || z.length * 7);
+    });
+    breite += 20;
+    const hoehe = zeilen.length * 18 + 10;
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x - breite / 2, y, breite, hoehe, sch.radius); else g.rect(x - breite / 2, y, breite, hoehe);
+    g.fillStyle = sch.kasten; g.fill();
+    if (sch.rand) { g.strokeStyle = sch.rand; g.lineWidth = sch.randBreite || 1; g.stroke(); }
+    zeilen.forEach((z, i) => {
+      g.fillStyle = i === 0 ? sch.farbe : sch.zweit;
+      g.font = i === 0 ? sch.font : sch.fontKlein;
+      g.fillText(z, x, y + 14 + i * 18);
+    });
+    g.restore();
+  }
+
+  const W = { TAU, rnd, leinwand, koernung, stempel, koerper, flossen, flecken, augen, dichte, lotus, namensKarte };
 
   // =========================================================================
   const aquarell = {
+    schrift: { font: '600 13px "Segoe Print", Candara, cursive', fontKlein: '11px Candara, sans-serif', farbe: '#a5452a', zweit: '#7a7468',
+      kasten: 'rgba(250,246,236,.92)', rand: 'rgba(120,150,130,.5)', randBreite: 1, radius: 10 },
+    lotus: { aussen: 'rgba(238,160,182,.85)', innen: 'rgba(250,214,224,.95)', rand: 'rgba(170,90,110,.3)', randBreite: 1, filter: 'blur(0.4px)', ader: 'rgba(200,110,140,.35)' },
     fischFarben: [['#f3ece0', null], ['#f3ece0', '#d9534a'], ['#efc36a', '#e8a443'], ['#f3ece0', '#3c3a3f'], ['#f3ece0', null]],
     hintergrund(g, w, h) {
       g.fillStyle = '#dfeae2'; g.fillRect(0, 0, w, h);
@@ -156,6 +229,9 @@
 
   // =========================================================================
   const lofi = {
+    schrift: { font: '700 13px Bahnschrift, "Segoe UI", sans-serif', fontKlein: '11px Bahnschrift, sans-serif', farbe: '#ffc7a8', zweit: '#a9a6d6',
+      kasten: 'rgba(29,28,61,.94)', rand: '#ff9a6e', randBreite: 1.5, radius: 12 },
+    lotus: { aussen: '#ff9fc4', innen: '#ffd0e2', rand: '#1d1c3d', randBreite: 1.6 },
     fischFarben: [['#ffe9cf', null], ['#ffe9cf', '#ff5d6c'], ['#ffd27a', '#ffa64d'], ['#ffe9cf', '#2a2950'], [null, '#ffe9cf']],
     hintergrund(g, w, h, Wz, zustand) {
       const gr = g.createLinearGradient(0, 0, 0, h);
@@ -199,6 +275,9 @@
 
   // =========================================================================
   const holzschnitt = {
+    schrift: { font: '700 13px "Yu Mincho", "MS Mincho", Georgia, serif', fontKlein: '11px "Yu Mincho", Georgia, serif', farbe: '#9e2b1f', zweit: '#4a4036',
+      kasten: '#efe3c8', rand: '#1c1a18', randBreite: 2, radius: 2 },
+    lotus: { aussen: '#e88aa0', innen: '#f6c9d3', rand: '#1c1a18', randBreite: 1.4, ader: 'rgba(28,26,24,.45)' },
     fischFarben: [['#f2e6cc', null], ['#f2e6cc', '#c0392b'], ['#e8a53a', '#f2e6cc'], ['#f2e6cc', '#1c1a18'], [null, '#f2e6cc']],
     hintergrund(g, w, h) {
       g.fillStyle = '#2f4d70'; g.fillRect(0, 0, w, h);
@@ -243,6 +322,9 @@
 
   // =========================================================================
   const tusche = {
+    schrift: { font: '600 13px "Yu Mincho", Georgia, serif', fontKlein: '11px Georgia, serif', farbe: '#b0302a', zweit: '#555',
+      kasten: 'rgba(248,244,235,.92)', rand: 'rgba(30,30,30,.3)', randBreite: 1, radius: 3 },
+    lotus: { aussen: 'rgba(184,51,43,.5)', innen: 'rgba(184,51,43,.28)', rand: 'rgba(20,20,20,.45)', randBreite: 0.9, filter: 'blur(0.6px)', kapsel: 'rgba(60,60,60,.5)' },
     // Ein roter Fisch (Partikelfarbe), der Rest Tusche.
     fischFarben: [[null, null], ['rgba(25,25,25,.78)', null], ['rgba(40,40,40,.55)', null], ['rgba(25,25,25,.8)', null], ['rgba(60,60,60,.45)', null]],
     hintergrund(g, w, h) {
@@ -284,6 +366,9 @@
 
   // =========================================================================
   const bleiglas = {
+    schrift: { font: '600 13px "Palatino Linotype", Georgia, serif', fontKlein: '11px "Palatino Linotype", Georgia, serif', farbe: '#ffd49a', zweit: '#b4b0d0',
+      kasten: 'rgba(18,16,28,.94)', rand: '#121016', randBreite: 3, radius: 8 },
+    lotus: { aussen: '#ff8ab8', innen: '#ffc0d8', rand: '#121016', randBreite: 2.2 },
     fischFarben: [['#ffcf8a', null], ['#ffe2b8', '#e8402f'], ['#ffd34a', '#ff9a2a'], ['#ffe2b8', '#5a2a6a'], [null, '#ffe2b8']],
     hintergrund(g, w, h) {
       // Voronoi-Scherben mit Bleifassung in voller Aufloesung. Die Punkte

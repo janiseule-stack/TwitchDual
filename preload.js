@@ -111,7 +111,11 @@ if (!isTwitchFrame) {
       ipcRenderer.send('diag-melde', { bereich, ereignis, detail }),
     getDiagEnabled: () => ipcRenderer.invoke('get-diag-enabled'),
     setDiagEnabled: (an) => ipcRenderer.send('set-diag-enabled', !!an),
-    openDiagFolder: () => ipcRenderer.send('open-diag-folder')
+    openDiagFolder: () => ipcRenderer.send('open-diag-folder'),
+
+    // Effekte testen (⚙): geht an BEIDE Fenster, jedes spielt seinen Teil.
+    fxTest: (art) => ipcRenderer.send('fx-test', art),
+    onFxTest: (cb) => { ipcRenderer.on('fx-test', (_e, art) => cb(art)); }
   });
 }
 

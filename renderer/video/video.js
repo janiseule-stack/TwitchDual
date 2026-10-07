@@ -350,6 +350,16 @@ new MutationObserver(aktualisiereFxPause).observe($homeFx, { attributes: true, a
 new MutationObserver(aktualisiereFxPause).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 aktualisiereFxPause();
 
+// Effekte testen (⚙ im Chat): Gast sofort, Raid/Abo auch im Home-Teich.
+window.twitchDual.onFxTest((art) => {
+  if (art === 'gast') themeRuntime.gastErzwingen();
+  else if (art === 'raid') themeRuntime.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
+  else if (art === 'abo') {
+    themeRuntime.ereignis('abo', { name: 'TestZuschauer', monate: 12,
+      ursprung: { x: window.innerWidth / 2, y: window.innerHeight * 0.45 } });
+  }
+});
+
 // Gastauftritte nur bei laufendem Player und nicht im Nur-Video-Modus.
 themeRuntime.setzeGastBedingung(() =>
   letzterGesendeterPlayerZustand === 'playing' && !document.body.classList.contains('video-only'));

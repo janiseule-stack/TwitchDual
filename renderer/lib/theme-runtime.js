@@ -264,6 +264,8 @@
       },
       setzeGastBedingung(fn) { gastBedingung = typeof fn === 'function' ? fn : null; },
       gastJetzt,
+      // Effekte testen: Gast sofort, ohne Player-Bedingung (nur Video-Fenster).
+      gastErzwingen() { if (fenster === 'video') rufe('gast', (w) => w.gast && w.gast()); },
       starteVorschau,
       stop() { lauf++; stoppeWelt(); },
       get weltAktiv() { return !!welt; }

@@ -304,6 +304,12 @@ ipcMain.handle('get-ui-prefs', () => ({
 }));
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
+// Effekte testen (⚙ im Chat): nur bekannte Arten, an beide Fenster.
+const FX_TEST_ARTEN = ['kiste', 'punkte', 'gast', 'raid', 'abo'];
+ipcMain.on('fx-test', (_evt, art) => {
+  if (FX_TEST_ARTEN.includes(art)) broadcast('fx-test', art);
+});
+
 ipcMain.on('home-open', () => {
   if (chatSender) chatSender.setChannel(null);
   punkteHomeOffen = true; // Kanalpunkte-Takt ruht, solange das Overlay offen ist

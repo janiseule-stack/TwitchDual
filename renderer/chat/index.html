@@ -40,6 +40,12 @@
       <div class="opt-row">Effekte
         <div id="opt-effekte" class="opt-segment" role="group" aria-label="Effekte"></div>
       </div>
+      <div class="opt-row">Kiste
+        <div id="opt-kiste" class="opt-segment" role="group" aria-label="Kiste">
+          <button type="button" data-stil="geschenk">🎁 Geschenk</button>
+          <button type="button" data-stil="pixel">👾 Pixel</button>
+        </div>
+      </div>
       <div id="opt-neon-farben">
         <div class="opt-presets-label">Presets</div>
         <div id="opt-presets" class="opt-presets"></div>
@@ -61,6 +67,17 @@
         <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
         <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
       </label>
+    </div>
+    <div class="opt-group">
+      <div class="opt-group-title">Effekte testen</div>
+      <div id="opt-fx-test" class="opt-fx-test">
+        <button type="button" data-art="kiste">🎁 Kiste</button>
+        <button type="button" data-art="punkte">✨ Punkte</button>
+        <button type="button" data-art="raid">🚀 Raid</button>
+        <button type="button" data-art="abo">⭐ Abo</button>
+        <button type="button" data-art="gast">🎬 Gast</button>
+      </div>
+      <div class="opt-hinweis">Spielt das Ereignis im aktuellen Theme ab. Bei Effekte „Aus" passiert nichts.</div>
     </div>
     <div class="opt-group">
       <div class="opt-group-title">Diagnose</div>
@@ -137,6 +154,7 @@
   <script src="../lib/theme.js"></script>
   <script src="../lib/themes.js"></script>
   <script src="../lib/fx-engine.js"></script>
+  <script src="../lib/kiste.js"></script>
   <script src="../lib/theme-runtime.js"></script>
   <script src="../lib/points-icon.js"></script>
   <script src="chat.js"></script>
