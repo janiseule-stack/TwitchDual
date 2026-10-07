@@ -1,77 +1,285 @@
-/* Sakura (hell): Pastell-Rosa/Lila, runde Formen. Flaechen tragen
-   --chat-alpha (Glass-Transparenz), Akzente bleiben voll. */
-:root[data-theme="sakura"] {
-  --bg: rgb(255 244 248 / var(--chat-alpha, 1));
-  --panel: rgb(255 232 241 / var(--chat-alpha, 1));
-  --hover: rgb(255 222 235 / var(--chat-alpha, 1));
-  --line: #f6cfdd;
-  --text: #5a3446;
-  --muted: #9a6f82;
-  --ts: #c09aab;
-  --accent: #e0659a;
-  --accent-title: #c2507a;
-  --accent-border: rgba(224, 101, 154, .45);
-  --accent-glow: rgba(224, 101, 154, .18);
-  --accent-dim: rgba(224, 101, 154, .3);
-  --accent-contrast: #ffffff;
-  --onair-from: #ffb3cc;
-  --onair-to: #d7b8ff;
-  --schrift: Candara, "Segoe UI", sans-serif;
-  --schrift-titel: "Segoe Script", Candara, cursive;
-}
-:root[data-theme="sakura"] #messages::-webkit-scrollbar-thumb { background: #f2b8cc; }
-:root[data-theme="sakura"] #emote-panel,
-:root[data-theme="sakura"] #ac-bar { background: #fff5f9; }
-:root[data-theme="sakura"] #settings-pop,
-:root[data-theme="sakura"] .galerie-karte,
-:root[data-theme="sakura"] #composer { border-radius: 12px; }
+/* Sakura (gezeichnet, Varianten). Die Welt malt den ganzen Hintergrund auf
+   eine Leinwand; die CSS gibt nur Kaesten/Schrift/Knoepfe in Variantenfarbe.
+   Jede Variante setzt dieselben Variablen, die Regeln unten sind gemeinsam.
+   Flaechen tragen --chat-alpha (Glass-Transparenz), Akzente bleiben voll. */
 
-/* --- Welle 1b: Stil Bluetenzweig ------------------------------------------ */
-:root[data-theme="sakura"] #home-title, :root[data-theme="sakura"] #title,
-:root[data-theme="sakura"] .lc-name, :root[data-theme="sakura"] .fav .name { font-weight: 400; color: var(--accent-title); }
-:root[data-theme="sakura"] #channel, :root[data-theme="sakura"] #filter-input,
-:root[data-theme="sakura"] #add-input, :root[data-theme="sakura"] #chat-input {
-  border-radius: 12px; border: 1.5px solid #ffd1e1;
+/* --- A: Aquarell (Standard) ---------------------------------------------------- */
+:root[data-theme="sakura"] {
+  --bg: rgb(251 238 242 / var(--chat-alpha, 1));
+  --panel: rgb(255 248 250 / var(--chat-alpha, 1));
+  --hover: rgb(248 230 237 / var(--chat-alpha, 1));
+  --line: #efcfdb;
+  --text: #4a3a40;
+  --muted: #8a7078;
+  --ts: #b39aa4;
+  --accent: #c4507e;
+  --accent-title: #a83e68;
+  --accent-border: rgba(196, 80, 126, .4);
+  --accent-glow: rgba(196, 80, 126, .15);
+  --accent-dim: rgba(196, 80, 126, .28);
+  --accent-contrast: #fffafc;
+  --onair-from: #f7a8c4;
+  --onair-to: #a9c6dc;
+  --schrift: Candara, "Segoe UI", sans-serif;
+  --schrift-titel: "Segoe Print", Candara, cursive;
+  --schleier: rgba(255, 248, 250, .5);
+  --halo: rgba(255, 248, 250, .9);
+  --karte: rgba(255, 248, 250, .8);
+  --karte-rand: 1px solid rgba(196, 120, 150, .4);
+  --rund: 14px;
+  --knopf: rgba(196, 80, 126, .12);
+  --balken: #fdf3f6;
 }
-:root[data-theme="sakura"] #load, :root[data-theme="sakura"] #home-btn,
-:root[data-theme="sakura"] #home-head button, :root[data-theme="sakura"] #auth-bar button,
-:root[data-theme="sakura"] .lc-actions button, :root[data-theme="sakura"] .fav .actions button,
-:root[data-theme="sakura"] #chat-send, :root[data-theme="sakura"] #emote-btn,
-:root[data-theme="sakura"] #rewards-btn { border-radius: 12px; }
-:root[data-theme="sakura"] #home-head { margin-top: 34px; border-radius: 18px 18px 0 0; }
-:root[data-theme="sakura"] .live-card, :root[data-theme="sakura"] .fav, :root[data-theme="sakura"] .vod {
-  background: #fffafc; border: 1.5px solid #ffd1e1; border-radius: 18px;
-  box-shadow: 0 6px 14px rgba(224, 101, 154, .15); position: relative; overflow: visible;
+
+/* --- B: Lofi-Nacht ------------------------------------------------------------- */
+:root[data-theme="sakura"][data-variante="lofi"] {
+  --bg: rgb(30 28 70 / var(--chat-alpha, 1));
+  --panel: rgb(24 22 54 / var(--chat-alpha, 1));
+  --hover: rgb(44 40 90 / var(--chat-alpha, 1));
+  --line: #45407e;
+  --text: #f3e9ff;
+  --muted: #b7a8d8;
+  --ts: #8a7fb4;
+  --accent: #ff9ec8;
+  --accent-title: #ffc9e0;
+  --accent-border: rgba(255, 158, 200, .45);
+  --accent-glow: rgba(255, 158, 200, .2);
+  --accent-dim: rgba(255, 158, 200, .3);
+  --accent-contrast: #1e1c46;
+  --onair-from: #ff9ec8;
+  --onair-to: #ffb15a;
+  --schrift: Bahnschrift, "Segoe UI", sans-serif;
+  --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
+  --schleier: rgba(20, 18, 48, .55);
+  --halo: rgba(20, 18, 48, .95);
+  --karte: rgba(24, 22, 54, .8);
+  --karte-rand: 2px solid #120f26;
+  --rund: 16px;
+  --knopf: rgba(255, 158, 200, .14);
+  --balken: #141436;
 }
-:root[data-theme="sakura"] .lc-thumbwrap { border-radius: 14px; margin: 6px; }
-:root[data-theme="sakura"] .live-card::after {
-  content: "🌸"; position: absolute; right: -6px; top: -10px; font-size: 20px;
-  transform: rotate(18deg); pointer-events: none;
+
+/* --- C: Holzschnitt ------------------------------------------------------------ */
+:root[data-theme="sakura"][data-variante="holzschnitt"] {
+  --bg: rgb(239 227 200 / var(--chat-alpha, 1));
+  --panel: rgb(239 227 200 / var(--chat-alpha, 1));
+  --hover: rgb(228 214 182 / var(--chat-alpha, 1));
+  --line: #1c1a18;
+  --text: #24201c;
+  --muted: #6a5f50;
+  --ts: #8a7d68;
+  --accent: #c0392b;
+  --accent-title: #9e2b1f;
+  --accent-border: #1c1a18;
+  --accent-glow: rgba(192, 57, 43, .12);
+  --accent-dim: rgba(192, 57, 43, .25);
+  --accent-contrast: #f6efe2;
+  --onair-from: #c0392b;
+  --onair-to: #2e4a6b;
+  --schrift: "Yu Gothic UI", "Segoe UI", sans-serif;
+  --schrift-titel: "Yu Mincho", "MS Mincho", Georgia, serif;
+  --schleier: rgba(239, 227, 200, .42);
+  --halo: rgba(239, 227, 200, .95);
+  --karte: rgba(239, 227, 200, .94);
+  --karte-rand: 2px solid #1c1a18;
+  --rund: 2px;
+  --knopf: #efe3c8;
+  --balken: #efe3c8;
 }
-:root[data-theme="sakura"] .fav::after {
-  content: "✿"; position: absolute; right: 12px; top: -11px; color: #ff9ec0; font-size: 16px; pointer-events: none;
+
+/* --- D: Tusche ----------------------------------------------------------------- */
+:root[data-theme="sakura"][data-variante="tusche"] {
+  --bg: rgb(244 239 227 / var(--chat-alpha, 1));
+  --panel: rgb(246 241 230 / var(--chat-alpha, 1));
+  --hover: rgb(236 230 216 / var(--chat-alpha, 1));
+  --line: #d6cfbf;
+  --text: #262626;
+  --muted: #6b6b6b;
+  --ts: #9a958a;
+  --accent: #b0302a;
+  --accent-title: #1f1f1f;
+  --accent-border: rgba(30, 30, 30, .35);
+  --accent-glow: rgba(176, 48, 42, .1);
+  --accent-dim: rgba(176, 48, 42, .22);
+  --accent-contrast: #f6f1e6;
+  --onair-from: #b0302a;
+  --onair-to: #e98fac;
+  --schrift: Georgia, "Yu Mincho", serif;
+  --schrift-titel: "Yu Mincho", Georgia, serif;
+  --schleier: rgba(246, 241, 230, .58);
+  --halo: rgba(246, 241, 230, .95);
+  --karte: rgba(248, 244, 235, .85);
+  --karte-rand: 1px solid rgba(30, 30, 30, .28);
+  --rund: 3px;
+  --knopf: transparent;
+  --balken: #f6f1e6;
 }
-:root[data-theme="sakura"] .lc-live { background: #ff7aa8; border-radius: 10px; }
-:root[data-theme="sakura"] .lc-live::before {
-  content: "🌸"; width: auto; height: auto; background: none; animation: none; font-size: 10px;
+
+/* --- E: Bleiglas --------------------------------------------------------------- */
+:root[data-theme="sakura"][data-variante="bleiglas"] {
+  --bg: rgb(26 36 64 / var(--chat-alpha, 1));
+  --panel: rgb(20 18 30 / var(--chat-alpha, 1));
+  --hover: rgb(40 44 74 / var(--chat-alpha, 1));
+  --line: #0d0d12;
+  --text: #f2ecff;
+  --muted: #b4b0d0;
+  --ts: #8a86aa;
+  --accent: #ff8fb8;
+  --accent-title: #ffc0d8;
+  --accent-border: rgba(255, 143, 184, .5);
+  --accent-glow: rgba(255, 143, 184, .2);
+  --accent-dim: rgba(255, 143, 184, .3);
+  --accent-contrast: #1a1420;
+  --onair-from: #ff6fa3;
+  --onair-to: #7ad0ff;
+  --schrift: "Segoe UI", sans-serif;
+  --schrift-titel: "Palatino Linotype", Georgia, serif;
+  --schleier: rgba(14, 14, 26, .6);
+  --halo: rgba(14, 14, 26, .95);
+  --karte: rgba(18, 16, 28, .8);
+  --karte-rand: 3px solid #0d0d12;
+  --rund: 8px;
+  --knopf: rgba(255, 143, 184, .14);
+  --balken: #14121e;
 }
-:root[data-theme="sakura"] .fav .badge { border-radius: 8px; }
-:root[data-theme="sakura"] .fav .avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 3px #ffb3cc; }
-:root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card,
-:root[data-theme="sakura"] #points-chip { border-radius: 16px; }
-/* Deko: bluehender Zweig ueber dem Home-Kopf, Bluetenbuendel im Chat */
-:root[data-theme="sakura"] #home > .theme-deko::before {
-  content: ""; position: absolute; left: -10px; top: 6px; width: 78%; height: 46px;
-  border-top: 5px solid #6b4a3a; border-radius: 0 60% 0 0 / 0 100% 0 0;
+
+/* --- F: Pixel ------------------------------------------------------------------ */
+:root[data-theme="sakura"][data-variante="pixel"] {
+  --bg: rgb(43 33 64 / var(--chat-alpha, 1));
+  --panel: rgb(34 26 52 / var(--chat-alpha, 1));
+  --hover: rgb(58 44 86 / var(--chat-alpha, 1));
+  --line: #ff9cc7;
+  --text: #ffe9f3;
+  --muted: #c9a8d8;
+  --ts: #9a80b0;
+  --accent: #ff9cc7;
+  --accent-title: #ffc4de;
+  --accent-border: #ff9cc7;
+  --accent-glow: rgba(255, 156, 199, .2);
+  --accent-dim: rgba(255, 156, 199, .3);
+  --accent-contrast: #2b2140;
+  --onair-from: #ff9cc7;
+  --onair-to: #9cd8ff;
+  --schrift: Consolas, "Courier New", monospace;
+  --schrift-titel: Consolas, "Courier New", monospace;
+  --schleier: rgba(30, 22, 48, .55);
+  --halo: rgba(30, 22, 48, .95);
+  --karte: rgba(43, 33, 64, .92);
+  --karte-rand: 2px solid #ff9cc7;
+  --rund: 0;
+  --knopf: rgba(255, 156, 199, .14);
+  --balken: #1e1630;
 }
-:root[data-theme="sakura"] #home > .theme-deko::after {
-  content: "🌸   🌸  🌸     🌸   🌸 🌸    🌸   🌸"; white-space: pre; position: absolute;
-  left: 24px; top: -4px; font-size: 18px; letter-spacing: 4px;
+
+/* --- G: Hanami-Fluss ----------------------------------------------------------- */
+:root[data-theme="sakura"][data-variante="fluss"] {
+  --bg: rgb(238 245 244 / var(--chat-alpha, 1));
+  --panel: rgb(246 251 250 / var(--chat-alpha, 1));
+  --hover: rgb(225 238 238 / var(--chat-alpha, 1));
+  --line: #c5dcdc;
+  --text: #2f4048;
+  --muted: #6a8088;
+  --ts: #9ab0b4;
+  --accent: #2f7a8a;
+  --accent-title: #2a6a78;
+  --accent-border: rgba(47, 122, 138, .4);
+  --accent-glow: rgba(47, 122, 138, .15);
+  --accent-dim: rgba(47, 122, 138, .28);
+  --accent-contrast: #f4fbfb;
+  --onair-from: #f7a8c4;
+  --onair-to: #6ea9b6;
+  --schrift: Candara, "Segoe UI", sans-serif;
+  --schrift-titel: "Segoe Print", Candara, cursive;
+  --schleier: rgba(244, 250, 250, .5);
+  --halo: rgba(244, 250, 250, .9);
+  --karte: rgba(246, 251, 250, .82);
+  --karte-rand: 1px solid rgba(47, 122, 138, .35);
+  --rund: 12px;
+  --knopf: rgba(47, 122, 138, .12);
+  --balken: #f2f8f7;
 }
-:root[data-theme="sakura"] #theme-deko::after {
-  content: "🌸 🌸\A  🌸"; white-space: pre; position: absolute; right: 12px; top: 56px;
-  font-size: 18px; line-height: 1.3; opacity: .45;
+
+/* --- H: Shoji-Schatten --------------------------------------------------------- */
+:root[data-theme="sakura"][data-variante="shoji"] {
+  --bg: rgb(241 226 198 / var(--chat-alpha, 1));
+  --panel: rgb(250 243 228 / var(--chat-alpha, 1));
+  --hover: rgb(236 222 196 / var(--chat-alpha, 1));
+  --line: #b89a74;
+  --text: #3f3226;
+  --muted: #7a6650;
+  --ts: #a48e72;
+  --accent: #a8433a;
+  --accent-title: #6b4e33;
+  --accent-border: rgba(107, 78, 51, .55);
+  --accent-glow: rgba(168, 67, 58, .12);
+  --accent-dim: rgba(168, 67, 58, .25);
+  --accent-contrast: #faf3e4;
+  --onair-from: #a8433a;
+  --onair-to: #6b4e33;
+  --schrift: Georgia, "Yu Mincho", serif;
+  --schrift-titel: "Yu Mincho", Georgia, serif;
+  --schleier: rgba(250, 243, 228, .45);
+  --halo: rgba(250, 243, 228, .95);
+  --karte: rgba(250, 243, 228, .9);
+  --karte-rand: 2px solid #6b4e33;
+  --rund: 2px;
+  --knopf: rgba(107, 78, 51, .1);
+  --balken: #e9d8b8;
 }
-/* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
+
+/* === Gemeinsame Regeln ======================================================= */
+/* Leinwand voll sichtbar (andere Themes daempfen fx-hinten auf .55); die
+   Glass-Transparenz wirkt auf die ganze Welt. */
+:root[data-theme="sakura"] #fx-hinten { opacity: var(--chat-alpha, 1); }
+:root[data-theme="sakura"] #home { background: var(--bg); }
+/* Lesbarkeit: leichter Schleier ueber der Welt + Schein um die Schrift. */
+:root[data-theme="sakura"] #messages { background: var(--schleier); }
+:root[data-theme="sakura"] .msg {
+  font-weight: 500;
+  text-shadow: 0 0 2px var(--halo), 0 0 4px var(--halo), 0 0 8px var(--halo);
+}
+/* Oberer On-Air-Balken deckt die Welt ab (sonst ragt er ueber den Kopf hinaus). */
+:root[data-theme="sakura"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
+
+:root[data-theme="sakura"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
 :root[data-theme="sakura"] #messages, :root[data-theme="sakura"] #home-fav-view,
-:root[data-theme="sakura"] #home-vod-view, :root[data-theme="sakura"] #followed-view { scrollbar-color: #f2b8cc transparent; }
+:root[data-theme="sakura"] #home-vod-view, :root[data-theme="sakura"] #followed-view { scrollbar-color: var(--accent-border) transparent; }
+:root[data-theme="sakura"] #emote-panel, :root[data-theme="sakura"] #ac-bar { background: var(--balken); }
+
+:root[data-theme="sakura"] #bar, :root[data-theme="sakura"] #home-head, :root[data-theme="sakura"] #head {
+  background: var(--balken); border-bottom: var(--karte-rand);
+}
+:root[data-theme="sakura"] #home-title, :root[data-theme="sakura"] #title,
+:root[data-theme="sakura"] .lc-name, :root[data-theme="sakura"] .fav .name { color: var(--accent-title); }
+
+:root[data-theme="sakura"] .live-card, :root[data-theme="sakura"] .vod, :root[data-theme="sakura"] .fav {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
+}
+:root[data-theme="sakura"] .lc-thumbwrap { margin: 6px 6px 0; border-radius: calc(var(--rund) * .7); }
+:root[data-theme="sakura"] .lc-live { background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); }
+
+:root[data-theme="sakura"] .lc-actions button, :root[data-theme="sakura"] .fav .actions button,
+:root[data-theme="sakura"] #home-head button, :root[data-theme="sakura"] #auth-bar button,
+:root[data-theme="sakura"] #home-btn, :root[data-theme="sakura"] #emote-btn, :root[data-theme="sakura"] #rewards-btn {
+  background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
+}
+:root[data-theme="sakura"] #load, :root[data-theme="sakura"] #chat-send, :root[data-theme="sakura"] .fav .watch,
+:root[data-theme="sakura"] #home-head button.active, :root[data-theme="sakura"] #fav-tools-toggle.active {
+  background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
+}
+:root[data-theme="sakura"] #channel, :root[data-theme="sakura"] #chat-input,
+:root[data-theme="sakura"] #filter-input, :root[data-theme="sakura"] #add-input {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
+}
+:root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card,
+:root[data-theme="sakura"] #points-chip, :root[data-theme="sakura"] .galerie-karte { border-radius: var(--rund); }
+:root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card { border: var(--karte-rand); }
+/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf der Welt lesbar sind. */
+:root[data-theme="sakura"] .abschnitt-kopf {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
+  padding: 6px 10px; width: auto; display: inline-flex;
+}
+
+/* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
+:root[data-theme="sakura"][data-variante="pixel"] .live-card, :root[data-theme="sakura"][data-variante="pixel"] .vod, :root[data-theme="sakura"][data-variante="pixel"] .fav,
+:root[data-theme="sakura"][data-variante="pixel"] #settings-pop, :root[data-theme="sakura"][data-variante="pixel"] #user-card { box-shadow: 4px 4px 0 #120c1e; }

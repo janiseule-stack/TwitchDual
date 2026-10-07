@@ -222,7 +222,7 @@ test('pausiert: Maus und Klick erreichen die Welt nicht', async () => {
 // --- Welle 1b ----------------------------------------------------------------
 test('Anpassung Akzent/Hintergrund setzt Inline-Variablen, Entfernen raeumt auf', async () => {
   const a = aufbau({ welten: { sakura: protokollWelt([]) } });
-  await a.rt.anwenden({ theme: 'sakura', anpassungen: { sakura: { akzent: '#112233', hintergrund: '#101010' } } });
+  await a.rt.anwenden({ theme: 'sakura', anpassungen: { 'sakura:aquarell': { akzent: '#112233', hintergrund: '#101010' } } });
   assert.equal(a.styleProps.get('--accent'), '#112233');
   assert.equal(a.styleProps.get('--text'), '#ededf4');
   assert.equal(a.doc.documentElement.dataset.hell, '0', 'dunkler eigener Grund -> keine Namens-Abdunklung');
@@ -272,8 +272,8 @@ test('Variante: data-variante, stile.js vor welt.js, Wechsel startet neu', async
   await a.rt.anwenden({ theme: 'koi', variante: { koi: 'lofi' } });
   assert.deepEqual(log, ['start:tusche', 'stop', 'start:lofi']);
   assert.equal(a.geladen.length, 2, 'Skripte nur einmal');
-  await a.rt.anwenden({ theme: 'sakura' });
-  assert.equal(a.doc.documentElement.dataset.variante, undefined);
+  await a.rt.anwenden({ theme: 'wald' });
+  assert.equal(a.doc.documentElement.dataset.variante, undefined, 'Theme ohne Varianten');
 });
 
 test('Vorschau einer Variante bekommt deren Id', async () => {

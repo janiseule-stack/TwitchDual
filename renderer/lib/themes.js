@@ -13,10 +13,29 @@
     { id: 'neon-dual', name: 'Neon Dual', hell: false, farbenFrei: true, info: 'Farben frei wählbar',
       vorschau: 'linear-gradient(90deg, #35e0ff, #ff4fa3)',
       farben: { akzent: '#35e0ff', hintergrund: '#0b0b11', partikel: '#35e0ff' } },
-    // ausgeblendet: noch im alten Stil, werden spaeter neu gezeichnet (v1.12.0).
-    { id: 'sakura', name: 'Sakura', hell: true, ausgeblendet: true, farbenFrei: false, info: 'Kirschblüten',
+    // Gezeichnete Welt: Grundstile wie Koi + eigene (Pixel, Hanami-Fluss, Shoji).
+    { id: 'sakura', name: 'Sakura', hell: true, farbenFrei: false, info: 'Kirschblüten',
       vorschau: 'linear-gradient(160deg, #fff0f5, #ffe4ec 50%, #f3e8ff)',
-      farben: { akzent: '#e0659a', hintergrund: '#fff4f8', partikel: '#ffb3cc' } },
+      farben: { akzent: '#c4507e', hintergrund: '#fbeef2', partikel: '#f7a8c4' },
+      varianten: [
+        { id: 'aquarell', name: 'Aquarell', hell: true,
+          farben: { akzent: '#c4507e', hintergrund: '#fbeef2', partikel: '#f7a8c4' } },
+        { id: 'lofi', name: 'Lofi-Nacht', hell: false,
+          farben: { akzent: '#ff9ec8', hintergrund: '#1e1c46', partikel: '#ffb6d5' } },
+        { id: 'holzschnitt', name: 'Holzschnitt', hell: true,
+          farben: { akzent: '#c0392b', hintergrund: '#efe3c8', partikel: '#f2a0b4' } },
+        { id: 'tusche', name: 'Tusche', hell: true,
+          farben: { akzent: '#b0302a', hintergrund: '#f4efe3', partikel: '#f0a6bd' } },
+        { id: 'bleiglas', name: 'Bleiglas', hell: false,
+          farben: { akzent: '#ff8fb8', hintergrund: '#1a2440', partikel: '#ff8fb8' } },
+        { id: 'pixel', name: 'Pixel', hell: false,
+          farben: { akzent: '#ff9cc7', hintergrund: '#2b2140', partikel: '#ff9cc7' } },
+        { id: 'fluss', name: 'Hanami-Fluss', hell: true,
+          farben: { akzent: '#2f7a8a', hintergrund: '#eef5f4', partikel: '#f7a8c4' } },
+        { id: 'shoji', name: 'Shoji-Schatten', hell: true,
+          farben: { akzent: '#a8433a', hintergrund: '#f1e2c6', partikel: '#5a3a46' } }
+      ] },
+    // ausgeblendet: noch im alten Stil, werden spaeter neu gezeichnet (v1.12.0).
     { id: 'wald', name: 'Wald', hell: false, ausgeblendet: true, farbenFrei: false, info: 'Glühwürmchen',
       vorschau: 'linear-gradient(180deg, #16301e, #0a150d)',
       farben: { akzent: '#9fe07a', hintergrund: '#0e1f14', partikel: '#e8ff7a' } },

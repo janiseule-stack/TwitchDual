@@ -489,6 +489,24 @@ nichts auf der Platte.
   Janis klickt -> `<theme>/stile.js` + Varianten in `themes.js` + CSS ->
   in TwitchDual anschauen und nachschaerfen.
 
+### Sakura gezeichnet (unveroeffentlicht)
+- Regel ab Sakura: jedes Theme bekommt die Koi-Grundstile (Aquarell, Lofi,
+  Holzschnitt, Tusche, Bleiglas), wo sie passen, PLUS eigene Varianten.
+- Sakura: 8 Varianten - Aquarell, Lofi-Nacht (Mond, Laternen), Holzschnitt
+  (Fuji, Stempel), Tusche, Bleiglas, Pixel (16 Bit), Hanami-Fluss (Blueten
+  landen im Wasser und treiben ab), Shoji-Schatten (nur der Schatten des
+  Zweigs hinter Papier). Abgelehnt: Anime-Schulweg, Kimono-Stoff.
+- `sakura/stile.js` (window.SakuraStile) wie Koi; Sonderfaelle `pixel`
+  (Hintergrund klein bauen + ohne Glaettung hochskalieren, Blaetter als
+  Bloecke), `fluss` (Z.flussY), Shoji baut Schatten + Gitter als eigene Leinwand.
+- Bewegung (`welt.js`): Blaetter fallen vom Zweig, Maus pustet weg und loest am
+  Zweig neue, Klick = Windboee + Wirbel. Kiste = Fontaene aus dem Chip + Wirbel,
+  Punkte = Hauch, Abo = grosse Bluete oeffnet sich mit Namen + Bluetenring,
+  Raid = Hanafubuki (Bluetensturm) mit mitgleitendem Kaertchen, Gast =
+  Windstoss voller Blueten uebers Video (von links oder rechts).
+- Lofi-Leuchten ohne shadowBlur (zu teuer pro Blatt).
+- Alte DOM-Sakura (Emoji-Deko) ist weg; Wald/Blasen bleiben ausgeblendet.
+
 ### Effekte testen, Raid/Abo, Kiste (unveroeffentlicht)
 - ⚙ "Effekte testen": Kiste/Punkte/Raid/Abo/Gast mit Beispieldaten. IPC
   `fx-test` (main broadcastet an beide Fenster); Gast per
@@ -504,7 +522,7 @@ nichts auf der Platte.
 - Echte Raids/Abos aus IRC (USERNOTICE) sind NOCH NICHT ausgewertet.
 
 ### Offen: Themes Welle 2/3
-Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
+Wald + Seifenblasen neu zeichnen (wie Sakura), dann Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
 Regenfenster (Abstimmung 2026-10-07). Je Theme: Ordner + Eintrag in
 `renderer/lib/themes.js` (THEMES) + Test-Liste in `test/themes.test.js`.
 Raid-/Abo-Ereignisse folgen mit dem Feature "Abos/Raids im Chat".
