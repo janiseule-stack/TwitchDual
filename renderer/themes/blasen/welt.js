@@ -2,10 +2,11 @@
 // platzt in Funken, Klick daneben = neue Blase. Punkte/Kiste = Blase mit "+N".
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.blasen = function ({ engine, FxEngine }) {
+  window.TwitchDualWelten.blasen = function ({ engine, FxEngine, farben }) {
     const { tr, rnd } = FxEngine;
+    const FARBE = (farben && farben.partikel) || '#aac8ff';
     const SCHILLER = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,.95) 0 12%, transparent 13%), ' +
-      'radial-gradient(circle, rgba(255,255,255,0) 55%, rgba(170,200,255,.55) 70%, rgba(255,170,230,.6) 85%, rgba(170,255,230,.5) 100%)';
+      'radial-gradient(circle, rgba(255,255,255,0) 55%, ' + FARBE + '8c 70%, rgba(255,170,230,.6) 85%, rgba(170,255,230,.5) 100%)';
     const FUNKEN = ['#b48bff', '#7ec8ff', '#ff9ad5', '#8affc8'];
     const blasen = new Set();
 

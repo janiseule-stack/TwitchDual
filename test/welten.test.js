@@ -54,3 +54,25 @@ for (const id of ['wald', 'koi']) {
     assert.ok(Math.max(...xs) > 100, 'nicht in der linken Ecke geklumpt: ' + xs);
   });
 }
+
+// --- Welle 1b: Partikelfarbe ---------------------------------------------------
+function sammelEngine() {
+  const stile = [];
+  const e = {
+    element(p) { stile.push(JSON.stringify((p && p.stil) || {})); return { style: {}, appendChild() {} }; },
+    spawn(p) { stile.push(JSON.stringify(p.stil || {})); return { style: {}, isConnected: true, getBoundingClientRect: () => ({ left: 0, top: 0, width: 10, height: 10 }) }; },
+    schleife() {}, intervall(fn) { fn(); }, entferne() {},
+    groesse: () => ({ w: 300, h: 200 }), rechteck: () => ({ left: 0, top: 0 }), faktor: 1
+  };
+  return { e, stile };
+}
+for (const id of ['sakura', 'wald', 'koi', 'blasen']) {
+  test(id + ': Partikel nutzen farben.partikel', () => {
+    const fabrik = ladeWelt(id);
+    const { e, stile } = sammelEngine();
+    const welt = fabrik({ engine: e, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' } });
+    welt.start();
+    welt.ereignis('kiste', { betrag: 50, ursprung: { x: 100, y: 100 } });
+    assert.ok(stile.some((s) => s.includes('#12ab34')), 'Farbe taucht in Partikel-Stilen auf: ' + stile.slice(0, 3).join(' | '));
+  });
+}

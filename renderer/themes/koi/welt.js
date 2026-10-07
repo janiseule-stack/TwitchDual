@@ -2,13 +2,14 @@
 // die Fische fluechten. Kiste = goldene Lotusbluete am Punkte-Chip.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.koi = function ({ engine, FxEngine }) {
+  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben }) {
     const { tr, rnd } = FxEngine;
+    const FARBE = (farben && farben.partikel) || '#ff7a2a';
     const FISCH = {
       width: '18px', height: '8px', marginLeft: '-9px', marginTop: '-4px',
       borderRadius: '50% 60% 60% 50%',
-      background: 'radial-gradient(circle at 25% 50%, #fff 0 2px, transparent 3px), #ff7a2a',
-      boxShadow: '0 0 6px rgba(255, 140, 60, .6)'
+      background: 'radial-gradient(circle at 25% 50%, #fff 0 2px, transparent 3px), ' + FARBE,
+      boxShadow: '0 0 6px ' + FARBE + '99'
     };
     let fische = [];
     let letzteWelle = 0;
@@ -25,7 +26,7 @@
       const s = document.createElement('div');
       s.style.position = 'absolute'; s.style.right = '-7px'; s.style.top = '0';
       s.style.borderTop = '4px solid transparent'; s.style.borderBottom = '4px solid transparent';
-      s.style.borderLeft = '7px solid #ff7a2a';
+      s.style.borderLeft = '7px solid ' + FARBE;
       el.appendChild(s);
     }
     function welle(ebene, x, y, gross) {

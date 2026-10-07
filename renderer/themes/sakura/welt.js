@@ -2,15 +2,23 @@
 // Leere = Bluetenwirbel, Kiste = Bluetenexplosion aus dem Punkte-Chip.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.sakura = function ({ engine, FxEngine }) {
+  window.TwitchDualWelten.sakura = function ({ engine, FxEngine, farben }) {
     const { tr, rnd } = FxEngine;
+    const FARBE = (farben && farben.partikel) || '#ffb3cc';
     let letzteSpur = 0;
 
     function bluete(ebene, x0, y0, x1, y1, ms, groesse, deckkraft) {
       const dreh = rnd(-360, 360);
+      // Bluete als Form statt Emoji: nur so wirkt die frei waehlbare Farbe.
       return engine.spawn({
-        ebene, inhalt: '🌸',
-        stil: { fontSize: groesse + 'px', lineHeight: '1' },
+        ebene,
+        stil: {
+          width: groesse + 'px', height: Math.round(groesse * 0.8) + 'px',
+          marginLeft: (-groesse / 2) + 'px', marginTop: (-groesse / 2) + 'px',
+          borderRadius: '150% 0 150% 0',
+          background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,.75), transparent 65%), ' + FARBE,
+          boxShadow: '0 0 3px rgba(0,0,0,.08)'
+        },
         keyframes: [
           { transform: tr(x0, y0, ' rotate(0deg)'), opacity: 0 },
           { opacity: deckkraft, offset: 0.1 },

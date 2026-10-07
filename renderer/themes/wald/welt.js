@@ -2,11 +2,12 @@
 // Klick = Funke, Kiste = Schwarm fliegt zum Punkte-Chip und leuchtet auf.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.wald = function ({ engine, FxEngine }) {
+  window.TwitchDualWelten.wald = function ({ engine, FxEngine, farben }) {
     const { tr, rnd } = FxEngine;
+    const FARBE = (farben && farben.partikel) || '#e8ff7a';
     const GLUEH = {
       width: '5px', height: '5px', marginLeft: '-2px', marginTop: '-2px', borderRadius: '50%',
-      background: '#e8ff7a', boxShadow: '0 0 8px 3px rgba(232, 255, 122, .7)'
+      background: FARBE, boxShadow: '0 0 8px 3px ' + FARBE + 'b3'
     };
     let fliegen = [];
     let maus = null;
