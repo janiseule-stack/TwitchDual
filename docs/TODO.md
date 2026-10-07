@@ -448,6 +448,18 @@ nichts auf der Platte.
 - Dev-Werkzeug `tools/cdp-eval.js` (App mit `--remote-debugging-port=9333`).
 - Spec/Plan: `docs/superpowers/{specs,plans}/2026-10-07-lebendige-themes*.md`.
 
+### Welle 1b: Stil, Deko, Farben, Balken (unveroeffentlicht)
+- Durchgestylt: Sakura · Bluetenzweig, Wald · Waldhuette, Koi · Teich von oben,
+  Seifenblasen - eigene Schriften (Windows-Systemschriften), Kaesten, Knoepfe,
+  statische Deko-Ebene (`.theme-deko`) in Home und Chat.
+- Balken ueber/unter dem Video in Theme-Farbe: postMessage ins Twitch-iframe,
+  Preload setzt `background-color` am `<video>` (Farbfilter `SICHERE_FARBE`,
+  Kopie im Preload, Gleichlauf-Test `test/balken-farbe.test.js`).
+- Pro Theme Akzent / Hintergrund / Partikel waehlbar (`themePrefs.anpassungen`),
+  Schrift passt sich der Helligkeit an, Namens-Abdunklung haengt an `data-hell`.
+- Scrollleisten der Themes ueber `scrollbar-color` (schlaegt `::-webkit-scrollbar`).
+- Spec/Plan: `docs/superpowers/{specs,plans}/2026-10-07-themes-stil-und-farben*.md`.
+
 ### Offen: Themes Welle 2/3
 Frost, Terminal, Paper, Tiefsee, Game Boy, Windows 98, Holo, Matrix,
 Regenfenster (Abstimmung 2026-10-07). Je Theme: Ordner + Eintrag in
