@@ -315,3 +315,26 @@ test('Gast: Haeufigkeit aus plant nichts, Wechsel plant neu, Schwarm kommt verse
   for (const [, t] of folge) t.fn();
   assert.deepEqual(log.filter((x) => x === 'gast').length, 5);
 });
+
+test('Gast-Ebene verdeckt den Player nur waehrend eines Auftritts', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { koi: protokollWelt(log) } });
+  const klassen = new Set();
+  a.rt.stop();
+  // eigene Laufzeit mit Gast-Ebene, die Klassen kennt
+  const { createRuntime } = require('../renderer/lib/theme-runtime');
+  const timer = [];
+  const win = { ...a.win, TwitchDualWelten: { koi: protokollWelt(log) },
+    setTimeout: (fn, ms) => { timer.push({ fn, ms }); return timer.length; }, clearTimeout: () => {} };
+  const gast = { classList: { add: (k) => klassen.add(k), remove: (k) => klassen.delete(k) } };
+  const rt = createRuntime({ fenster: 'video', doc: a.doc, win, ebenen: { hinten: { getBoundingClientRect: () => ({ left: 0, top: 0 }) }, gast },
+    ladeSkript: () => Promise.resolve(), erzeugeEngine: (o) => ({ faktor: o.faktor, stop() {}, setFaktor() {}, pausieren() {}, weiter() {} }) });
+  await rt.anwenden({ theme: 'koi', gastHaeufigkeit: 'aus' });
+  assert.equal(klassen.has('aktiv'), false, 'ohne Auftritt unsichtbar');
+  rt.gastErzwingen();
+  assert.equal(klassen.has('aktiv'), true, 'waehrend des Auftritts sichtbar');
+  const aus = timer.find((t) => t.ms >= 7500);
+  assert.ok(aus, 'Ausblenden geplant');
+  aus.fn();
+  assert.equal(klassen.has('aktiv'), false, 'danach wieder weg');
+});

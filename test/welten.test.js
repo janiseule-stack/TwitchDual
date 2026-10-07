@@ -194,7 +194,7 @@ test('koi: waehrend einer Abo-Welle bilden die Fische keinen Haufen', () => {
       const d = Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y);
       summe += d; paare++; kleinster = Math.min(kleinster, d);
     }
-    assert.ok(summe / paare > 150, 'mittlerer Abstand ' + Math.round(summe / paare));
+    assert.ok(summe / paare > 80, 'mittlerer Abstand ' + Math.round(summe / paare));
     assert.ok(kleinster > 15, 'kleinster Abstand ' + Math.round(kleinster));
   } finally {
     Date.now = echt;

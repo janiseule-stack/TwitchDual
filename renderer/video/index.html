@@ -175,7 +175,11 @@
     /* Lebendige Themes: Home-Ebene liegt unter dem Home-Inhalt, Gast-Ebene
        ueber dem Player. Beide fangen nie einen Klick ab. */
     .fx-ebene { pointer-events: none; overflow: hidden; }
-    #fx-gast { position: fixed; inset: 0; z-index: 30; }
+    /* NUR waehrend eines Auftritts sichtbar: liegt sie dauerhaft ueber dem
+       Player, gilt er fuer Twitch als verdeckt und startet nicht von selbst
+       (Play-Knopf bleibt stehen; 2026-10-07 gemessen). */
+    #fx-gast { position: fixed; inset: 0; z-index: 30; display: none; }
+    #fx-gast.aktiv { display: block; }
     #home > #fx-hinten { position: absolute; inset: 0; z-index: 0; }
     #home > :not(#fx-hinten):not(.theme-deko):not(#home-version) { position: relative; z-index: 1; }
     #home > .theme-deko { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }

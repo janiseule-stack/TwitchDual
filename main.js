@@ -1,4 +1,11 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
+
+// Autoplay ohne vorherigen Klick erlauben. Die Fenster laufen ueber einen
+// lokalen Server mit ZUFAELLIGEM Port (src/server.js) - fuer Chromium jedes
+// Mal eine fremde Adresse ohne "Medien-Vertrauen", also blockierte es den
+// Start mit Ton und der Twitch-Player blieb beim Play-Knopf stehen
+// (video: readyState 0, kein src; 2026-10-07). Muss VOR app.ready stehen.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const fs = require('fs');
 const path = require('path');
 const Store = require('electron-store');

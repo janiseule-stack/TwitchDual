@@ -19,6 +19,7 @@
   const AKZENT_VARS = ['--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim', '--accent-contrast'];
   const FLAECHEN_VARS = ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts'];
   const GAST_VERSATZ_MS = 700;   // mehrere Gaeste kommen leicht nacheinander
+  const GAST_DAUER_MS = 7500;    // so lange braucht ein Gast uebers Bild (+Puffer)
 
   function createRuntime(o) {
     const fenster = o.fenster;
@@ -49,6 +50,16 @@
     let gastTimer = null;
     let gastSchluessel = null;    // Haeufigkeit, mit der zuletzt geplant wurde
     const gastFolge = new Set();  // Timer der versetzten Folge-Gaeste
+    let gastEbeneTimer = null;
+    // Die Gast-Ebene liegt ueber dem Player und darf ihn nur waehrend eines
+    // Auftritts verdecken - sonst startet Twitch nicht von selbst.
+    function zeigeGastEbene(ms) {
+      const e = ebenen.gast;
+      if (!e || !e.classList) return;
+      e.classList.add('aktiv');
+      if (gastEbeneTimer !== null) win.clearTimeout(gastEbeneTimer);
+      gastEbeneTimer = win.setTimeout(() => { gastEbeneTimer = null; e.classList.remove('aktiv'); }, ms);
+    }
     let mausFrame = null;
     let mausPos = null;
 
@@ -155,10 +166,13 @@
       if (gastTimer !== null) { win.clearTimeout(gastTimer); gastTimer = null; }
       for (const id of gastFolge) win.clearTimeout(id);
       gastFolge.clear();
+      if (gastEbeneTimer !== null) { win.clearTimeout(gastEbeneTimer); gastEbeneTimer = null; }
+      if (ebenen.gast && ebenen.gast.classList) ebenen.gast.classList.remove('aktiv');
     }
     // Erster Gast sofort, weitere (⚙ "wie viele") leicht versetzt.
     function gastGruppe() {
       const n = Katalog.gastAnzahl(letztePrefs);
+      zeigeGastEbene(GAST_DAUER_MS + n * (GAST_VERSATZ_MS + 300));
       rufe('gast', (w) => w.gast && w.gast());
       for (let i = 1; i < n; i++) {
         const id = win.setTimeout(() => { gastFolge.delete(id); rufe('gast', (w) => w.gast && w.gast()); },
