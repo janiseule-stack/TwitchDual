@@ -15,6 +15,15 @@
   --accent-contrast: #10200f;
   --onair-from: #6fbf5a;
   --onair-to: #e8ff7a;
+  --schrift: Georgia, "Palatino Linotype", serif;
+  --schrift-titel: Georgia, serif;
+  --holz: repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 2px, transparent 2px 9px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 23px),
+          linear-gradient(180deg, #7a5233, #5d3d25);
+  --holz-dunkel: repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 2px, transparent 2px 11px),
+          linear-gradient(180deg, #4a3020, #362215);
+  --moos: radial-gradient(circle at 8px 8px, #6fbf5a 0 6px, transparent 7px) 0 0/14px 10px,
+          radial-gradient(circle at 4px 9px, #4f8a3c 0 5px, transparent 6px) 5px 0/12px 10px;
 }
 :root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: #2f5a3a; }
 :root[data-theme="wald"] #emote-panel,
@@ -22,3 +31,51 @@
 /* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
 :root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-fav-view,
 :root[data-theme="wald"] #home-vod-view, :root[data-theme="wald"] #followed-view { scrollbar-color: #6b4a33 transparent; }
+
+/* --- Welle 1b: Waldhuette ------------------------------------------------- */
+:root[data-theme="wald"] #home-title, :root[data-theme="wald"] #title { font-style: italic; color: #ffe8a8; text-shadow: 0 1px 0 #2c1a0e; }
+:root[data-theme="wald"] #bar, :root[data-theme="wald"] #head,
+:root[data-theme="wald"] #home-head, :root[data-theme="wald"] #footer {
+  background: var(--holz); border-bottom: 2px solid #2c1a0e; box-shadow: 0 3px 0 #1a0f07;
+}
+:root[data-theme="wald"] .live-card, :root[data-theme="wald"] .fav, :root[data-theme="wald"] .vod {
+  background: var(--holz-dunkel); border: 2px solid #2c1a0e; border-radius: 4px;
+  box-shadow: 0 4px 0 #1a0f07; position: relative; overflow: visible; color: #f3e6cf;
+}
+:root[data-theme="wald"] .live-card::before, :root[data-theme="wald"] .fav::before {
+  content: ""; position: absolute; left: -2px; right: -2px; top: -6px; height: 10px;
+  background: var(--moos); pointer-events: none; z-index: 1; filter: drop-shadow(0 1px 0 #2a5a26);
+}
+:root[data-theme="wald"] .lc-thumbwrap { margin: 8px 8px 0; border: 3px solid #2c1a0e; }
+:root[data-theme="wald"] .lc-name, :root[data-theme="wald"] .fav .name { color: #ffe8a8; }
+:root[data-theme="wald"] .lc-live { background: #c0392b; border-radius: 2px; box-shadow: 0 0 0 2px #2c1a0e; }
+:root[data-theme="wald"] .lc-actions button, :root[data-theme="wald"] .fav .actions button,
+:root[data-theme="wald"] #home-head button, :root[data-theme="wald"] #auth-bar button,
+:root[data-theme="wald"] #home-btn, :root[data-theme="wald"] #emote-btn, :root[data-theme="wald"] #rewards-btn {
+  background: #2c1a0e; color: #e8d3b0; border: 1px solid #8a5f3c; border-radius: 3px;
+}
+:root[data-theme="wald"] #load, :root[data-theme="wald"] #chat-send, :root[data-theme="wald"] .fav .watch {
+  background: #6fbf5a; color: #10200f; border: 2px solid #2c1a0e; border-radius: 3px; font-weight: 700;
+}
+:root[data-theme="wald"] #channel, :root[data-theme="wald"] #chat-input,
+:root[data-theme="wald"] #filter-input, :root[data-theme="wald"] #add-input {
+  background: #f3e6cf; color: #2c1a0e; border: 2px solid #2c1a0e; border-radius: 3px;
+}
+:root[data-theme="wald"] .fav .avatar { box-shadow: 0 0 0 2px #2c1a0e; }
+:root[data-theme="wald"] .fav .badge { border-radius: 2px; }
+:root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: 2px solid #2c1a0e; border-radius: 4px; }
+/* Deko: dunkle Baum-Silhouetten am unteren Rand (Home + hinter dem Chat) */
+:root[data-theme="wald"] .theme-deko::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px;
+  background:
+    radial-gradient(ellipse 34px 70px at 6% 100%, #07120a 98%, transparent 100%),
+    radial-gradient(ellipse 46px 95px at 22% 100%, #0a170d 98%, transparent 100%),
+    radial-gradient(ellipse 30px 60px at 40% 100%, #07120a 98%, transparent 100%),
+    radial-gradient(ellipse 52px 105px at 63% 100%, #0a170d 98%, transparent 100%),
+    radial-gradient(ellipse 36px 75px at 84% 100%, #07120a 98%, transparent 100%),
+    radial-gradient(ellipse 28px 55px at 97% 100%, #0a170d 98%, transparent 100%);
+}
+:root[data-theme="wald"] #theme-deko::after { bottom: 80px; opacity: .7; }
+:root[data-theme="wald"] #home-head button.active, :root[data-theme="wald"] #fav-tools-toggle.active {
+  background: #6fbf5a; color: #10200f; border: 2px solid #2c1a0e; font-weight: 700;
+}
