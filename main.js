@@ -201,6 +201,9 @@ async function loadBadgeData(channelId) {
 // Schmuck und kommen parallel als 'load-extras' hinterher. Vorher warteten
 // Player und Chat auf alles, seriell: normal 2,5-4,5 s, bei FFZ-Haenger 30 s+.
 let ladeZaehler = 0;
+// Laufende Quelle fuer ein neu geladenes Chat-Fenster (siehe quellen-gedaechtnis.js).
+const quelle = require('./src/quellen-gedaechtnis').createQuellenGedaechtnis();
+ipcMain.handle('aktuelle-quelle', () => quelle.fuerNeustart());
 
 function ladeExtras(ladeId, ownerId) {
   Promise.all([
@@ -209,7 +212,9 @@ function ladeExtras(ladeId, ownerId) {
     loadBadgeData(ownerId)
   ]).then(([globalEmotes, channelEmotes, badgeCatalog]) => {
     if (ladeId !== ladeZaehler) return; // inzwischen anderer Kanal geladen
-    broadcast('load-extras', { ladeId, emotes: { ...globalEmotes, ...channelEmotes }, badgeCatalog });
+    const extras = { ladeId, emotes: { ...globalEmotes, ...channelEmotes }, badgeCatalog };
+    quelle.extrasDa(extras);
+    broadcast('load-extras', extras);
   }).catch((e) => {
     diagLog.melde('app', 'extras-fehler', { fehler: e && e.message });
   });
@@ -234,6 +239,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
         emotes: {},
         badgeCatalog: {}
       };
+      quelle.geladen(payload);
       broadcast('load', payload);
       ladeExtras(ladeId, user.id);
       // Kanalwechsel: Chip sofort leeren statt bis zu 15s den alten Stand zu
@@ -274,6 +280,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       emotes: {},
       badgeCatalog: {}
     };
+    quelle.geladen(payload);
     broadcast('load', payload);
     ladeExtras(ladeId, owner.id);
     // Kanalwechsel (VOD): siehe Kommentar im Live-Zweig oben, inklusive der
@@ -322,6 +329,7 @@ ipcMain.on('fx-test', (_evt, art) => {
 ipcMain.on('home-open', () => {
   if (chatSender) chatSender.setChannel(null);
   punkteHomeOffen = true; // Kanalpunkte-Takt ruht, solange das Overlay offen ist
+  quelle.home(true);
   broadcast('home-open');
 });
 // Zurueck zur laufenden Quelle: Sende-Socket wieder auf den Live-Channel joinen
@@ -329,6 +337,7 @@ ipcMain.on('home-open', () => {
 ipcMain.on('home-close', () => {
   if (chatSender && currentLiveChannel) chatSender.setChannel(currentLiveChannel);
   punkteHomeOffen = false;
+  quelle.home(false);
   broadcast('home-close');
 });
 

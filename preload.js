@@ -20,6 +20,8 @@ if (!isTwitchFrame) {
     onLoad: (cb) => {
       ipcRenderer.on('load', (_e, payload) => cb(payload));
     },
+    // Neu geladenes Chat-Fenster: laufende Quelle abholen (oder null).
+    getAktuelleQuelle: () => ipcRenderer.invoke('aktuelle-quelle'),
     // Emotes + Badges kommen nach 'load' hinterher (main.js ladeExtras).
     onLoadExtras: (cb) => {
       ipcRenderer.on('load-extras', (_e, extras) => cb(extras));

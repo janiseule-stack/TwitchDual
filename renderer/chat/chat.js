@@ -600,6 +600,12 @@ function applySource(payload) {
   chatMode = payload.mode; updateComposerState();
 }
 window.twitchDual.onLoad(applySource);
+// Fenster neu geladen (Absturz, Strg+R), waehrend schon etwas laeuft: sich
+// wieder einklinken statt auf "nicht verbunden" stehen zu bleiben. Kam
+// inzwischen ein echtes 'load', gewinnt das.
+window.twitchDual.getAktuelleQuelle().then((p) => {
+  if (p && !currentPayload) applySource(p);
+}).catch(() => {});
 
 // Emotes + Badges kommen nach dem Start hinterher, damit der Chat nicht auf
 // langsame Drittanbieter (FFZ, 7TV) warten muss. Nur fuer die aktuelle Quelle
