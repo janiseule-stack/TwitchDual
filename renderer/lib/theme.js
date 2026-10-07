@@ -149,5 +149,36 @@
     return PRESETS.find((p) => p.videoAccent === v && p.chatAccent === c) || null;
   }
 
-  return { DEFAULTS, PRESETS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel, activePreset };
+  // --- Welle 1b: Flaechen aus einem frei gewaehlten Hintergrund -----------
+  // Kreuzungspunkt, an dem Schwarz und Weiss gleich viel Kontrast haben.
+  const HELL_GRENZE = 0.179;
+  function istHell(hex) {
+    const n = normalizeHex(hex, null);
+    if (!n) return false;
+    return relLuminance(hexToRgb(n)) > HELL_GRENZE;
+  }
+  function mische(a, b, t) {
+    const m = (x, y) => Math.round(x + (y - x) * t);
+    return { r: m(a.r, b.r), g: m(a.g, b.g), b: m(a.b, b.b) };
+  }
+  // Grund + Alpha -> Flaechen und passende Schrift. Panel/Hover/Linie
+  // weichen 6/12/18 % Richtung Kontrast ab (hell -> dunkler, dunkel -> heller).
+  function flaechenVars(hex, alphaPct) {
+    const basis = hexToRgb(normalizeHex(hex, '#0b0b11'));
+    const hell = relLuminance(basis) > HELL_GRENZE;
+    const ziel = hell ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
+    const a = clampAlpha(alphaPct) / 100;
+    const f = (c) => `rgba(${c.r}, ${c.g}, ${c.b}, ${a})`;
+    return {
+      '--bg': f(basis),
+      '--panel': f(mische(basis, ziel, 0.06)),
+      '--hover': f(mische(basis, ziel, 0.12)),
+      '--line': rgbToHex(mische(basis, ziel, 0.18)),
+      '--text': hell ? '#2b2b38' : '#ededf4',
+      '--muted': hell ? '#6a6a7e' : '#a0a0b4',
+      '--ts': hell ? '#8e8ea2' : '#6e6e82'
+    };
+  }
+
+  return { DEFAULTS, PRESETS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel, activePreset, istHell, flaechenVars };
 });

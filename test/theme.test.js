@@ -189,3 +189,31 @@ test('activePreset: robust gegen kaputte/fehlende prefs', () => {
   assert.equal(ThemeLib.activePreset({}), null);
   assert.equal(ThemeLib.activePreset({ videoAccent: 'rot', chatAccent: 42 }), null);
 });
+
+// --- Welle 1b: Flaechen aus eigenem Hintergrund -----------------------------
+test('istHell: hell/dunkel nach Leuchtdichte', () => {
+  assert.equal(ThemeLib.istHell('#fff4f8'), true);
+  assert.equal(ThemeLib.istHell('#f0f7ff'), true);
+  assert.equal(ThemeLib.istHell('#0e1f14'), false);
+  assert.equal(ThemeLib.istHell('#082625'), false);
+  assert.equal(ThemeLib.istHell('kaputt'), false);
+});
+
+test('flaechenVars: heller Grund -> dunkle Schrift, dunkler Grund -> helle Schrift', () => {
+  const hell = ThemeLib.flaechenVars('#fff4f8', 100);
+  assert.equal(hell['--bg'], 'rgba(255, 244, 248, 1)');
+  assert.equal(hell['--text'], '#2b2b38');
+  const dunkel = ThemeLib.flaechenVars('#0e1f14', 100);
+  assert.equal(dunkel['--text'], '#ededf4');
+  for (const k of ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts']) {
+    assert.ok(k in hell && k in dunkel, k);
+  }
+});
+
+test('flaechenVars: Alpha nur auf Flaechen, Panel weicht vom Grund ab', () => {
+  const v = ThemeLib.flaechenVars('#0e1f14', 50);
+  assert.match(v['--bg'], /, 0\.5\)$/);
+  assert.match(v['--panel'], /, 0\.5\)$/);
+  assert.notEqual(v['--panel'], v['--bg']);
+  assert.match(v['--line'], /^#[0-9a-f]{6}$/);
+});
