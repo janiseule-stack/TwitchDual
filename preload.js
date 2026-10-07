@@ -130,6 +130,21 @@ if (!isTwitchFrame) {
   try {
     if (!isTwitchFrame) return;                       // nur in Twitch-iframes
 
+    // Theme-Effekte ueber dem Video (Gast-Fische) verdecken den Player kurz.
+    // Twitch beobachtet per IntersectionObserver v2, ob er verdeckt ist, und
+    // PAUSIERT ohne vorherigen Nutzer-Klick - bis man klickt (2026-10-07:
+    // ohne diesen Eingriff Pause nach 1 s Fisch, mit ihm laeuft es durch).
+    // Nur "verdeckt" wird ueberschrieben, "im Bild" (isIntersecting) bleibt
+    // echt. Sofort und OHNE await, damit es vor Twitchs Skripten steht.
+    webFrame.executeJavaScript(`(function(){
+      try {
+        var P = window.IntersectionObserverEntry && IntersectionObserverEntry.prototype;
+        if (P && Object.getOwnPropertyDescriptor(P, 'isVisible')) {
+          Object.defineProperty(P, 'isVisible', { configurable: true, get: function(){ return true; } });
+        }
+      } catch (e) {}
+    })();`).catch(() => {});
+
     // Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.). Das
     // <video> fuellt das iframe; sein Hintergrund ist genau die Balkenflaeche.
     // Farbfilter = Kopie von ThemeKatalog.SICHERE_FARBE (Sandbox: kein require;
