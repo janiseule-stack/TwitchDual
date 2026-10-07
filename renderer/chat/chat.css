@@ -66,6 +66,13 @@ body { display: flex; flex-direction: column; }
 }
 .msg.replay { opacity: .97; }
 .msg.system { color: var(--muted); font-style: italic; }
+/* Abo / Geschenk / Raid: hervorgehoben in Akzentfarbe, Theme scheint durch */
+.msg.ereignis {
+  margin: 4px 0; padding: 5px 9px; border-left: 3px solid var(--accent); border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.ereignis-kopf { font-weight: 700; color: var(--accent-title); }
+.ereignis-text { margin-top: 2px; color: var(--text); }
 
 .msg .ts {
   color: var(--ts); font-size: 0.8em; margin-right: 5px;

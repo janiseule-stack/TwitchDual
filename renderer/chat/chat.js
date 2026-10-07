@@ -131,6 +131,36 @@ function trimMessages(max = TRIM_MAX) {
   }
 }
 
+// Abo/Geschenk/Raid: hervorgehobene Zeile, optional mit eigener Nachricht.
+function appendEreignis(text, nachricht) {
+  const div = document.createElement('div');
+  div.className = 'msg ereignis';
+  const kopf = document.createElement('div');
+  kopf.className = 'ereignis-kopf';
+  kopf.textContent = text;
+  div.appendChild(kopf);
+  if (nachricht) {
+    const n = document.createElement('div');
+    n.className = 'ereignis-text';
+    n.textContent = nachricht;
+    div.appendChild(n);
+  }
+  $messages.appendChild(div);
+  scrollToBottom();
+  trimMessages();
+}
+
+// Echte und Test-Ereignisse laufen hier durch: Zeile immer, Theme-Effekt
+// nur wenn der Filter ihn durchlaesst (kein Effekt-Gewitter bei Abo-Regen).
+const ereignisFilter = ChatEreignisse.createEreignisFilter({ abstandMs: 4000 });
+function zeigeChatEreignis(ev) {
+  if (!ev) return;
+  appendEreignis(ChatEreignisse.zeile(ev), ev.nachricht);
+  const fx = ereignisFilter.effekt(ev, Date.now());
+  if (fx) themeRuntime.ereignis(fx.art, fx.daten);
+  window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt: !!fx });
+}
+
 function appendSystem(text) {
   const div = document.createElement('div');
   div.className = 'msg system';
@@ -465,6 +495,8 @@ function connectIrc(channel) {
         try { ws.close(); } catch (e) {}
       } else if (msg.command === 'NOTICE') {
         appendSystem(msg.params);
+      } else if (msg.command === 'USERNOTICE') {
+        zeigeChatEreignis(ChatEreignisse.ereignisAus(msg));
       }
     }
   };
@@ -1494,10 +1526,9 @@ window.twitchDual.onFxTest((art) => {
   // Kiste/Punkte laufen ueber denselben Weg wie echte Zugewinne.
   if (art === 'kiste') zeigeZuwachs({ quelle: 'kiste', betrag: 50 });
   else if (art === 'punkte') zeigeZuwachs({ quelle: 'passiv', betrag: 10 });
-  else if (art === 'raid') themeRuntime.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
+  else if (art === 'raid') zeigeChatEreignis({ art: 'raid', name: 'Testkanal', anzahl: 120 });
   else if (art === 'abo') {
-    themeRuntime.ereignis('abo', { name: 'TestZuschauer', monate: 12,
-      ursprung: { x: window.innerWidth / 2, y: window.innerHeight * 0.45 } });
+    zeigeChatEreignis({ art: 'abo', name: 'TestZuschauer', monate: 12, prime: false, nachricht: 'Test-Nachricht zum Abo' });
   }
 });
 

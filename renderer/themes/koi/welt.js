@@ -284,8 +284,9 @@
         }
         if (art === 'abo') {
           const x = daten.ursprung ? u.x : (L ? L.w / 2 : 0), y = daten.ursprung ? u.y : (L ? L.h / 2 : 0);
-          const text = [String(daten.name || '')];
-          if (daten.monate > 1) text.push(daten.monate + ' Monate');
+          // zeilen kommt aus chat-ereignisse.js (Name + was passiert ist).
+          const text = Array.isArray(daten.zeilen) ? daten.zeilen.map(String).slice(0, 2) : [String(daten.name || '')];
+          if (!daten.zeilen && daten.monate > 1) text.push(daten.monate + ' Monate');
           lotus.push({ x, y, start: jetzt(), dauer: 4500, L: 20, dreh: rnd(0, TAU), text });
           for (let i = 0; i < 3; i++) welle(x, y, true, i * 22, true);
           lock = { x, y, bis: jetzt() + 3500 };
