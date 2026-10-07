@@ -15,6 +15,8 @@
   --accent-contrast: #ffffff;
   --onair-from: #9ad0ff;
   --onair-to: #e0b0ff;
+  --schrift: Bahnschrift, "Segoe UI", sans-serif;
+  --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
 }
 :root[data-theme="blasen"] #messages::-webkit-scrollbar-thumb { background: #c3cbff; }
 :root[data-theme="blasen"] #emote-panel,
@@ -25,3 +27,32 @@
 /* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
 :root[data-theme="blasen"] #messages, :root[data-theme="blasen"] #home-fav-view,
 :root[data-theme="blasen"] #home-vod-view, :root[data-theme="blasen"] #followed-view { scrollbar-color: #c3cbff transparent; }
+
+/* --- Welle 1b: Seifenblasen ------------------------------------------------ */
+:root[data-theme="blasen"] #home-title, :root[data-theme="blasen"] #title { font-weight: 700; color: var(--accent-title); }
+:root[data-theme="blasen"] #bar, :root[data-theme="blasen"] #head, :root[data-theme="blasen"] #home-head { background: rgba(255, 255, 255, .72); }
+:root[data-theme="blasen"] .live-card, :root[data-theme="blasen"] .vod {
+  border-radius: 22px; border: 2px solid transparent;
+  background-image: linear-gradient(#fff, #fff), linear-gradient(120deg, #9ad0ff, #ffb0d9, #a8ffd8, #c8a8ff);
+  background-origin: border-box; background-clip: padding-box, border-box;
+}
+:root[data-theme="blasen"] .fav { border-radius: 999px; background: rgba(255, 255, 255, .8); border: 1px solid #d6dcff; }
+:root[data-theme="blasen"] .lc-thumbwrap { margin: 6px; border-radius: 18px; }
+:root[data-theme="blasen"] .lc-live, :root[data-theme="blasen"] .fav .badge { border-radius: 999px; }
+:root[data-theme="blasen"] .lc-live { background: #7b6cff; }
+:root[data-theme="blasen"] .lc-actions button, :root[data-theme="blasen"] .fav .actions button,
+:root[data-theme="blasen"] #home-head button, :root[data-theme="blasen"] #auth-bar button,
+:root[data-theme="blasen"] #home-btn, :root[data-theme="blasen"] #emote-btn, :root[data-theme="blasen"] #rewards-btn {
+  border-radius: 999px; background: #eef0ff; color: #7b6cff; border: 1px solid #d6dcff;
+}
+:root[data-theme="blasen"] #load, :root[data-theme="blasen"] #chat-send, :root[data-theme="blasen"] .fav .watch,
+:root[data-theme="blasen"] #home-head button.active, :root[data-theme="blasen"] #fav-tools-toggle.active {
+  border-radius: 999px; background: linear-gradient(90deg, #9ad0ff, #c8a8ff); color: #fff; border: none; font-weight: 700;
+}
+:root[data-theme="blasen"] #channel, :root[data-theme="blasen"] #chat-input,
+:root[data-theme="blasen"] #filter-input, :root[data-theme="blasen"] #add-input {
+  border-radius: 999px; background: #fff; border: 1px solid #d6dcff;
+}
+:root[data-theme="blasen"] .fav .avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 3px #c8a8ff; }
+:root[data-theme="blasen"] #points-chip { border-radius: 999px; }
+:root[data-theme="blasen"] #user-card { border-radius: 18px; }
