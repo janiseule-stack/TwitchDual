@@ -67,6 +67,8 @@ function initAuth() {
     }
   });
   chatSender = new ChatSender({
+    // Frisches Token bei jedem Aufbau (getAccess erneuert kurz vor Ablauf).
+    tokenQuelle: () => authManager.getAccess(),
     onNotice: (n) => { if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('chat-notice', n); },
     onRoom: (r) => { if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('chat-room', r); }
   });

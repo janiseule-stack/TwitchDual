@@ -15,8 +15,15 @@ class ChatSender {
   // die 'ws'-Package-Implementierung. `require('ws')` wird nur ausgewertet,
   // wenn kein globales WebSocket existiert UND kein Impl injiziert wurde —
   // Tests, die einen Mock injizieren, sind davon nicht betroffen.
-  constructor({ WebSocketImpl = globalThis.WebSocket || require('ws'), onNotice = () => {}, onRoom = () => {}, onStatus = () => {} } = {}) {
+  // tokenQuelle: async () => { login, accessToken } | null - wird bei JEDEM
+  // Verbindungsaufbau gefragt (AuthManager.getAccess erneuert bei Bedarf).
+  // Ohne sie galt das Token aus login() fuer immer und war nach 4 h tot.
+  constructor({ WebSocketImpl = globalThis.WebSocket || require('ws'), onNotice = () => {}, onRoom = () => {}, onStatus = () => {},
+    tokenQuelle = null, wartezeit = (fn, ms) => setTimeout(fn, ms) } = {}) {
     this.WebSocketImpl = WebSocketImpl;
+    this.tokenQuelle = tokenQuelle;
+    this.wartezeit = wartezeit;
+    this.gen = 0;           // Generation: ueberholte Token-Abfragen verwerfen
     this.onNotice = onNotice;
     this.onRoom = onRoom;
     this.onStatus = onStatus;
@@ -63,6 +70,23 @@ class ChatSender {
   _connect() {
     this._close();
     if (!this.creds || !this.channel) return;
+    const gen = ++this.gen;
+    if (!this.tokenQuelle) { this._oeffne(); return; }
+    Promise.resolve(this.tokenQuelle()).then((acc) => {
+      if (gen !== this.gen) return;            // inzwischen geschlossen/neu verbunden
+      if (!acc) { this.creds = null; this.onStatus('error'); return; }
+      this.creds = { login: String(acc.login).toLowerCase(), accessToken: acc.accessToken };
+      this._oeffne();
+    }).catch(() => { if (gen === this.gen) this._planeNeu(); });
+  }
+
+  // Unerwarteter Abbruch (Twitch-RECONNECT, Netz weg): nach kurzer Pause neu.
+  _planeNeu() {
+    this.wartezeit(() => { if (!this.ws && this.creds && this.channel) this._connect(); }, 3000);
+  }
+
+  _oeffne() {
+    if (!this.creds || !this.channel) return;
     const ws = new this.WebSocketImpl(IRC_URL);
     this.ws = ws;
     this.ready = false;
@@ -73,7 +97,11 @@ class ChatSender {
       ws.send('NICK ' + this.creds.login);
     };
     ws.onmessage = (evt) => this._onData(String(evt.data));
-    ws.onclose = () => { if (this.ws === ws) { this.ws = null; this.ready = false; } };
+    ws.onclose = () => {
+      if (this.ws !== ws) return;              // gewollt geschlossen/ersetzt
+      this.ws = null; this.ready = false;
+      if (this.creds && this.channel) this._planeNeu();
+    };
     ws.onerror = () => this.onStatus('error');
   }
 
@@ -96,6 +124,7 @@ class ChatSender {
   }
 
   _close() {
+    this.gen++;
     if (this.ws) { const ws = this.ws; this.ws = null; this.ready = false; try { ws.close(); } catch {} }
   }
 }
