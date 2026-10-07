@@ -123,6 +123,26 @@ if (!isTwitchFrame) {
 (async function setupAdblock() {
   try {
     if (!isTwitchFrame) return;                       // nur in Twitch-iframes
+
+    // Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.). Das
+    // <video> fuellt das iframe; sein Hintergrund ist genau die Balkenflaeche.
+    // Farbfilter = Kopie von ThemeKatalog.SICHERE_FARBE (Sandbox: kein require;
+    // test/balken-farbe.test.js haelt beide gleich).
+    const SICHERE_FARBE = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i;
+    window.addEventListener('message', (e) => {
+      const d = e && e.data;
+      if (!d || d.source !== 'twitchdual-theme') return;
+      try {
+        let st = document.getElementById('twitchdual-balken');
+        if (typeof d.balken !== 'string' || !SICHERE_FARBE.test(d.balken)) { if (st) st.remove(); return; }
+        if (!st) {
+          st = document.createElement('style');
+          st.id = 'twitchdual-balken';
+          (document.head || document.documentElement).appendChild(st);
+        }
+        st.textContent = 'video, .video-player, .video-player > div { background-color: ' + d.balken + ' !important; }';
+      } catch (err) { /* Player nie stoeren */ }
+    });
     // Adblock ist ab v1.8.4 immer aktiv (kein Schalter mehr) -> ungated injizieren.
 
     // Werbe-Signale der Seite (aus vaft-Wrapper) an Main relayen.

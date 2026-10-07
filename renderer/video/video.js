@@ -119,6 +119,7 @@ function mountPlayer(options) {
   player = new Twitch.Player($player, { ...base, ...options });
 
   player.addEventListener(Twitch.Player.READY, () => {
+    sendeBalken(); // neues iframe -> Theme-Balkenfarbe nachreichen
     setStatus(''); // "live: X"/"VOD: X" war redundant (Kanal steht im Feld + On-Air-Label)
     // Gemerkte Lautstaerke/Qualitaet wieder anwenden.
     try {
@@ -325,8 +326,19 @@ const themeRuntime = ThemeRuntime.createRuntime({
   ebenen: { hinten: document.getElementById('fx-hinten'), gast: document.getElementById('fx-gast') },
   melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
 });
+// Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.): die Farbe
+// geht per postMessage ins Twitch-iframe, der Preload dort setzt sie.
+let balkenFarbe = null;
+function sendeBalken() {
+  const f = $player.querySelector('iframe');
+  if (f && f.contentWindow) {
+    try { f.contentWindow.postMessage({ source: 'twitchdual-theme', balken: balkenFarbe }, '*'); } catch (e) { /* egal */ }
+  }
+}
 function applyTheme(prefs) {
   themeRuntime.anwenden(prefs);
+  balkenFarbe = ThemeKatalog.balkenFarbe(ThemeKatalog.cleanThemePrefs(prefs));
+  sendeBalken();
 }
 
 // Ambient nur bei offenem Home und nie im Nur-Video-Modus.
