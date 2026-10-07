@@ -30,7 +30,8 @@
     const wellen = [];
     const lotus = [];
     let schwarm = [];            // Raid-Fische, ziehen einmal durch und gehen
-    let schwarmText = null;      // Namenskaertchen, das mit dem Schwarm zieht
+    let schwarmText = null;      // Raid-Kaertchen: { zeilen, x, y, start, rastBis }
+    const RAST_MS = 2000;        // so lange steht es am Rand, wenn der Schwarm weg ist
     let maus = null;
     let fluchtBis = 0;
     let lock = null;             // { x, y, bis }
@@ -167,6 +168,7 @@
         schwarm.push(f);
       }
       welle(12, mitte, true);
+      return mitte - band;
     }
     function bewegeSchwarm(k) {
       for (const f of schwarm) {
@@ -216,20 +218,30 @@
       for (let i = lotus.length - 1; i >= 0; i--) {
         if (zeichneLotus(ev, lotus[i], nun)) vornBelegt = true; else lotus.splice(i, 1);
       }
-      // Raid: Kaertchen mit dem Namen schwimmt ueber der Spitze des Schwarms mit.
-      if (schwarmText && schwarm.length) {
-        let x = 0, y = 0;
-        for (const f of schwarm) { x += f.x; y += f.y; }
-        x /= schwarm.length; y /= schwarm.length;
-        const vorn = Math.max(...schwarm.map((f) => f.x));
-        const kx = Math.min(Math.max((x + vorn) / 2, 80), L.w - 80);
-        ev.save();
-        ev.globalAlpha = Math.min(1, (vorn + 40) / 120) * Math.min(1, (L.w + 40 - Math.min(...schwarm.map((f) => f.x))) / 120);
-        W.namensKarte(ev, S, kx, Math.max(8, y - 70 * skala()), schwarmText);
-        ev.restore();
-        vornBelegt = true;
-      } else if (!schwarm.length) {
-        schwarmText = null;
+      // Raid: Kaertchen gleitet weich ueber dem Schwarm mit (feste Hoehe, kein
+      // Nachspringen), haelt am rechten Rand an und blendet nach der Rast aus.
+      if (schwarmText) {
+        const st = schwarmText, rand = 90;
+        if (schwarm.length) {
+          const vorn = Math.max(...schwarm.map((f) => f.x));
+          const ziel = Math.min(Math.max(vorn - 30, rand), L.w - rand);
+          st.x += (ziel - st.x) * Math.min(1, 0.06 * (nun - (st.letzte || nun) + 16) / 16);
+          st.letzte = nun;
+          st.rastBis = 0;
+        } else {
+          st.x += (L.w - rand - st.x) * 0.1;
+          if (!st.rastBis) st.rastBis = nun + RAST_MS;
+        }
+        const ein = Math.min(1, (nun - st.start) / 500);
+        const aus = st.rastBis ? Math.max(0, 1 - (nun - st.rastBis) / 500) : 1;
+        if (aus <= 0) {
+          schwarmText = null;
+        } else {
+          ev.save(); ev.globalAlpha = ein * aus;
+          W.namensKarte(ev, S, st.x, st.y, st.zeilen);
+          ev.restore();
+          vornBelegt = true;
+        }
       }
     }
 
@@ -295,9 +307,12 @@
         const u = daten.ursprung || { x: 0, y: 0 };
         // fx-hinten liegt im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
         if (art === 'raid') {
-          starteSchwarm(daten.anzahl);
+          const oben = starteSchwarm(daten.anzahl);
           const n = Number(daten.anzahl) || 0;
-          schwarmText = [String(daten.name || 'Raid'), 'raidet mit ' + n.toLocaleString('de-DE') + (n === 1 ? ' Zuschauer' : ' Zuschauern')];
+          if (oben !== undefined) {
+            schwarmText = { zeilen: [String(daten.name || 'Raid'), 'raidet mit ' + n.toLocaleString('de-DE') + (n === 1 ? ' Zuschauer' : ' Zuschauern')],
+              x: 90, y: Math.max(8, oben - 56 * skala()), start: jetzt(), rastBis: 0, letzte: 0 };
+          }
           return;
         }
         if (art === 'abo') {

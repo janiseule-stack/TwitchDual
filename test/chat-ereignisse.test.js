@@ -60,8 +60,10 @@ test('Filter: Abo-Regen gibt EINEN Effekt, seine Einzel-Geschenke keinen', () =>
 
 test('Filter: Abos hoechstens alle abstandMs, Raid immer', () => {
   const f = E.createEreignisFilter({ abstandMs: 4000 });
-  assert.deepEqual(f.effekt(ev(RESUB), 0), { art: 'abo', daten: { name: 'Mochi_Tee', zeilen: ['Mochi_Tee', '12 Monate'] } });
+  assert.deepEqual(f.effekt(ev(RESUB), 0), { art: 'abo', daten: { name: 'Mochi_Tee', zeilen: ['Mochi_Tee', 'seit 12 Monaten dabei'] } });
   assert.equal(f.effekt(ev(SUB_PRIME), 2000), null, 'zu dicht');
   assert.deepEqual(f.effekt(ev(RAID), 2100), { art: 'raid', daten: { name: 'Fremder', anzahl: 1234 } });
-  assert.deepEqual(f.effekt(ev(SUB_PRIME), 4100).daten.zeilen, ['Lurchi', 'neues Abo']);
+  assert.deepEqual(f.effekt(ev(SUB_PRIME), 4100).daten.zeilen, ['Lurchi', 'Prime-Abo']);
+  const f2 = E.createEreignisFilter();
+  assert.deepEqual(f2.effekt({ art: 'abo', name: 'Neu', monate: 1, prime: false }, 0).daten.zeilen, ['Neu', 'hat abonniert']);
 });

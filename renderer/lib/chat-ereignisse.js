@@ -93,7 +93,8 @@
         }
         if (ev.art === 'abo') {
           if (!aboErlaubt(jetzt)) return null;
-          return { art: 'abo', daten: { name: ev.name, zeilen: [ev.name, ev.monate > 1 ? ev.monate + ' Monate' : 'neues Abo'] } };
+          const unter = ev.monate > 1 ? 'seit ' + ev.monate + ' Monaten dabei' : (ev.prime ? 'Prime-Abo' : 'hat abonniert');
+          return { art: 'abo', daten: { name: ev.name, zeilen: [ev.name, unter] } };
         }
         return null;
       }
