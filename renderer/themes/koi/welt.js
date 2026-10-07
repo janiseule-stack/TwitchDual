@@ -62,23 +62,35 @@
       while (fische.length < ziel) fische.push(neuerFisch(fische.length));
       if (fische.length > ziel) fische.length = ziel;
     }
-    // Seerosen auf einem verwackelten Raster: gleichmaessig ueber die ganze
-    // Flaeche statt zufaellig verklumpt. Im Home (gross) deutlich mehr.
+    // Seerosen wie in einem echten Teich: in Gruppen, verschieden gross, eng
+    // beieinander, dazwischen freies Wasser und ein paar Einzelne. Ueberlappen
+    // duerfen sie sich nur knapp (Blaetter beruehren sich, liegen nicht aufeinander).
     function verteileBlaetter() {
       const proFlaeche = fenster === 'video' ? 4.5 : 3;
       const n = Math.max(3, Math.min(48, Math.round(proFlaeche * W.dichte(L.w, L.h))));
-      const spalten = Math.max(1, Math.round(Math.sqrt(n * L.w / Math.max(1, L.h))));
-      const zeilen = Math.max(1, Math.ceil(n / spalten));
-      const zw = L.w / spalten, zh = L.h / zeilen;
+      const rand = 12;
+      const gruppen = [];
+      const anzahlGruppen = Math.max(1, Math.round(n / 5));
+      for (let k = 0; k < anzahlGruppen; k++) {
+        gruppen.push({ x: rnd(rand, L.w - rand), y: rnd(rand, L.h - rand), r: rnd(40, 90) * skala() });
+      }
       blaetter = [];
-      for (let zy = 0; zy < zeilen; zy++) {
-        for (let zx = 0; zx < spalten; zx++) {
-          if (Math.random() < 0.2) continue;   // Luecken, sonst wirkt es wie ein Gitter
-          const r = Math.min(rnd(16, 28) * skala(), zw * 0.38, zh * 0.38);
-          blaetter.push({
-            x: (zx + rnd(0.25, 0.75)) * zw, y: (zy + rnd(0.25, 0.75)) * zh,
-            r, a: rnd(0, TAU), bluete: Math.random() < 0.3
-          });
+      for (let b = 0; b < n; b++) {
+        const r = rnd(12, 30) * skala();
+        for (let versuch = 0; versuch < 30; versuch++) {
+          let x, y;
+          if (Math.random() < 0.78) {
+            const gr = gruppen[Math.floor(Math.random() * gruppen.length)];
+            const a = rnd(0, TAU), d = gr.r * Math.sqrt(Math.random()) * 1.3;
+            x = gr.x + Math.cos(a) * d; y = gr.y + Math.sin(a) * d * rnd(0.6, 1);
+          } else {
+            x = rnd(rand, L.w - rand); y = rnd(rand, L.h - rand);
+          }
+          if (x < -r * 0.4 || x > L.w + r * 0.4 || y < -r * 0.4 || y > L.h + r * 0.4) continue;
+          if (blaetter.every((o) => Math.hypot(o.x - x, o.y - y) > (o.r + r) * 0.9)) {
+            blaetter.push({ x, y, r, a: rnd(0, TAU), bluete: Math.random() < 0.3 });
+            break;
+          }
         }
       }
     }
