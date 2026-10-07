@@ -185,3 +185,8 @@
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card,
 :root[data-theme="koi"] #points-chip, :root[data-theme="koi"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card { border: var(--karte-rand); }
+/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf dem Teich lesbar sind. */
+:root[data-theme="koi"] .abschnitt-kopf {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
+  padding: 6px 10px; width: auto; display: inline-flex;
+}

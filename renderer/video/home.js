@@ -34,6 +34,46 @@ function applyToolsState() {
   $favTools.classList.toggle('active', toolsCollapsed);
 }
 
+// Live/Offline einklappbar (gilt fuer Favoriten UND Gefolgt), gemerkt.
+let abschnitteZu = { ...HomeAbschnitte.STANDARD };
+try { abschnitteZu = HomeAbschnitte.lies(localStorage.getItem('homeAbschnitteZu')); } catch { /* egal */ }
+
+// Haengt pro nicht-leerem Abschnitt Kopf + Inhalt an $liste. Umschalten
+// toggelt nur Klassen (kein Neu-Rendern, Live-Vorschauen bleiben stehen).
+function renderAbschnitte($liste, kanaele, filterAktiv, opts) {
+  for (const a of HomeAbschnitte.teile(kanaele, abschnitteZu, filterAktiv)) {
+    const box = document.createElement('div');
+    box.className = 'home-abschnitt' + (a.offen ? '' : ' zu');
+    box.dataset.art = a.art;
+    const kopf = document.createElement('button');
+    kopf.type = 'button';
+    kopf.className = 'abschnitt-kopf';
+    const pfeil = document.createElement('span'); pfeil.className = 'abschnitt-pfeil'; pfeil.textContent = '▾';
+    const titel = document.createElement('span'); titel.textContent = a.titel;
+    const anzahl = document.createElement('span'); anzahl.className = 'abschnitt-anzahl'; anzahl.textContent = a.kanaele.length;
+    kopf.append(pfeil, titel, anzahl);
+    const inhalt = document.createElement('div');
+    inhalt.className = 'abschnitt-inhalt';
+    if (a.art === 'live') {
+      const grid = document.createElement('div');
+      grid.id = 'live-grid';
+      for (const ch of a.kanaele) grid.appendChild(buildLiveCard(ch, opts));
+      inhalt.appendChild(grid);
+    } else {
+      for (const ch of a.kanaele) inhalt.appendChild(buildFavCard(ch, opts));
+    }
+    kopf.addEventListener('click', () => {
+      abschnitteZu = HomeAbschnitte.umschalten(abschnitteZu, a.art);
+      try { localStorage.setItem('homeAbschnitteZu', JSON.stringify(abschnitteZu)); } catch { /* egal */ }
+      // Gleiche Art im anderen Tab mitziehen; bei Filter bleibt alles offen.
+      const offen = !!$filterInput.value.trim() || !abschnitteZu[a.art];
+      for (const b of document.querySelectorAll('.home-abschnitt[data-art="' + a.art + '"]')) b.classList.toggle('zu', !offen);
+    });
+    box.append(kopf, inhalt);
+    $liste.appendChild(box);
+  }
+}
+
 let refreshTimer = null;
 let favorites = [];
 let lastChannels = []; // letzter Live-Status (sortiert vom Main-Prozess)
@@ -95,17 +135,9 @@ async function refreshFollowed() {
     return;
   }
   // getFollowed() liefert bereits live-first sortiert (Main-Prozess, browse.getLiveStatus).
-  const live = res.channels.filter((ch) => ch.live);
-  const off = res.channels.filter((ch) => !ch.live);
   $followedEmpty.textContent = 'Keine gefolgten Channels.';
   $followedEmpty.classList.toggle('hidden', res.channels.length > 0);
-  if (live.length) {
-    const grid = document.createElement('div');
-    grid.id = 'live-grid'; // gleiche Grid-Optik wie bei den Favoriten (buildLiveCard)
-    for (const ch of live) grid.appendChild(buildLiveCard(ch, { showRemove: false }));
-    $followedList.appendChild(grid);
-  }
-  for (const ch of off) $followedList.appendChild(buildFavCard(ch, { showRemove: false }));
+  renderAbschnitte($followedList, res.channels, false, { showRemove: false });
 }
 
 function openHome() {
@@ -190,16 +222,9 @@ function renderFavorites() {
   const needle = $filterInput.value.trim().toLowerCase();
   const filtered = lastChannels.filter((ch) => matchesFilter(ch, needle));
   $favList.innerHTML = '';
-  // Live-Kanaele als grosse Vorschau-Karten im Grid, offline kompakt darunter.
-  const live = filtered.filter((ch) => ch.live);
-  const off = filtered.filter((ch) => !ch.live);
-  if (live.length) {
-    const grid = document.createElement('div');
-    grid.id = 'live-grid';
-    for (const ch of live) grid.appendChild(buildLiveCard(ch));
-    $favList.appendChild(grid);
-  }
-  for (const ch of off) $favList.appendChild(buildFavCard(ch));
+  // Live-Kanaele als grosse Vorschau-Karten im Grid, offline kompakt darunter,
+  // beide Abschnitte einklappbar.
+  renderAbschnitte($favList, filtered, !!needle);
   $favNoMatch.classList.toggle('hidden', !(lastChannels.length && !filtered.length));
 }
 

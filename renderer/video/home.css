@@ -271,3 +271,22 @@
   pointer-events: none;
 }
 .lc-viewers, .lc-live { z-index: 1; }
+
+/* Live/Offline als einklappbare Abschnitte (Favoriten + Gefolgt). Zu = nur
+   die Kopfzeile bleibt, darunter sieht man den Theme-Hintergrund. */
+.home-abschnitt { margin-bottom: 10px; }
+.abschnitt-kopf {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 0 0 8px; padding: 4px 2px 6px; border: none; border-bottom: 1px solid var(--line);
+  background: none; color: var(--accent-title); font: inherit; font-family: var(--schrift-titel, inherit);
+  font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; text-align: left;
+}
+.abschnitt-kopf:hover { color: var(--accent); }
+.abschnitt-pfeil { display: inline-block; width: 12px; transition: transform 160ms ease; }
+.home-abschnitt.zu .abschnitt-pfeil { transform: rotate(-90deg); }
+.abschnitt-anzahl {
+  padding: 0 7px; border-radius: 999px; background: var(--accent-glow); border: 1px solid var(--accent-border);
+  color: var(--text); font-size: 11px; font-weight: 600; line-height: 18px;
+}
+.home-abschnitt.zu .abschnitt-inhalt { display: none; }
+.home-abschnitt.zu .abschnitt-kopf { margin-bottom: 0; }
