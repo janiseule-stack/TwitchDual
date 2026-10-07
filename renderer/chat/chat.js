@@ -781,6 +781,26 @@ const $themeBtn = document.getElementById('opt-theme');
 const $themeName = document.getElementById('opt-theme-name');
 const $effekte = document.getElementById('opt-effekte');
 const $neonFarben = document.getElementById('opt-neon-farben');
+// Welle 1b: eigene Farben fuer die neuen Themes (Neon behaelt seine Waehler).
+const $themeFarben = document.getElementById('opt-theme-farben');
+const TF = {
+  akzent: document.getElementById('opt-tf-akzent'),
+  hintergrund: document.getElementById('opt-tf-hintergrund'),
+  partikel: document.getElementById('opt-tf-partikel')
+};
+// Alle drei Werte gehen zusammen raus (main mischt pro Theme).
+function themeFarbenAusWaehlern() {
+  return { anpassungen: { [themePrefs.theme]: {
+    akzent: TF.akzent.value, hintergrund: TF.hintergrund.value, partikel: TF.partikel.value
+  } } };
+}
+for (const el of Object.values(TF)) {
+  el.addEventListener('input', () => window.twitchDual.previewThemePrefs(themeFarbenAusWaehlern()));
+  el.addEventListener('change', () => window.twitchDual.saveThemePrefs(themeFarbenAusWaehlern()));
+}
+document.getElementById('opt-tf-reset').addEventListener('click', () => {
+  window.twitchDual.saveThemePrefs({ anpassungen: { [themePrefs.theme]: {} } });
+});
 const $galerie = document.getElementById('theme-galerie');
 const $galerieListe = document.getElementById('galerie-liste');
 const $head = document.getElementById('head');
@@ -802,6 +822,11 @@ function spiegleThemeUi() {
   $themeName.textContent = t.name;
   for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
   $neonFarben.classList.toggle('hidden', !t.farbenFrei);
+  $themeFarben.classList.toggle('hidden', t.farbenFrei);
+  if (!t.farbenFrei) {
+    const f = ThemeKatalog.effektiveFarben(themePrefs);
+    for (const k of Object.keys(TF)) TF[k].value = f[k];
+  }
   for (const k of $galerieListe.children) k.classList.toggle('aktiv', k.dataset.id === themePrefs.theme);
 }
 
