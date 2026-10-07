@@ -333,7 +333,7 @@ test('Gast-Ebene verdeckt den Player nur waehrend eines Auftritts', async () => 
   assert.equal(klassen.has('aktiv'), false, 'ohne Auftritt unsichtbar');
   rt.gastErzwingen();
   assert.equal(klassen.has('aktiv'), true, 'waehrend des Auftritts sichtbar');
-  const aus = timer.find((t) => t.ms >= 7500);
+  const aus = timer.find((t) => t.ms >= 14000);
   assert.ok(aus, 'Ausblenden geplant');
   aus.fn();
   assert.equal(klassen.has('aktiv'), false, 'danach wieder weg');

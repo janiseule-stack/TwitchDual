@@ -19,7 +19,7 @@
   const AKZENT_VARS = ['--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim', '--accent-contrast'];
   const FLAECHEN_VARS = ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts'];
   const GAST_VERSATZ_MS = 700;   // mehrere Gaeste kommen leicht nacheinander
-  const GAST_DAUER_MS = 7500;    // so lange braucht ein Gast uebers Bild (+Puffer)
+  const GAST_DAUER_MS = 14000;   // so lange braucht ein Gast uebers Bild (+Puffer)
 
   function createRuntime(o) {
     const fenster = o.fenster;

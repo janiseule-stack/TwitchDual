@@ -200,3 +200,33 @@ test('koi: waehrend einer Abo-Welle bilden die Fische keinen Haufen', () => {
     Date.now = echt;
   }
 });
+
+test('koi: Gast kommt von aussen, schwimmt umher, verlaesst das Bild woanders', () => {
+  const farben = new Set();
+  const fabrik = ladeKoi(farben);
+  const bilder = [];
+  const gast = { clientWidth: 1000, clientHeight: 600, kinder: [], appendChild(c) { gast.kinder.push(c); } };
+  const hinten = { clientWidth: 0, clientHeight: 0, appendChild() {} };
+  const engine = FxEngine.createEngine({ ebenen: { hinten, gast }, doc: canvasDoc(farben), dpr: 1,
+    sichtbar: () => true, raf: (fn) => { bilder.push(fn); return bilder.length; }, caf() {}, setInterval: () => 1, clearInterval() {} });
+  let jetzt = 0;
+  const echt = Date.now;
+  Date.now = () => jetzt;
+  try {
+    const welt = fabrik({ engine, fenster: 'video', FxEngine, farben: { partikel: '#12ab34' }, variante: 'lofi' });
+    welt.start();
+    engine.pausieren(true);                 // Teich ruht waehrend des Streams
+    welt.gast();
+    let zeit = 0, bilderZahl = 0;
+    while (bilder.length && zeit < 40000) {
+      const fn = bilder.shift();
+      jetzt += 33; zeit += 33; bilderZahl++;
+      fn(zeit);
+    }
+    assert.equal(bilder.length, 0, 'Animation endet von selbst');
+    assert.ok(zeit > 5000 && zeit < 30000, 'Auftritt dauert ein paar Sekunden: ' + zeit + ' ms');
+    assert.ok(bilderZahl > 100, 'wurde wirklich animiert');
+  } finally {
+    Date.now = echt;
+  }
+});

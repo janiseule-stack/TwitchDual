@@ -34,6 +34,7 @@
     const intervalle = new Set();
     const schleifen = new Set();  // { id, letzte, tick }
     const leinwaende = new Set(); // Canvas der gezeichneten Welten
+    const animationen = new Set(); // animiere(): laufen auch bei Pause
 
     function grenze() { return Math.round(max * faktor); }
     function laeuft() { return !gestoppt && !pausiert && faktor > 0 && sichtbar(); }
@@ -140,6 +141,24 @@
         starteSchleife(s);
         return s;
       },
+      // Wie schleife(), aber unabhaengig von pausieren() - fuer kurze Auftritte
+      // (Gast uebers Video), waehrend der Teich im Hintergrund ruht. Endet,
+      // sobald fn false liefert oder stop() kommt.
+      animiere(fn) {
+        if (gestoppt) return null;
+        const s = { id: null, letzte: null };
+        const tick = (t) => {
+          s.id = null;
+          if (gestoppt) return;
+          const dt = s.letzte === null ? 16 : Math.min(100, t - s.letzte);
+          s.letzte = t;
+          if (fn(dt) === false) { animationen.delete(s); return; }
+          if (!gestoppt) s.id = raf(tick);
+        };
+        animationen.add(s);
+        s.id = raf(tick);
+        return s;
+      },
       setFaktor(f) { faktor = Math.max(0, Number(f) || 0); },
       get faktor() { return faktor; },
       pausieren(an) { pausiert = !!an; },
@@ -161,6 +180,8 @@
         intervalle.clear();
         for (const s of schleifen) { if (s.id !== null) caf(s.id); s.id = null; }
         schleifen.clear();
+        for (const s of animationen) { if (s.id !== null) caf(s.id); s.id = null; }
+        animationen.clear();
         for (const [el, anim] of partikel) { try { anim.cancel(); } catch (e) { /* egal */ } el.remove(); }
         partikel.clear();
         for (const el of elemente) el.remove();

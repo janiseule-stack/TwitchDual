@@ -166,3 +166,17 @@ test('leinwand: fuellt die Ebene, folgt Groesse und Pixeldichte, stop raeumt weg
   assert.equal(hinten.kinder.size, 0);
   assert.equal(engine.leinwand('hinten'), null, 'nach stop keine neue');
 });
+
+test('animiere: laeuft trotz Pause, endet bei false, stop bricht ab', () => {
+  const { engine, frames, tickFrame } = aufbau();
+  engine.pausieren(true);
+  let n = 0;
+  engine.animiere(() => { n++; return n < 3; });
+  tickFrame(0); tickFrame(16); tickFrame(32);
+  assert.equal(n, 3, 'drei Bilder trotz Pause');
+  assert.equal(frames.size, 0, 'danach kein neues Bild angefordert');
+  engine.animiere(() => true);
+  assert.equal(frames.size, 1);
+  engine.stop();
+  assert.equal(frames.size, 0, 'stop raeumt ab');
+});

@@ -319,19 +319,87 @@
 
     function welle(x, y, gross, verzug, vorn) { wellen.push({ x, y, t: -(verzug || 0), gross, vorn: !!vorn }); }
 
-    // Gast: ein gezeichneter Koi als Bild, das per Animation uebers Video zieht.
-    function gastBild() {
-      const dpr = (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1;
-      const c = W.leinwand(140 * dpr, 60 * dpr);
-      const g = c.getContext('2d');
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const paar = S.fischFarben[0];
-      const f = { x: 100, y: 30, a: 0, phase: 0, laenge: 78, farben: [farbe(paar[0]), farbe(paar[1])], segs: [],
-        flecken: [{ s: 2, dx: 0.2, r: 0.9 }, { s: 6, dx: -0.3, r: 0.7 }] };
-      for (let s = 0; s < 12; s++) f.segs.push({ x: 100 - s * 7.1, y: 30 + Math.sin(s * 0.5) * 2 });
-      S.fisch(g, f, W);
-      c.style.width = '140px'; c.style.height = '60px'; c.style.display = 'block';
-      return c;
+    // Gast: echte Kois (mit Wirbelsaeule) schwimmen ueber das Video. Jeder
+    // kommt von einem zufaelligen Rand, zieht ein paar Sekunden in Boegen
+    // umher und verlaesst das Bild ueber einen anderen Rand. Eigene Leinwand
+    // auf der Gast-Ebene, eigene Animation (der Teich ruht waehrend des Streams).
+    let G = null;
+    let gaeste = [];
+    let gastLaeuft = false;
+    function randPunkt(seite, w, h, aussen) {
+      if (seite === 0) return { x: -aussen, y: rnd(h * 0.15, h * 0.85) };
+      if (seite === 1) return { x: w + aussen, y: rnd(h * 0.15, h * 0.85) };
+      if (seite === 2) return { x: rnd(w * 0.15, w * 0.85), y: -aussen };
+      return { x: rnd(w * 0.15, w * 0.85), y: h + aussen };
+    }
+    function neuerGast() {
+      const w = G.w, h = G.h;
+      const sk = Math.max(0.8, Math.min(1.7, Math.min(w, h) / 480));
+      const paar = S.fischFarben[Math.floor(Math.random() * S.fischFarben.length)];
+      const rein = Math.floor(Math.random() * 4);
+      let raus = Math.floor(Math.random() * 3);
+      if (raus >= rein) raus++;
+      const start = randPunkt(rein, w, h, 70 * sk);
+      const ziel = { x: rnd(w * 0.25, w * 0.75), y: rnd(h * 0.25, h * 0.75) };
+      const f = {
+        x: start.x, y: start.y, a: Math.atan2(ziel.y - start.y, ziel.x - start.x), v: rnd(1.1, 1.5) * sk,
+        phase: rnd(0, TAU), laenge: rnd(58, 74) * sk, farben: [farbe(paar[0]), farbe(paar[1])], segs: [], flecken: [],
+        stadium: 'rein', bis: 0, ausgang: randPunkt(raus, w, h, 120 * sk), welle: rnd(0, TAU)
+      };
+      for (let k = 0; k < 12; k++) f.segs.push({ x: f.x - Math.cos(f.a) * k * 5, y: f.y - Math.sin(f.a) * k * 5 });
+      const n = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < n; k++) f.flecken.push({ s: Math.floor(rnd(1, 9)), dx: rnd(-0.5, 0.5), r: rnd(0.55, 1.0) });
+      return f;
+    }
+    function bewegeGast(f, k, nun) {
+      const w = G.w, h = G.h, rand = Math.min(w, h) * 0.12;
+      let wunsch, rate = 0.035;
+      if (f.stadium === 'rein') {
+        wunsch = Math.atan2(h / 2 - f.y, w / 2 - f.x);
+        if (f.x > rand && f.x < w - rand && f.y > rand && f.y < h - rand) { f.stadium = 'umher'; f.bis = nun + rnd(4000, 7000); }
+      } else if (f.stadium === 'umher') {
+        f.welle += 0.02 * k;
+        wunsch = f.a + Math.sin(f.welle) * 0.9;
+        // Vom Rand weg in die Mitte zurueckdrehen
+        if (f.x < rand || f.x > w - rand || f.y < rand || f.y > h - rand) { wunsch = Math.atan2(h / 2 - f.y, w / 2 - f.x); rate = 0.06; }
+        if (nun > f.bis) f.stadium = 'raus';
+      } else {
+        wunsch = Math.atan2(f.ausgang.y - f.y, f.ausgang.x - f.x); rate = 0.05;
+      }
+      const diff = Math.atan2(Math.sin(wunsch - f.a), Math.cos(wunsch - f.a));
+      f.a += diff * Math.min(1, rate * k);
+      const eile = f.stadium === 'raus' ? 1.5 : 1;
+      f.x += Math.cos(f.a) * f.v * eile * k; f.y += Math.sin(f.a) * f.v * eile * k;
+      f.segs[0].x = f.x; f.segs[0].y = f.y;
+      const abst = f.laenge / 11;
+      for (let i = 1; i < f.segs.length; i++) {
+        const p = f.segs[i - 1], q = f.segs[i], wi = Math.atan2(q.y - p.y, q.x - p.x);
+        q.x = p.x + Math.cos(wi) * abst; q.y = p.y + Math.sin(wi) * abst;
+      }
+      f.phase += 0.14 * k;
+      const weg = 160;
+      return !(f.stadium === 'raus' && (f.x < -weg || f.x > w + weg || f.y < -weg || f.y > h + weg));
+    }
+    function gastSchleife() {
+      if (gastLaeuft) return;
+      gastLaeuft = true;
+      let acc = 0;
+      engine.animiere((dt) => {
+        acc += dt;
+        if (acc < BILD_MS) return true;
+        const k = acc / 16;
+        acc = 0;
+        G.passe();
+        const nun = jetzt();
+        const g = G.ctx;
+        g.clearRect(0, 0, G.w, G.h);
+        gaeste = gaeste.filter((f) => bewegeGast(f, k, nun));
+        g.save(); g.globalAlpha = 0.92;
+        for (const f of gaeste) S.fisch(g, f, W);
+        g.restore();
+        if (!gaeste.length) { g.clearRect(0, 0, G.w, G.h); gastLaeuft = false; return false; }
+        return true;
+      });
     }
 
     return {
@@ -342,7 +410,7 @@
         V = engine.leinwand('vorn');
         engine.schleife(frame);
       },
-      stop() { fische = []; blaetter = []; schwarm = []; L = null; V = null; bg = null; },
+      stop() { fische = []; blaetter = []; schwarm = []; gaeste = []; L = null; V = null; G = null; bg = null; },
       // Fuer Tests: wo die Fische gerade sind.
       fischPositionen() { return fische.map((f) => ({ x: f.x, y: f.y })); },
       maus(x, y) {
@@ -388,20 +456,12 @@
         }
       },
       gast() {
-        const { w, h } = engine.groesse('gast');
-        const y = rnd(h * 0.3, h * 0.7);
-        const el = engine.spawn({
-          ebene: 'gast', stil: { width: '140px', height: '60px', marginLeft: '-70px', marginTop: '-30px' },
-          keyframes: [
-            { transform: FxEngine.tr(-80, y, ' rotate(4deg)'), opacity: 0 },
-            { opacity: 0.9, offset: 0.15 },
-            { transform: FxEngine.tr(w * 0.5, y + rnd(-30, 30), ' rotate(-3deg)'), opacity: 0.9, offset: 0.5 },
-            { opacity: 0.9, offset: 0.85 },
-            { transform: FxEngine.tr(w + 80, y, ' rotate(5deg)'), opacity: 0 }
-          ],
-          dauerMs: 7000, easing: 'ease-in-out'
-        });
-        if (el && el.appendChild) el.appendChild(gastBild());
+        if (!G) G = engine.leinwand('gast');
+        if (!G) return;
+        G.passe();
+        if (!G.w || !G.h) return;          // Ebene (noch) unsichtbar
+        gaeste.push(neuerGast());
+        gastSchleife();
       }
     };
   };
