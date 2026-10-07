@@ -30,6 +30,7 @@
     const wellen = [];
     const lotus = [];
     let schwarm = [];            // Raid-Fische, ziehen einmal durch und gehen
+    let schwarmText = null;      // Namenskaertchen, das mit dem Schwarm zieht
     let maus = null;
     let fluchtBis = 0;
     let lock = null;             // { x, y, bis }
@@ -215,6 +216,21 @@
       for (let i = lotus.length - 1; i >= 0; i--) {
         if (zeichneLotus(ev, lotus[i], nun)) vornBelegt = true; else lotus.splice(i, 1);
       }
+      // Raid: Kaertchen mit dem Namen schwimmt ueber der Spitze des Schwarms mit.
+      if (schwarmText && schwarm.length) {
+        let x = 0, y = 0;
+        for (const f of schwarm) { x += f.x; y += f.y; }
+        x /= schwarm.length; y /= schwarm.length;
+        const vorn = Math.max(...schwarm.map((f) => f.x));
+        const kx = Math.min(Math.max((x + vorn) / 2, 80), L.w - 80);
+        ev.save();
+        ev.globalAlpha = Math.min(1, (vorn + 40) / 120) * Math.min(1, (L.w + 40 - Math.min(...schwarm.map((f) => f.x))) / 120);
+        W.namensKarte(ev, S, kx, Math.max(8, y - 70 * skala()), schwarmText);
+        ev.restore();
+        vornBelegt = true;
+      } else if (!schwarm.length) {
+        schwarmText = null;
+      }
     }
 
     function frame(dt) {
@@ -280,6 +296,8 @@
         // fx-hinten liegt im Chat fixed inset 0 -> gleiche Koordinaten wie der Chip.
         if (art === 'raid') {
           starteSchwarm(daten.anzahl);
+          const n = Number(daten.anzahl) || 0;
+          schwarmText = [String(daten.name || 'Raid'), 'raidet mit ' + n.toLocaleString('de-DE') + (n === 1 ? ' Zuschauer' : ' Zuschauern')];
           return;
         }
         if (art === 'abo') {

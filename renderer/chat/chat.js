@@ -157,6 +157,11 @@ function zeigeChatEreignis(ev) {
   if (!ev) return;
   appendEreignis(ChatEreignisse.zeile(ev), ev.nachricht);
   const fx = ereignisFilter.effekt(ev, Date.now());
+  // Abo-Bluete oben rechts unter der Kopfleiste, damit sie keine Nachrichten verdeckt.
+  if (fx && fx.art === 'abo') {
+    const kopf = document.getElementById('head').getBoundingClientRect();
+    fx.daten.ursprung = { x: window.innerWidth - 90, y: kopf.bottom + 38 };
+  }
   if (fx) themeRuntime.ereignis(fx.art, fx.daten);
   window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt: !!fx });
 }
