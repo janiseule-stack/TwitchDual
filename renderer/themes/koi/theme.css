@@ -22,13 +22,13 @@
   --onair-to: #8fb58a;
   --schrift: Candara, "Segoe UI", sans-serif;
   --schrift-titel: "Segoe Print", Candara, cursive;
-  --schleier: rgba(250, 246, 236, .38);
+  --schleier: rgba(250, 246, 236, .55);
   --halo: rgba(250, 246, 236, .9);
   --karte: rgba(250, 246, 236, .78);
   --karte-rand: 1px solid rgba(120, 150, 130, .45);
   --rund: 14px;
   --knopf: rgba(192, 88, 58, .12);
-  --balken: rgba(246, 242, 232, .92);
+  --balken: #f6f2e8;
 }
 
 /* --- C: Lofi-Abend ---------------------------------------------------------- */
@@ -50,13 +50,13 @@
   --onair-to: #ffe9a8;
   --schrift: Bahnschrift, "Segoe UI", sans-serif;
   --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
-  --schleier: rgba(24, 24, 52, .36);
+  --schleier: rgba(24, 24, 52, .55);
   --halo: rgba(24, 24, 52, .95);
   --karte: rgba(29, 28, 61, .78);
   --karte-rand: 2px solid #1d1c3d;
   --rund: 16px;
   --knopf: rgba(255, 154, 110, .14);
-  --balken: rgba(29, 28, 61, .92);
+  --balken: #1d1c3d;
 }
 
 /* --- D: Holzschnitt --------------------------------------------------------- */
@@ -78,7 +78,7 @@
   --onair-to: #2f4d70;
   --schrift: "Yu Gothic UI", "Segoe UI", sans-serif;
   --schrift-titel: "Yu Mincho", "MS Mincho", Georgia, serif;
-  --schleier: rgba(239, 227, 200, .22);
+  --schleier: rgba(239, 227, 200, .42);
   --halo: rgba(239, 227, 200, .95);
   --karte: rgba(239, 227, 200, .94);
   --karte-rand: 2px solid #1c1a18;
@@ -106,13 +106,13 @@
   --onair-to: #3a3a3a;
   --schrift: Georgia, "Yu Mincho", serif;
   --schrift-titel: "Yu Mincho", Georgia, serif;
-  --schleier: rgba(246, 241, 230, .4);
+  --schleier: rgba(246, 241, 230, .58);
   --halo: rgba(246, 241, 230, .95);
   --karte: rgba(248, 244, 235, .85);
   --karte-rand: 1px solid rgba(30, 30, 30, .28);
   --rund: 3px;
   --knopf: transparent;
-  --balken: rgba(246, 241, 230, .94);
+  --balken: #f6f1e6;
 }
 
 /* --- H: Bleiglas ------------------------------------------------------------ */
@@ -134,13 +134,13 @@
   --onair-to: #7ad0ff;
   --schrift: "Segoe UI", sans-serif;
   --schrift-titel: "Palatino Linotype", Georgia, serif;
-  --schleier: rgba(14, 14, 26, .42);
+  --schleier: rgba(14, 14, 26, .6);
   --halo: rgba(14, 14, 26, .95);
   --karte: rgba(18, 16, 28, .8);
   --karte-rand: 3px solid #121016;
   --rund: 8px;
   --knopf: rgba(255, 179, 90, .14);
-  --balken: rgba(18, 16, 28, .94);
+  --balken: #14121e;
 }
 
 /* === Gemeinsame Regeln ======================================================= */
@@ -150,7 +150,12 @@
 :root[data-theme="koi"] #home { background: var(--bg); }
 /* Lesbarkeit: leichter Schleier ueber dem Teich + Schein um die Schrift. */
 :root[data-theme="koi"] #messages { background: var(--schleier); }
-:root[data-theme="koi"] .msg { text-shadow: 0 0 3px var(--halo), 0 0 6px var(--halo); }
+:root[data-theme="koi"] .msg {
+  font-weight: 500;
+  text-shadow: 0 0 2px var(--halo), 0 0 4px var(--halo), 0 0 8px var(--halo);
+}
+/* Oberer On-Air-Balken deckt den Teich ab (sonst ragt er ueber den Kopf hinaus). */
+:root[data-theme="koi"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
 
 :root[data-theme="koi"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
 :root[data-theme="koi"] #messages, :root[data-theme="koi"] #home-fav-view,

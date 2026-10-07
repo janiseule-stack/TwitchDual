@@ -6,7 +6,7 @@
 // Spiele daneben; der Hintergrund entsteht nur bei Groessenwechsel neu.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben, variante }) {
+  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben, variante, fenster }) {
     const { rnd } = FxEngine;
     const KS = window.KoiStile;
     const W = KS.werkzeug;
@@ -58,18 +58,23 @@
       while (fische.length < ziel) fische.push(neuerFisch(fische.length));
       if (fische.length > ziel) fische.length = ziel;
     }
+    // Seerosen auf einem verwackelten Raster: gleichmaessig ueber die ganze
+    // Flaeche statt zufaellig verklumpt. Im Home (gross) deutlich mehr.
     function verteileBlaetter() {
-      const n = Math.max(3, Math.min(12, Math.round(6 * W.dichte(L.w, L.h))));
+      const proFlaeche = fenster === 'video' ? 4.5 : 3;
+      const n = Math.max(3, Math.min(48, Math.round(proFlaeche * W.dichte(L.w, L.h))));
+      const spalten = Math.max(1, Math.round(Math.sqrt(n * L.w / Math.max(1, L.h))));
+      const zeilen = Math.max(1, Math.ceil(n / spalten));
+      const zw = L.w / spalten, zh = L.h / zeilen;
       blaetter = [];
-      // Mit Abstand verteilen: bis zu 25 Wuerfe pro Blatt, sonst weglassen.
-      for (let b = 0; b < n; b++) {
-        const r = rnd(16, 28) * skala();
-        for (let versuch = 0; versuch < 25; versuch++) {
-          const x = rnd(16, L.w - 16), y = rnd(16, L.h - 16);
-          if (blaetter.every((o) => Math.hypot(o.x - x, o.y - y) > o.r + r + 10)) {
-            blaetter.push({ x, y, r, a: rnd(0, TAU), bluete: b % 3 === 1 });
-            break;
-          }
+      for (let zy = 0; zy < zeilen; zy++) {
+        for (let zx = 0; zx < spalten; zx++) {
+          if (Math.random() < 0.2) continue;   // Luecken, sonst wirkt es wie ein Gitter
+          const r = Math.min(rnd(16, 28) * skala(), zw * 0.38, zh * 0.38);
+          blaetter.push({
+            x: (zx + rnd(0.25, 0.75)) * zw, y: (zy + rnd(0.25, 0.75)) * zh,
+            r, a: rnd(0, TAU), bluete: Math.random() < 0.3
+          });
         }
       }
     }
