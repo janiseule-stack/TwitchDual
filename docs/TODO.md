@@ -350,7 +350,17 @@ darueber fremde Kanalpunkt-Einloesungen.
   `polls.<channel_id>`, `predictions-channel-v1.<channel_id>`,
   `predictions-user-v1.<user_id>`. Nutzlasten im 50-s-Fenster nicht
   aufgetreten (kein Pin-Wechsel, keine Umfrage) → **ungemessen**.
-- Offen: Form einer laufenden Umfrage, Hermes-Nutzlasten, Mitstimmen/Setzen
+- **Laufende Umfrage gemessen** (ludwig, 09.10. 00:53, anonym):
+  `viewablePoll {id, title, status: ACTIVE|COMPLETED, durationSeconds,
+  startedAt, endedAt, remainingDurationMilliseconds, totalVoters,
+  votes {total, base, communityPoints}, settings {multichoice.isEnabled,
+  communityPointsVotes {isEnabled, cost}}, choices[] {id, title, totalVoters,
+  votes.total}}`. Nach Ablauf bleibt sie mit `status: COMPLETED` +
+  Endergebnis abrufbar. Fuer reine Anzeige genuegt also Nachfragen im Takt;
+  Hermes nur fuer Sofort-Updates. Anonymer Hermes-Versuch aus Node lieferte
+  keinen einzigen Rahmen (nicht mal `welcome`) - Ursache ungeklaert
+  (Sandbox oder Origin).
+- Offen: Hermes-Nutzlasten, Mitstimmen/Setzen
   (Mutationen + ob Integrity noetig). Werkzeug:
   `node tools/cdp-mitschnitt.js <kanal> [sek]` (Dev-App mit `--remote-debugging-port=9333`, haengt
   sich an das twitch.tv-Fenster, laedt neu, schneidet GQL+WS mit).
