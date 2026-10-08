@@ -404,6 +404,12 @@ const pointsApi = createPointsApi({});
 const pointsState = createPointsState({ intervalMs: 15000 });
 const webAuth = createWebAuthStore({ safeStorage, store });
 const integrity = createIntegrityStore({});
+const { createIntegrityAufruf } = require('./src/integrity-aufruf');
+const mitIntegrity = createIntegrityAufruf({
+  store: integrity,
+  ernte: () => ernteIntegrity({ BrowserWindow, ses: session.defaultSession }),
+  melde: (ereignis, detail) => diagLog.melde('punkte', ereignis, detail)
+});
 
 // webToken wird EINMAL beim Start gelesen (nicht bei jedem Takt - safeStorage
 // entschluesselt sonst dauerhaft einmal pro Sekunde) und bei Login/Logout
@@ -516,39 +522,10 @@ ipcMain.handle('points-redeem', async (_e, { reward, textInput }) => {
 });
 
 // Kiste einloesen. Twitch verlangt dafuer Integrity-Kopfzeilen aus einer
-// echten Seitensitzung; die werden nur geholt, wenn wirklich eine Kiste
-// offen ist, und bei Ablehnung genau einmal erneuert.
-async function kisteEinloesen(channelID, claimID) {
-  let satz = integrity.holen(Date.now());
-  if (!satz) {
-    satz = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
-    diagLog.melde('punkte', 'integrity-ernte', { ergebnis: satz ? 'ok' : 'fehlgeschlagen', grund: 'kein Satz im Speicher' });
-    if (!satz) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
-    integrity.setzen(satz, Date.now());
-  }
-  const kopf = {
-    'Client-Integrity': satz.integrity,
-    'X-Device-Id': satz.deviceId,
-    'Client-Session-Id': satz.sessionId,
-    'Client-Version': satz.version
-  };
-  try {
-    return await pointsApi.claim(webToken, channelID, claimID, kopf);
-  } catch (e) {
-    if (!e.integrity) throw e;
-    // Abgelehnt -> Satz ist verbraucht, genau einmal neu holen und wiederholen.
-    integrity.verwerfen();
-    const neu = await ernteIntegrity({ BrowserWindow, ses: session.defaultSession });
-    diagLog.melde('punkte', 'integrity-ernte', { ergebnis: neu ? 'ok' : 'fehlgeschlagen', grund: 'Satz abgelehnt, zweiter Versuch' });
-    if (!neu) return { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
-    integrity.setzen(neu, Date.now());
-    return await pointsApi.claim(webToken, channelID, claimID, {
-      'Client-Integrity': neu.integrity,
-      'X-Device-Id': neu.deviceId,
-      'Client-Session-Id': neu.sessionId,
-      'Client-Version': neu.version
-    });
-  }
+// echten Seitensitzung (src/integrity-aufruf.js: holen, bei Ablehnung genau
+// einmal erneuern).
+function kisteEinloesen(channelID, claimID) {
+  return mitIntegrity((kopf) => pointsApi.claim(webToken, channelID, claimID, kopf));
 }
 
 // 15-s-Takt (Sekunden-Tick, sollAbfragen laesst nur alle 15s wirklich durch -
