@@ -382,6 +382,19 @@ darueber fremde Kanalpunkt-Einloesungen.
   Ob `Client-Integrity` Pflicht ist, nicht geprueft (Header nicht
   mitgeschnitten) → beim Bauen wie beim Kisten-Claim mitschicken.
 - Offen: Hermes-Nutzlasten Pin/Umfrage, Mitstimmen in Umfragen
+- **Umgesetzt (Branch `feat/kanal-ereignisse`, kein Release):** Pin-Leiste,
+  Umfrage-/Vorhersage-Karten, Setzen mit Schnell-Chips, Effekte ueber
+  `theme-runtime` (`ereignis-start`/`tipp-verloren` → punkte, `tipp-gewonnen` →
+  Kiste + „+X"). Zustand im Main (`src/kanal-ereignisse-steuerung.js`).
+  Diagnose-Bereich `kanal-ereignisse` protokolliert die ersten 3 unbekannten
+  Hermes-Rahmen je Typ → nach dem Live-Test auswerten und in
+  `renderer/lib/kanal-ereignisse.js` `ausHermes` nachziehen (Pin, Umfrage,
+  Sperren/Aufloesen, `prediction-result`).
+- Bekannte Luecke: eigener Tipp nach App-Neustart unbekannt (`self.recentPredictions`
+  im Startzustand ungemessen) → Gegen-Option dann nicht ausgegraut; Twitch lehnt
+  ab, die Karte zeigt den Fehlertext.
+- Naechster Schritt: Umfrage-Abstimmen messen (laufende Umfrage, Dev-App,
+  `node tools/cdp-mitschnitt.js <kanal>`), dann Knopf einbauen.
   (Mutationen + ob Integrity noetig). Werkzeug:
   `node tools/cdp-mitschnitt.js <kanal> [sek]` (Dev-App mit `--remote-debugging-port=9333`, haengt
   sich an das twitch.tv-Fenster, laedt neu, schneidet GQL+WS mit).
