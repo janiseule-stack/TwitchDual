@@ -12,7 +12,13 @@
     const endeSeit = new Map();    // Karten-ID -> Zeitpunkt, ab dem sie beendet ist
     let pinOffen = false;
     let auswahl = null;            // { optionId, betrag } fuer Task 9
-    let meldung = null;            // { text, ok } Rueckmeldung beim Setzen
+    let meldung = null;            // { text, ok, laeuft } Rueckmeldung beim Setzen
+    // Waehrend die Maus gedrueckt ist, wird nicht neu aufgebaut (sonst geht der
+    // click verloren); Hermes schickt bei Vorhersagen ~1 Stand pro Sekunde.
+    const sperre = KE.createNeuaufbauSperre((fn) => setTimeout(fn, 0));
+    wirt.addEventListener('pointerdown', () => sperre.druecken());
+    doc.addEventListener('pointerup', () => sperre.loslassen());
+    doc.addEventListener('pointercancel', () => sperre.loslassen());
 
     const el = (tag, cls, text) => {
       const e = doc.createElement(tag);
@@ -136,9 +142,9 @@
     // Fuer Task 9 (Setzen-Bedienung).
     function waehle(a) { auswahl = a; meldung = null; zeichne(); }
     async function sende() {
-      if (!auswahl) return;
+      if (!auswahl || (meldung && meldung.laeuft)) return; // Doppelklick
       const a = auswahl;
-      meldung = { text: 'Setze …', ok: true };
+      meldung = { text: 'Setze …', ok: true, laeuft: true };
       zeichne();
       const r = await setzen(a.optionId, a.betrag);
       meldung = { text: r.text, ok: r.ok };
@@ -188,7 +194,7 @@
           if (s.art === 'ereignis-start') eingeklappt.delete(s.id); // neu -> aufklappen
           effekt(s);
         }
-        zeichne();
+        sperre.anfordern(zeichne);
       }
     };
   }

@@ -91,7 +91,12 @@ function createKanalEreignisseApi({ fetchImpl = fetch, neueTransaktionsId = () =
           || (c.lockedPredictionEvents || [])[0]
           || (aufgeloest && aufgeloest[0] && aufgeloest[0].node);
       });
-      return { pin, umfrage, vorhersage, fehler };
+      // Eigene Wetten stehen nur mit Login drin (self.recentPredictions,
+      // gemessen 09.10.: event.id, outcome.id, points, pointsWon, result).
+      const a2 = Array.isArray(antwort) ? antwort[2] : null;
+      const self = a2 && a2.data && a2.data.community && a2.data.community.channel && a2.data.community.channel.self;
+      const meineTipps = (self && self.recentPredictions) || [];
+      return { pin, umfrage, vorhersage, meineTipps, fehler };
     },
 
     async meineId(token) {

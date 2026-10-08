@@ -708,3 +708,4 @@ button:focus-visible, input:focus-visible {
 .ke-meldung { font-size: .85em; color: var(--accent-title); }
 .ke-meldung.fehler { color: #ff7a7a; }
 .ke-guthaben { font-family: var(--mono); font-size: .75em; color: var(--muted); text-align: right; }
+.ke-los:disabled { opacity: .6; cursor: default; animation: none; }

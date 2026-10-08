@@ -125,6 +125,12 @@
         if ('pin' in daten) z.pin = pinAus(daten.pin);
         if ('umfrage' in daten) uebernehme('umfrage', umfrageAus(daten.umfrage, jetzt), umfrageBeendet, erstes, signale);
         if ('vorhersage' in daten) uebernehme('vorhersage', vorhersageAus(daten.vorhersage, false), vorhersageBeendet, erstes, signale);
+        // Eigene Wetten (nur mit Login, self.recentPredictions, gemessen 09.10.):
+        // stellt meinTipp nach Neustart bzw. Kanal-Neuladen wieder her.
+        if (daten.meineTipps && z.vorhersage) {
+          const t = daten.meineTipps.find((p) => p && p.event && p.event.id === z.vorhersage.id);
+          if (t && t.outcome) z.meinTipp = { eventId: t.event.id, optionId: t.outcome.id, punkte: t.points || 0 };
+        }
         endeSignal(signale);
         return signale;
       },
@@ -219,8 +225,31 @@
     return { betrag: b };
   }
 
+  // Neuaufbau aufschieben, solange die Maus gedrueckt ist: ersetzt ein
+  // Neuaufbau das Element zwischen mousedown und mouseup, feuert kein click.
+  // Nach dem Loslassen NICHT synchron nachholen (planen = setTimeout 0),
+  // sonst ist das Element vor dem click schon wieder weg.
+  function createNeuaufbauSperre(planen) {
+    let gedrueckt = false;
+    let offen = null;
+    return {
+      anfordern(fn) {
+        if (gedrueckt) { offen = fn; return; }
+        fn();
+      },
+      druecken() { gedrueckt = true; },
+      loslassen() {
+        gedrueckt = false;
+        if (!offen) return;
+        const fn = offen;
+        offen = null;
+        planen(fn);
+      }
+    };
+  }
+
   return {
-    createZustand, MIN_EINSATZ, MAX_EINSATZ, CHIPS,
+    createZustand, createNeuaufbauSperre, MIN_EINSATZ, MAX_EINSATZ, CHIPS,
     quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag
   };
 });

@@ -109,3 +109,15 @@ test('fehlerText: bekannt deutsch, unbekannt roh', () => {
   assert.equal(fehlerText('NOT_ENOUGH_POINTS'), 'Nicht genug Punkte');
   assert.equal(fehlerText('IRGENDWAS'), 'Twitch lehnt ab: IRGENDWAS');
 });
+
+test('startzustand liefert eigene Tipps aus self.recentPredictions', async () => {
+  const b = JSON.parse(JSON.stringify(batch));
+  b[2].data.community.channel.self = { recentPredictions: [{ event: { id: 'e' }, outcome: { id: 'o' }, points: 10500 }] };
+  const r = await createKanalEreignisseApi({ fetchImpl: fakeFetch([b]) }).startzustand({ channelID: '1', login: 'x', token: 't' });
+  assert.deepEqual(r.meineTipps, [{ event: { id: 'e' }, outcome: { id: 'o' }, points: 10500 }]);
+});
+
+test('startzustand anonym: meineTipps leer', async () => {
+  const r = await createKanalEreignisseApi({ fetchImpl: fakeFetch([batch]) }).startzustand({ channelID: '1', login: 'x' });
+  assert.deepEqual(r.meineTipps, []);
+});

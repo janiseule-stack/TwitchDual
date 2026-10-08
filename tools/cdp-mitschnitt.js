@@ -37,7 +37,7 @@ const INTERESSANT = /poll|pin|prediction/i;
         const ops = gqlReq.get(p.requestId); gqlReq.delete(p.requestId);
         const r = await cdp('Network.getResponseBody', { requestId: p.requestId });
         const body = r.result?.body || '';
-        if (INTERESSANT.test(body)) log({ art: 'gql-res', ops: ops.map((o) => o.op), body: redact(body).slice(0, 20000) });
+        if (INTERESSANT.test(body)) log({ art: 'gql-res', ops: ops.map((o) => o.op), body: redact(body).slice(0, 500000) });
       }
       if (m.method === 'Network.webSocketCreated') log({ art: 'ws-neu', url: redact(p.url) });
       if (m.method === 'Network.webSocketFrameSent') log({ art: 'ws-out', d: redact(p.response.payloadData).slice(0, 3000) });

@@ -19,6 +19,29 @@ function createSteuerung({
   let zustand = null;
   let takt = null;
   let unbekanntGezaehlt = new Map();
+  let setztGerade = false; // Sperre gegen Doppelklick: nie zwei Wetten parallel
+  // Eigener Tipp + Guthaben ueberleben Home auf/zu auf demselben Kanal.
+  let gemerkt = null;      // { channelID, meinTipp, guthaben }
+
+  function merke() {
+    if (!zustand || !kanal) return;
+    const st = zustand.stand();
+    gemerkt = { channelID: kanal.channelID, meinTipp: st.meinTipp, guthaben: st.guthaben };
+  }
+
+  // Hermes-Rahmen gehoeren zum aktuellen Kanal? Kanal-Themen enden auf die
+  // channelID; Nutzer-Themen sind kanaluebergreifend und tragen channel_id in
+  // der Nutzlast (gemessen: balance.channel_id, prediction.channel_id). Noetig,
+  // weil die alte Verbindung bis setzeThemen weiterlaeuft.
+  function gehoertZumKanal(thema, nutzlast) {
+    const art = String(thema).split('.')[0];
+    if (art === 'predictions-user-v1' || art === 'community-points-user-v1') {
+      const d = (nutzlast && nutzlast.data) || {};
+      const cid = (d.balance && d.balance.channel_id) || (d.prediction && d.prediction.channel_id) || null;
+      return !cid || cid === kanal.channelID;
+    }
+    return String(thema).split('.').pop() === kanal.channelID;
+  }
 
   const angemeldet = () => !!getToken();
 
@@ -32,7 +55,7 @@ function createSteuerung({
     if (daten.fehler && daten.fehler.length) diag('start-fehler', { kanal: kanal.login, fehler: daten.fehler });
     const teile = nurTeile
       ? Object.fromEntries(nurTeile.map((k) => [k, daten[k]]))
-      : { pin: daten.pin, umfrage: daten.umfrage, vorhersage: daten.vorhersage };
+      : { pin: daten.pin, umfrage: daten.umfrage, vorhersage: daten.vorhersage, meineTipps: daten.meineTipps };
     return teile;
   }
 
@@ -44,8 +67,13 @@ function createSteuerung({
     async kanalGeladen({ login, channelID }) {
       const nr = ++lauf;
       stoppeTakt();
+      merke();
       kanal = { login, channelID };
       zustand = KE.createZustand();
+      if (gemerkt && gemerkt.channelID === channelID) {
+        if (gemerkt.meinTipp) zustand.eigenerTipp(gemerkt.meinTipp);
+        zustand.setzeGuthaben(gemerkt.guthaben);
+      }
       unbekanntGezaehlt = new Map();
       const teile = await holeStart(nr);
       if (!teile) return;
@@ -70,6 +98,7 @@ function createSteuerung({
     aus() {
       lauf++;
       stoppeTakt();
+      merke();
       kanal = null;
       zustand = null;
       hermes.setzeThemen([]);
@@ -77,7 +106,7 @@ function createSteuerung({
     },
 
     hermesEreignis(thema, nutzlast) {
-      if (!zustand) return;
+      if (!zustand || !kanal || !gehoertZumKanal(thema, nutzlast)) return;
       const r = zustand.ausHermes(thema, nutzlast, jetzt());
       if (r.unbekannt) {
         const typ = String(thema).split('.')[0] + ':' + (nutzlast && nutzlast.type);
@@ -104,6 +133,7 @@ function createSteuerung({
     },
 
     async setze({ outcomeID, points }) {
+      if (setztGerade) return { ok: false, text: 'Läuft schon …' };
       const token = getToken();
       if (!token) return { ok: false, text: 'Zum Setzen anmelden' };
       if (!zustand) return { ok: false, text: 'Kein Live-Kanal' };
@@ -114,6 +144,7 @@ function createSteuerung({
       const b = KE.eigenerBetrag(String(points), stand.guthaben);
       if (b.fehler) return { ok: false, text: b.fehler };
       const nr = lauf;
+      setztGerade = true;
       try {
         const r = await mitIntegrity((kopf) => api.setze({ token, eventID: v.id, outcomeID, points: b.betrag, kopf }));
         if (r && r.error) { diag('setzen-fehler', { grund: r.error }); return { ok: false, text: r.error }; }
@@ -124,6 +155,8 @@ function createSteuerung({
       } catch (e) {
         diag('setzen-fehler', { fehler: e.message, integrity: !!e.integrity });
         return { ok: false, text: e.integrity ? 'Twitch hat die Prüfung abgelehnt, bitte nochmal' : e.message };
+      } finally {
+        setztGerade = false;
       }
     }
   };

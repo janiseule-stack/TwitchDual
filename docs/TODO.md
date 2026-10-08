@@ -390,9 +390,9 @@ darueber fremde Kanalpunkt-Einloesungen.
   Hermes-Rahmen je Typ → nach dem Live-Test auswerten und in
   `renderer/lib/kanal-ereignisse.js` `ausHermes` nachziehen (Pin, Umfrage,
   Sperren/Aufloesen, `prediction-result`).
-- Bekannte Luecke: eigener Tipp nach App-Neustart unbekannt (`self.recentPredictions`
-  im Startzustand ungemessen) → Gegen-Option dann nicht ausgegraut; Twitch lehnt
-  ab, die Karte zeigt den Fehlertext.
+- Eigener Tipp nach Neustart: kommt mit Login aus dem Startzustand
+  ( mit , ,
+  , , ; gemessen 09.10. 01:46 an jynxzi, 10.500 auf NOOO).
 - Naechster Schritt: Umfrage-Abstimmen messen (laufende Umfrage, Dev-App,
   `node tools/cdp-mitschnitt.js <kanal>`), dann Knopf einbauen.
   (Mutationen + ob Integrity noetig). Werkzeug:

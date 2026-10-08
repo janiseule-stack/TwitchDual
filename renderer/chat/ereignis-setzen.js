@@ -43,6 +43,8 @@
     if (a) {
       const opt = v.optionen.find((o) => o.id === a.optionId);
       const los = el('button', 'ke-los', a.betrag.toLocaleString('de-DE') + ' auf ' + (opt ? opt.titel : '?') + ' setzen');
+      const m0 = meldung();
+      los.disabled = !!(m0 && m0.laeuft); // waehrend des Sendens kein zweiter Klick
       los.addEventListener('click', sende);
       box.appendChild(los);
     }

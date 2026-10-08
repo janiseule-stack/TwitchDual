@@ -196,3 +196,30 @@ test('eigenerBetrag prueft Eingabe', () => {
   assert.deepEqual(KE.eigenerBetrag('300000', 999999), { fehler: 'Höchstens 250.000 Punkte' });
   assert.deepEqual(KE.eigenerBetrag('abc', 28446), { fehler: 'Bitte eine Zahl eingeben' });
 });
+
+test('Neuaufbau-Sperre: waehrend gedrueckt aufschieben, nach Loslassen einmal nachholen', () => {
+  const geplant = [];
+  const sperre = KE.createNeuaufbauSperre((fn) => geplant.push(fn));
+  let n = 0;
+  sperre.anfordern(() => n++);
+  assert.equal(n, 1, 'nicht gedrueckt -> sofort');
+  sperre.druecken();
+  sperre.anfordern(() => n++);
+  sperre.anfordern(() => n++);
+  assert.equal(n, 1, 'gedrueckt -> aufgeschoben');
+  sperre.loslassen();
+  assert.equal(n, 1, 'nicht synchron im pointerup, sonst geht der click verloren');
+  geplant.shift()();
+  assert.equal(n, 2, 'genau einmal nachgeholt');
+  sperre.loslassen();
+  assert.equal(geplant.length, 0, 'nichts offen -> nichts geplant');
+});
+
+test('meineTipps aus dem Startzustand setzen meinTipp fuer die laufende Vorhersage', () => {
+  const z = KE.createZustand();
+  z.ausStart({ vorhersage: gesperrt, meineTipps: [
+    { event: { id: 'anderes' }, outcome: { id: 'x' }, points: 5 },
+    { event: { id: gesperrt.id }, outcome: { id: gesperrt.outcomes[1].id }, points: 10500 }
+  ] }, T0, { erstes: true });
+  assert.deepEqual(z.stand().meinTipp, { eventId: gesperrt.id, optionId: gesperrt.outcomes[1].id, punkte: 10500 });
+});

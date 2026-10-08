@@ -147,3 +147,81 @@ test('guthaben aus dem Punkte-Takt landet im Stand', async () => {
   a.s.guthaben(28446);
   assert.equal(a.gesendet.filter((g) => g.stand && g.stand.guthaben === 28446).length, 1, 'unveraendert -> nicht erneut senden');
 });
+
+// --- Review-Befunde (Final review) -------------------------------------------
+const hermesFix = require('./fixtures/kanal-ereignisse/hermes-rahmen.json');
+const hNutzlast = (r) => JSON.parse(JSON.parse(r).notification.pubsub);
+
+test('Rahmen vom alten Kanal waehrend langsamer Startabfrage aendert nichts', async () => {
+  let loesen;
+  const a = aufbau({ start: (arg) => arg.channelID === '2' ? new Promise((r) => { loesen = r; }) : { pin: null, umfrage: null, vorhersage: null, fehler: [] } });
+  await a.s.kanalGeladen({ login: 'alt', channelID: '1' });
+  const lauf = a.s.kanalGeladen({ login: 'neu', channelID: '2' });
+  const vorher = a.gesendet.length;
+  a.s.hermesEreignis('predictions-channel-v1.1', hNutzlast(hermesFix.eventUpdated));
+  assert.equal(a.gesendet.length, vorher, 'nichts gesendet');
+  loesen({ pin: null, umfrage: null, vorhersage: null, fehler: [] });
+  await lauf;
+  assert.equal(a.gesendet.at(-1).stand.vorhersage, null);
+});
+
+test('Nutzer-Rahmen aus fremdem Kanal werden ignoriert', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  a.s.hermesEreignis('community-points-user-v1.999', hNutzlast(hermesFix.pointsSpent)); // channel 411377640
+  a.s.hermesEreignis('predictions-user-v1.999', hNutzlast(hermesFix.predictionMade));   // channel 411377640
+  const st = a.gesendet.at(-1).stand;
+  assert.equal(st.guthaben, null);
+  assert.equal(st.meinTipp, null);
+});
+
+test('Nutzer-Rahmen aus dem eigenen Kanal kommen an', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'jynxzi', channelID: '411377640' });
+  a.s.hermesEreignis('community-points-user-v1.999', hNutzlast(hermesFix.pointsSpent));
+  assert.equal(a.gesendet.at(-1).stand.guthaben, 17946);
+});
+
+test('zweites setze waehrend das erste laeuft wird abgelehnt', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  let loesen;
+  a.api.setze = () => new Promise((r) => { loesen = r; });
+  const erstes = a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 100 });
+  const zweites = await a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 100 });
+  assert.deepEqual(zweites, { ok: false, text: 'Läuft schon …' });
+  loesen({ ok: true, code: null });
+  assert.equal((await erstes).ok, true);
+  a.api.setze = async () => ({ ok: true, code: null });
+  assert.equal((await a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 100 })).ok, true, 'danach wieder frei');
+});
+
+test('Home auf/zu auf demselben Kanal behaelt eigenen Tipp und Guthaben', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  a.s.guthaben(5000);
+  await a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 100 });
+  a.s.aus();
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  const st = a.gesendet.at(-1).stand;
+  assert.deepEqual(st.meinTipp, { eventId: aktiv.id, optionId: aktiv.outcomes[0].id, punkte: 100 });
+  assert.equal(st.guthaben, 5000);
+});
+
+test('anderer Kanal: kein Tipp und kein Guthaben uebernommen', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  a.s.guthaben(5000);
+  await a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 100 });
+  await a.s.kanalGeladen({ login: 'y', channelID: '2' });
+  const st = a.gesendet.at(-1).stand;
+  assert.equal(st.meinTipp, null);
+  assert.equal(st.guthaben, null);
+});
+
+test('meineTipps aus dem Start landen im Stand', async () => {
+  const a = aufbau({ token: 'tok', start: { pin: null, umfrage: null, vorhersage: aktiv, fehler: [],
+    meineTipps: [{ event: { id: aktiv.id }, outcome: { id: aktiv.outcomes[1].id }, points: 10500 }] } });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  assert.equal(a.gesendet.at(-1).stand.meinTipp.punkte, 10500);
+});
