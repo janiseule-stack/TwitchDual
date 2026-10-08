@@ -50,7 +50,7 @@
   --onair-to: #8ec8ff;
   --schrift: Bahnschrift, "Segoe UI", sans-serif;
   --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
-  --schleier: rgba(18,18,44,.55);
+  --schleier: rgba(18,18,44,.3);
   --halo: rgba(18,18,44,.95);
   --karte: rgba(22,21,58,.8);
   --karte-rand: 2px solid #0e0d26;
@@ -106,7 +106,7 @@
   --onair-to: #7ad0ff;
   --schrift: "Palatino Linotype", Georgia, serif;
   --schrift-titel: "Palatino Linotype", Georgia, serif;
-  --schleier: rgba(10,16,20,.55);
+  --schleier: rgba(10,16,20,.3);
   --halo: rgba(10,16,20,.95);
   --karte: rgba(14,22,26,.84);
   --karte-rand: 3px solid #0a0c0e;
@@ -134,7 +134,7 @@
   --onair-to: #7ad0ff;
   --schrift: Consolas, "Courier New", monospace;
   --schrift-titel: Consolas, "Courier New", monospace;
-  --schleier: rgba(16,12,46,.55);
+  --schleier: rgba(16,12,46,.3);
   --halo: rgba(16,12,46,.95);
   --karte: #16233a;
   --karte-rand: 3px solid #8fd65a;
@@ -162,7 +162,7 @@
   --onair-to: #c89bff;
   --schrift: Bahnschrift, "Segoe UI", sans-serif;
   --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
-  --schleier: rgba(6,16,22,.55);
+  --schleier: rgba(6,16,22,.3);
   --halo: rgba(6,16,22,.95);
   --karte: rgba(8,20,26,.82);
   --karte-rand: 1px solid rgba(120,240,255,.35);
@@ -218,7 +218,7 @@
   --onair-to: #c8ff7a;
   --schrift: Georgia, "Palatino Linotype", serif;
   --schrift-titel: Georgia, serif;
-  --schleier: rgba(16,18,42,.55);
+  --schleier: rgba(16,18,42,.3);
   --halo: rgba(16,18,42,.95);
   --karte: rgba(20,22,48,.82);
   --karte-rand: 2px solid #0d0b1c;

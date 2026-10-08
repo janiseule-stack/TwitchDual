@@ -56,8 +56,9 @@
       };
     }
     function helligkeit(f) {
+      // Pulsiert, geht aber nie ganz aus (sonst sieht man nur die Haelfte).
       const a = 0.5 + 0.5 * Math.sin(uhr * 0.0022 * f.sp + f.ph);
-      return Math.max(a * a, f.blitz);
+      return Math.max(0.25 + 0.75 * a * a, f.blitz);
     }
 
     function baueHintergrund() {

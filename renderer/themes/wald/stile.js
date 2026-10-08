@@ -57,11 +57,34 @@
     sprites.set(key, c);
     return c;
   }
-  function leuchte(g, x, y, r, farbe, a) {
+  // plus = Licht addiert sich (nur auf dunklem Grund sinnvoll): wo mehrere
+  // Gluehwuermchen zusammenkommen, wird es richtig hell.
+  function leuchte(g, x, y, r, farbe, a, plus) {
     if (a <= 0.01) return;
+    if (plus) g.globalCompositeOperation = 'lighter';
     g.globalAlpha = Math.min(1, a);
     g.drawImage(sprite(farbe, r), x - r, y - r, r * 2, r * 2);
     g.globalAlpha = 1;
+    if (plus) g.globalCompositeOperation = 'source-over';
+  }
+  // Nachtfliege: grosser weicher Hof + heller Hof + Kern (dunkle Varianten).
+  function nachtLicht(g, x, y, a, farbe, gross) {
+    const s = gross || 1;
+    leuchte(g, x, y, 34 * s, farbe, a * 0.35, true);
+    leuchte(g, x, y, 15 * s, farbe, a * 0.9, true);
+    punkt(g, x, y, 3.2 * s, farbe, Math.min(1, a + 0.25));
+    punkt(g, x, y, 1.6 * s, '#fbffe6', Math.min(1, a + 0.25));
+  }
+  // Auf hellem Grund leuchtet nichts - dort traegt ein satter Kern mit
+  // dunklem Rand, der Hof ist nur Beiwerk.
+  function tagLicht(g, x, y, a, farbe, rand, r) {
+    const k = r || 3;
+    leuchte(g, x, y, k * 6, farbe, a * 0.9);
+    g.globalAlpha = Math.max(0, Math.min(1, a + 0.15));
+    g.fillStyle = farbe; g.strokeStyle = rand; g.lineWidth = 1.2;
+    g.beginPath(); g.arc(x, y, k, 0, TAU); g.fill(); g.stroke();
+    g.globalAlpha = 1;
+    punkt(g, x - k * 0.3, y - k * 0.3, k * 0.4, '#ffffff', a * 0.9);
   }
   function punkt(g, x, y, r, farbe, a) {
     g.globalAlpha = Math.max(0, Math.min(1, a));
@@ -177,11 +200,7 @@
       }
       g.globalAlpha = 1;
     },
-    fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 11, farbe, a * 0.8);
-      punkt(g, x, y, 2.4, farbe, a);
-      punkt(g, x, y, 1.1, '#fffbe6', a);
-    }
+    fliege(g, x, y, a, farbe) { tagLicht(g, x, y, a, farbe, 'rgba(50,90,60,.55)', 3); }
   };
 
   // =========================================================================
@@ -199,11 +218,7 @@
       g.fillStyle = ng; g.fillRect(0, h * 0.6 - 40, w, 60);
       waldLagen(g, w, h, lagen.slice(1));
     },
-    fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 14, farbe, a * 0.8);
-      punkt(g, x, y, 3, farbe, Math.min(1, a + 0.15));
-      punkt(g, x, y, 1.4, '#fbffe6', Math.min(1, a + 0.15));
-    }
+    fliege(g, x, y, a, farbe) { nachtLicht(g, x, y, a, farbe); }
   };
 
   // =========================================================================
@@ -237,10 +252,7 @@
       g.fillText('静', w - 24, 40); g.fillText('森', w - 24, 64);
       stempel(g, w - 34, 74, 20, '森');
     },
-    fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 8, farbe, a * 0.55);
-      punkt(g, x, y, 2, farbe, Math.min(1, a + 0.1));
-    }
+    fliege(g, x, y, a, farbe) { tagLicht(g, x, y, a, farbe, 'rgba(60,45,10,.6)', 2.8); }
   };
 
   // =========================================================================
@@ -288,7 +300,8 @@
       g.fillStyle = gr; g.fillRect(0, 0, w, h);
     },
     fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 12, farbe, a * 0.7);
+      leuchte(g, x, y, 30, farbe, a * 0.3, true);
+      leuchte(g, x, y, 16, farbe, a * 0.85, true);
       g.globalAlpha = Math.max(0.35, Math.min(1, a)); g.fillStyle = farbe; g.strokeStyle = '#0a0c0e'; g.lineWidth = 1.5;
       g.beginPath(); g.arc(x, y, 3.6, 0, TAU); g.fill(); g.stroke();
       g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.arc(x - 1.1, y - 1.1, 1.1, 0, TAU); g.fill();
@@ -333,7 +346,10 @@
     fliege(g, x, y, a, farbe) {
       if (a < 0.2) return;
       const P = 4, px = Math.round(x / P) * P, py = Math.round(y / P) * P;
-      if (a > 0.6) { g.fillStyle = mitAlpha(farbe, 0.35); g.fillRect(px - P, py, P * 3, P); g.fillRect(px, py - P, P, P * 3); }
+      // Pixel-Schein in Stufen: Raute aussen, Kreuz innen, heller Kern.
+      g.fillStyle = mitAlpha(farbe, 0.18 * a);
+      g.fillRect(px - P * 2, py, P * 5, P); g.fillRect(px, py - P * 2, P, P * 5); g.fillRect(px - P, py - P, P * 3, P * 3);
+      g.fillStyle = mitAlpha(farbe, 0.5 * a); g.fillRect(px - P, py, P * 3, P); g.fillRect(px, py - P, P, P * 3);
       g.fillStyle = a > 0.6 ? '#f2ffb0' : farbe; g.fillRect(px, py, P, P);
     }
   };
@@ -397,8 +413,10 @@
     // Sporen, die oben verschwinden, steigen unten neu auf.
     neuStart(f, w, h) { if (f.y < -10) { f.y = h * rnd(0.7, 0.8); f.x = rnd(0, w); } },
     fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 7, farbe, a * 0.7);
-      punkt(g, x, y, 1.4, farbe, Math.min(1, a + 0.2));
+      leuchte(g, x, y, 22, farbe, a * 0.3, true);
+      leuchte(g, x, y, 10, farbe, a * 0.85, true);
+      punkt(g, x, y, 1.8, farbe, Math.min(1, a + 0.25));
+      punkt(g, x, y, 0.9, '#f4ffff', Math.min(1, a + 0.25));
     }
   };
 
@@ -466,8 +484,11 @@
     },
     ereignis(Z, art) { if (art === 'kiste' || art === 'raid') Z.wind = 5; },
     fliege(g, x, y, a, farbe) {
-      leuchte(g, x, y, 5, farbe, a * 0.85);
-      punkt(g, x, y, 1.2, farbe, a * 0.9);
+      leuchte(g, x, y, 9, farbe, a * 0.8);
+      g.globalAlpha = Math.max(0, Math.min(1, a + 0.1));
+      g.fillStyle = farbe; g.strokeStyle = 'rgba(120,95,20,.45)'; g.lineWidth = 0.8;
+      g.beginPath(); g.arc(x, y, 1.9, 0, TAU); g.fill(); g.stroke();
+      g.globalAlpha = 1;
     }
   };
 

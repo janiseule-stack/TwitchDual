@@ -53,7 +53,7 @@
         { id: 'pilze', name: 'Leuchtpilze', hell: false,
           farben: { akzent: '#7af0ff', hintergrund: '#0b1a22', partikel: '#82f0ff' } },
         { id: 'licht', name: 'Lichtstrahlen', hell: true,
-          farben: { akzent: '#4f7a3a', hintergrund: '#e8f2d8', partikel: '#fffbe0' } },
+          farben: { akzent: '#4f7a3a', hintergrund: '#e8f2d8', partikel: '#f3dc6a' } },
         { id: 'huette', name: 'Waldhütte', hell: false,
           farben: { akzent: '#ffd27a', hintergrund: '#161c3a', partikel: '#e8ff7a' } }
       ] },
