@@ -244,8 +244,8 @@ test('Neon: data-hell 0 und keine Flaechen-Inline-Reste', async () => {
 
 test('Welt bekommt die effektive Partikelfarbe', async () => {
   let farben = null;
-  const a = aufbau({ welten: { wald: (ctx) => { farben = ctx.farben; return { start() {}, stop() {} }; } } });
-  await a.rt.anwenden({ theme: 'wald', anpassungen: { wald: { partikel: '#ff00ff' } } });
+  const a = aufbau({ welten: { blasen: (ctx) => { farben = ctx.farben; return { start() {}, stop() {} }; } } });
+  await a.rt.anwenden({ theme: 'blasen', anpassungen: { blasen: { partikel: '#ff00ff' } } });
   assert.deepEqual(farben, { partikel: '#ff00ff' });
 });
 
@@ -272,7 +272,7 @@ test('Variante: data-variante, stile.js vor welt.js, Wechsel startet neu', async
   await a.rt.anwenden({ theme: 'koi', variante: { koi: 'lofi' } });
   assert.deepEqual(log, ['start:tusche', 'stop', 'start:lofi']);
   assert.equal(a.geladen.length, 2, 'Skripte nur einmal');
-  await a.rt.anwenden({ theme: 'wald' });
+  await a.rt.anwenden({ theme: 'blasen' });
   assert.equal(a.doc.documentElement.dataset.variante, undefined, 'Theme ohne Varianten');
 });
 

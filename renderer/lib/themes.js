@@ -35,10 +35,28 @@
         { id: 'shoji', name: 'Shoji-Schatten', hell: true,
           farben: { akzent: '#a8433a', hintergrund: '#f1e2c6', partikel: '#5a3a46' } }
       ] },
-    // ausgeblendet: noch im alten Stil, werden spaeter neu gezeichnet (v1.12.0).
-    { id: 'wald', name: 'Wald', hell: false, ausgeblendet: true, farbenFrei: false, info: 'Glühwürmchen',
-      vorschau: 'linear-gradient(180deg, #16301e, #0a150d)',
-      farben: { akzent: '#9fe07a', hintergrund: '#0e1f14', partikel: '#e8ff7a' } },
+    // Gezeichnete Welt mit Varianten (Canvas): Theme-Farben = erste Variante.
+    { id: 'wald', name: 'Wald', hell: true, farbenFrei: false, info: 'Glühwürmchen',
+      vorschau: 'linear-gradient(180deg, #c9dce6, #a8c4c6 55%, #4f7a68)',
+      farben: { akzent: '#3f7a5e', hintergrund: '#e6ece6', partikel: '#c8e65a' },
+      varianten: [
+        { id: 'aquarell', name: 'Aquarell', hell: true,
+          farben: { akzent: '#3f7a5e', hintergrund: '#e6ece6', partikel: '#c8e65a' } },
+        { id: 'lofi', name: 'Lofi-Nacht', hell: false,
+          farben: { akzent: '#c8ff7a', hintergrund: '#1c1a44', partikel: '#e8ff7a' } },
+        { id: 'tusche', name: 'Tusche', hell: true,
+          farben: { akzent: '#2f4a3a', hintergrund: '#f4f0e5', partikel: '#c9a227' } },
+        { id: 'bleiglas', name: 'Bleiglas', hell: false,
+          farben: { akzent: '#9fe07a', hintergrund: '#0d1418', partikel: '#eaff8a' } },
+        { id: 'pixel', name: 'Pixel', hell: false,
+          farben: { akzent: '#b6f07a', hintergrund: '#16123f', partikel: '#e8ff7a' } },
+        { id: 'pilze', name: 'Leuchtpilze', hell: false,
+          farben: { akzent: '#7af0ff', hintergrund: '#0b1a22', partikel: '#82f0ff' } },
+        { id: 'licht', name: 'Lichtstrahlen', hell: true,
+          farben: { akzent: '#4f7a3a', hintergrund: '#e8f2d8', partikel: '#fffbe0' } },
+        { id: 'huette', name: 'Waldhütte', hell: false,
+          farben: { akzent: '#ffd27a', hintergrund: '#161c3a', partikel: '#e8ff7a' } }
+      ] },
     // Gezeichnete Welt mit Varianten (Canvas): Theme-Farben = erste Variante.
     { id: 'koi', name: 'Koi-Teich', hell: true, farbenFrei: false, info: 'Koi-Fische',
       vorschau: 'radial-gradient(ellipse at 40% 60%, #cfe3d8, #a9c9bf 60%, #8fb5aa)',

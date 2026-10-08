@@ -38,7 +38,7 @@ function positionen(e) {
   });
 }
 
-for (const id of ['wald']) {
+for (const id of []) {
   test(id + ': Start bei unsichtbarer Ebene verteilt sich, sobald sie Groesse hat', () => {
     const fabrik = ladeWelt(id);
     const e = fakeEngine();
@@ -66,7 +66,7 @@ function sammelEngine() {
   };
   return { e, stile };
 }
-for (const id of ['wald', 'blasen']) {
+for (const id of ['blasen']) {
   test(id + ': Partikel nutzen farben.partikel', () => {
     const fabrik = ladeWelt(id);
     const { e, stile } = sammelEngine();
@@ -305,4 +305,60 @@ test('sakura: es fallen verschiedene Formen (Blatt, Bluete, gefuellte, Paar)', (
   for (let i = 0; i < 40; i++) welt.klickInsLeere(200, 200);   // viele Blaetter auf einmal
   for (const fn of schleifen) fn(40);
   assert.deepEqual(welt.formen(), ['blatt', 'bluete', 'paar', 'yae']);
+});
+
+// --- Wald (gezeichnet): jede Variante -----------------------------------------
+const WALD_VARIANTEN = require('../renderer/lib/themes').themeById('wald').varianten.map((v) => v.id);
+for (const variante of WALD_VARIANTEN) {
+  test('wald/' + variante + ': startet bei 0x0, zeichnet sobald sichtbar, alle Ereignisse laufen durch', () => {
+    const farben = new Set();
+    const fabrik = ladeGezeichnet('wald', farben);
+    assert.ok(global.window.WaldStile.stile[variante], 'Stil vorhanden');
+    const { engine, ebene, schleifen } = koiEngine(farben);
+    const welt = fabrik({ engine, fenster: 'chat', FxEngine, farben: { partikel: '#12ab34' }, variante });
+    welt.start();
+    assert.equal(ebene.kinder.length, 1, 'eine Leinwand');
+    for (const fn of schleifen) fn(40);           // unsichtbar: darf nicht werfen
+    assert.equal(welt.fliegenZahl(), 0, 'unsichtbar: noch nichts verteilt');
+    ebene.clientWidth = 360; ebene.clientHeight = 500;
+    for (let i = 0; i < 30; i++) for (const fn of schleifen) fn(40);
+    assert.ok(welt.fliegenZahl() > 0, 'Gluehwuermchen schwirren');
+    const xs = welt.positionen().map((p) => Math.round(p.x));
+    assert.ok(new Set(xs).size > 1 && Math.max(...xs) > 100, 'nicht in einer Ecke geklumpt: ' + xs);
+    welt.maus(100, 100);
+    welt.klickInsLeere(120, 140);
+    welt.ereignis('kiste', { ursprung: { x: 300, y: 480 } });
+    welt.ereignis('punkte', { ursprung: { x: 300, y: 480 } });
+    welt.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
+    welt.ereignis('abo', { name: 'TestZuschauer', monate: 12, ursprung: { x: 180, y: 220 } });
+    welt.ereignis('abo', { zeilen: ['Ohne Ort', 'verschenkt 5 Abos'] });
+    for (let i = 0; i < 400; i++) for (const fn of schleifen) fn(40);   // Schwarm zieht ganz durch
+    assert.ok(farben.has('#12ab34') || [...farben].some((f) => f.includes('18,171,52')), 'Partikelfarbe benutzt');
+    assert.equal(welt.ereignisZahl(), 0, 'Ereignisse laufen aus');
+    assert.ok(welt.fliegenZahl() < 80, 'Gluehwuermchen laufen nicht voll: ' + welt.fliegenZahl());
+    welt.stop();
+    engine.stop();
+  });
+}
+
+test('wald: Gast schwebt ueber das Video und endet von selbst', () => {
+  const farben = new Set();
+  const fabrik = ladeGezeichnet('wald', farben);
+  const bilder = [];
+  const gast = { clientWidth: 1000, clientHeight: 600, kinder: [], appendChild(c) { gast.kinder.push(c); } };
+  const hinten = { clientWidth: 0, clientHeight: 0, appendChild() {} };
+  const engine = FxEngine.createEngine({ ebenen: { hinten, gast }, doc: canvasDoc(farben), dpr: 1,
+    sichtbar: () => true, raf: (fn) => { bilder.push(fn); return bilder.length; }, caf() {}, setInterval: () => 1, clearInterval() {} });
+  for (const variante of WALD_VARIANTEN) {
+    const welt = fabrik({ engine, fenster: 'video', FxEngine, farben: { partikel: '#12ab34' }, variante });
+    welt.start();
+    engine.pausieren(true);
+    welt.gast();
+    welt.gast();
+    let zeit = 0;
+    while (bilder.length && zeit < 40000) { const fn = bilder.shift(); zeit += 33; fn(zeit); }
+    assert.equal(bilder.length, 0, variante + ': Animation endet von selbst');
+    assert.ok(zeit > 3000 && zeit < 14000, variante + ': Auftritt passt in die Gast-Dauer: ' + zeit + ' ms');
+    welt.stop();
+  }
 });

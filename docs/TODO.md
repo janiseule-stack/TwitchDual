@@ -435,6 +435,20 @@ nichts auf der Platte.
   einer Zuschauer-Sitzung auf `twitch.tv` selbst.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
 
+## Wald gezeichnet (unveroeffentlicht, Branch feat/wald-gezeichnet)
+- 8 Varianten (Auswahl im Brainstorm-Browser): Aquarell, Lofi-Nacht, Tusche,
+  Bleiglas, Pixel + eigene: Leuchtpilze, Lichtstrahlen, Waldhuette.
+  Abgewaehlt: Holzschnitt, Waldsee.
+- `wald/stile.js` (window.WaldStile) wie Sakura; Lichtflecke als
+  vorgerenderte Sprites (kein Verlauf pro Fliege). `welt.js`: Gluehwuermchen,
+  Maus lockt (kreisen), Klick = Aufblitzen + Funkenkranz; eigene Uhr statt
+  Date.now (Lebensdauern testbar). Kiste = Schwarm + Wirbel am Chip, Punkte =
+  ein paar steigen auf, Abo = Lichtkranz ums Kaertchen, Raid = Schwarm-Band,
+  Gast = Schwarm uebers Video.
+- Alte DOM-Wald-Welt + Holz/Moos-CSS sind weg; Seifenblasen bleibt ausgeblendet.
+- Offen: Effekte in der App anschauen und nachschaerfen (Janis).
+- Spec: `docs/superpowers/specs/2026-10-08-wald-gezeichnet-design.md`.
+
 ## Zuschauer-Fenster (unveroeffentlicht, Branch feat/zuschauer-fenster)
 - Problem: Embed zaehlt nicht als Zuschauen -> keine Punkte, keine Kisten
   (Protokoll 07.10.: papaplatte 3 h Stand fest, claimID immer null). Das

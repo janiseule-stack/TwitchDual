@@ -72,12 +72,12 @@ test('THEMES: jedes Theme hat gueltige Originalfarben', () => {
 
 test('cleanAnpassungen: nur Nicht-Neon-Themes, nur drei Schluessel, nur Hex', () => {
   const roh = {
-    wald: { akzent: '#ABC', hintergrund: 'rot', partikel: '#112233', fremd: '#000000' },
+    blasen: { akzent: '#ABC', hintergrund: 'rot', partikel: '#112233', fremd: '#000000' },
     'neon-dual': { akzent: '#123456' },
     gibtsnicht: { akzent: '#123456' },
     koi: 'kaputt'
   };
-  assert.deepEqual(K.cleanAnpassungen(roh), { wald: { akzent: '#aabbcc', partikel: '#112233' } });
+  assert.deepEqual(K.cleanAnpassungen(roh), { blasen: { akzent: '#aabbcc', partikel: '#112233' } });
   assert.deepEqual(K.cleanAnpassungen(null), {});
 });
 
@@ -86,23 +86,23 @@ test('cleanThemePrefs liefert anpassungen, Standard leer', () => {
 });
 
 test('mergeThemePrefs: Anpassung eines Themes laesst andere stehen', () => {
-  const g = { theme: 'wald', anpassungen: { blasen: { akzent: '#111111' }, wald: { partikel: '#222222' } } };
-  const neu = K.mergeThemePrefs(g, { anpassungen: { wald: { hintergrund: '#333333' } } });
-  assert.deepEqual(neu.anpassungen.blasen, { akzent: '#111111' });
-  assert.deepEqual(neu.anpassungen.wald, { hintergrund: '#333333' });
+  const g = { theme: 'blasen', anpassungen: { 'koi:lofi': { akzent: '#111111' }, blasen: { partikel: '#222222' } } };
+  const neu = K.mergeThemePrefs(g, { anpassungen: { blasen: { hintergrund: '#333333' } } });
+  assert.deepEqual(neu.anpassungen['koi:lofi'], { akzent: '#111111' });
+  assert.deepEqual(neu.anpassungen.blasen, { hintergrund: '#333333' });
   // Zuruecksetzen = leeres Objekt -> Theme faellt aus den Anpassungen raus
-  assert.equal(K.mergeThemePrefs(neu, { anpassungen: { wald: {} } }).anpassungen.wald, undefined);
+  assert.equal(K.mergeThemePrefs(neu, { anpassungen: { blasen: {} } }).anpassungen.blasen, undefined);
 });
 
 test('effektiveFarben: Anpassung schlaegt Original', () => {
-  const p = K.cleanThemePrefs({ theme: 'wald', anpassungen: { wald: { partikel: '#00ff00' } } });
-  assert.deepEqual(K.effektiveFarben(p), { akzent: K.themeById('wald').farben.akzent, hintergrund: K.themeById('wald').farben.hintergrund, partikel: '#00ff00' });
+  const p = K.cleanThemePrefs({ theme: 'blasen', anpassungen: { blasen: { partikel: '#00ff00' } } });
+  assert.deepEqual(K.effektiveFarben(p), { akzent: K.themeById('blasen').farben.akzent, hintergrund: K.themeById('blasen').farben.hintergrund, partikel: '#00ff00' });
 });
 
 test('balkenFarbe: Neon null, sonst effektiver Hintergrund', () => {
   assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'neon-dual' })), null);
   assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'blasen' })), K.themeById('blasen').farben.hintergrund);
-  assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'wald', anpassungen: { wald: { hintergrund: '#101010' } } })), '#101010');
+  assert.equal(K.balkenFarbe(K.cleanThemePrefs({ theme: 'blasen', anpassungen: { blasen: { hintergrund: '#101010' } } })), '#101010');
 });
 
 test('istSichereFarbe: nur Hex und rgb/rgba', () => {
@@ -146,7 +146,7 @@ test('cleanVariante: nur Themes mit Varianten, nur gueltige Ids', () => {
 test('varianteFuer: gewaehlte, sonst erste, ohne Varianten null', () => {
   assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'koi', variante: { koi: 'lofi' } })).id, 'lofi');
   assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'koi' })).id, 'aquarell');
-  assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'wald', variante: { koi: 'lofi' } })), null);
+  assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'blasen', variante: { koi: 'lofi' } })), null);
   assert.equal(K.varianteFuer(K.cleanThemePrefs({ theme: 'sakura', variante: { koi: 'lofi' } })).id, 'aquarell');
 });
 
@@ -179,7 +179,7 @@ test('Anpassungen bei Varianten: pro Variante, alter Theme-Schluessel faellt weg
   assert.equal(K.effektiveFarben(q).akzent, K.varianteVon('koi', 'lofi').farben.akzent);
   // Ohne gewaehlte Variante gilt die erste
   assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'koi' })), 'koi:aquarell');
-  assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'wald' })), 'wald');
+  assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'blasen' })), 'blasen');
   assert.equal(K.anpassungsSchluesselFuer(K.cleanThemePrefs({ theme: 'sakura', variante: { sakura: 'fluss' } })), 'sakura:fluss');
 });
 
@@ -197,6 +197,19 @@ test('Gast: Haeufigkeit und Anzahl bereinigt, Abstand und Anzahl stimmen', () =>
   assert.equal(K.mergeThemePrefs({ gastAnzahl: 'schwarm' }, { theme: 'koi' }).gastAnzahl, 'schwarm', 'bleibt bei Theme-Wechsel');
 });
 
-test('Galerie zeigt Neon Dual, Sakura und Koi (Wald/Blasen noch ausgeblendet)', () => {
-  assert.deepEqual(K.sichtbareThemes().map((t) => t.id), ['neon-dual', 'sakura', 'koi']);
+test('Galerie zeigt Neon Dual, Sakura, Wald und Koi (Blasen noch ausgeblendet)', () => {
+  assert.deepEqual(K.sichtbareThemes().map((t) => t.id), ['neon-dual', 'sakura', 'wald', 'koi']);
+});
+
+test('Wald hat acht Varianten: Grundstile ohne Holzschnitt + Pixel, Leuchtpilze, Lichtstrahlen, Waldhuette', () => {
+  const wald = K.themeById('wald');
+  assert.deepEqual(wald.varianten.map((v) => v.id), ['aquarell', 'lofi', 'tusche', 'bleiglas', 'pixel', 'pilze', 'licht', 'huette']);
+  for (const v of wald.varianten) {
+    assert.equal(typeof v.name, 'string');
+    assert.equal(typeof v.hell, 'boolean');
+    for (const k of ['akzent', 'hintergrund', 'partikel']) assert.match(v.farben[k], /^#[0-9a-f]{6}$/, v.id + '.' + k);
+  }
+  assert.deepEqual(wald.farben, wald.varianten[0].farben, 'Theme-Farben = erste Variante');
+  assert.equal(wald.ausgeblendet, undefined);
+  assert.deepEqual(wald.varianten.filter((v) => v.hell).map((v) => v.id), ['aquarell', 'tusche', 'licht']);
 });

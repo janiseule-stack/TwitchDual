@@ -1,81 +1,285 @@
-/* Wald (dunkel): Moosgruen, warmes Gluehwuermchen-Gelbgruen als Akzent. */
+/* Wald (gezeichnet, Varianten). Die Welt malt den ganzen Hintergrund auf
+   eine Leinwand; die CSS gibt nur Kaesten/Schrift/Knoepfe in Variantenfarbe.
+   Jede Variante setzt dieselben Variablen, die Regeln unten sind gemeinsam.
+   Flaechen tragen --chat-alpha (Glass-Transparenz), Akzente bleiben voll. */
+
+/* --- A: Aquarell-Daemmerung (Standard) ------------------------------------- */
 :root[data-theme="wald"] {
-  --bg: rgb(14 31 20 / var(--chat-alpha, 1));
-  --panel: rgb(20 40 26 / var(--chat-alpha, 1));
-  --hover: rgb(26 52 34 / var(--chat-alpha, 1));
-  --line: #24432d;
-  --text: #e3f0d6;
-  --muted: #9fb894;
-  --ts: #6d8a66;
+  --bg: rgb(230 236 230 / var(--chat-alpha, 1));
+  --panel: rgb(248 250 246 / var(--chat-alpha, 1));
+  --hover: rgb(221 230 223 / var(--chat-alpha, 1));
+  --line: #c3d3c9;
+  --text: #33443c;
+  --muted: #66786f;
+  --ts: #90a39a;
+  --accent: #3f7a5e;
+  --accent-title: #2f6a4e;
+  --accent-border: rgba(63, 122, 94, .4);
+  --accent-glow: rgba(63, 122, 94, .15);
+  --accent-dim: rgba(63, 122, 94, .28);
+  --accent-contrast: #f8fbf8;
+  --onair-from: #9cc3c9;
+  --onair-to: #c9b8d8;
+  --schrift: Candara, "Segoe UI", sans-serif;
+  --schrift-titel: "Segoe Print", Candara, cursive;
+  --schleier: rgba(248,250,246,.5);
+  --halo: rgba(248,250,246,.9);
+  --karte: rgba(248,250,246,.8);
+  --karte-rand: 1px solid rgba(80,130,110,.4);
+  --rund: 14px;
+  --knopf: rgba(63, 122, 94, .12);
+  --balken: #eef3ef;
+}
+
+/* --- B: Lofi-Nacht --------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="lofi"] {
+  --bg: rgb(28 26 68 / var(--chat-alpha, 1));
+  --panel: rgb(22 21 58 / var(--chat-alpha, 1));
+  --hover: rgb(42 40 98 / var(--chat-alpha, 1));
+  --line: #3c3a78;
+  --text: #eef0ff;
+  --muted: #b7b8e0;
+  --ts: #8a8ab8;
+  --accent: #c8ff7a;
+  --accent-title: #e2ffb8;
+  --accent-border: rgba(200, 255, 122, .4);
+  --accent-glow: rgba(200, 255, 122, .15);
+  --accent-dim: rgba(200, 255, 122, .28);
+  --accent-contrast: #1c1a44;
+  --onair-from: #c8ff7a;
+  --onair-to: #8ec8ff;
+  --schrift: Bahnschrift, "Segoe UI", sans-serif;
+  --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
+  --schleier: rgba(18,18,44,.55);
+  --halo: rgba(18,18,44,.95);
+  --karte: rgba(22,21,58,.8);
+  --karte-rand: 2px solid #0e0d26;
+  --rund: 16px;
+  --knopf: rgba(200, 255, 122, .12);
+  --balken: #121234;
+}
+
+/* --- D: Tusche ------------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="tusche"] {
+  --bg: rgb(244 240 229 / var(--chat-alpha, 1));
+  --panel: rgb(248 245 236 / var(--chat-alpha, 1));
+  --hover: rgb(235 229 214 / var(--chat-alpha, 1));
+  --line: #d6cdb8;
+  --text: #2a2a2a;
+  --muted: #5f5a50;
+  --ts: #8a8478;
+  --accent: #2f4a3a;
+  --accent-title: #24382c;
+  --accent-border: rgba(47, 74, 58, .4);
+  --accent-glow: rgba(47, 74, 58, .15);
+  --accent-dim: rgba(47, 74, 58, .28);
+  --accent-contrast: #f6f2e8;
+  --onair-from: #2f4a3a;
+  --onair-to: #b8361f;
+  --schrift: "Yu Gothic UI", "Segoe UI", sans-serif;
+  --schrift-titel: "Yu Mincho", "MS Mincho", Georgia, serif;
+  --schleier: rgba(245,241,230,.5);
+  --halo: rgba(245,241,230,.92);
+  --karte: rgba(248,245,236,.82);
+  --karte-rand: 1px solid rgba(30,30,30,.35);
+  --rund: 4px;
+  --knopf: rgba(47, 74, 58, .12);
+  --balken: #efe9db;
+}
+
+/* --- E: Bleiglas ----------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="bleiglas"] {
+  --bg: rgb(13 20 24 / var(--chat-alpha, 1));
+  --panel: rgb(17 28 34 / var(--chat-alpha, 1));
+  --hover: rgb(26 42 50 / var(--chat-alpha, 1));
+  --line: #0a0c0e;
+  --text: #e8fff2;
+  --muted: #a8c0b8;
+  --ts: #7a948c;
   --accent: #9fe07a;
-  --accent-title: #cfe8b0;
+  --accent-title: #c8f0a0;
   --accent-border: rgba(159, 224, 122, .4);
-  --accent-glow: rgba(159, 224, 122, .2);
-  --accent-dim: rgba(159, 224, 122, .3);
-  --accent-contrast: #10200f;
-  --onair-from: #6fbf5a;
-  --onair-to: #e8ff7a;
+  --accent-glow: rgba(159, 224, 122, .15);
+  --accent-dim: rgba(159, 224, 122, .28);
+  --accent-contrast: #0d1418;
+  --onair-from: #9fe07a;
+  --onair-to: #7ad0ff;
+  --schrift: "Palatino Linotype", Georgia, serif;
+  --schrift-titel: "Palatino Linotype", Georgia, serif;
+  --schleier: rgba(10,16,20,.55);
+  --halo: rgba(10,16,20,.95);
+  --karte: rgba(14,22,26,.84);
+  --karte-rand: 3px solid #0a0c0e;
+  --rund: 8px;
+  --knopf: rgba(159, 224, 122, .12);
+  --balken: #0a1114;
+}
+
+/* --- F: Pixel -------------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="pixel"] {
+  --bg: rgb(22 18 63 / var(--chat-alpha, 1));
+  --panel: rgb(26 22 80 / var(--chat-alpha, 1));
+  --hover: rgb(38 32 106 / var(--chat-alpha, 1));
+  --line: #30297a;
+  --text: #e6ffd0;
+  --muted: #a8c8a0;
+  --ts: #7a9a8a;
+  --accent: #b6f07a;
+  --accent-title: #d8ffb0;
+  --accent-border: rgba(182, 240, 122, .4);
+  --accent-glow: rgba(182, 240, 122, .15);
+  --accent-dim: rgba(182, 240, 122, .28);
+  --accent-contrast: #16123f;
+  --onair-from: #b6f07a;
+  --onair-to: #7ad0ff;
+  --schrift: Consolas, "Courier New", monospace;
+  --schrift-titel: Consolas, "Courier New", monospace;
+  --schleier: rgba(16,12,46,.55);
+  --halo: rgba(16,12,46,.95);
+  --karte: #16233a;
+  --karte-rand: 3px solid #8fd65a;
+  --rund: 0px;
+  --knopf: rgba(182, 240, 122, .12);
+  --balken: #100c30;
+}
+
+/* --- G: Leuchtpilze -------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="pilze"] {
+  --bg: rgb(11 26 34 / var(--chat-alpha, 1));
+  --panel: rgb(14 32 41 / var(--chat-alpha, 1));
+  --hover: rgb(22 48 56 / var(--chat-alpha, 1));
+  --line: #1e4048;
+  --text: #dffcff;
+  --muted: #9cc8d0;
+  --ts: #6e9aa4;
+  --accent: #7af0ff;
+  --accent-title: #b8f8ff;
+  --accent-border: rgba(122, 240, 255, .4);
+  --accent-glow: rgba(122, 240, 255, .15);
+  --accent-dim: rgba(122, 240, 255, .28);
+  --accent-contrast: #0b1a22;
+  --onair-from: #7af0ff;
+  --onair-to: #c89bff;
+  --schrift: Bahnschrift, "Segoe UI", sans-serif;
+  --schrift-titel: Bahnschrift, "Segoe UI", sans-serif;
+  --schleier: rgba(6,16,22,.55);
+  --halo: rgba(6,16,22,.95);
+  --karte: rgba(8,20,26,.82);
+  --karte-rand: 1px solid rgba(120,240,255,.35);
+  --rund: 14px;
+  --knopf: rgba(122, 240, 255, .12);
+  --balken: #07141a;
+}
+
+/* --- H: Lichtstrahlen ------------------------------------------------------ */
+:root[data-theme="wald"][data-variante="licht"] {
+  --bg: rgb(232 242 216 / var(--chat-alpha, 1));
+  --panel: rgb(246 250 238 / var(--chat-alpha, 1));
+  --hover: rgb(220 234 203 / var(--chat-alpha, 1));
+  --line: #bfd4a8;
+  --text: #2f4430;
+  --muted: #5f7258;
+  --ts: #8a9c80;
+  --accent: #4f7a3a;
+  --accent-title: #3f6a2e;
+  --accent-border: rgba(79, 122, 58, .4);
+  --accent-glow: rgba(79, 122, 58, .15);
+  --accent-dim: rgba(79, 122, 58, .28);
+  --accent-contrast: #f8fcf0;
+  --onair-from: #c5d977;
+  --onair-to: #8cbf5a;
+  --schrift: Candara, "Segoe UI", sans-serif;
+  --schrift-titel: "Segoe Print", Candara, cursive;
+  --schleier: rgba(248,252,240,.5);
+  --halo: rgba(248,252,240,.9);
+  --karte: rgba(248,252,240,.82);
+  --karte-rand: 1px solid rgba(80,120,60,.4);
+  --rund: 14px;
+  --knopf: rgba(79, 122, 58, .12);
+  --balken: #eef5e2;
+}
+
+/* --- J: Waldhuette --------------------------------------------------------- */
+:root[data-theme="wald"][data-variante="huette"] {
+  --bg: rgb(22 28 58 / var(--chat-alpha, 1));
+  --panel: rgb(20 24 58 / var(--chat-alpha, 1));
+  --hover: rgb(36 42 88 / var(--chat-alpha, 1));
+  --line: #343a6e;
+  --text: #f3eeff;
+  --muted: #c0b8e0;
+  --ts: #8e88b4;
+  --accent: #ffd27a;
+  --accent-title: #ffe2a8;
+  --accent-border: rgba(255, 210, 122, .4);
+  --accent-glow: rgba(255, 210, 122, .15);
+  --accent-dim: rgba(255, 210, 122, .28);
+  --accent-contrast: #161c3a;
+  --onair-from: #ffd27a;
+  --onair-to: #c8ff7a;
   --schrift: Georgia, "Palatino Linotype", serif;
   --schrift-titel: Georgia, serif;
-  --holz: repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 2px, transparent 2px 9px),
-          repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 23px),
-          linear-gradient(180deg, #7a5233, #5d3d25);
-  --holz-dunkel: repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 2px, transparent 2px 11px),
-          linear-gradient(180deg, #4a3020, #362215);
-  --moos: radial-gradient(circle at 8px 8px, #6fbf5a 0 6px, transparent 7px) 0 0/14px 10px,
-          radial-gradient(circle at 4px 9px, #4f8a3c 0 5px, transparent 6px) 5px 0/12px 10px;
+  --schleier: rgba(16,18,42,.55);
+  --halo: rgba(16,18,42,.95);
+  --karte: rgba(20,22,48,.82);
+  --karte-rand: 2px solid #0d0b1c;
+  --rund: 10px;
+  --knopf: rgba(255, 210, 122, .12);
+  --balken: #10142e;
 }
-:root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: #2f5a3a; }
-:root[data-theme="wald"] #emote-panel,
-:root[data-theme="wald"] #ac-bar { background: #102116; }
-/* scrollbar-color schlaegt ::-webkit-scrollbar (Chromium 121+) - daher hier. */
-:root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-fav-view,
-:root[data-theme="wald"] #home-vod-view, :root[data-theme="wald"] #followed-view { scrollbar-color: #6b4a33 transparent; }
 
-/* --- Welle 1b: Waldhuette ------------------------------------------------- */
-:root[data-theme="wald"] #home-title, :root[data-theme="wald"] #title { font-style: italic; color: #ffe8a8; text-shadow: 0 1px 0 #2c1a0e; }
-:root[data-theme="wald"] #bar, :root[data-theme="wald"] #head,
-:root[data-theme="wald"] #home-head, :root[data-theme="wald"] #footer {
-  background: var(--holz); border-bottom: 2px solid #2c1a0e; box-shadow: 0 3px 0 #1a0f07;
+/* === Gemeinsame Regeln ======================================================= */
+/* Leinwand voll sichtbar (andere Themes daempfen fx-hinten auf .55); die
+   Glass-Transparenz wirkt auf die ganze Welt. */
+:root[data-theme="wald"] #fx-hinten { opacity: var(--chat-alpha, 1); }
+:root[data-theme="wald"] #home { background: var(--bg); }
+/* Lesbarkeit: leichter Schleier ueber der Welt + Schein um die Schrift. */
+:root[data-theme="wald"] #messages { background: var(--schleier); }
+:root[data-theme="wald"] .msg {
+  font-weight: 500;
+  text-shadow: 0 0 2px var(--halo), 0 0 4px var(--halo), 0 0 8px var(--halo);
 }
-:root[data-theme="wald"] .live-card, :root[data-theme="wald"] .fav, :root[data-theme="wald"] .vod {
-  background: var(--holz-dunkel); border: 2px solid #2c1a0e; border-radius: 4px;
-  box-shadow: 0 4px 0 #1a0f07; position: relative; overflow: visible; color: #f3e6cf;
+/* Oberer On-Air-Balken deckt die Welt ab (sonst ragt er ueber den Kopf hinaus). */
+:root[data-theme="wald"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
+
+:root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
+:root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-fav-view,
+:root[data-theme="wald"] #home-vod-view, :root[data-theme="wald"] #followed-view { scrollbar-color: var(--accent-border) transparent; }
+:root[data-theme="wald"] #emote-panel, :root[data-theme="wald"] #ac-bar { background: var(--balken); }
+
+:root[data-theme="wald"] #bar, :root[data-theme="wald"] #home-head, :root[data-theme="wald"] #head {
+  background: var(--balken); border-bottom: var(--karte-rand);
 }
-:root[data-theme="wald"] .live-card::before, :root[data-theme="wald"] .fav::before {
-  content: ""; position: absolute; left: -2px; right: -2px; top: -6px; height: 10px;
-  background: var(--moos); pointer-events: none; z-index: 1; filter: drop-shadow(0 1px 0 #2a5a26);
+:root[data-theme="wald"] #home-title, :root[data-theme="wald"] #title,
+:root[data-theme="wald"] .lc-name, :root[data-theme="wald"] .fav .name { color: var(--accent-title); }
+
+:root[data-theme="wald"] .live-card, :root[data-theme="wald"] .vod, :root[data-theme="wald"] .fav {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="wald"] .lc-thumbwrap { margin: 8px 8px 0; border: 3px solid #2c1a0e; }
-:root[data-theme="wald"] .lc-name, :root[data-theme="wald"] .fav .name { color: #ffe8a8; }
-:root[data-theme="wald"] .lc-live { background: #c0392b; border-radius: 2px; box-shadow: 0 0 0 2px #2c1a0e; }
+:root[data-theme="wald"] .lc-thumbwrap { margin: 6px 6px 0; border-radius: calc(var(--rund) * .7); }
+:root[data-theme="wald"] .lc-live { background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); }
+
 :root[data-theme="wald"] .lc-actions button, :root[data-theme="wald"] .fav .actions button,
 :root[data-theme="wald"] #home-head button, :root[data-theme="wald"] #auth-bar button,
 :root[data-theme="wald"] #home-btn, :root[data-theme="wald"] #emote-btn, :root[data-theme="wald"] #rewards-btn {
-  background: #2c1a0e; color: #e8d3b0; border: 1px solid #8a5f3c; border-radius: 3px;
+  background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="wald"] #load, :root[data-theme="wald"] #chat-send, :root[data-theme="wald"] .fav .watch {
-  background: #6fbf5a; color: #10200f; border: 2px solid #2c1a0e; border-radius: 3px; font-weight: 700;
+:root[data-theme="wald"] #load, :root[data-theme="wald"] #chat-send, :root[data-theme="wald"] .fav .watch,
+:root[data-theme="wald"] #home-head button.active, :root[data-theme="wald"] #fav-tools-toggle.active {
+  background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
 :root[data-theme="wald"] #channel, :root[data-theme="wald"] #chat-input,
 :root[data-theme="wald"] #filter-input, :root[data-theme="wald"] #add-input {
-  background: #f3e6cf; color: #2c1a0e; border: 2px solid #2c1a0e; border-radius: 3px;
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }
-:root[data-theme="wald"] .fav .avatar { box-shadow: 0 0 0 2px #2c1a0e; }
-:root[data-theme="wald"] .fav .badge { border-radius: 2px; }
-:root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: 2px solid #2c1a0e; border-radius: 4px; }
-/* Deko: dunkle Baum-Silhouetten am unteren Rand (Home + hinter dem Chat) */
-:root[data-theme="wald"] .theme-deko::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px;
-  background:
-    radial-gradient(ellipse 34px 70px at 6% 100%, #07120a 98%, transparent 100%),
-    radial-gradient(ellipse 46px 95px at 22% 100%, #0a170d 98%, transparent 100%),
-    radial-gradient(ellipse 30px 60px at 40% 100%, #07120a 98%, transparent 100%),
-    radial-gradient(ellipse 52px 105px at 63% 100%, #0a170d 98%, transparent 100%),
-    radial-gradient(ellipse 36px 75px at 84% 100%, #07120a 98%, transparent 100%),
-    radial-gradient(ellipse 28px 55px at 97% 100%, #0a170d 98%, transparent 100%);
+:root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card,
+:root[data-theme="wald"] #points-chip, :root[data-theme="wald"] .galerie-karte { border-radius: var(--rund); }
+:root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: var(--karte-rand); }
+/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf der Welt lesbar sind. */
+:root[data-theme="wald"] .abschnitt-kopf {
+  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
+  padding: 6px 10px; width: auto; display: inline-flex;
 }
-:root[data-theme="wald"] #theme-deko::after { bottom: 80px; opacity: .7; }
-:root[data-theme="wald"] #home-head button.active, :root[data-theme="wald"] #fav-tools-toggle.active {
-  background: #6fbf5a; color: #10200f; border: 2px solid #2c1a0e; font-weight: 700;
-}
+
+/* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
+:root[data-theme="wald"][data-variante="pixel"] .live-card, :root[data-theme="wald"][data-variante="pixel"] .vod, :root[data-theme="wald"][data-variante="pixel"] .fav,
+:root[data-theme="wald"][data-variante="pixel"] #settings-pop, :root[data-theme="wald"][data-variante="pixel"] #user-card { box-shadow: 4px 4px 0 #0a1020; }
