@@ -1,0 +1,1045 @@
+[
+ {
+  "data": {
+   "channel": {
+    "id": "238813810",
+    "pinnedChatMessages": {
+     "edges": [
+      {
+       "node": {
+        "id": "e2afeac9-de7f-4b83-9095-f34a282601b3",
+        "type": "MOD",
+        "pinnedMessage": {
+         "id": "e0015e56-e790-4390-a817-9e9ed12821c4",
+         "content": {
+          "text": "Hier kommt ihr zum LYORA-SHOP 👉 https://lyora.de/ | Folgt gerne Melina's und meiner neuen Firma LYORA auf Insta ❤️ https://www.instagram.com/lyorathebrand/",
+          "fragments": [
+           {
+            "content": null,
+            "text": "Hier kommt ihr zum LYORA-SHOP 👉 ",
+            "__typename": "MessageFragment"
+           },
+           {
+            "content": null,
+            "text": "https://lyora.de/",
+            "__typename": "MessageFragment"
+           },
+           {
+            "content": null,
+            "text": " | Folgt gerne Melina's und meiner neuen Firma LYORA auf Insta ❤️ ",
+            "__typename": "MessageFragment"
+           },
+           {
+            "content": null,
+            "text": "https://www.instagram.com/lyorathebrand/",
+            "__typename": "MessageFragment"
+           }
+          ],
+          "__typename": "MessageContent"
+         },
+         "parentMessage": null,
+         "threadParentMessage": null,
+         "sentAt": "2026-10-08T17:00:35.067587601Z",
+         "sender": {
+          "id": "209844800",
+          "login": "silas3o",
+          "chatColor": "#FF69B4",
+          "displayName": "silas3o",
+          "displayBadges": [
+           {
+            "id": "bGVhZF9tb2RlcmF0b3I7MTs=",
+            "setID": "lead_moderator",
+            "version": "1",
+            "__typename": "Badge"
+           },
+           {
+            "id": "c3Vic2NyaWJlcjs0MjsyMzg4MTM4MTA=",
+            "setID": "subscriber",
+            "version": "42",
+            "__typename": "Badge"
+           },
+           {
+            "id": "c29jaWFsLXNoYXJpbmc7Mzs=",
+            "setID": "social-sharing",
+            "version": "3",
+            "__typename": "Badge"
+           }
+          ],
+          "__typename": "User"
+         },
+         "__typename": "Message"
+        },
+        "startsAt": "2026-10-08T17:00:36Z",
+        "updatedAt": "2026-10-08T17:00:38Z",
+        "endsAt": null,
+        "pinnedBy": {
+         "id": "209844800",
+         "login": "silas3o",
+         "displayName": "silas3o",
+         "__typename": "User"
+        },
+        "__typename": "PinnedChatMessage"
+       },
+       "cursor": "",
+       "__typename": "PinnedChatMessageEdge"
+      }
+     ],
+     "pageInfo": {
+      "hasNextPage": false,
+      "__typename": "PageInfo"
+     },
+     "__typename": "PinnedChatMessageConnection"
+    },
+    "__typename": "Channel"
+   }
+  },
+  "extensions": {
+   "durationMilliseconds": 65,
+   "requestID": "01M4EX8X8VHBXVA66ZDDXQS8XM",
+   "operationName": "GetPinnedChat"
+  }
+ },
+ {
+  "data": {
+   "channel": {
+    "id": "40934651",
+    "viewablePoll": null,
+    "self": null,
+    "__typename": "User"
+   },
+   "currentUser": null
+  },
+  "extensions": {
+   "durationMilliseconds": 65,
+   "requestID": "01M4EX8X8VHBXVA66ZDDXQS8XM",
+   "operationName": "ChannelPollContext_GetViewablePoll"
+  }
+ },
+ {
+  "data": {
+   "community": {
+    "id": "411377640",
+    "channel": {
+     "id": "411377640",
+     "predictionSettings": {
+      "isEligibleForPredictions": true,
+      "__typename": "ChannelPredictionSettings"
+     },
+     "activePredictionEvents": [],
+     "lockedPredictionEvents": [
+      {
+       "id": "128e4464-1a73-4f3c-9e7f-d79b06a27755",
+       "createdAt": "2026-10-08T22:52:27.791632291Z",
+       "createdBy": {
+        "id": "279117595",
+        "displayName": "Gucciz_",
+        "__typename": "User"
+       },
+       "endedAt": null,
+       "lockedAt": "2026-10-08T23:22:27.921953178Z",
+       "outcomes": [
+        {
+         "id": "5b003b3a-6d1d-4e66-bb67-da0bc2d6c724",
+         "color": "BLUE",
+         "title": "YESSSS",
+         "totalPoints": 74795246,
+         "totalUsers": 3222,
+         "topPredictors": [
+          {
+           "id": "24dc2718fe6fa202b635b36d0468bd1c13a890855a77a0b2d9e9719fde4575a5",
+           "points": 250000,
+           "user": {
+            "id": "215495993",
+            "displayName": "byMousie",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "da8a38fdfc8821d9e609849db31a83e56b9bdd3e99449cbcc6410a860d0db534",
+           "points": 250000,
+           "user": {
+            "id": "425437499",
+            "displayName": "ChickenTendys55",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "36ccefc8cbdeb831c9fbdaaa240de6dc6fcf00cba2895c58c0b04bc82bdd72d3",
+           "points": 250000,
+           "user": {
+            "id": "872727670",
+            "displayName": "startingtothinkitsme",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "0feb3b0b4744ac54b04f692981efcb777be494d6696421b654430085a5fc1d27",
+           "points": 250000,
+           "user": {
+            "id": "866531037",
+            "displayName": "cxyrad2",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "23111ba21d1b3398ff61829bf0e1d376f38876432b26cfabb91027a198ebbd58",
+           "points": 250000,
+           "user": {
+            "id": "591264906",
+            "displayName": "ivandemidovv",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "406d8e7d70544ee9737a5e67fd83293d1d0b04b0179126cdffb17ff594634c52",
+           "points": 250000,
+           "user": {
+            "id": "621801740",
+            "displayName": "haterchr1s",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "43d5cfe8086e194f114573fe5fe83aae69e00194bf90c5c10b60513ae06a8090",
+           "points": 250000,
+           "user": {
+            "id": "519042499",
+            "displayName": "beamybloom23768",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "49ad77ab82260007160e6b61cf25468a59457b015bb9f37ffea9c1ec94399e73",
+           "points": 250000,
+           "user": {
+            "id": "1373834728",
+            "displayName": "jydxzi",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "d432c553fe96448ec0c76a60eabfd4b05ca9c9e6c1e292979ca66763d1a25661",
+           "points": 250000,
+           "user": {
+            "id": "1099971307",
+            "displayName": "happymatty12",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "45db1b15b913a26744ae3cc6d2531f5e4f73b022c7c93174d51feb95f88a6b83",
+           "points": 250000,
+           "user": {
+            "id": "616964034",
+            "displayName": "knight183693",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          }
+         ],
+         "badge": {
+          "id": "cHJlZGljdGlvbnM7Ymx1ZS0xOw==",
+          "setID": "predictions",
+          "version": "blue-1",
+          "title": "Predicted Blue (1)",
+          "image1x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/1",
+          "image2x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/2",
+          "image4x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/3",
+          "clickAction": null,
+          "clickURL": null,
+          "__typename": "Badge"
+         },
+         "__typename": "PredictionOutcome"
+        },
+        {
+         "id": "b1e75c1a-270c-4954-ad33-54ac6383b329",
+         "color": "PINK",
+         "title": "NOOO",
+         "totalPoints": 82758082,
+         "totalUsers": 2983,
+         "topPredictors": [
+          {
+           "id": "4e8b5d7112ef387be85e104feff68e6c71749f9b1322cca53870d1a5255c433e",
+           "points": 250000,
+           "user": {
+            "id": "1279196109",
+            "displayName": "finnishgoon",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "9bc58138ab8956d1ba5d42af3767161e9e3bffd62f7386fcf726dfba448c2a2b",
+           "points": 250000,
+           "user": {
+            "id": "875104105",
+            "displayName": "Alcenix_",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "8bd83838d2f4b1137b46ea6ee607f8d6489f83078085b76a3bf2bbbbe4cfdce9",
+           "points": 250000,
+           "user": {
+            "id": "46349176",
+            "displayName": "Zwergemil",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "0e81159b19a47fd673ca23677334efddff78ba0a363bc419df08c9619dd0c798",
+           "points": 250000,
+           "user": {
+            "id": "89929090",
+            "displayName": "kohlmn",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "41eddee616696e35e83781caa2830bbc099845435953e95a3329c6091f7eee9a",
+           "points": 250000,
+           "user": {
+            "id": "208309356",
+            "displayName": "wash3dfps",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "a2e90690e847b0ea9c43abed34c3275a74d87f8be2d07f8956a2575b7bf8cc11",
+           "points": 250000,
+           "user": {
+            "id": "201171960",
+            "displayName": "poopyfacetomatonose7447",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "438116e22851101eb0a122815f3c7a64c8383e374987f7629cb1b3acd590cb47",
+           "points": 250000,
+           "user": {
+            "id": "729018249",
+            "displayName": "TyMarl3y",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "de3efc54971d5f7be5932b24636ba96077988340c3335461f37162b1a97dc0b0",
+           "points": 250000,
+           "user": {
+            "id": "1014647129",
+            "displayName": "FrostyOpz1",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "defabd8d4a03fa09630391b6a6293ca418de99370314120d64246a5c910feceb",
+           "points": 250000,
+           "user": {
+            "id": "485575467",
+            "displayName": "biothermal",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          },
+          {
+           "id": "e217db19db9ba304d2a9ced9fdfaf0361dd3e6f63f195ffc703895e55a4c3014",
+           "points": 250000,
+           "user": {
+            "id": "752306395",
+            "displayName": "lyrixy_",
+            "__typename": "User"
+           },
+           "__typename": "Prediction"
+          }
+         ],
+         "badge": {
+          "id": "cHJlZGljdGlvbnM7cGluay0yOw==",
+          "setID": "predictions",
+          "version": "pink-2",
+          "title": "Predicted Pink (2)",
+          "image1x": "https://static-cdn.jtvnw.net/badges/v1/4b76d5f2-91cc-4400-adf2-908a1e6cfd1e/1",
+          "image2x": "https://static-cdn.jtvnw.net/badges/v1/4b76d5f2-91cc-4400-adf2-908a1e6cfd1e/2",
+          "image4x": "https://static-cdn.jtvnw.net/badges/v1/4b76d5f2-91cc-4400-adf2-908a1e6cfd1e/3",
+          "clickAction": null,
+          "clickURL": null,
+          "__typename": "Badge"
+         },
+         "__typename": "PredictionOutcome"
+        }
+       ],
+       "predictionWindowSeconds": 1800,
+       "status": "LOCKED",
+       "title": "WILL THEY KILL THE DRAGON?????",
+       "winningOutcome": null,
+       "__typename": "PredictionEvent"
+      }
+     ],
+     "resolvedPredictionEvents": {
+      "edges": [
+       {
+        "node": {
+         "id": "02833700-96c4-4e2e-ba9a-3a9dd58db455",
+         "createdAt": "2026-10-08T21:35:04.815945587Z",
+         "createdBy": {
+          "id": "279117595",
+          "displayName": "Gucciz_",
+          "__typename": "User"
+         },
+         "endedAt": "2026-10-08T22:29:07.584310923Z",
+         "lockedAt": "2026-10-08T21:37:24.091391205Z",
+         "outcomes": [
+          {
+           "id": "2e4520f7-b207-43d7-b92b-85dbdaa6ebcc",
+           "color": "BLUE",
+           "title": "Jynxzi Dies",
+           "totalPoints": 2046401,
+           "totalUsers": 146,
+           "topPredictors": [
+            {
+             "id": "f489e30b080b87d67647421d2c354ec391ec60af4f1b37adfa6db89291891405",
+             "points": 250000,
+             "user": {
+              "id": "1339005966",
+              "displayName": "noppazl",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "9707fbbdcaa927108c437b98ceb89d3690613d0fb9ca2c0f53f3e79c7d7fb2f7",
+             "points": 250000,
+             "user": {
+              "id": "174617129",
+              "displayName": "TenderMayham",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "f4cc492c59d3a23abad478b246276bcfd0537e43af0e91549bebebbbe74d6c00",
+             "points": 250000,
+             "user": {
+              "id": "1103743375",
+              "displayName": "MilesR_03_",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "f9ff70116801a820c654896be2b6f58493cb6f6f6d31be60c120dcaa4fb6b001",
+             "points": 151635,
+             "user": {
+              "id": "938053950",
+              "displayName": "raven_ah621",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "5f94674ec4fefabd93a1ef5a35a14a313e83d5399978e45cfa6a9e0ca1df5010",
+             "points": 131030,
+             "user": {
+              "id": "435069074",
+              "displayName": "JLR_843",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "748eef331fd7da67a83cff611dd2754cb7e2c2316dc24adc9c8445717a87052d",
+             "points": 100000,
+             "user": {
+              "id": "1473911995",
+              "displayName": "atomsaligned",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "c8fd7edf59d08af4bfbf5a41276196b6d429690ef04415886c88dc1963d1ce74",
+             "points": 50000,
+             "user": {
+              "id": "589038270",
+              "displayName": "airfriedchickennuggets",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "015a2fa634f76167eace39b2845c49f0644dc2ce140adf679d0781c014690f8b",
+             "points": 50000,
+             "user": {
+              "id": "410396183",
+              "displayName": "mightywaful",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "6908c281884794ca7385a2fb0bf8b07267ad12bd20eb828fc884e8b626da15a8",
+             "points": 50000,
+             "user": {
+              "id": "1347993051",
+              "displayName": "crayzefrrr",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "59701e3565d790a8469df4a2ed449dd277fbb8f9591bdf162dc4d07e1843a693",
+             "points": 50000,
+             "user": {
+              "id": "725121688",
+              "displayName": "danny19291",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            }
+           ],
+           "badge": {
+            "id": "cHJlZGljdGlvbnM7Ymx1ZS0xOw==",
+            "setID": "predictions",
+            "version": "blue-1",
+            "title": "Predicted Blue (1)",
+            "image1x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/1",
+            "image2x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/2",
+            "image4x": "https://static-cdn.jtvnw.net/badges/v1/e33d8b46-f63b-4e67-996d-4a7dcec0ad33/3",
+            "clickAction": null,
+            "clickURL": null,
+            "__typename": "Badge"
+           },
+           "__typename": "PredictionOutcome"
+          },
+          {
+           "id": "97055e42-bdee-4f7a-bb1c-3b8e92cc9fff",
+           "color": "BLUE",
+           "title": "Ron Dies",
+           "totalPoints": 1675855,
+           "totalUsers": 132,
+           "topPredictors": [
+            {
+             "id": "c68ebcbcdf35d13aed7871bb678f1d6f61dd3d1e94091ad95571dd88105a52dd",
+             "points": 250000,
+             "user": {
+              "id": "605070970",
+              "displayName": "haydng0dden7",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "57d47ff151195faf810243b572fff68743af7ec8fbe1b538db611354fdd79057",
+             "points": 250000,
+             "user": {
+              "id": "1489897848",
+              "displayName": "ultraegoxx",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "4bf64cef8ac210514d4758a7790ee5ba7d013493a68d8238be38838170abc4ab",
+             "points": 250000,
+             "user": {
+              "id": "544707980",
+              "displayName": "p_a_hh_x",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "4157e7d1a2fd3bb60d92e717b31b1791c15c28b44ed0b58290973c097a5a94c8",
+             "points": 110000,
+             "user": {
+              "id": "1013983857",
+              "displayName": "coldpalmer100",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "132b22ad3abc95ce6673c29201af41d00301275f08238749dec5c759d77f86fd",
+             "points": 80000,
+             "user": {
+              "id": "690072177",
+              "displayName": "jnsnoo",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "b7bc76a50737b23f4dba40cc09d63c59abd744b09c28d1e58c66fd4079764319",
+             "points": 50000,
+             "user": {
+              "id": "561101097",
+              "displayName": "yuandale",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "4e2e78a0cafd4f97232075bee4e90cb5729e9cf3a13e21efc4e6617c8c14c1ad",
+             "points": 33000,
+             "user": {
+              "id": "159667138",
+              "displayName": "yunqz_",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "5b81ad4e6c4dfde3ef2c16e660de28d457d38d277891d0312817ea572a726861",
+             "points": 25000,
+             "user": {
+              "id": "985869751",
+              "displayName": "Koegr",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "4c940cf02b908d128e17b6430785021b20f0facaee60e5a1499dc2a35764b95d",
+             "points": 25000,
+             "user": {
+              "id": "107672680",
+              "displayName": "chadieladdie999",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "7ef716f565d55c7627aa57f3a5d25d996b41a97538b232cf4214d62df4d36fa3",
+             "points": 25000,
+             "user": {
+              "id": "416327187",
+              "displayName": "itsAbstrct",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            }
+           ],
+           "badge": {
+            "id": "cHJlZGljdGlvbnM7Ymx1ZS0yOw==",
+            "setID": "predictions",
+            "version": "blue-2",
+            "title": "Predicted Blue (2)",
+            "image1x": "https://static-cdn.jtvnw.net/badges/v1/ffdda3fe-8012-4db3-981e-7a131402b057/1",
+            "image2x": "https://static-cdn.jtvnw.net/badges/v1/ffdda3fe-8012-4db3-981e-7a131402b057/2",
+            "image4x": "https://static-cdn.jtvnw.net/badges/v1/ffdda3fe-8012-4db3-981e-7a131402b057/3",
+            "clickAction": null,
+            "clickURL": null,
+            "__typename": "Badge"
+           },
+           "__typename": "PredictionOutcome"
+          },
+          {
+           "id": "eed2b694-cff0-4938-afe9-39a573337b29",
+           "color": "BLUE",
+           "title": "Los Dies",
+           "totalPoints": 1776986,
+           "totalUsers": 174,
+           "topPredictors": [
+            {
+             "id": "f04c3f91e251547f3a9b3ad68a3509cadf57698fc9c3ebce3b4248bb0125cab6",
+             "points": 250000,
+             "user": {
+              "id": "670634760",
+              "displayName": "schmidtyyy14",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "ba1fb204226f50fcd6dd240df8f72088465e32c1f32245e14ee02d39cb6b9136",
+             "points": 181000,
+             "user": {
+              "id": "158265967",
+              "displayName": "Callum_A_H",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "182f502d1855772c27fe5c6bb0039b7b7f8eb640e7fa0d537a85485071383867",
+             "points": 100000,
+             "user": {
+              "id": "1213275961",
+              "displayName": "pattyontopp",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "66a266cf684bb5e75d2fd1d8bc72c655b452981d506ef059f807a0043a6a8ae8",
+             "points": 100000,
+             "user": {
+              "id": "482671868",
+              "displayName": "KarabaaDabura",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "aa4dc3144af76609ef6915aea27127c05e3b980513610f84cb1dc38f4503bcfb",
+             "points": 100000,
+             "user": {
+              "id": "120631813",
+              "displayName": "Luke_Skyw4Iker",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "0524b0349af57c0465ce71d49f5990f44adc6bca4ae5e24205bad74ccfddf490",
+             "points": 60000,
+             "user": {
+              "id": "423756515",
+              "displayName": "coylex22",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "665d23b297f53a9289a4b01b5a3939abfbfcfe0bff058b6024f7f77e537f0aa7",
+             "points": 56300,
+             "user": {
+              "id": "1122912577",
+              "displayName": "eliteedge41",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "1264c4c05b736cc6206bbeb0710e27ce47953d4ff9bf7eca79a5838f30900657",
+             "points": 55000,
+             "user": {
+              "id": "204164385",
+              "displayName": "crainy7",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "6a705ceeb653f60aa8d9da7bba140485008d3be3069ad61792f2fd348fac9eef",
+             "points": 50610,
+             "user": {
+              "id": "586055283",
+              "displayName": "paulblartgaming",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "d01b155f7fe1b3e71d4d150e910f52d47fb1d7f03e429ddaa1f3c7e6d9b55211",
+             "points": 50000,
+             "user": {
+              "id": "620517955",
+              "displayName": "kposee",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            }
+           ],
+           "badge": {
+            "id": "cHJlZGljdGlvbnM7Ymx1ZS0zOw==",
+            "setID": "predictions",
+            "version": "blue-3",
+            "title": "Predicted Blue (3)",
+            "image1x": "https://static-cdn.jtvnw.net/badges/v1/f2ab9a19-8ef7-4f9f-bd5d-9cf4e603f845/1",
+            "image2x": "https://static-cdn.jtvnw.net/badges/v1/f2ab9a19-8ef7-4f9f-bd5d-9cf4e603f845/2",
+            "image4x": "https://static-cdn.jtvnw.net/badges/v1/f2ab9a19-8ef7-4f9f-bd5d-9cf4e603f845/3",
+            "clickAction": null,
+            "clickURL": null,
+            "__typename": "Badge"
+           },
+           "__typename": "PredictionOutcome"
+          },
+          {
+           "id": "c4a23212-0780-4f0a-b013-54a401854448",
+           "color": "BLUE",
+           "title": "MAKE IT OUT WITH RODS",
+           "totalPoints": 2975863,
+           "totalUsers": 192,
+           "topPredictors": [
+            {
+             "id": "eeba6d41532d204ab3de4ac4403d678264456e912763d24fc40499b1cf42a20b",
+             "points": 250000,
+             "user": {
+              "id": "567798957",
+              "displayName": "smokkx_qc",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "7bd7500f79db55f25aa64de522c751e7e0da5a49d76a7ef7e523c04e83a2fbbb",
+             "points": 250000,
+             "user": {
+              "id": "188709170",
+              "displayName": "bacon_____0",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "099facf411e3e61125560d576df10115b91bddc0055ce8f340fd2bb1e1c2f4bc",
+             "points": 250000,
+             "user": {
+              "id": "244192963",
+              "displayName": "Woppppa",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "9865d746afefcc549c78037186025d5161db4450c4d4940128754528886f2d51",
+             "points": 250000,
+             "user": {
+              "id": "105139254",
+              "displayName": "FreshyTV",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "1bd35710039f443ef7835a09138fcac3ad93c3103cef34dc8cada93262b5cc2f",
+             "points": 250000,
+             "user": {
+              "id": "1099691863",
+              "displayName": "eks_1234",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "90b90231756220c64e591f0259b2103c24859958d9333a70af43f30d2da09ba5",
+             "points": 180000,
+             "user": {
+              "id": "162797526",
+              "displayName": "Jefn03",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "bb5196e3dfd595cafe5b78368ce309139955f436da11658a301c14fdcf517bc8",
+             "points": 101520,
+             "user": {
+              "id": "229706836",
+              "displayName": "hardfinddd",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "65d7818db2e6d74c17a8f52318cbb3a491e64972163fa01a05be3a364f6cde9f",
+             "points": 100990,
+             "user": {
+              "id": "1054926921",
+              "displayName": "diegotha1",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "946f9b4db7db2a807ce07f679727b0e39b34d4dd2544535bb77ad5c8b965e0e6",
+             "points": 100000,
+             "user": {
+              "id": "163577456",
+              "displayName": "ProctorCopter",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            },
+            {
+             "id": "6649a006127cdd7e83b0b5d3d36efa871b6237aaa8cb5f1e2742488514ecd2d7",
+             "points": 100000,
+             "user": {
+              "id": "183719327",
+              "displayName": "TrickieGangsta",
+              "__typename": "User"
+             },
+             "__typename": "Prediction"
+            }
+           ],
+           "badge": {
+            "id": "cHJlZGljdGlvbnM7Ymx1ZS00Ow==",
+            "setID": "predictions",
+            "version": "blue-4",
+            "title": "Predicted Blue (4)",
+            "image1x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/1",
+            "image2x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/2",
+            "image4x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/3",
+            "clickAction": null,
+            "clickURL": null,
+            "__typename": "Badge"
+           },
+           "__typename": "PredictionOutcome"
+          }
+         ],
+         "predictionWindowSeconds": 300,
+         "status": "RESOLVED",
+         "title": "What happens next?",
+         "winningOutcome": {
+          "id": "c4a23212-0780-4f0a-b013-54a401854448",
+          "color": "BLUE",
+          "title": "MAKE IT OUT WITH RODS",
+          "totalPoints": 2975863,
+          "totalUsers": 192,
+          "topPredictors": [
+           {
+            "id": "eeba6d41532d204ab3de4ac4403d678264456e912763d24fc40499b1cf42a20b",
+            "points": 250000,
+            "user": {
+             "id": "567798957",
+             "displayName": "smokkx_qc",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "7bd7500f79db55f25aa64de522c751e7e0da5a49d76a7ef7e523c04e83a2fbbb",
+            "points": 250000,
+            "user": {
+             "id": "188709170",
+             "displayName": "bacon_____0",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "099facf411e3e61125560d576df10115b91bddc0055ce8f340fd2bb1e1c2f4bc",
+            "points": 250000,
+            "user": {
+             "id": "244192963",
+             "displayName": "Woppppa",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "9865d746afefcc549c78037186025d5161db4450c4d4940128754528886f2d51",
+            "points": 250000,
+            "user": {
+             "id": "105139254",
+             "displayName": "FreshyTV",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "1bd35710039f443ef7835a09138fcac3ad93c3103cef34dc8cada93262b5cc2f",
+            "points": 250000,
+            "user": {
+             "id": "1099691863",
+             "displayName": "eks_1234",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "90b90231756220c64e591f0259b2103c24859958d9333a70af43f30d2da09ba5",
+            "points": 180000,
+            "user": {
+             "id": "162797526",
+             "displayName": "Jefn03",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "bb5196e3dfd595cafe5b78368ce309139955f436da11658a301c14fdcf517bc8",
+            "points": 101520,
+            "user": {
+             "id": "229706836",
+             "displayName": "hardfinddd",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "65d7818db2e6d74c17a8f52318cbb3a491e64972163fa01a05be3a364f6cde9f",
+            "points": 100990,
+            "user": {
+             "id": "1054926921",
+             "displayName": "diegotha1",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "946f9b4db7db2a807ce07f679727b0e39b34d4dd2544535bb77ad5c8b965e0e6",
+            "points": 100000,
+            "user": {
+             "id": "163577456",
+             "displayName": "ProctorCopter",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           },
+           {
+            "id": "6649a006127cdd7e83b0b5d3d36efa871b6237aaa8cb5f1e2742488514ecd2d7",
+            "points": 100000,
+            "user": {
+             "id": "183719327",
+             "displayName": "TrickieGangsta",
+             "__typename": "User"
+            },
+            "__typename": "Prediction"
+           }
+          ],
+          "badge": {
+           "id": "cHJlZGljdGlvbnM7Ymx1ZS00Ow==",
+           "setID": "predictions",
+           "version": "blue-4",
+           "title": "Predicted Blue (4)",
+           "image1x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/1",
+           "image2x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/2",
+           "image4x": "https://static-cdn.jtvnw.net/badges/v1/df95317d-9568-46de-a421-a8520edb9349/3",
+           "clickAction": null,
+           "clickURL": null,
+           "__typename": "Badge"
+          },
+          "__typename": "PredictionOutcome"
+         },
+         "__typename": "PredictionEvent"
+        },
+        "__typename": "PredictionEventEdge"
+       }
+      ],
+      "__typename": "PredictionEventConnection"
+     },
+     "self": {
+      "id": "411377640",
+      "recentPredictions": null,
+      "__typename": "ChannelSelfEdge"
+     },
+     "__typename": "Channel"
+    },
+    "__typename": "User"
+   },
+   "currentUser": null
+  },
+  "extensions": {
+   "durationMilliseconds": 66,
+   "requestID": "01M4EX8X8VHBXVA66ZDDXQS8XM",
+   "operationName": "ChannelPointsPredictionContext"
+  }
+ }
+]

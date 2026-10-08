@@ -1,0 +1,26 @@
+{
+ "channel": {
+  "id": "40934651",
+  "viewablePoll": {
+   "id": "9bc26bfb-63d5-464f-b6ad-9720b0c41371",
+   "choices": [
+    { "id": "05305726-1b9f-4f2d-863e-42a3838c6599", "title": "Outer Wilds", "totalVoters": 677,
+      "votes": { "total": 677, "communityPoints": 0, "base": 677 } },
+    { "id": "03fd2629-3f0c-45cd-9a22-6293dce86b70", "title": "jet lag", "totalVoters": 754,
+      "votes": { "total": 754, "communityPoints": 0, "base": 754 } }
+   ],
+   "durationSeconds": 300,
+   "startedAt": "2026-10-08T22:50:21.864473662Z",
+   "endedAt": null,
+   "status": "ACTIVE",
+   "title": "what to do",
+   "totalVoters": 1431,
+   "votes": { "total": 1431, "communityPoints": 0, "base": 1431 },
+   "settings": { "communityPointsVotes": { "cost": 0, "isEnabled": false }, "multichoice": { "isEnabled": true } },
+   "remainingDurationMilliseconds": 76901,
+   "self": null
+  },
+  "self": null
+ },
+ "currentUser": null
+}
