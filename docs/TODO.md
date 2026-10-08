@@ -370,7 +370,18 @@ darueber fremde Kanalpunkt-Einloesungen.
 - Setzen (aus Janis' Chrome, 09.10. 01:04): Anfrage ging mit `client-integrity`
   raus, 200 OK. Payload/Antwort (Name der Mutation, Variablen) noch nicht
   gesehen.
-- Offen: Hermes-Nutzlasten Pin/Umfrage, Setzen-Payload, Mitstimmen
+- **Setzen gemessen** (Dev-App-Zuschauerfenster, per CDP bedient, 09.10.
+  01:10, 10.500 auf NOOO, Guthaben 28.446 → 17.946):
+  `MakePrediction` Hash `b44682ecc88358817009f20e69d75081b1e58825bb40aa53d5dbadcc17c881d8`,
+  Variablen `{input:{eventID, outcomeID, points, transactionID}}`
+  (`transactionID` = 32 Hex-Zeichen, zufaellig) → `makePrediction.error: null`
+  bei Erfolg. Vorher fragt die Seite `UserPredictionEventRestriction`
+  (`e0c56e52f9743ad3f5d9b5b201da5f44e4d1028d2e32787f8e72641daaea55f6`,
+  `{eventID}`). Danach auf Hermes: `points-spent` (neuer Stand) und
+  `prediction-made` (`predictions-user-v1.<uid>`, mit `outcome_id`, `points`).
+  Ob `Client-Integrity` Pflicht ist, nicht geprueft (Header nicht
+  mitgeschnitten) → beim Bauen wie beim Kisten-Claim mitschicken.
+- Offen: Hermes-Nutzlasten Pin/Umfrage, Mitstimmen in Umfragen
   (Mutationen + ob Integrity noetig). Werkzeug:
   `node tools/cdp-mitschnitt.js <kanal> [sek]` (Dev-App mit `--remote-debugging-port=9333`, haengt
   sich an das twitch.tv-Fenster, laedt neu, schneidet GQL+WS mit).
