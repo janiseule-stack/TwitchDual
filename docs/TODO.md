@@ -435,6 +435,24 @@ nichts auf der Platte.
   einer Zuschauer-Sitzung auf `twitch.tv` selbst.
 - Entwurf und Plan: `docs/superpowers/{specs,plans}/2026-08-13-diagnose-schalter*`.
 
+## Zuschauer-Fenster (unveroeffentlicht, Branch feat/zuschauer-fenster)
+- Problem: Embed zaehlt nicht als Zuschauen -> keine Punkte, keine Kisten
+  (Protokoll 07.10.: papaplatte 3 h Stand fest, claimID immer null). Das
+  Abholen selbst lief: 5/5 Kisten am 06./07.10. sofort geholt.
+- Loesung: unsichtbares, stummes 160p-Fenster auf twitch.tv/<kanal>
+  (Default-Session = Web-Login). Laeuft bei Live + spielt + Home zu +
+  Web-Login; Pause/Home 60 s Karenz; Kanalwechsel/VOD/Abmeldung sofort.
+- Logik `src/zuschauer-fenster.js` (getestet), Treiber in `main.js`
+  (2-s-Takt), Waechter 45 s / 30 s, 2x Stillstand -> neu laden,
+  3x erfolglos -> aufgeben bis Kanalwechsel.
+- 👁 am Punkte-Chip, sobald das Video im Fenster nachweislich laeuft.
+- Diagnose: `zuschauer:start/stopp/zaehlt/neu-laden/aufgegeben`.
+- Offen: Live-Beweis (Janis): ~15 min Live ohne Browser -> Stand steigt,
+  mindestens ein `kiste-ok`; beim Schliessen `zuschauer:stopp App-Ende` und
+  kein haengender electron-Prozess. Falls "Schaust du noch?"/Altersabfrage
+  im Protokoll als `aufgegeben` auftaucht: eigens behandeln.
+- Spec/Plan: `docs/superpowers/{specs,plans}/2026-10-08-zuschauer-fenster*`.
+
 ## v1.13.0 - Sakura gezeichnet, Theme-Fenster (Release 2026-10-07)
 - Sakura ist zurueck als gezeichnete Welt mit 8 Varianten (Details unten
   "Sakura gezeichnet"), verschiedene Bluetenformen, eigene Effekte fuer
