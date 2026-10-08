@@ -506,14 +506,23 @@
       waldLagen(g, w, h, [['#262c5a', h * 0.6, 0.34], ['#1a1f44', h * 0.7, 0.44]]);
       const hx = w * 0.62, hy = h * 0.66, bw = 74, bh = 46;
       Z.hx = hx; Z.hy = hy;
-      g.fillStyle = '#1b1830'; g.fillRect(hx - bw / 2, hy - bh, bw, bh);
-      g.strokeStyle = 'rgba(80,70,110,0.6)'; g.lineWidth = 1;
+      // Huette etwas heller als der Wald dahinter, mit Mondlicht-Kante am Dach.
+      g.fillStyle = '#2e2848'; g.fillRect(hx - bw / 2, hy - bh, bw, bh);
+      g.strokeStyle = 'rgba(110,100,150,0.6)'; g.lineWidth = 1;
       for (let b = 1; b < 6; b++) { g.beginPath(); g.moveTo(hx - bw / 2, hy - bh + b * bh / 6); g.lineTo(hx + bw / 2, hy - bh + b * bh / 6); g.stroke(); }
-      g.fillStyle = '#100e22'; g.beginPath(); g.moveTo(hx - bw / 2 - 10, hy - bh); g.lineTo(hx, hy - bh - 36); g.lineTo(hx + bw / 2 + 10, hy - bh); g.closePath(); g.fill();
-      g.fillRect(hx + 14, hy - bh - 32, 10, 22);
-      g.fillStyle = '#0d0b1c'; g.fillRect(hx - 30, hy - 30, 15, 30);
-      waldLagen(g, w, h, [['#0f1230', h * 0.9, 0.62]]);
-      g.fillStyle = '#0f1230'; g.fillRect(0, h * 0.66, w, h);
+      g.fillStyle = '#1c1834'; g.fillRect(hx + 14, hy - bh - 32, 10, 22);
+      g.beginPath(); g.moveTo(hx - bw / 2 - 10, hy - bh); g.lineTo(hx, hy - bh - 36); g.lineTo(hx + bw / 2 + 10, hy - bh); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(200,200,255,0.35)'; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(hx - bw / 2 - 10, hy - bh); g.lineTo(hx, hy - bh - 36); g.stroke();
+      g.fillStyle = '#15122a'; g.fillRect(hx - 30, hy - 30, 15, 30);
+      // Vordere Tannen lassen die Huette frei, sonst verschwindet sie im breiten Fenster.
+      g.fillStyle = '#0f1230';
+      for (const B of reihe(w, h * 0.9, 7, h * 0.62 * 0.7, h * 0.62)) {
+        if (Math.abs(B.x - hx) < bw / 2 + B.b * 0.45 + 6) continue;
+        tannePfad(g, B.x, B.yb, B.h, B.b); g.fill();
+      }
+      g.fillRect(0, h * 0.9 - 2, w, h);
+      g.fillRect(0, h * 0.66, w, h);
     },
     unter(g, ms, w, h, W, Z, k) {
       if (Z.hx === undefined) return;

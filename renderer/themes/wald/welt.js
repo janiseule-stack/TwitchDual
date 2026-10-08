@@ -41,12 +41,15 @@
     let uhr = 0;                 // ms, eigene Zeit
     let acc = 0;
 
-    function skala() {
-      if (!L || !L.w) return 1;
-      return Math.max(0.8, Math.min(1.8, Math.min(L.w, L.h) / 420));
-    }
+    // Gezeichnet wird in den Proportionen der Vorschau (Hoehe 470) und dann
+    // aufs echte Fenster hochskaliert - sonst werden in einem grossen Chat
+    // die Staemme zur Bretterwand und Blaetter/Gluehwuermchen zu Punkten.
+    const ENTWURF_H = 470;
+    function massstab() { return L && L.h ? Math.max(0.5, L.h / ENTWURF_H) : 1; }
+    function skala() { return Math.max(0.8, Math.min(3, massstab() * 0.8)); }
     function zielAnzahl() {
-      const n = 22 * Math.pow(W.dichte(L.w, L.h), 0.8) * (S.anzahl || 1) * engine.faktor;
+      const m = massstab();
+      const n = 22 * Math.pow(W.dichte(L.w / m, L.h / m), 0.8) * (S.anzahl || 1) * engine.faktor;
       return Math.max(6, Math.min(60, Math.round(n)));
     }
     function neueFliege(x, y) {
@@ -64,16 +67,17 @@
     function baueHintergrund() {
       const d = L.dpr || 1;
       W.saat(7);
+      const m = massstab();
       if (S.pixel) {
-        const c = W.leinwand(L.w / S.pixel, L.h / S.pixel);
+        const c = W.leinwand(L.w / m / S.pixel, L.h / m / S.pixel);
         S.hintergrund(c.getContext('2d'), c.width, c.height, W, Z);
         bg = c;
         return;
       }
       const c = W.leinwand(L.w * d, L.h * d);
       const g = c.getContext('2d');
-      g.setTransform(d, 0, 0, d, 0, 0);
-      S.hintergrund(g, L.w, L.h, W, Z);
+      g.setTransform(d * m, 0, 0, d * m, 0, 0);
+      S.hintergrund(g, L.w / m, L.h / m, W, Z);
       if (S.koernung) { g.setTransform(1, 0, 0, 1, 0, 0); W.koernung(g, c.width, c.height, S.koernung); }
       bg = c;
     }
@@ -120,6 +124,14 @@
     }
 
     // --- Zeichnen -----------------------------------------------------------
+    // Eine Fliege, mitskaliert. Pixel rastet auf das (skalierte) Pixelraster.
+    function zeichneFliege(g, x, y, a, gross) {
+      const s = gross || skala();
+      if (S.pixel) { const P = S.pixel * s; x = Math.round(x / P) * P; y = Math.round(y / P) * P; }
+      g.save(); g.translate(x, y); g.scale(s, s);
+      S.fliege(g, 0, 0, a, FARBE, W);
+      g.restore();
+    }
     function bild(k) {
       const g = L.ctx;
       if (S.pixel) {
@@ -130,10 +142,12 @@
       } else {
         g.drawImage(bg, 0, 0, L.w, L.h);
       }
-      if (S.unter) S.unter(g, uhr, L.w, L.h, W, Z, k, maus && uhr - maus.zeit < MAUS_ALT_MS ? maus : null);
-      for (const f of fliegen) S.fliege(g, f.x, f.y, helligkeit(f), FARBE, W);
-      for (const f of schwarm) S.fliege(g, f.x, f.y, helligkeit(f), FARBE, W);
-      if (S.ueber) S.ueber(g, uhr, L.w, L.h, W, Z);
+      const m = massstab(), vw = L.w / m, vh = L.h / m;
+      const mv = maus && uhr - maus.zeit < MAUS_ALT_MS ? { x: maus.x / m, y: maus.y / m } : null;
+      if (S.unter) { g.save(); g.scale(m, m); S.unter(g, uhr, vw, vh, W, Z, k, mv); g.restore(); }
+      for (const f of fliegen) zeichneFliege(g, f.x, f.y, helligkeit(f));
+      for (const f of schwarm) zeichneFliege(g, f.x, f.y, helligkeit(f));
+      if (S.ueber) { g.save(); g.scale(m, m); S.ueber(g, uhr, vw, vh, W, Z); g.restore(); }
 
       // Ereignisse: im Chat auf die Vordergrund-Leinwand (sonst verdecken die
       // Leisten den Punkte-Chip). Geloescht wird sie nur, wenn etwas lief.
@@ -145,7 +159,7 @@
       vornBelegt = false;
       for (const p of funken) {
         const rest = 1 - (uhr - p.start) / p.dauer;
-        S.fliege(ev, p.x, p.y, Math.max(0, Math.min(1, rest * 2.5)) * (0.7 + 0.3 * Math.sin(uhr * 0.01 + p.ph)), FARBE, W);
+        zeichneFliege(ev, p.x, p.y, Math.max(0, Math.min(1, rest * 2.5)) * (0.7 + 0.3 * Math.sin(uhr * 0.01 + p.ph)));
         vornBelegt = true;
       }
       for (let i = kraenze.length - 1; i >= 0; i--) {
@@ -163,7 +177,7 @@
       for (let i = 0; i < kr.n; i++) {
         const w = kr.dreh + i / kr.n * TAU + uhr * 0.0012;
         const wackel = Math.sin(uhr * 0.004 + i) * 5 * sk;
-        S.fliege(g, kr.x + Math.cos(w) * (r + wackel), kr.y + Math.sin(w) * (r + wackel) * 0.75, ab * (0.75 + 0.25 * Math.sin(uhr * 0.008 + i)), FARBE, W);
+        zeichneFliege(g, kr.x + Math.cos(w) * (r + wackel), kr.y + Math.sin(w) * (r + wackel) * 0.75, ab * (0.75 + 0.25 * Math.sin(uhr * 0.008 + i)));
       }
       g.save(); g.globalAlpha = Math.min(auf, ab);
       W.namensKarte(g, S, kr.x, kr.y - 18, kr.text);
@@ -287,7 +301,7 @@
         gaeste = gaeste.filter((p) => (p.richtung > 0 ? p.x < G.w + 40 : p.x > -40));
         for (const p of gaeste) {
           const h = 0.5 + 0.5 * Math.sin(tg * 0.003 * p.sp + p.ph);
-          S.fliege(g, p.x, p.y, 0.35 + 0.65 * h, FARBE, W);
+          zeichneFliege(g, p.x, p.y, 0.35 + 0.65 * h, Math.max(1, Math.min(3, G.h / ENTWURF_H * 0.8)));
         }
         if (!gaeste.length) { g.clearRect(0, 0, G.w, G.h); gastLaeuft = false; return false; }
         return true;
@@ -319,7 +333,7 @@
           const w = i / 16 * TAU, v = rnd(1.5, 4.5);
           funke(x, y, Math.cos(w) * v, Math.sin(w) * v, rnd(900, 1500));
         }
-        if (S.klick) S.klick(Z, x, y, L.w, L.h);
+        if (S.klick) { const m = massstab(); S.klick(Z, x / m, y / m, L.w / m, L.h / m); }
         maus = { x, y, zeit: uhr };
       },
       ereignis(art, daten) {
