@@ -338,3 +338,15 @@ test('Gast-Ebene verdeckt den Player nur waehrend eines Auftritts', async () => 
   aus.fn();
   assert.equal(klassen.has('aktiv'), false, 'danach wieder weg');
 });
+
+test('neue Ereignis-Arten werden auf vorhandene Welt-Effekte abgebildet', async () => {
+  const log = [];
+  const a = aufbau({ welten: { sakura: protokollWelt(log) } });
+  await a.rt.anwenden({ theme: 'sakura', effekte: 'normal' });
+  a.rt.ereignis('ereignis-start', {});
+  a.rt.ereignis('tipp-verloren', {});
+  a.rt.ereignis('tipp-gewonnen', {});
+  a.rt.ereignis('raid', {});
+  assert.deepEqual(log.filter((l) => l.startsWith('ereignis:')),
+    ['ereignis:punkte', 'ereignis:punkte', 'ereignis:kiste', 'ereignis:raid']);
+});

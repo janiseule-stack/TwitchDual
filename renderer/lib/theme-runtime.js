@@ -21,6 +21,8 @@
   const GAST_VERSATZ_MS = 700;   // mehrere Gaeste kommen leicht nacheinander
   const GAST_DAUER_MS = 14000;   // so lange braucht ein Gast uebers Bild (+Puffer)
 
+  const ERSATZ_ART = { 'ereignis-start': 'punkte', 'tipp-verloren': 'punkte', 'tipp-gewonnen': 'kiste' };
+
   function createRuntime(o) {
     const fenster = o.fenster;
     const doc = o.doc;
@@ -291,7 +293,12 @@
 
     return {
       anwenden,
-      ereignis(art, daten) { rufe('ereignis', (w) => w.ereignis && w.ereignis(art, daten || {})); },
+      // Neue Arten (Vorhersagen/Umfragen) laufen ueber vorhandene Welt-Effekte,
+      // damit alle Welten ohne Einzelarbeit reagieren.
+      ereignis(art, daten) {
+        const welt = ERSATZ_ART[art] || art;
+        rufe('ereignis', (w) => w.ereignis && w.ereignis(welt, daten || {}));
+      },
       pausieren(an) {
         pausiert = !!an;
         if (engine) { engine.pausieren(pausiert); if (!pausiert) engine.weiter(); }
