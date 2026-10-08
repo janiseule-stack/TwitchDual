@@ -360,7 +360,17 @@ darueber fremde Kanalpunkt-Einloesungen.
   Hermes nur fuer Sofort-Updates. Anonymer Hermes-Versuch aus Node lieferte
   keinen einzigen Rahmen (nicht mal `welcome`) - Ursache ungeklaert
   (Sandbox oder Origin).
-- Offen: Hermes-Nutzlasten, Mitstimmen/Setzen
+- **Hermes-Nutzlast Vorhersage gemessen** (jynxzi, 09.10. 01:03, aktive
+  Vorhersage „WILL THEY KILL THE DRAGON?????"): auf `predictions-channel-v1.<cid>`
+  kommt `{"type":"event-updated","data":{timestamp, event:{id, channel_id,
+  title, status, created_by, locked_at, ended_at, prediction_window_seconds,
+  outcomes:[{id, color BLUE|PINK, title, total_points, total_users,
+  top_predictors[], badge}]}}}` — etwa 1x pro Sekunde (151 in 150 s), also
+  reicht ein Abo fuer Live-Balken ohne Nachfragen.
+- Setzen (aus Janis' Chrome, 09.10. 01:04): Anfrage ging mit `client-integrity`
+  raus, 200 OK. Payload/Antwort (Name der Mutation, Variablen) noch nicht
+  gesehen.
+- Offen: Hermes-Nutzlasten Pin/Umfrage, Setzen-Payload, Mitstimmen
   (Mutationen + ob Integrity noetig). Werkzeug:
   `node tools/cdp-mitschnitt.js <kanal> [sek]` (Dev-App mit `--remote-debugging-port=9333`, haengt
   sich an das twitch.tv-Fenster, laedt neu, schneidet GQL+WS mit).
