@@ -109,6 +109,11 @@ if (!isTwitchFrame) {
     getRewards: () => ipcRenderer.invoke('points-rewards'),
     redeemReward: (reward, textInput) => ipcRenderer.invoke('points-redeem', { reward, textInput }),
     onPointsUpdate: (cb) => { ipcRenderer.on('points-update', (_e, p) => cb(p)); },
+    // Pins/Umfragen/Vorhersagen: fertiger Stand aus dem Main, Setzen per
+    // invoke. Der Token bleibt im Main.
+    onKanalEreignisse: (cb) => { ipcRenderer.on('kanal-ereignisse', (_e, p) => cb(p)); },
+    vorhersageSetzen: (outcomeID, points) => ipcRenderer.invoke('vorhersage-setzen', { outcomeID, points }),
+    linkOeffnen: (url) => ipcRenderer.send('link-oeffnen', url),
     // Zuschauer-Fenster: nur ein bool ("Twitch zaehlt dich"), sonst nichts.
     onZuschauerStatus: (cb) => { ipcRenderer.on('zuschauer-status', (_e, s) => cb(s)); },
     getZuschauerStatus: () => ipcRenderer.invoke('zuschauer-status-abfragen'),

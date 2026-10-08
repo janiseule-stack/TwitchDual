@@ -260,6 +260,8 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       // offline ist oder nie anlaeuft.
       punkteSpielt = false;
       currentLiveChannel = user.login;
+      currentLiveChannelId = user.id;
+      kanalEreignisseStarten();
       diagLog.melde('punkte', 'kanalwechsel', { modus: 'live', nach: user.login, userId: user.id });
       if (chatSender) chatSender.setChannel(user.login);
       pushHistory({ value: user.login, mode: 'live', label: user.displayName });
@@ -296,6 +298,8 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     punkteHomeOffen = false; // wie im Live-Zweig: geladen heisst Overlay zu
     punkteSpielt = false;    // wie im Live-Zweig
     currentLiveChannel = null;
+    currentLiveChannelId = null;
+    kanalSteuerung.aus();
     diagLog.melde('punkte', 'kanalwechsel', { modus: 'vod', nach: null, videoId: parsed.value });
     if (chatSender) chatSender.setChannel(null);
     pushHistory({
@@ -337,6 +341,7 @@ ipcMain.on('home-open', () => {
   punkteHomeOffen = true; // Kanalpunkte-Takt ruht, solange das Overlay offen ist
   quelle.home(true);
   broadcast('home-open');
+  kanalSteuerung.aus();
 });
 // Zurueck zur laufenden Quelle: Sende-Socket wieder auf den Live-Channel joinen
 // (home-open hatte setChannel(null) gemacht) - sonst bleibt Senden tot.
@@ -345,6 +350,7 @@ ipcMain.on('home-close', () => {
   punkteHomeOffen = false;
   quelle.home(false);
   broadcast('home-close');
+  kanalEreignisseStarten();
 });
 
 ipcMain.on('save-player-prefs', (_evt, prefs) => {
@@ -468,6 +474,8 @@ ipcMain.handle('web-login-start', () => new Promise((resolve) => {
         // der Abstand sonst noch auf bis zu 5 Minuten und das Neuanmelden
         // bliebe so lange ohne sichtbare Wirkung.
         pointsState.zuruecksetzen();
+        meineWebId = null;
+        kanalEreignisseStarten(); // neu abonnieren: mit/ohne Nutzer-Themen
         resolve({ ok: true });
       } catch (e) {
         resolve({ ok: false, error: e.message });
@@ -481,6 +489,8 @@ ipcMain.handle('web-login-status', () => ({ angemeldet: webTokenNutzbar() }));
 ipcMain.handle('web-login-logout', () => {
   webAuth.loeschen();
   webToken = null;
+  meineWebId = null;
+  kanalEreignisseStarten(); // neu abonnieren: mit/ohne Nutzer-Themen
   diagLog.melde('punkte', 'anmeldung', { was: 'abgemeldet' });
   webTokenAbgelaufen = false;
   return { ok: true };
@@ -527,6 +537,57 @@ ipcMain.handle('points-redeem', async (_e, { reward, textInput }) => {
 function kisteEinloesen(channelID, claimID) {
   return mitIntegrity((kopf) => pointsApi.claim(webToken, channelID, claimID, kopf));
 }
+
+// --- Pins, Umfragen, Vorhersagen -----------------------------------------
+// Spec: docs/superpowers/specs/2026-10-09-pins-umfragen-vorhersagen-design.md
+// Ablauf in src/kanal-ereignisse-steuerung.js; hier nur Electron-Anschluss.
+const { createKanalEreignisseApi } = require('./src/twitch-kanal-ereignisse');
+const { createHermes } = require('./src/hermes');
+const { createSteuerung } = require('./src/kanal-ereignisse-steuerung');
+
+const kanalApi = createKanalEreignisseApi({});
+let currentLiveChannelId = null; // Twitch-ID zu currentLiveChannel
+let meineWebId = null;           // Nutzer-ID des Web-Logins, zwischengespeichert
+
+async function webNutzerId() {
+  if (!webTokenNutzbar()) return null;
+  if (!meineWebId) {
+    try { meineWebId = await kanalApi.meineId(webToken); } catch (e) { return null; }
+  }
+  return meineWebId;
+}
+
+const kanalDiag = (ereignis, detail) => diagLog.melde('kanal-ereignisse', ereignis, detail);
+let kanalSteuerung = null;
+const hermes = createHermes({
+  getToken: () => (webTokenNutzbar() ? webToken : null),
+  onEreignis: (thema, nutzlast) => kanalSteuerung.hermesEreignis(thema, nutzlast),
+  onStatus: (status) => { kanalSteuerung.hermesStatus(status).catch(() => {}); },
+  diag: kanalDiag
+});
+kanalSteuerung = createSteuerung({
+  api: kanalApi,
+  hermes,
+  getToken: () => (webTokenNutzbar() ? webToken : null),
+  getUserId: webNutzerId,
+  mitIntegrity,
+  senden: (nutzlast) => broadcast('kanal-ereignisse', nutzlast),
+  diag: kanalDiag
+});
+
+function kanalEreignisseStarten() {
+  if (!currentLiveChannel || !currentLiveChannelId) { kanalSteuerung.aus(); return; }
+  kanalSteuerung.kanalGeladen({ login: currentLiveChannel, channelID: currentLiveChannelId })
+    .catch((e) => kanalDiag('start-fehler', { fehler: [e.message] }));
+}
+
+ipcMain.handle('vorhersage-setzen', (_e, { outcomeID, points } = {}) =>
+  kanalSteuerung.setze({ outcomeID: String(outcomeID || ''), points: Number(points) }));
+
+// Links aus der Pin-Leiste: nur https, immer im Systembrowser.
+ipcMain.on('link-oeffnen', (_e, url) => {
+  if (/^https:\/\//.test(String(url))) shell.openExternal(String(url));
+});
 
 // 15-s-Takt (Sekunden-Tick, sollAbfragen laesst nur alle 15s wirklich durch -
 // so wirkt das Zurueckfahren bei Fehlern, ohne den Timer neu zu setzen).
@@ -1101,7 +1162,7 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on('before-quit', () => stoppeZuschauer('App-Ende'));
+app.on('before-quit', () => { stoppeZuschauer('App-Ende'); kanalSteuerung.aus(); });
 
 app.on('window-all-closed', () => {
   app.quit();
