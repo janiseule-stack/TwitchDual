@@ -146,6 +146,7 @@ function createWindows() {
   });
 
   videoWin.on('closed', () => {
+    stoppeZuschauer('App-Ende'); // sonst haelt das unsichtbare Fenster das App-Ende auf
     diagLog.melde('app', 'fenster', { welches: 'video', was: 'zu' });
     videoWin = null;
     if (chatWin && !chatWin.isDestroyed()) chatWin.close();
@@ -689,6 +690,149 @@ async function punkteTick() {
   }
 }
 
+// --- Zuschauer-Fenster -------------------------------------------------
+// Der Embed zaehlt bei Twitch nicht als Zuschauen -> keine Punkte, keine
+// Kisten (Messung 13.08.2026, Protokoll 07.10.2026). Ein unsichtbares,
+// stummes 160p-Fenster auf twitch.tv/<kanal> schon. Es nutzt die
+// Default-Session, dort liegt das Web-Login-Cookie. Logik (wann, welcher
+// Kanal, Waechter) in src/zuschauer-fenster.js; hier nur das echte Fenster.
+// Spec: docs/superpowers/specs/2026-10-08-zuschauer-fenster-design.md
+const { createZuschauerSteuerung, createWaechter } = require('./src/zuschauer-fenster');
+
+const zuschauerSteuerung = createZuschauerSteuerung({ karenzMs: 60000 });
+let zuschauerWin = null;
+let zuschauerKanal = null;
+let zuschauerWaechter = null;
+let zuschauerErstTimer = null;  // erste Messung 45 s nach Start
+let zuschauerTakt = null;       // danach alle 30 s
+let zuschauerZaehlt = false;
+
+function zuschauerZustand() {
+  return {
+    // Ohne Video-Fenster gibt es keinen Kanal: sonst startete der Takt nach
+    // dem Schliessen ein neues unsichtbares Fenster, und das haelt
+    // window-all-closed (= App-Ende) fuer immer auf.
+    kanal: videoWin && !videoWin.isDestroyed() ? currentLiveChannel : null,
+    spielt: punkteSpielt,
+    homeOffen: punkteHomeOffen,
+    webAngemeldet: webTokenNutzbar()
+  };
+}
+
+function setzeZuschauerZaehlt(zaehlt) {
+  if (zaehlt === zuschauerZaehlt) return;
+  zuschauerZaehlt = zaehlt;
+  broadcast('zuschauer-status', { zaehlt });
+  if (zaehlt) diagLog.melde('zuschauer', 'zaehlt', { kanal: zuschauerKanal });
+}
+
+function stoppeZuschauer(grund) {
+  if (zuschauerErstTimer) clearTimeout(zuschauerErstTimer);
+  if (zuschauerTakt) clearInterval(zuschauerTakt);
+  zuschauerErstTimer = null;
+  zuschauerTakt = null;
+  const win = zuschauerWin;
+  const kanal = zuschauerKanal;
+  setzeZuschauerZaehlt(false);
+  zuschauerWin = null;
+  zuschauerKanal = null;
+  zuschauerWaechter = null;
+  if (win) {
+    // destroy() statt close(): close() laesst die Seite beforeunload
+    // ausfuehren; bei show:false bliebe ein abgelehntes Fenster unsichtbar
+    // fuer immer offen (gleiche Lehre wie ernteIntegrity).
+    try { win.destroy(); } catch { /* schon zu */ }
+    diagLog.melde('zuschauer', 'stopp', { kanal, grund });
+  }
+}
+
+const VIDEO_MESSUNG = `(() => {
+  const v = document.querySelector('video');
+  return v
+    ? { hatVideo: true, paused: v.paused, currentTime: v.currentTime }
+    : { hatVideo: false, paused: true, currentTime: 0 };
+})()`;
+
+async function pruefeZuschauer() {
+  const win = zuschauerWin;
+  const waechter = zuschauerWaechter;
+  if (!win || win.isDestroyed() || !waechter) return;
+  let m = { hatVideo: false, paused: true, currentTime: 0 };
+  try {
+    m = await win.webContents.executeJavaScript(VIDEO_MESSUNG);
+  } catch { /* Seite haengt oder Renderer weg -> zaehlt als Stillstand */ }
+  if (win !== zuschauerWin) return; // inzwischen gestoppt oder gewechselt
+  const aktion = waechter.messung(m);
+  if (aktion === 'ok') {
+    setzeZuschauerZaehlt(true);
+  } else if (aktion === 'neu-laden') {
+    setzeZuschauerZaehlt(false);
+    diagLog.melde('zuschauer', 'neu-laden', { kanal: zuschauerKanal, versuch: waechter.neuLadungen() });
+    try { win.webContents.reload(); } catch { /* egal, naechste Messung */ }
+  } else if (aktion === 'aufgeben') {
+    diagLog.melde('zuschauer', 'aufgegeben', { kanal: zuschauerKanal });
+    zuschauerSteuerung.aufgegeben();
+    stoppeZuschauer('aufgegeben');
+  }
+}
+
+function starteZuschauer(kanal) {
+  const win = new BrowserWindow({
+    show: false,
+    skipTaskbar: true,
+    webPreferences: {
+      session: session.defaultSession,
+      backgroundThrottling: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  zuschauerWin = win;
+  zuschauerKanal = kanal;
+  zuschauerWaechter = createWaechter();
+  win.webContents.setAudioMuted(true);
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
+  // 160p: Twitch liest die Qualitaet beim Laden aus localStorage. Also beim
+  // ersten Laden setzen und EINMAL neu laden. Das Flag verhindert, dass das
+  // did-finish-load des eigenen Reloads eine Endlosschleife ausloest.
+  let qualitaetGesetzt = false;
+  win.webContents.on('did-finish-load', () => {
+    if (qualitaetGesetzt || win.isDestroyed()) return;
+    qualitaetGesetzt = true;
+    win.webContents
+      .executeJavaScript(`localStorage.setItem('video-quality', '{"default":"160p30"}'); true`)
+      .then(() => { if (!win.isDestroyed()) win.webContents.reload(); })
+      .catch(() => { /* bleibt bei Twitchs Standardqualitaet, zaehlt trotzdem */ });
+  });
+
+  win.loadURL('https://www.twitch.tv/' + encodeURIComponent(kanal)).catch(() => {
+    /* Netz weg: der Waechter sieht kein Video und laedt neu */
+  });
+  diagLog.melde('zuschauer', 'start', { kanal });
+
+  zuschauerErstTimer = setTimeout(() => {
+    zuschauerErstTimer = null;
+    if (win !== zuschauerWin) return;
+    pruefeZuschauer().catch(() => {});
+    zuschauerTakt = setInterval(() => { pruefeZuschauer().catch(() => {}); }, 30000);
+  }, 45000);
+}
+
+function aktualisiereZuschauer() {
+  const aktion = zuschauerSteuerung.aktualisiere(zuschauerZustand(), Date.now());
+  if (!aktion) return;
+  if (aktion.art === 'stopp') {
+    stoppeZuschauer(aktion.grund);
+  } else if (aktion.art === 'start') {
+    if (zuschauerWin) stoppeZuschauer('Kanalwechsel');
+    starteZuschauer(aktion.kanal);
+  }
+}
+
+// Ein neu geladenes Chat-Fenster fragt den aktuellen Stand selbst ab.
+ipcMain.handle('zuschauer-status-abfragen', () => ({ zaehlt: zuschauerZaehlt }));
+
 // Rahmenlose Fenster: Titelleisten-Buttons (─ ▢ ✕) aus dem Renderer.
 // Nur-Video-Modus: gemerkte Fenstergroesse pro Fenster (Key = win.id), damit
 // 'video-only-off' die Groesse vor dem 16:9-Einrasten wiederherstellen kann.
@@ -938,6 +1082,10 @@ app.whenReady().then(async () => {
   // Erst hier starten, nicht auf Modulebene - sonst liefe der Takt schon vor
   // app.whenReady().
   setInterval(() => { punkteTick().catch(() => { /* punkteTick faengt selbst ab; Netz */ }); }, 1000);
+  // Zuschauer-Fenster: liest dieselben Zustaende wie der Punkte-Takt
+  // (Kanal, Play, Home, Login). Ein Takt statt Haken an jeder Ereignisstelle;
+  // hoechstens 2 s Verzug, und die 60-s-Karenz laeuft ohne Extra-Timer ab.
+  setInterval(aktualisiereZuschauer, 2000);
 
   // Belegt im Log, ob die GPU den Twitch-Stream wirklich dekodiert.
   // WICHTIG: erst nach abgeschlossener Info-Sammlung abfragen. Direkt bei
@@ -960,6 +1108,8 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindows();
   });
 });
+
+app.on('before-quit', () => stoppeZuschauer('App-Ende'));
 
 app.on('window-all-closed', () => {
   app.quit();
