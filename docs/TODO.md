@@ -328,6 +328,33 @@ darueber fremde Kanalpunkt-Einloesungen.
   `TWITCHDUAL_PUBSUB_SPIKE=1`) wieder entfernt, dieser Abschnitt ist der
   einzige verbleibende Niederschlag (Branch `spike/pubsub`).
 
+## Angepinnte Nachrichten, Umfragen, Vorhersagen (Mess-Versuch 2026-10-09)
+
+- Gemessen per CDP am Zuschauer-Fenster der Dev-App (`twitch.tv/eliasn97`,
+  Mod-Pin aktiv), danach **anonym nachgespielt**: nur `Client-ID`
+  (`kimne78…`), **kein Login, keine Integrity** → alle drei Abfragen liefern
+  Daten. Persisted-Hashes (Stand 09.10.2026, koennen rotieren):
+  - `GetPinnedChat` `450320a012e0f1704586e55755307ca3f8a4c611d678687cc3e202471a33e615`,
+    Variablen `{channelID, count:1}` → `channel.pinnedChatMessages.edges[].node`
+    mit `type` (MOD), `pinnedMessage.content.text` + `fragments`,
+    `sender {login, displayName, chatColor, displayBadges}`, `pinnedBy`,
+    `startsAt`/`endsAt`.
+  - `ChannelPollContext_GetViewablePoll` `b2386b4f33494ae5b67b92c4279ce9aad3bd912b1f7e1f07fc6a42d5cb6afc5d`,
+    Variablen `{login}` → `channel.viewablePoll` (bei eliasn97 `null`, Form
+    einer laufenden Umfrage noch ungemessen).
+  - `ChannelPointsPredictionContext` `d364abb25d0ad06fc973de923fb10a7631c6cfb4ef7d24cd3e9811593db09ccd`,
+    Variablen `{count:1, channelLogin}` → `activePredictionEvents`,
+    `lockedPredictionEvents`, `resolvedPredictionEvents` mit `outcomes[]`
+    (`title`, `color`, `totalPoints`, `totalUsers`, `topPredictors`).
+- Live-Aenderungen: die Seite abonniert auf Hermes `pinned-chat-updates-v1.<channel_id>`,
+  `polls.<channel_id>`, `predictions-channel-v1.<channel_id>`,
+  `predictions-user-v1.<user_id>`. Nutzlasten im 50-s-Fenster nicht
+  aufgetreten (kein Pin-Wechsel, keine Umfrage) → **ungemessen**.
+- Offen: Form einer laufenden Umfrage, Hermes-Nutzlasten, Mitstimmen/Setzen
+  (Mutationen + ob Integrity noetig). Werkzeug:
+  `node tools/cdp-mitschnitt.js <kanal> [sek]` (Dev-App mit `--remote-debugging-port=9333`, haengt
+  sich an das twitch.tv-Fenster, laedt neu, schneidet GQL+WS mit).
+
 ## Punkte-Anzeige: Symbol und Zugewinn (v1.10.0)
 
 - **Warum:** v1.9.0 zeigte `🪙 12.350` und aenderte sich stumm. Man sah nie,
