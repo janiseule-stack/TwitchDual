@@ -99,6 +99,10 @@ function createSteuerung({
       } catch (e) { diag('start-fehler', { fehler: [e.message] }); }
     },
 
+    guthaben(wert) {
+      if (zustand && zustand.setzeGuthaben(wert)) schicke([]);
+    },
+
     async setze({ outcomeID, points }) {
       const token = getToken();
       if (!token) return { ok: false, text: 'Zum Setzen anmelden' };

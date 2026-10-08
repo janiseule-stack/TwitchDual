@@ -163,6 +163,12 @@
         return signale;
       },
 
+      setzeGuthaben(wert) {
+        if (typeof wert !== 'number' || wert === z.guthaben) return false;
+        z.guthaben = wert;
+        return true;
+      },
+
       stand() {
         return JSON.parse(JSON.stringify(z));
       }

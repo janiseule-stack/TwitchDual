@@ -707,6 +707,7 @@ async function punkteTick() {
       // Kanals neu setzen - der naechste Takt meldete dann den kompletten
       // Kontostand des neuen Kanals als Zuwachs.
       if (currentLiveChannel !== kanal) return;
+      kanalSteuerung.guthaben(stand);
       broadcast('points-update', {
         balance: stand,
         displayName: ctx.displayName,

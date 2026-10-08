@@ -138,3 +138,12 @@ test('setze: ungueltiger Betrag', async () => {
   await a.s.kanalGeladen({ login: 'x', channelID: '1' });
   assert.deepEqual(await a.s.setze({ outcomeID: aktiv.outcomes[0].id, points: 5 }), { ok: false, text: 'Mindestens 10 Punkte' });
 });
+
+test('guthaben aus dem Punkte-Takt landet im Stand', async () => {
+  const a = aufbau({ token: 'tok' });
+  await a.s.kanalGeladen({ login: 'x', channelID: '1' });
+  a.s.guthaben(28446);
+  assert.equal(a.gesendet.at(-1).stand.guthaben, 28446);
+  a.s.guthaben(28446);
+  assert.equal(a.gesendet.filter((g) => g.stand && g.stand.guthaben === 28446).length, 1, 'unveraendert -> nicht erneut senden');
+});
