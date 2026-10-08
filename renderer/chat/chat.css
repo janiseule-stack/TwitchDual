@@ -133,6 +133,8 @@ body { display: flex; flex-direction: column; }
 #points-icon { object-fit: contain; }
 #points-svg { color: var(--accent); }
 #points-icon.hidden, #points-svg.hidden { display: none; }
+#zuschauer-auge { font-size: 0.85em; line-height: 1; opacity: 0.75; }
+#zuschauer-auge.hidden { display: none; }
 
 /* Zugewinn: steigt auf und blendet aus. Kiste deutlich, passiv dezent.
    Bewusst ohne prefers-reduced-motion - auf dem Zielrechner sind

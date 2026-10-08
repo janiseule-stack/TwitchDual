@@ -1623,6 +1623,17 @@ async function starteWebLogin() {
 
 window.twitchDual.onPointsUpdate(zeigePunkte);
 
+// 👁 = das unsichtbare Zuschauer-Fenster laeuft UND sein Video schreitet
+// nachweislich fort (main meldet erst nach der ersten Waechter-Messung).
+// Lebt im Chip und verschwindet mit ihm, wenn kein Stand gezeigt wird.
+const $zuschauerAuge = document.getElementById('zuschauer-auge');
+function zeigeZuschauer(s) {
+  if ($zuschauerAuge) $zuschauerAuge.classList.toggle('hidden', !(s && s.zaehlt));
+}
+window.twitchDual.onZuschauerStatus(zeigeZuschauer);
+// Neu geladenes Chat-Fenster: Stand einmal abholen statt auf die naechste Flanke zu warten.
+window.twitchDual.getZuschauerStatus().then(zeigeZuschauer).catch(() => {});
+
 // Beim Start: nicht angemeldet -> Anmelde-Knopf statt leerer Flaeche.
 (async () => {
   const s = await window.twitchDual.webLoginStatus();

@@ -109,6 +109,9 @@ if (!isTwitchFrame) {
     getRewards: () => ipcRenderer.invoke('points-rewards'),
     redeemReward: (reward, textInput) => ipcRenderer.invoke('points-redeem', { reward, textInput }),
     onPointsUpdate: (cb) => { ipcRenderer.on('points-update', (_e, p) => cb(p)); },
+    // Zuschauer-Fenster: nur ein bool ("Twitch zaehlt dich"), sonst nichts.
+    onZuschauerStatus: (cb) => { ipcRenderer.on('zuschauer-status', (_e, s) => cb(s)); },
+    getZuschauerStatus: () => ipcRenderer.invoke('zuschauer-status-abfragen'),
 
     // Diagnose: melden geht IMMER (fuellt den Ringpuffer im Main), der
     // Schalter entscheidet nur ueber die Datei. Feuert und vergisst - ein
