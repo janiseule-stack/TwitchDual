@@ -1738,3 +1738,19 @@ if ($rewardsBtn) {
     $rewardsBtn.classList.remove('wackelt-kiste', 'wackelt-passiv');
   });
 }
+
+// --- Pins, Umfragen, Vorhersagen (fertiger Stand aus dem Main) -------------
+const ereignisKarten = EreignisKarten.create({
+  doc: document,
+  wirt: document.getElementById('kanal-ereignisse'),
+  KE: KanalEreignisse,
+  setzen: (outcomeID, points) => window.twitchDual.vorhersageSetzen(outcomeID, points),
+  linkOeffnen: (url) => window.twitchDual.linkOeffnen(url),
+  anmelden: () => window.twitchDual.startWebLogin(),
+  effekt: (s) => {
+    // Gewinn: grosser Effekt + "+X" am Chip ueber denselben Weg wie die Kiste.
+    if (s.art === 'tipp-gewonnen') zeigeZuwachs({ quelle: 'kiste', betrag: s.betrag });
+    else themeRuntime.ereignis(s.art, { ursprung: punkteUrsprung() });
+  }
+});
+window.twitchDual.onKanalEreignisse((p) => ereignisKarten.zeige(p));

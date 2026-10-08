@@ -643,3 +643,41 @@ button:focus-visible, input:focus-visible {
   100% { transform: scale(1); }
 }
 #points-gain.passiv { color: var(--accent); font-size: 12px; font-weight: 700; }
+
+/* --- Pins, Umfragen, Vorhersagen ------------------------------------------ */
+/* Ebene 1 wie #messages (ueber fx-hinten), schrumpft im Spalten-Layout nicht. */
+#kanal-ereignisse { display: flex; flex-direction: column; gap: 6px; padding: 0 8px; position: relative; z-index: 1; flex-shrink: 0; font-size: 13px; }
+#kanal-ereignisse:empty { display: none; }
+#kanal-ereignisse > :first-child { margin-top: 6px; }
+.ke-pin, .ke-karte {
+  background: var(--panel); border: 1px solid var(--accent-border); border-radius: 8px;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.ke-pin.neu, .ke-karte.neu { animation: ke-rein .35s cubic-bezier(.2, .9, .3, 1.2); }
+@keyframes ke-rein { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+.ke-pin { display: flex; gap: 6px; align-items: flex-start; padding: 5px 8px; cursor: pointer; font-size: .9em; }
+.ke-pin-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ke-pin.offen .ke-pin-text { white-space: normal; }
+.ke-pin-name { font-weight: 600; }
+.ke-pin-von { color: var(--muted); font-size: .85em; margin-top: 2px; }
+.ke-link { color: var(--accent-title); }
+.ke-x { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; }
+.ke-x:hover { color: var(--text); }
+.ke-karte { padding: 6px 8px 8px; }
+.ke-kopf { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; font-weight: 600; }
+.ke-titel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent-title); }
+.ke-zeit { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+.ke-karte.zu .ke-kopf { margin: 0; }
+.ke-option { margin-top: 6px; }
+.ke-option.gewinner .ke-opt-titel::after { content: ' 🏆'; }
+.ke-zeile { display: flex; justify-content: space-between; gap: 8px; font-size: .9em; }
+.ke-opt-wert, .ke-info { font-family: var(--mono); color: var(--muted); }
+.ke-info { font-size: .8em; margin-top: 2px; }
+.ke-opt-titel.blue { color: #4fa3ff; }
+.ke-opt-titel.pink { color: #ff4fa3; }
+.ke-balken { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 3px; }
+.ke-balken-fuell { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s cubic-bezier(.2, .9, .3, 1); }
+.ke-balken-fuell.blue { background: #4fa3ff; }
+.ke-balken-fuell.pink { background: #ff4fa3; }
+.ke-meins { font-size: .85em; color: var(--accent-title); margin-top: 2px; }
+.ke-hinweis { color: var(--muted); font-size: .8em; margin-top: 6px; }
