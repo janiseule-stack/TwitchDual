@@ -255,6 +255,10 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
       // (home.js closeHome() blendet nur aus; nur closeHomeResume() meldet
       // sich), sonst bliebe der Takt bis zum Programmende schlafen.
       punkteHomeOffen = false;
+      // "Spielt" gehoerte dem alten Kanal. Erst das PLAYING des neuen setzt es
+      // wieder - sonst startete das Zuschauer-Fenster auf einem Kanal, der
+      // offline ist oder nie anlaeuft.
+      punkteSpielt = false;
       currentLiveChannel = user.login;
       diagLog.melde('punkte', 'kanalwechsel', { modus: 'live', nach: user.login, userId: user.id });
       if (chatSender) chatSender.setChannel(user.login);
@@ -290,6 +294,7 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
     pointsState.standVergessen();
     punkteChannelId = null;
     punkteHomeOffen = false; // wie im Live-Zweig: geladen heisst Overlay zu
+    punkteSpielt = false;    // wie im Live-Zweig
     currentLiveChannel = null;
     diagLog.melde('punkte', 'kanalwechsel', { modus: 'vod', nach: null, videoId: parsed.value });
     if (chatSender) chatSender.setChannel(null);
@@ -697,7 +702,7 @@ async function punkteTick() {
 // Default-Session, dort liegt das Web-Login-Cookie. Logik (wann, welcher
 // Kanal, Waechter) in src/zuschauer-fenster.js; hier nur das echte Fenster.
 // Spec: docs/superpowers/specs/2026-10-08-zuschauer-fenster-design.md
-const { createZuschauerSteuerung, createWaechter } = require('./src/zuschauer-fenster');
+const { createZuschauerSteuerung, createWaechter, mitZeitlimit } = require('./src/zuschauer-fenster');
 
 const zuschauerSteuerung = createZuschauerSteuerung({ karenzMs: 60000 });
 let zuschauerWin = null;
@@ -706,6 +711,7 @@ let zuschauerWaechter = null;
 let zuschauerErstTimer = null;  // erste Messung 45 s nach Start
 let zuschauerTakt = null;       // danach alle 30 s
 let zuschauerZaehlt = false;
+let zuschauerMisst = false;     // hoechstens eine Messung gleichzeitig
 
 function zuschauerZustand() {
   return {
@@ -756,11 +762,17 @@ const VIDEO_MESSUNG = `(() => {
 async function pruefeZuschauer() {
   const win = zuschauerWin;
   const waechter = zuschauerWaechter;
-  if (!win || win.isDestroyed() || !waechter) return;
-  let m = { hatVideo: false, paused: true, currentTime: 0 };
+  if (!win || win.isDestroyed() || !waechter || zuschauerMisst) return;
+  // Seite haengt oder Renderer weg -> nach 10 s zaehlt es als Stillstand,
+  // sonst entschiede der Waechter nie und Messungen stapelten sich.
+  const kein = { hatVideo: false, paused: true, currentTime: 0 };
+  zuschauerMisst = true;
+  let m;
   try {
-    m = await win.webContents.executeJavaScript(VIDEO_MESSUNG);
-  } catch { /* Seite haengt oder Renderer weg -> zaehlt als Stillstand */ }
+    m = await mitZeitlimit(win.webContents.executeJavaScript(VIDEO_MESSUNG), 10000, kein);
+  } finally {
+    zuschauerMisst = false;
+  }
   if (win !== zuschauerWin) return; // inzwischen gestoppt oder gewechselt
   const aktion = waechter.messung(m);
   if (aktion === 'ok') {

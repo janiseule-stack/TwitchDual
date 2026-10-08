@@ -93,4 +93,14 @@ function createWaechter({ stillstandBisNeuLaden = 2, maxNeuLaden = 3 } = {}) {
   return { messung, neuLadungen: () => neuLadungen };
 }
 
-module.exports = { zielKanal, createZuschauerSteuerung, createWaechter };
+// Wartet hoechstens ms auf promise; danach oder bei Fehler kommt ersatz.
+// Eine haengende Seite (executeJavaScript loest nie auf) zaehlt so als
+// Stillstand, statt den Waechter fuer immer festzuhalten.
+function mitZeitlimit(promise, ms, ersatz) {
+  let timer = null;
+  const ablauf = new Promise((resolve) => { timer = setTimeout(() => resolve(ersatz), ms); });
+  return Promise.race([Promise.resolve(promise).catch(() => ersatz), ablauf])
+    .finally(() => clearTimeout(timer));
+}
+
+module.exports = { zielKanal, createZuschauerSteuerung, createWaechter, mitZeitlimit };

@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { zielKanal, createZuschauerSteuerung, createWaechter } = require('../src/zuschauer-fenster');
+const { zielKanal, createZuschauerSteuerung, createWaechter, mitZeitlimit } = require('../src/zuschauer-fenster');
 
 const AN = { kanal: 'papaplatte', spielt: true, homeOffen: false, webAngemeldet: true };
 
@@ -171,4 +171,21 @@ test('Waechter: Fortschritt setzt den Neu-Lade-Zaehler zurueck', () => {
   w.messung(tot); w.messung(tot); // neu-laden 2
   assert.equal(w.messung(laeuft(20)), 'ok');
   assert.equal(w.neuLadungen(), 0);
+});
+
+// Haengt die versteckte Seite, darf die Waechter-Messung nicht ewig warten:
+// sonst entscheidet er nie (kein Neu-Laden, kein Aufgeben) und das Auge luegt.
+const ERSATZ = { hatVideo: false, paused: true, currentTime: 0 };
+
+test('mitZeitlimit: schnelle Antwort kommt durch', async () => {
+  assert.deepEqual(await mitZeitlimit(Promise.resolve(laeuft(5)), 50, ERSATZ), laeuft(5));
+});
+
+test('mitZeitlimit: haengende Messung liefert nach Ablauf den Ersatz', async () => {
+  const nie = new Promise(() => {});
+  assert.deepEqual(await mitZeitlimit(nie, 20, ERSATZ), ERSATZ);
+});
+
+test('mitZeitlimit: Fehler liefert den Ersatz', async () => {
+  assert.deepEqual(await mitZeitlimit(Promise.reject(new Error('Renderer weg')), 50, ERSATZ), ERSATZ);
 });
