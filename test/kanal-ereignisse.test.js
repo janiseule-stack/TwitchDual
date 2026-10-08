@@ -155,3 +155,44 @@ test('Schluessel fehlt = Teil bleibt, null = Teil weg', () => {
   assert.equal(z.stand().pin, null);
   assert.ok(z.stand().vorhersage);
 });
+
+test('quoteText und countdownText', () => {
+  assert.equal(KE.quoteText(1.9412), '1:1,94');
+  assert.equal(KE.quoteText(null), '–');
+  assert.equal(KE.countdownText(678000), '11:18');
+  assert.equal(KE.countdownText(5000), '0:05');
+  assert.equal(KE.countdownText(null), '');
+  assert.equal(KE.restMs(1000, 5000), 0);
+  assert.equal(KE.restMs(null, 5000), null);
+});
+
+test('setzbareOptionen: alle, nach eigenem Tipp nur dieselbe, gesperrt keine', () => {
+  const z = KE.createZustand();
+  z.ausStart({ vorhersage: aktiv }, T0, { erstes: true });
+  assert.equal(KE.setzbareOptionen(z.stand()).length, 2);
+  z.eigenerTipp({ eventId: aktiv.id, optionId: aktiv.outcomes[1].id, punkte: 10 });
+  assert.deepEqual(KE.setzbareOptionen(z.stand()), [aktiv.outcomes[1].id]);
+  z.ausStart({ vorhersage: { ...aktiv, status: 'LOCKED' } }, T0, { erstes: false });
+  assert.deepEqual(KE.setzbareOptionen(z.stand()), []);
+});
+
+test('chipBetrag Grenzen', () => {
+  assert.equal(KE.chipBetrag('100', 5000), 100);
+  assert.equal(KE.chipBetrag('1000', 500), 500, 'gekappt aufs Guthaben');
+  assert.equal(KE.chipBetrag('10%', 28446), 2844);
+  assert.equal(KE.chipBetrag('25%', 28446), 7111);
+  assert.equal(KE.chipBetrag('alles', 28446), 28446);
+  assert.equal(KE.chipBetrag('alles', 999999), 250000, 'Twitch-Hoechstwert');
+  assert.equal(KE.chipBetrag('10%', 50), null, '5 < 10');
+  assert.equal(KE.chipBetrag('100', 9), null, 'Guthaben unter 10');
+  assert.equal(KE.chipBetrag('100', null), null);
+});
+
+test('eigenerBetrag prueft Eingabe', () => {
+  assert.deepEqual(KE.eigenerBetrag('10500', 28446), { betrag: 10500 });
+  assert.deepEqual(KE.eigenerBetrag(' 10.500 ', 28446), { betrag: 10500 });
+  assert.deepEqual(KE.eigenerBetrag('5', 28446), { fehler: 'Mindestens 10 Punkte' });
+  assert.deepEqual(KE.eigenerBetrag('30000', 28446), { fehler: 'Nicht genug Punkte' });
+  assert.deepEqual(KE.eigenerBetrag('300000', 999999), { fehler: 'Höchstens 250.000 Punkte' });
+  assert.deepEqual(KE.eigenerBetrag('abc', 28446), { fehler: 'Bitte eine Zahl eingeben' });
+});

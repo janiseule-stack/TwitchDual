@@ -169,5 +169,52 @@
     };
   }
 
-  return { createZustand, MIN_EINSATZ, MAX_EINSATZ };
+  function quoteText(q) {
+    return q ? '1:' + q.toFixed(2).replace('.', ',') : '–';
+  }
+
+  function restMs(bis, jetzt) {
+    return bis === null || bis === undefined ? null : Math.max(0, bis - jetzt);
+  }
+
+  function countdownText(rest) {
+    if (rest === null || rest === undefined) return '';
+    const s = Math.ceil(rest / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function setzbareOptionen(stand) {
+    const v = stand && stand.vorhersage;
+    if (!v || v.status !== 'ACTIVE') return [];
+    const t = stand.meinTipp;
+    if (t && t.eventId === v.id) return [t.optionId];
+    return v.optionen.map((o) => o.id);
+  }
+
+  const CHIPS = ['100', '1000', '10%', '25%', 'alles'];
+
+  function chipBetrag(art, guthaben) {
+    if (typeof guthaben !== 'number' || guthaben < MIN_EINSATZ) return null;
+    const roh = art === 'alles' ? guthaben
+      : art === '10%' ? Math.floor(guthaben * 0.1)
+      : art === '25%' ? Math.floor(guthaben * 0.25)
+      : Number(art);
+    const b = Math.min(roh, MAX_EINSATZ, guthaben);
+    return b >= MIN_EINSATZ ? b : null;
+  }
+
+  function eigenerBetrag(text, guthaben) {
+    const roh = String(text || '').replace(/[\s.']/g, '');
+    if (!/^\d+$/.test(roh)) return { fehler: 'Bitte eine Zahl eingeben' };
+    const b = Number(roh);
+    if (b < MIN_EINSATZ) return { fehler: 'Mindestens 10 Punkte' };
+    if (b > MAX_EINSATZ) return { fehler: 'Höchstens 250.000 Punkte' };
+    if (typeof guthaben === 'number' && b > guthaben) return { fehler: 'Nicht genug Punkte' };
+    return { betrag: b };
+  }
+
+  return {
+    createZustand, MIN_EINSATZ, MAX_EINSATZ, CHIPS,
+    quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag
+  };
 });
