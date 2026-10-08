@@ -189,3 +189,16 @@ test('mitZeitlimit: haengende Messung liefert nach Ablauf den Ersatz', async () 
 test('mitZeitlimit: Fehler liefert den Ersatz', async () => {
   assert.deepEqual(await mitZeitlimit(Promise.reject(new Error('Renderer weg')), 50, ERSATZ), ERSATZ);
 });
+
+test('Waechter: Anlauf-Nachsicht - fruehe erste Messung ohne Video zaehlt nicht als Stillstand', () => {
+  const w = createWaechter({ anlaufNachsicht: 1 });
+  const tot = { hatVideo: false, paused: true, currentTime: 0 };
+  assert.equal(w.messung(tot), 'warten'); // 15 s: Seite laedt noch, gratis
+  assert.equal(w.messung(tot), 'warten'); // 45 s: erster echter Stillstand
+  assert.equal(w.messung(tot), 'neu-laden'); // 75 s - wie vorher mit 45-s-Start
+});
+
+test('Waechter: Anlauf-Nachsicht - laeuft es schon frueh, sofort ok', () => {
+  const w = createWaechter({ anlaufNachsicht: 1 });
+  assert.equal(w.messung({ hatVideo: true, paused: false, currentTime: 8 }), 'ok');
+});

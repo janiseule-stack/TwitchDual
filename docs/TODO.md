@@ -443,7 +443,7 @@ nichts auf der Platte.
   (Default-Session = Web-Login). Laeuft bei Live + spielt + Home zu +
   Web-Login; Pause/Home 60 s Karenz; Kanalwechsel/VOD/Abmeldung sofort.
 - Logik `src/zuschauer-fenster.js` (getestet), Treiber in `main.js`
-  (2-s-Takt), Waechter 45 s / 30 s, 2x Stillstand -> neu laden,
+  (2-s-Takt), Waechter 15 s (Anlauf-Nachsicht) / 30 s, 2x Stillstand -> neu laden,
   3x erfolglos -> aufgeben bis Kanalwechsel.
 - 👁 am Punkte-Chip, sobald das Video im Fenster nachweislich laeuft.
 - Diagnose: `zuschauer:start/stopp/zaehlt/neu-laden/aufgegeben`.

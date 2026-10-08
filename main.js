@@ -708,7 +708,7 @@ const zuschauerSteuerung = createZuschauerSteuerung({ karenzMs: 60000 });
 let zuschauerWin = null;
 let zuschauerKanal = null;
 let zuschauerWaechter = null;
-let zuschauerErstTimer = null;  // erste Messung 45 s nach Start
+let zuschauerErstTimer = null;  // erste Messung 15 s nach Start
 let zuschauerTakt = null;       // danach alle 30 s
 let zuschauerZaehlt = false;
 let zuschauerMisst = false;     // hoechstens eine Messung gleichzeitig
@@ -801,7 +801,10 @@ function starteZuschauer(kanal) {
   });
   zuschauerWin = win;
   zuschauerKanal = kanal;
-  zuschauerWaechter = createWaechter();
+  // Erste Messung schon nach 15 s, damit das Auge schnell kommt. Sieht sie
+  // noch kein Video, zaehlt das nicht als Stillstand -> Neu-Laden fruehestens
+  // nach 75 s, wie vorher mit dem 45-s-Start.
+  zuschauerWaechter = createWaechter({ anlaufNachsicht: 1 });
   win.webContents.setAudioMuted(true);
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
@@ -828,7 +831,7 @@ function starteZuschauer(kanal) {
     if (win !== zuschauerWin) return;
     pruefeZuschauer().catch(() => {});
     zuschauerTakt = setInterval(() => { pruefeZuschauer().catch(() => {}); }, 30000);
-  }, 45000);
+  }, 15000);
 }
 
 function aktualisiereZuschauer() {

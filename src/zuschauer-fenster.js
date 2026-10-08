@@ -65,10 +65,13 @@ function createZuschauerSteuerung({ karenzMs = 60000 } = {}) {
 // Bewertet die Waechter-Messungen eines Fensters. Fortschritt = Video da,
 // nicht pausiert und currentTime gestiegen. Nach (Neu-)Laden gibt es keine
 // alte Zeit; dann zaehlt jedes laufende Video mit currentTime > 0.
-function createWaechter({ stillstandBisNeuLaden = 2, maxNeuLaden = 3 } = {}) {
+// anlaufNachsicht: so viele fruehe Fehlmessungen direkt nach dem Start
+// zaehlen nicht als Stillstand (die Seite darf noch laden).
+function createWaechter({ stillstandBisNeuLaden = 2, maxNeuLaden = 3, anlaufNachsicht = 0 } = {}) {
   let letzteZeit = null;
   let stillstand = 0;
   let neuLadungen = 0;
+  let nachsicht = anlaufNachsicht;
 
   function messung(m) {
     const laeuft = !!(m && m.hatVideo && !m.paused);
@@ -79,7 +82,12 @@ function createWaechter({ stillstandBisNeuLaden = 2, maxNeuLaden = 3 } = {}) {
     if (fortschritt) {
       stillstand = 0;
       neuLadungen = 0;
+      nachsicht = 0;
       return 'ok';
+    }
+    if (nachsicht > 0) {
+      nachsicht -= 1;
+      return 'warten';
     }
     stillstand += 1;
     if (stillstand < stillstandBisNeuLaden) return 'warten';
