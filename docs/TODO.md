@@ -391,8 +391,8 @@ darueber fremde Kanalpunkt-Einloesungen.
   `renderer/lib/kanal-ereignisse.js` `ausHermes` nachziehen (Pin, Umfrage,
   Sperren/Aufloesen, `prediction-result`).
 - Eigener Tipp nach Neustart: kommt mit Login aus dem Startzustand
-  ( mit , ,
-  , , ; gemessen 09.10. 01:46 an jynxzi, 10.500 auf NOOO).
+  (`community.channel.self.recentPredictions[]` mit `event.id`, `outcome.id`,
+  `points`, `pointsWon`, `result`; gemessen 09.10. 01:46 an jynxzi, 10.500 auf NOOO).
 - Naechster Schritt: Umfrage-Abstimmen messen (laufende Umfrage, Dev-App,
   `node tools/cdp-mitschnitt.js <kanal>`), dann Knopf einbauen.
   (Mutationen + ob Integrity noetig). Werkzeug:
