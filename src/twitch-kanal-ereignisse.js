@@ -58,32 +58,41 @@ function createKanalEreignisseApi({ fetchImpl = fetch, neueTransaktionsId = () =
   }
 
   return {
-    async startzustand({ channelID, login, token }) {
+    // teile: welche Abfragen (Rueckfall braucht nur pin + umfrage). Gescheiterte
+    // Teile FEHLEN in der Antwort statt null -> der alte Stand bleibt stehen
+    // (null hiesse "es gibt keinen Pin/keine Umfrage" und loescht die Karte).
+    async startzustand({ channelID, login, token, teile = ['pin', 'umfrage', 'vorhersage'] }) {
+      const ABFRAGE = {
+        pin: () => persisted('GetPinnedChat', HASH.pin, { channelID, count: 1 }),
+        umfrage: () => persisted('ChannelPollContext_GetViewablePoll', HASH.umfrage, { login }),
+        vorhersage: () => persisted('ChannelPointsPredictionContext', HASH.vorhersage, { count: 1, channelLogin: login })
+      };
+      const namen = teile.filter((t) => ABFRAGE[t]);
       let antwort;
       try {
-        antwort = await post([
-          persisted('GetPinnedChat', HASH.pin, { channelID, count: 1 }),
-          persisted('ChannelPollContext_GetViewablePoll', HASH.umfrage, { login }),
-          persisted('ChannelPointsPredictionContext', HASH.vorhersage, { count: 1, channelLogin: login })
-        ], token);
+        antwort = await post(namen.map((t) => ABFRAGE[t]()), token);
       } catch (e) {
-        return { pin: null, umfrage: null, vorhersage: null, fehler: ['netz: ' + e.message] };
+        return { fehler: ['netz: ' + e.message] };
       }
       const fehler = [];
-      const teil = (name, i, zieh) => {
+      const out = { fehler };
+      const teil = (name, zieh) => {
+        const i = namen.indexOf(name);
+        if (i < 0) return;
         const a = Array.isArray(antwort) ? antwort[i] : null;
         if (!a || (a.errors && a.errors.length)) {
           fehler.push(name + ': ' + ((a && a.errors && a.errors[0].message) || 'keine Antwort'));
-          return null;
+          return;
         }
-        try { return zieh(a.data) || null; } catch (e) { fehler.push(name + ': Form unerwartet'); return null; }
+        try { out[name] = zieh(a.data) || null; } catch (e) { fehler.push(name + ': Form unerwartet'); return; }
+        return a;
       };
-      const pin = teil('pin', 0, (d) => {
+      teil('pin', (d) => {
         const kanten = d.channel && d.channel.pinnedChatMessages && d.channel.pinnedChatMessages.edges;
         return kanten && kanten[0] && kanten[0].node;
       });
-      const umfrage = teil('umfrage', 1, (d) => d.channel && d.channel.viewablePoll);
-      const vorhersage = teil('vorhersage', 2, (d) => {
+      teil('umfrage', (d) => d.channel && d.channel.viewablePoll);
+      const av = teil('vorhersage', (d) => {
         const c = d.community && d.community.channel;
         if (!c) return null;
         const aufgeloest = c.resolvedPredictionEvents && c.resolvedPredictionEvents.edges;
@@ -93,10 +102,11 @@ function createKanalEreignisseApi({ fetchImpl = fetch, neueTransaktionsId = () =
       });
       // Eigene Wetten stehen nur mit Login drin (self.recentPredictions,
       // gemessen 09.10.: event.id, outcome.id, points, pointsWon, result).
-      const a2 = Array.isArray(antwort) ? antwort[2] : null;
-      const self = a2 && a2.data && a2.data.community && a2.data.community.channel && a2.data.community.channel.self;
-      const meineTipps = (self && self.recentPredictions) || [];
-      return { pin, umfrage, vorhersage, meineTipps, fehler };
+      if (av) {
+        const self = av.data && av.data.community && av.data.community.channel && av.data.community.channel.self;
+        out.meineTipps = (self && self.recentPredictions) || [];
+      }
+      return out;
     },
 
     async meineId(token) {

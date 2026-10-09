@@ -38,19 +38,28 @@ test('startzustand mit Token schickt OAuth', async () => {
   assert.equal(f.aufrufe[0].headers.Authorization, 'OAuth tok');
 });
 
-test('startzustand: kaputter Teil wird null, andere bleiben', async () => {
+test('startzustand: kaputter Teil FEHLT (alter Stand bleibt), andere bleiben', async () => {
   const kaputt = JSON.parse(JSON.stringify(batch));
   kaputt[0] = { errors: [{ message: 'PersistedQueryNotFound' }], extensions: { operationName: 'GetPinnedChat' } };
   const r = await createKanalEreignisseApi({ fetchImpl: fakeFetch([kaputt]) }).startzustand({ channelID: '1', login: 'x' });
-  assert.equal(r.pin, null);
+  assert.equal('pin' in r, false);
   assert.ok(r.vorhersage);
   assert.deepEqual(r.fehler, ['pin: PersistedQueryNotFound']);
 });
 
-test('startzustand: Netzfehler -> alles null, Fehler benannt', async () => {
+test('startzustand: Netzfehler -> keine Teile, Fehler benannt', async () => {
   const f = async () => { throw new Error('offline'); };
   const r = await createKanalEreignisseApi({ fetchImpl: f }).startzustand({ channelID: '1', login: 'x' });
-  assert.deepEqual(r, { pin: null, umfrage: null, vorhersage: null, fehler: ['netz: offline'] });
+  assert.deepEqual(r, { fehler: ['netz: offline'] });
+});
+
+test('startzustand mit teile: nur Pin + Umfrage abfragen (10-s-Rueckfall)', async () => {
+  const f = fakeFetch([[batch[0], batch[1]]]);
+  const r = await createKanalEreignisseApi({ fetchImpl: f }).startzustand({ channelID: '1', login: 'x', token: 'tok', teile: ['pin', 'umfrage'] });
+  assert.deepEqual(f.aufrufe[0].body.map((x) => x.operationName), ['GetPinnedChat', 'ChannelPollContext_GetViewablePoll']);
+  assert.ok(r.pin);
+  assert.equal('vorhersage' in r, false);
+  assert.equal('meineTipps' in r, false);
 });
 
 test('vorhersage: aktiv vor gesperrt vor aufgeloest', async () => {

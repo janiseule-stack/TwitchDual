@@ -49,13 +49,15 @@ function createSteuerung({
     senden({ stand: zustand ? zustand.stand() : null, signale: signale || [], angemeldet: angemeldet() });
   }
 
+  // Nur Teile weiterreichen, die wirklich ankamen (fehlende = alter Stand bleibt).
   async function holeStart(nr, nurTeile) {
-    const daten = await api.startzustand({ channelID: kanal.channelID, login: kanal.login, token: getToken() || null });
+    const anfrage = { channelID: kanal.channelID, login: kanal.login, token: getToken() || null };
+    if (nurTeile) anfrage.teile = nurTeile;
+    const daten = await api.startzustand(anfrage);
     if (nr !== lauf || !zustand) return null;
     if (daten.fehler && daten.fehler.length) diag('start-fehler', { kanal: kanal.login, fehler: daten.fehler });
-    const teile = nurTeile
-      ? Object.fromEntries(nurTeile.map((k) => [k, daten[k]]))
-      : { pin: daten.pin, umfrage: daten.umfrage, vorhersage: daten.vorhersage, meineTipps: daten.meineTipps };
+    const teile = {};
+    for (const k of ['pin', 'umfrage', 'vorhersage', 'meineTipps']) if (k in daten) teile[k] = daten[k];
     return teile;
   }
 

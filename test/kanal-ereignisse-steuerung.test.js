@@ -225,3 +225,15 @@ test('meineTipps aus dem Start landen im Stand', async () => {
   await a.s.kanalGeladen({ login: 'x', channelID: '1' });
   assert.equal(a.gesendet.at(-1).stand.meinTipp.punkte, 10500);
 });
+
+test('Rueckfall fragt nur Pin + Umfrage ab; Netzfehler laesst Karten stehen', async () => {
+  let netzWeg = false;
+  const a = aufbau({ start: () => (netzWeg ? { fehler: ['netz: weg'] } : { pin: pinNode, umfrage: null, vorhersage: aktiv, fehler: [] }) });
+  await a.s.kanalGeladen({ login: 'jynxzi', channelID: '411377640' });
+  netzWeg = true;
+  await a.intervalle[0].fn();
+  assert.deepEqual(a.api.aufrufe.at(-1).teile, ['pin', 'umfrage']);
+  const letzte = a.gesendet.at(-1);
+  assert.ok(letzte.stand.pin, 'Pin bleibt trotz Netzfehler');
+  assert.equal(letzte.stand.vorhersage.status, 'ACTIVE');
+});
