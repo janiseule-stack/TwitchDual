@@ -68,6 +68,7 @@ if (!isTwitchFrame) {
     windowControl: (action) => ipcRenderer.send('window-control', action),
     layoutVollbild: () => ipcRenderer.send('layout-vollbild'),
     onLayoutModus: (cb) => { ipcRenderer.on('layout-modus', (_e, m) => cb(m)); },
+    teilungZiehen: (x) => ipcRenderer.send('teilung-ziehen', x),
 
     // UI-Voreinstellungen: Verlauf, letzte Quelle, Player-Prefs.
     getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),

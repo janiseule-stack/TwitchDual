@@ -173,19 +173,23 @@ let eigeneBewegungBis = 0; // eigene setBounds-Aufrufe loesen move-Events aus ->
 let layoutModus = null;
 function setzeLayoutModus(modus) {
   layoutModus = modus;
-  if (videoWin && !videoWin.isDestroyed()) videoWin.webContents.send('layout-modus', { modus });
+  broadcast('layout-modus', { modus }); // Video: Knopf leuchtet; beide: Griff an der Trennlinie
 }
 
-// Trennlinie: der linke Rand des Chats. Waehrend des Ziehens folgt nur das
-// Video; beim Loslassen rastet der Chat am rechten Rand in voller Hoehe ein.
-function teilungAnwenden(fertig) {
+// Trennlinie zwischen Video und Chat verschieben - per Griff (IPC), Chat-Rand
+// oder Video-Rand/-Verschieben. Getrennte Sperren je Fenster: eigene
+// setBounds loesen dort move/resize aus, die sonst zurueckwirken wuerden.
+let videoEigenBis = 0;
+let chatEigenBis = 0;
+function teilungSetzen(linie, { video = true, chat = true } = {}) {
   if (!layoutModus || !videoWin || !chatWin || videoWin.isDestroyed() || chatWin.isDestroyed()) return;
   const wa = screen.getDisplayMatching(videoWin.getBounds()).workArea;
-  const r = Andocken.teile(wa, chatWin.getBounds().x, layoutModus);
-  eigeneBewegungBis = Date.now() + 300;
-  videoWin.setBounds(r.video);
-  if (fertig) chatWin.setBounds(r.chat);
+  const r = Andocken.teile(wa, linie, layoutModus);
+  const bis = Date.now() + 250;
+  if (video) { eigeneBewegungBis = bis; videoEigenBis = bis; videoWin.setBounds(r.video); }
+  if (chat) { chatEigenBis = bis; chatWin.setBounds(r.chat); }
 }
+ipcMain.on('teilung-ziehen', (_e, x) => { if (Number.isFinite(x)) teilungSetzen(x); });
 
 function andockenMoeglich() {
   return videoWin && chatWin && !videoWin.isDestroyed() && !chatWin.isDestroyed()
@@ -224,19 +228,29 @@ function andockenVerdrahten() {
   for (const ev of ['moved', 'resized', 'restore', 'unmaximize', 'leave-full-screen']) {
     videoWin.on(ev, () => {
       if (Date.now() < eigeneBewegungBis) return;
-      // Nutzer verschiebt das Video selbst -> ◫-Aufteilung ist vorbei.
-      if (layoutModus === 'vollbild') { vorVollbild = null; setzeLayoutModus(null); }
+      if (layoutModus) { const b = videoWin.getBounds(); teilungSetzen(b.x + b.width); return; } // einrasten
       einpassen();
     });
   }
-  // Chat seitlich ziehen (Rand oder ganzes Fenster) = Trennlinie verschieben.
+  // Im ◫/⛶-Modus: Video-Rand ziehen oder Video verschieben = Trennlinie
+  // (rechte Videokante); der Chat folgt live.
   for (const ev of ['move', 'resize']) {
-    // Ohne Sperre: teile() ist bei gleicher Linie idempotent, eigene setBounds schaden nicht.
-    chatWin.on(ev, () => { if (layoutModus) teilungAnwenden(false); });
+    videoWin.on(ev, () => {
+      if (!layoutModus || Date.now() < videoEigenBis) return;
+      const b = videoWin.getBounds();
+      teilungSetzen(b.x + b.width, { video: false });
+    });
+  }
+  // Chat seitlich ziehen (Rand oder ganzes Fenster) = Trennlinie (linke Chatkante).
+  for (const ev of ['move', 'resize']) {
+    chatWin.on(ev, () => {
+      if (!layoutModus || Date.now() < chatEigenBis) return;
+      teilungSetzen(chatWin.getBounds().x, { chat: false });
+    });
   }
   // Ende einer Nutzer-Bewegung am Chat: andocken, loesen oder zurueckschnappen.
   const chatLosgelassen = () => {
-    if (layoutModus) { teilungAnwenden(true); return; }
+    if (layoutModus) { if (Date.now() >= chatEigenBis) teilungSetzen(chatWin.getBounds().x); return; }
     if (Date.now() < eigeneBewegungBis || !andockenMoeglich()) return;
     const video = videoWin.getBounds();
     const chat = chatWin.getBounds();

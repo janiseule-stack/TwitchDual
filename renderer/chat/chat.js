@@ -772,6 +772,8 @@ $optDiagOpen.addEventListener('click', () => window.twitchDual.openDiagFolder())
 document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));
 document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
 document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
+// Griff an der linken Kante (nur im ◫/⛶-Modus): Video/Chat-Aufteilung ziehen.
+Teiler.binde({ doc: document, seite: 'links', ziehen: (x) => window.twitchDual.teilungZiehen(x), onModus: window.twitchDual.onLayoutModus });
 // Doppelklick auf die Kopfzeile (nicht auf Buttons) maximiert.
 document.getElementById('head').addEventListener('dblclick', (e) => {
   if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');

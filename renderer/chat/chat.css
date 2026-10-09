@@ -801,3 +801,18 @@ button:focus-visible, input:focus-visible {
 @keyframes vk-grau { 0% { filter: grayscale(1) brightness(.7); } 100% { filter: none; } }
 @keyframes vk-funke { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
 @keyframes vk-fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(260px) rotate(540deg); opacity: 0; } }
+
+/* Griff an der Trennlinie Video|Chat (nur im ◫/⛶-Modus, siehe renderer/lib/teiler.js) */
+.teiler-griff {
+  position: fixed; top: 0; bottom: 0; width: 8px; z-index: 9999; cursor: ew-resize;
+  -webkit-app-region: no-drag; background: transparent; transition: background-color 150ms ease;
+}
+.teiler-griff.hidden { display: none; }
+.teiler-griff::after {
+  content: ''; position: absolute; top: 50%; width: 4px; height: 56px; margin-top: -28px; border-radius: 2px;
+  background: var(--accent-border, rgba(255,255,255,.35)); left: 2px; transition: height 150ms ease, background-color 150ms ease;
+}
+.teiler-griff:hover, .teiler-griff.zieht { background: color-mix(in srgb, var(--accent, #35e0ff) 25%, transparent); }
+.teiler-griff:hover::after, .teiler-griff.zieht::after { background: var(--accent, #35e0ff); height: 96px; margin-top: -48px; }
+.teiler-rechts { right: 0; }
+.teiler-links { left: 0; }
