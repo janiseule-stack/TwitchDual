@@ -33,8 +33,8 @@ test('EFFEKT_FAKTOR: aus=0, steigt monoton', () => {
 
 test('cleanThemePrefs: Bestandsdaten ohne theme -> Neon Dual, Farben bleiben', () => {
   const p = K.cleanThemePrefs({ videoAccent: '#ABC', chatAccent: '#ff4fa3', chatAlpha: 60 });
-  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
-  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
+  assert.deepEqual(p, { videoAccent: '#aabbcc', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, saat: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
+  assert.deepEqual(K.cleanThemePrefs(null), { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal', anpassungen: {}, variante: {}, saat: {}, gastHaeufigkeit: 'normal', gastAnzahl: 'eins' });
 });
 
 test('mergeThemePrefs: Teil-Speicherung behaelt theme und effekte', () => {
@@ -212,4 +212,12 @@ test('Wald hat acht Varianten: Grundstile ohne Holzschnitt + Pixel, Leuchtpilze,
   assert.deepEqual(wald.farben, wald.varianten[0].farben, 'Theme-Farben = erste Variante');
   assert.equal(wald.ausgeblendet, undefined);
   assert.deepEqual(wald.varianten.filter((v) => v.hell).map((v) => v.id), ['aquarell', 'tusche', 'licht']);
+});
+
+test('saat: pro Theme eine ganze Zahl, Muell faellt weg; Merge laesst andere Themes stehen', () => {
+  const p = K.cleanThemePrefs({ saat: { sakura: 1234, koi: 'x', wald: 5.7, gibtsnicht: 3 } });
+  assert.deepEqual(p.saat, { sakura: 1234, wald: 5 });
+  assert.deepEqual(K.cleanThemePrefs({}).saat, {});
+  const m = K.mergeThemePrefs({ saat: { sakura: 1 } }, { saat: { koi: 2 } });
+  assert.deepEqual(m.saat, { sakura: 1, koi: 2 });
 });

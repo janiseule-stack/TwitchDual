@@ -10,7 +10,7 @@
 // eigene Uhr (Summe der Bildzeiten), nicht ueber Date.now.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.wald = function ({ engine, FxEngine, farben, variante }) {
+  window.TwitchDualWelten.wald = function ({ engine, FxEngine, farben, variante, saat }) {
     const { rnd } = FxEngine;
     const WS = window.WaldStile;
     const W = WS.werkzeug;
@@ -66,7 +66,7 @@
 
     function baueHintergrund() {
       const d = L.dpr || 1;
-      W.saat(7);
+      W.saat(Number.isFinite(saat) ? saat : 7); // 🎲 aus den Einstellungen
       const m = massstab();
       if (S.pixel) {
         const c = W.leinwand(L.w / m / S.pixel, L.h / m / S.pixel);

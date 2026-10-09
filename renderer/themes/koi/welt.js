@@ -7,7 +7,7 @@
 // Spiele daneben; der Hintergrund entsteht nur bei Groessenwechsel neu.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben, variante, fenster }) {
+  window.TwitchDualWelten.koi = function ({ engine, FxEngine, farben, variante, fenster, saat }) {
     const { rnd } = FxEngine;
     const KS = window.KoiStile;
     const W = KS.werkzeug;
@@ -108,7 +108,7 @@
 
     // Fester Zufall je Welt-Start: Ast/Steine bleiben beim Neuzeichnen nach
     // einer Groessenaenderung dieselben, nur in der neuen Groesse.
-    const SAAT = Math.floor(Math.random() * 1e9);
+    const SAAT = Number.isFinite(saat) ? saat : Math.floor(Math.random() * 1e9); // 🎲 aus den Einstellungen
     function baueHintergrund() { FxEngine.mitSaat(SAAT, baueHintergrundRoh); }
     function baueHintergrundRoh() {
       const d = L.dpr || 1;

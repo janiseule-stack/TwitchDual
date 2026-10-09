@@ -46,6 +46,7 @@
     let weltId = null;
     let weltPartikel = null;   // Partikelfarbe der laufenden Welt
     let weltVariante = null;   // Variante der laufenden (gezeichneten) Welt
+    let weltSaat = null;
     let lauf = 0;                 // Generation gegen ueberholte Ladevorgaenge
     let pausiert = false;
     let gastBedingung = null;
@@ -216,10 +217,11 @@
       geladen.add(id);
     }
 
-    async function starteWelt(id, faktor, meinLauf, partikel, variante) {
+    async function starteWelt(id, faktor, meinLauf, partikel, variante, saat) {
       weltId = id;
       weltPartikel = partikel;
       weltVariante = variante;
+      weltSaat = saat;
       try {
         await ladeWelt(id);
       } catch (e) {
@@ -232,7 +234,7 @@
       engine = erzeugeEngine({ ebenen, doc, faktor });
       engine.pausieren(pausiert);
       try {
-        welt = fabrik({ engine, fenster, FxEngine, farben: { partikel }, variante }) || null;
+        welt = fabrik({ engine, fenster, FxEngine, farben: { partikel }, variante, saat }) || null;
         if (welt && welt.start) welt.start();
       } catch (e) {
         if (!welt) welt = {};
@@ -254,8 +256,10 @@
       const partikel = Katalog.effektiveFarben(prefs).partikel;
       const v = Katalog.varianteFuer(prefs);
       const variante = v ? v.id : null;
-      // Gleiche Welt + gleiche Partikelfarbe + gleiche Variante: nur Faktor.
-      if (weltId === prefs.theme && engine && weltPartikel === partikel && weltVariante === variante) {
+      // 🎲-Startwert: ohne gespeicherten Wert ein fester (gleiches Layout nach Neustart).
+      const saat = prefs.saat && Number.isFinite(prefs.saat[prefs.theme]) ? prefs.saat[prefs.theme] : 1;
+      // Gleiche Welt + Partikelfarbe + Variante + Startwert: nur Faktor.
+      if (weltId === prefs.theme && engine && weltPartikel === partikel && weltVariante === variante && weltSaat === saat) {
         engine.setFaktor(faktor);
         // Gast-Haeufigkeit geaendert -> neu planen (sonst gilt der alte Abstand weiter).
         if (prefs.gastHaeufigkeit !== gastSchluessel) { stoppeGaeste(); planeGast(); }
@@ -263,7 +267,7 @@
       }
       lauf++;
       stoppeWelt();
-      await starteWelt(prefs.theme, faktor, lauf, partikel, variante);
+      await starteWelt(prefs.theme, faktor, lauf, partikel, variante, saat);
     }
 
     // --- Galerie-Vorschau (eigene Engine, unabhaengig von der Stufe) --------

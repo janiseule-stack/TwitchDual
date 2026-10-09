@@ -141,6 +141,18 @@
 
   // Varianten (gezeichnete Welten): pro Theme die gewaehlte Variante, nur
   // gueltige Ids; fehlt sie, gilt die erste. Themes ohne Varianten -> null.
+  // 🎲: Startwert fuer den Zufall der Welt je Theme (gleicher Wert = gleiches
+  // Layout, auch nach Neustart). Nur ganze Zahlen fuer bekannte Themes.
+  function cleanSaat(roh) {
+    const aus = {};
+    if (!roh || typeof roh !== 'object') return aus;
+    for (const t of THEMES) {
+      const v = roh[t.id];
+      if (typeof v === 'number' && Number.isFinite(v)) aus[t.id] = Math.floor(Math.abs(v)) % 4294967296;
+    }
+    return aus;
+  }
+
   function cleanVariante(roh) {
     const aus = {};
     if (!roh || typeof roh !== 'object') return aus;
@@ -185,6 +197,7 @@
       effekte: cleanEffekte(p.effekte),
       anpassungen: cleanAnpassungen(p.anpassungen),
       variante: cleanVariante(p.variante),
+      saat: cleanSaat(p.saat),
       gastHaeufigkeit: cleanGastHaeufigkeit(p.gastHaeufigkeit),
       gastAnzahl: cleanGastAnzahl(p.gastAnzahl)
     };
@@ -199,7 +212,8 @@
     const neu = u.anpassungen && typeof u.anpassungen === 'object' ? u.anpassungen : {};
     const anpassungen = { ...(g.anpassungen || {}), ...neu };
     const variante = { ...(g.variante || {}), ...(u.variante && typeof u.variante === 'object' ? u.variante : {}) };
-    return cleanThemePrefs({ ...g, ...u, anpassungen, variante });
+    const saat = { ...(g.saat || {}), ...(u.saat && typeof u.saat === 'object' ? u.saat : {}) };
+    return cleanThemePrefs({ ...g, ...u, anpassungen, variante, saat });
   }
 
   // Schluessel der Anpassung fuer die aktuelle Wahl (Theme bzw. Theme:Variante).

@@ -8,7 +8,7 @@
 // Spiele daneben; der Hintergrund entsteht nur bei Groessenwechsel neu.
 (function () {
   window.TwitchDualWelten = window.TwitchDualWelten || {};
-  window.TwitchDualWelten.sakura = function ({ engine, FxEngine, farben, variante, fenster }) {
+  window.TwitchDualWelten.sakura = function ({ engine, FxEngine, farben, variante, fenster, saat }) {
     const { rnd } = FxEngine;
     const SS = window.SakuraStile;
     const W = SS.werkzeug;
@@ -83,7 +83,7 @@
 
     // Fester Zufall je Welt-Start: Ast/Steine bleiben beim Neuzeichnen nach
     // einer Groessenaenderung dieselben, nur in der neuen Groesse.
-    const SAAT = Math.floor(Math.random() * 1e9);
+    const SAAT = Number.isFinite(saat) ? saat : Math.floor(Math.random() * 1e9); // 🎲 aus den Einstellungen
     // Bodenteppich aus gefallenen Blueten erst in hohen Fenstern (sonst ist
     // unten ohnehin wenig Platz) und nicht bei Shoji (nur Schatten).
     function teppich() { return !S.ohneTeppich && L.h > 600; }
