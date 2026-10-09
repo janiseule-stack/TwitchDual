@@ -78,3 +78,13 @@ test('sternAnwenden: Stern weg - nicht gefolgt verschwindet, gefolgt bleibt', ()
   const r2 = L.sternAnwenden(kanaele, kanaele[0], ['favaus']);
   assert.deepEqual([r2.find((x) => x.login === 'favlive').favorit, r2.find((x) => x.login === 'favlive').gefolgt], [false, true]);
 });
+
+test('createLaufnummer: nur die zuletzt gestartete Ladung ist aktuell', () => {
+  const lauf = L.createLaufnummer();
+  const alt = lauf.start();
+  const neu = lauf.start();
+  assert.equal(lauf.aktuell(alt), false);
+  assert.equal(lauf.aktuell(neu), true);
+  lauf.start(); // z. B. Stern-Klick entwertet laufende Ladungen
+  assert.equal(lauf.aktuell(neu), false);
+});

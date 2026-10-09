@@ -27,6 +27,7 @@ let twitch = { channels: [], exakt: null }; // letzte Twitch-Treffer zur Suche
 let suchNr = 0;            // verwirft verspaetete Suchantworten
 let suchTimer = null;
 let refreshTimer = null;
+const ladeLauf = HomeListe.createLaufnummer(); // verwirft verspaetete home-kanaele-Antworten
 let loggedIn = false;      // aus renderAuth (Login-Teil unten)
 
 function nadel() { return $suche.value.trim().toLowerCase().replace(/^#/, ''); }
@@ -74,8 +75,10 @@ function closeHomeResume() {
 // --- Laden / Zeichnen -------------------------------------------------------
 async function ladeKanaele() {
   if (!geladen) zeichnePlatzhalter();
+  const nr = ladeLauf.start();
   let res;
   try { res = await window.twitchDual.homeKanaele(); } catch (e) { res = { ok: false, error: e.message || String(e) }; }
+  if (!ladeLauf.aktuell(nr)) return; // neuere Ladung oder Stern-Klick kam dazwischen
   if (!res.ok) { gefolgtFehler = res.error || 'unbekannt'; geladen = true; renderHome(); return; }
   kanaele = res.kanaele;
   gefolgtFehler = res.gefolgtFehler;
@@ -186,6 +189,7 @@ async function sternUmschalten(ch) {
     ? await window.twitchDual.removeFavorite(ch.login)
     : await window.twitchDual.addFavorite(ch.login);
   if (!r.ok) return;
+  ladeLauf.start(); // laufende Ladung kennt den neuen Stern noch nicht
   kanaele = HomeListe.sternAnwenden(kanaele, ch, r.favorites);
   renderHome();
 }

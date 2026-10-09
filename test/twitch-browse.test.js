@@ -80,3 +80,9 @@ test('getLiveStatus: gescheiterter Block -> nur dessen Kanaele mit error', async
   assert.equal(r.find((k) => k.login === 'k120').live, true);
   assert.equal(r.find((k) => k.login === 'k130').error, undefined);
 });
+
+test('getLiveStatus: GQL-Fehler mit HTTP 200 (users null) -> error statt stumm offline', async () => {
+  const fetchImpl = async () => ({ ok: true, status: 200, async json() { return { errors: [{ message: 'timeout' }], data: { users: null } }; } });
+  const r = await browse.getLiveStatus(['streamer', 'zweiter'], { fetchImpl, retries: 0 });
+  assert.deepEqual(r.map((k) => k.error), [true, true]);
+});

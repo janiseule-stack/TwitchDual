@@ -27,7 +27,9 @@ async function getLiveStatus(logins, opts = {}) {
   const teile = await Promise.all(bloecke.map(async (block) => {
     try {
       const data = await gql({ query: LIVE_BATCH_QUERY, variables: { logins: block } }, opts);
-      const users = (data && data.data && data.data.users) || [];
+      // GQL meldet Fehler oft mit HTTP 200 und users:null -> wie Netzfehler behandeln.
+      const users = data && data.data && data.data.users;
+      if (!Array.isArray(users)) throw new Error('GQL users fehlt');
       const nachLogin = new Map(users.filter(Boolean).map((u) => [String(u.login).toLowerCase(), u]));
       // Kanal existiert nicht -> Platzhalter, damit die UI ihn zeigt.
       return block.map((login) => mapLiveUser(nachLogin.get(login)) || { login, displayName: login, avatar: null, live: false });

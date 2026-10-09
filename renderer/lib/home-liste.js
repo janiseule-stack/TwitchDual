@@ -64,5 +64,13 @@
     return out;
   }
 
-  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden };
+  // Verspaetete Antworten verwerfen: nur die zuletzt gestartete Ladung zaehlt.
+  // Ein Stern-Klick startet ebenfalls, damit eine laufende Ladung mit altem
+  // Favoritenstand ihn nicht zurueckdreht.
+  function createLaufnummer() {
+    let nr = 0;
+    return { start: () => ++nr, aktuell: (n) => n === nr };
+  }
+
+  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, createLaufnummer };
 });
