@@ -114,7 +114,7 @@ unter Node mit den echten Mitschnitten getestet.
 
 ### Chat-Fenster (`renderer/chat/`)
 
-- **Pin-Leiste** ganz oben: eine Zeile (gekuerzt), Klick klappt den vollen
+- **Pin-Leiste** unter Umfrage/Vorhersage (Janis 09.10.2026): eine Zeile (gekuerzt), Klick klappt den vollen
   Text auf; Links klickbar (oeffnen extern wie Chat-Links); „angeheftet von X";
   ✕ verkleinert zu einem 📌-Knopf (Klick holt die Leiste zurueck); eine andere Pin-ID erscheint wieder als Leiste.
 - **Ereignis-Karte** darunter (Umfrage und/oder Vorhersage, gestapelt):

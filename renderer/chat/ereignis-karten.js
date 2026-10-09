@@ -175,13 +175,14 @@
         ? { option: a.dataset.option, wert: a.value } : null;
       wirt.textContent = '';
       if (!stand) return;
-      const pinArt = KE.pinAnzeige(stand.pin, pinWeg);
-      if (pinArt === 'leiste') wirt.appendChild(pinLeiste(stand.pin));
-      if (pinArt === 'knopf') wirt.appendChild(pinKnopf());
       const u = stand.umfrage;
       if (sichtbar(u, u && u.status !== 'ACTIVE')) wirt.appendChild(umfrageKarte(u));
       const v = stand.vorhersage;
       if (sichtbar(v, v && (v.status === 'RESOLVED' || v.status === 'CANCELED'))) wirt.appendChild(vorhersageKarte(v));
+      // Pin unter Umfrage/Vorhersage (Janis 09.10.2026: sieht oben schlecht aus).
+      const pinArt = KE.pinAnzeige(stand.pin, pinWeg);
+      if (pinArt === 'leiste') wirt.appendChild(pinLeiste(stand.pin));
+      if (pinArt === 'knopf') wirt.appendChild(pinKnopf());
       if (fokus) {
         const f = [...wirt.querySelectorAll('.ke-feld')].find((x) => x.dataset.option === fokus.option);
         if (f) { f.value = fokus.wert; f.focus(); }
