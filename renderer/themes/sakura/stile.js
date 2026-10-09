@@ -141,6 +141,7 @@
     function zweig(x, y, a, len, br, tiefe) {
       const n = 7;
       let cx = x, cy = y, ca = a;
+      let kinder = 0;
       for (let i = 0; i < n; i++) {
         ca += rnd(-0.28, 0.28);
         // Nie ueber den oberen Rand: zeigt der Zweig dorthin, nach unten spiegeln.
@@ -148,7 +149,11 @@
         const nx = cx + Math.cos(ca) * len / n, ny = cy + Math.sin(ca) * len / n;
         const b = br * (1 - i / n * 0.6);
         aus.seg.push({ x1: cx, y1: cy, x2: nx, y2: ny, w: b });
-        if (tiefe > 0 && i >= 1 && i < n - 1 && Math.random() < 0.5) {
+        // Mindestens 2 Unterzweige: reiner Muenzwurf liess in ~3 % der Faelle
+        // einen kahlen Strich stehen - mit festem Zufall die ganze Sitzung lang.
+        const muss = tiefe > 0 && kinder < 2 && i >= n - 1 - (2 - kinder);
+        if (tiefe > 0 && i >= 1 && i < n - 1 && (muss || Math.random() < 0.5)) {
+          kinder++;
           zweig(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.5, 1.0), len * rnd(0.4, 0.6), b * 0.6, tiefe - 1);
         }
         if (tiefe <= 1 && i >= 2 && Math.random() < 0.55) stellen.push({ x: nx, y: ny });

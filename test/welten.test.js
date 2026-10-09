@@ -391,3 +391,15 @@ test('Sakura-Ast: im schmalen hohen Chat reicht er ein gutes Stueck nach unten',
   }
   assert.ok(tief / 20 > 0.4, 'im Schnitt tiefer als 40 % der Hoehe: ' + (tief / 20).toFixed(2));
 });
+
+test('Sakura-Ast: nie kahl - auch im Pechfall genug Zweige und Blueten', () => {
+  const W = ladeSakuraStile();
+  const FX = require('../renderer/lib/fx-engine');
+  for (const [w, h] of [[340, 1000], [1340, 1440], [2050, 1440]]) {
+    for (let saat = 1; saat <= 300; saat++) {
+      const A = FX.mitSaat(saat, () => W.baueAst(w, h, saat % 2 === 0));
+      assert.ok(A.seg.length >= 40, `${w}x${h} Saat ${saat}: nur ${A.seg.length} Segmente`);
+      assert.ok(A.blueten.length >= 30, `${w}x${h} Saat ${saat}: nur ${A.blueten.length} Blueten`);
+    }
+  }
+});
