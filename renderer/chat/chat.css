@@ -656,6 +656,9 @@ button:focus-visible, input:focus-visible {
 }
 /* Bei breitem Chat nicht endlos strecken: Karten hoechstens ~680 px, mittig. */
 #kanal-ereignisse > .ke-pin, #kanal-ereignisse > .ke-karte { width: 100%; max-width: 680px; align-self: center; box-sizing: border-box; }
+#kanal-ereignisse > .ke-reihe { display: flex; gap: 6px; align-items: flex-start; width: 100%; max-width: 720px; align-self: center; }
+#kanal-ereignisse > .ke-reihe > .ke-karte { flex: 1; min-width: 0; }
+#kanal-ereignisse > .ke-reihe > .ke-pin-knopf { align-self: flex-start; margin-top: 2px; }
 #kanal-ereignisse .ke-pin, #kanal-ereignisse .ke-karte { box-shadow: 0 6px 18px rgba(0,0,0,.45), 0 0 12px var(--accent-glow); }
 #kanal-ereignisse:empty { display: none; }
 #kanal-ereignisse > :first-child { margin-top: 6px; }

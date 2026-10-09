@@ -202,7 +202,15 @@
       // Pin unter Umfrage/Vorhersage (Janis 09.10.2026: sieht oben schlecht aus).
       const pinArt = KE.pinAnzeige(stand.pin, pinWeg);
       if (pinArt === 'leiste') wirt.appendChild(pinLeiste(stand.pin));
-      if (pinArt === 'knopf') wirt.appendChild(pinKnopf());
+      if (pinArt === 'knopf') {
+        // Eingeklappter Pin sitzt rechts neben der letzten Karte (Janis 09.10.2026).
+        const letzte = wirt.lastElementChild;
+        if (letzte && letzte.classList.contains('ke-karte')) {
+          const reihe = el('div', 'ke-reihe');
+          wirt.insertBefore(reihe, letzte);
+          reihe.append(letzte, pinKnopf());
+        } else wirt.appendChild(pinKnopf());
+      }
       if (fokus) {
         const f = [...wirt.querySelectorAll('.ke-feld')].find((x) => x.dataset.option === fokus.option);
         if (f) { f.value = fokus.wert; f.focus(); }
