@@ -44,7 +44,8 @@
     function jetzt() { return Date.now(); }
     function skala() {
       if (!L || !L.w) return 1;
-      return Math.max(0.45, Math.min(1.5, Math.min(L.w, L.h) / 330));
+      // Nach der Hoehe wie Sakura-Ast/Wald (im grossen Teich waren die Fische winzig).
+      return Math.max(0.45, Math.min(2.2, Math.min(L.w * 1.3, L.h) / 430));
     }
     function farbe(f) { return f === null ? PARTIKEL : f; }
 

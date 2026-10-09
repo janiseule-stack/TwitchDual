@@ -266,6 +266,23 @@
     return aus;
   }
 
+  // Gefallene Blueten am Boden (Vordergrund fuer grosse Fenster, sonst
+  // bleibt die untere Haelfte leer). Unten dichter. o.pixel: als Pixel.
+  function bodenTeppich(g, w, h, farben, o) {
+    const opt = o || {};
+    const n = Math.round(w * (opt.pixel ? 0.3 : 0.11));
+    for (let i = 0; i < n; i++) {
+      const x = rnd(0, w);
+      const y = h * 0.8 + h * 0.2 * Math.sqrt(Math.random()) * 0.97;
+      g.fillStyle = farben[Math.floor(Math.random() * farben.length)];
+      g.globalAlpha = rnd(0.55, 0.9);
+      if (opt.pixel) { g.fillRect(Math.round(x), Math.round(y), Math.random() < 0.5 ? 2 : 1, 1); continue; }
+      g.save(); g.translate(x, y); g.rotate(rnd(0, TAU));
+      blattPfad(g, rnd(5, 9) * (opt.gross || 1)); g.fill();
+      g.restore();
+    }
+    g.globalAlpha = 1;
+  }
   function astLinien(g, seg, faktor, farbe, wackel) {
     g.strokeStyle = farbe; g.lineCap = 'round';
     for (const s of seg) {
@@ -340,7 +357,7 @@
     g.restore();
   }
 
-  const W = { TAU, rnd, leinwand, koernung, dichte, mitAlpha, stempel, blattPfad, bluetenPfad, baueAst, astLinien, grosseBluete, namensKarte };
+  const W = { TAU, rnd, leinwand, koernung, dichte, mitAlpha, stempel, blattPfad, bluetenPfad, baueAst, astLinien, grosseBluete, namensKarte, bodenTeppich };
 
   // =========================================================================
   const aquarell = {
@@ -753,6 +770,7 @@
   // Shoji: man sieht nur den Schatten des Zweigs (wiegt sich) und die
   // Schatten der fallenden Blaetter; das Holzgitter liegt ueber allem.
   const shoji = {
+    ohneTeppich: true, // nur Schatten auf Papier - kein Boden
     vonRechts: true,
     schrift: { font: '600 13px "Yu Mincho", Georgia, serif', fontKlein: '11px Georgia, serif', farbe: '#a8433a', zweit: '#5a4632',
       kasten: 'rgba(250,243,228,.95)', rand: '#6b4e33', randBreite: 2, radius: 2 },

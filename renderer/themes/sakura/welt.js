@@ -84,6 +84,10 @@
     // Fester Zufall je Welt-Start: Ast/Steine bleiben beim Neuzeichnen nach
     // einer Groessenaenderung dieselben, nur in der neuen Groesse.
     const SAAT = Math.floor(Math.random() * 1e9);
+    // Bodenteppich aus gefallenen Blueten erst in hohen Fenstern (sonst ist
+    // unten ohnehin wenig Platz) und nicht bei Shoji (nur Schatten).
+    function teppich() { return !S.ohneTeppich && L.h > 600; }
+    function teppichFarben() { return S.blattFarben.map((f) => (f === null ? PARTIKEL : f)); }
     function baueHintergrund() { FxEngine.mitSaat(SAAT, baueHintergrundRoh); }
     function baueHintergrundRoh() {
       const d = L.dpr || 1;
@@ -93,6 +97,7 @@
         // Klein bauen, beim Zeichnen ohne Glaettung hochskalieren.
         const c = W.leinwand(L.w / S.pixel, L.h / S.pixel);
         S.hintergrund(c.getContext('2d'), c.width, c.height, A, W, Z);
+        if (teppich()) W.bodenTeppich(c.getContext('2d'), c.width, c.height, teppichFarben(), { pixel: true });
         bg = c;
         return;
       }
@@ -100,6 +105,7 @@
       const g = c.getContext('2d');
       g.setTransform(d, 0, 0, d, 0, 0);
       S.hintergrund(g, L.w, L.h, A, W, Z);
+      if (teppich()) W.bodenTeppich(g, L.w, L.h, teppichFarben(), { gross: skala() });
       if (S.koernung) { g.setTransform(1, 0, 0, 1, 0, 0); W.koernung(g, c.width, c.height, S.koernung); }
       bg = c;
     }

@@ -97,18 +97,19 @@
     g.globalAlpha = a; g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.globalAlpha = 1;
   }
   // Tanne mit gestuften Zweigen. x = Mitte, yb = Fuss, h = Hoehe, b = Breite.
+  // Stammstummel nur 3 % der Hoehe: laenger ragten sie als Pfosten aus dem Boden.
   function tannePfad(g, x, yb, h, b) {
     const pts = [], st = 5;
     for (let i = 1; i <= st; i++) {
-      const y = yb - h * 0.08 - h * 0.92 * (1 - i / st);
+      const y = yb - h * 0.03 - h * 0.97 * (1 - i / st);
       const ww = b / 2 * (0.28 + 0.72 * i / st);
       pts.push([ww, y]);
       if (i < st) pts.push([ww * 0.42, y - h * 0.015]);
     }
     g.beginPath(); g.moveTo(x, yb - h);
     for (const p of pts) g.lineTo(x + p[0], p[1]);
-    g.lineTo(x + b * 0.05, yb - h * 0.08); g.lineTo(x + b * 0.05, yb);
-    g.lineTo(x - b * 0.05, yb); g.lineTo(x - b * 0.05, yb - h * 0.08);
+    g.lineTo(x + b * 0.05, yb - h * 0.03); g.lineTo(x + b * 0.05, yb);
+    g.lineTo(x - b * 0.05, yb); g.lineTo(x - b * 0.05, yb - h * 0.03);
     for (let m = pts.length - 1; m >= 0; m--) g.lineTo(x - pts[m][0], pts[m][1]);
     g.closePath();
   }
@@ -121,13 +122,21 @@
     }
     return r;
   }
+  // Welliger Boden ab fussY: verschluckt die Stammstummel (ein gerader Rand
+  // mit Stummeln darauf sah wie eine Reihe Bretter aus).
+  function bodenWelle(g, w, h, fussY) {
+    const ph = srnd(0, 6.3);
+    g.beginPath(); g.moveTo(0, h);
+    for (let x = 0; x <= w + 20; x += 20) g.lineTo(x, fussY - 6 - Math.sin(x * 0.012 + ph) * 5 - Math.sin(x * 0.031 + ph * 2) * 3);
+    g.lineTo(w, h); g.closePath(); g.fill();
+  }
   function waldLagen(g, w, h, lagen) {
     for (let l = 0; l < lagen.length; l++) {
       const [farbe, fuss, hoehe] = lagen[l];
       const baeume = reihe(w, fuss, 7 - l, h * hoehe * 0.7, h * hoehe);
       g.fillStyle = farbe;
       for (const B of baeume) { tannePfad(g, B.x, B.yb, B.h, B.b); g.fill(); }
-      g.fillRect(0, fuss - 2, w, h - fuss + 2);
+      bodenWelle(g, w, h, fuss);
     }
   }
   function nachtHimmel(g, w, h, oben, mitte, unten, sterne) {
@@ -187,7 +196,8 @@
       const tupfer = ['#9cc3c9', '#c9b8d8', '#b9d3b0', '#d8cfe6'];
       const n = Math.round(46 * dichte(w, h));
       for (let i = 0; i < n; i++) glueh(g, srnd(0, w), srnd(0, h), srnd(30, 90), tupfer[i % 4], 0.22);
-      const lagen = [['#a8c4c6', 0.5, h * 0.62, 0.32], ['#7fa59b', 0.62, h * 0.74, 0.42], ['#4f7a68', 0.78, h * 0.9, 0.62]];
+      // Deckkraft hoeher als frueher (wirkte zu blass).
+      const lagen = [['#a2c0c2', 0.62, h * 0.62, 0.32], ['#73998f', 0.78, h * 0.74, 0.42], ['#43705d', 0.95, h * 0.9, 0.62]];
       for (let l = 0; l < lagen.length; l++) {
         const [farbe, deck, fuss, hoehe] = lagen[l];
         for (const B of reihe(w, fuss, 7 - l, h * hoehe * 0.7, h * hoehe)) {
@@ -196,7 +206,7 @@
             tannePfad(g, B.x + srnd(-2.5, 2.5), B.yb + srnd(-2, 2), B.h * srnd(0.97, 1.03), B.b); g.fill();
           }
         }
-        g.globalAlpha = 0.35; g.fillStyle = farbe; g.fillRect(0, fuss - 2, w, h - fuss + 2);
+        g.globalAlpha = 0.45; g.fillStyle = farbe; bodenWelle(g, w, h, fuss);
       }
       g.globalAlpha = 1;
     },
@@ -367,11 +377,29 @@
       gr.addColorStop(0, '#07131c'); gr.addColorStop(0.6, '#0d222b'); gr.addColorStop(1, '#081418');
       g.fillStyle = gr; g.fillRect(0, 0, w, h);
       const farben = ['#0f2a33', '#0b2028', '#061219'];
+      const vorn = [];
       for (let l = 0; l < 3; l++) {
         const n = Math.max(2, Math.round((6 - l) * Math.max(0.7, w / 300)));
         for (let i = 0; i < n; i++) {
           const x = srnd(-10, w + 10), b = srnd(10, 22) * (1 + l * 0.6);
           g.fillStyle = farben[l]; g.beginPath(); g.moveTo(x - b / 2, h); g.lineTo(x - b * 0.32, -10); g.lineTo(x + b * 0.32, -10); g.lineTo(x + b / 2, h); g.closePath(); g.fill();
+          if (l === 2) vorn.push({ x, b });
+        }
+      }
+      // Leuchtende Baumpilze an den vorderen Staemmen (Mitte war sonst leer).
+      for (const st of vorn) {
+        const k = Math.floor(srnd(0, 3.2));
+        for (let j = 0; j < k; j++) {
+          const y = h * srnd(0.3, 0.62), seite = srnd(0, 1) < 0.5 ? -1 : 1;
+          const bx = st.x + seite * st.b * (0.32 + (y / h) * 0.18), r = srnd(5, 10);
+          const blau = srnd(0, 1) < 0.7;
+          const glow = g.createRadialGradient(bx, y, 1, bx, y, r * 3);
+          glow.addColorStop(0, blau ? 'rgba(110,240,255,.28)' : 'rgba(200,140,255,.28)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = glow; g.fillRect(bx - r * 3, y - r * 3, r * 6, r * 6);
+          g.fillStyle = blau ? '#6fe6f0' : '#c49cff';
+          for (let s2 = 0; s2 < 2; s2++) {
+            g.beginPath(); g.ellipse(bx + seite * r * 0.5, y + s2 * r * 0.9, r * (1 - s2 * 0.3), r * 0.35, 0, Math.PI, 0, seite < 0); g.fill();
+          }
         }
       }
       g.fillStyle = '#05100f'; g.beginPath(); g.moveTo(0, h * 0.7);

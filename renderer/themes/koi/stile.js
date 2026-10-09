@@ -374,8 +374,10 @@
       // Voronoi-Scherben mit Bleifassung in voller Aufloesung. Die Punkte
       // liegen auf einem verwackelten Raster - pro Pixel reichen so die 3x3
       // Nachbarzellen (sonst waeren grosse Fenster zu langsam).
-      const Z = 64, BW = Math.ceil(w), BH = Math.ceil(h), ZX = Math.ceil(BW / Z) + 2, ZY = Math.ceil(BH / Z) + 2;
-      const palette = [[40, 90, 150], [30, 120, 140], [50, 70, 130], [25, 105, 110], [70, 60, 140], [35, 140, 160], [20, 80, 120]];
+      // Groessere Scherben, enger beieinander liegende Farben: das Muster war
+      // so unruhig, dass man die Fische kaum sah.
+      const Z = 92, BW = Math.ceil(w), BH = Math.ceil(h), ZX = Math.ceil(BW / Z) + 2, ZY = Math.ceil(BH / Z) + 2;
+      const palette = [[38, 92, 140], [32, 108, 136], [44, 84, 132], [30, 100, 120], [48, 78, 136], [36, 116, 144]];
       const raster = [];
       for (let zy = 0; zy < ZY; zy++) for (let zx = 0; zx < ZX; zx++) {
         raster.push([(zx - 1 + rnd(0.1, 0.9)) * Z, (zy - 1 + rnd(0.1, 0.9)) * Z,
