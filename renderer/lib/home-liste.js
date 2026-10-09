@@ -28,7 +28,9 @@
     return [...rest.slice(0, i), exakt, ...rest.slice(i)];
   }
 
-  function abschnitte({ kanaele = [], nadel = '', twitch = [], exakt = null, zu = {} } = {}) {
+  // twitchFuer: Suchtext, zu dem twitch/exakt gehoeren. Passt er nicht zum
+  // aktuellen (weitergetippt, Anfrage gescheitert), gibt es keinen Twitch-Abschnitt.
+  function abschnitte({ kanaele = [], nadel = '', twitch = [], exakt = null, twitchFuer, zu = {} } = {}) {
     const n = String(nadel || '').trim().toLowerCase().replace(/^#/, '');
     const eigene = kanaele.filter((k) => passt(k, n));
     const gruppen = {
@@ -38,7 +40,7 @@
       offline: [...eigene.filter((k) => k.favorit && !k.live), ...eigene.filter((k) => !k.favorit && !k.live)],
       twitch: []
     };
-    if (n.length >= MIN_TWITCH) {
+    if (n.length >= MIN_TWITCH && (twitchFuer === undefined || twitchFuer === n)) {
       const bekannt = new Set(kanaele.map((k) => k.login));
       const neu = (twitch || []).filter((k) => !bekannt.has(k.login));
       const ex = exakt && !bekannt.has(exakt.login) ? exakt : null;
@@ -73,5 +75,11 @@
     return { start: () => ++nr, aktuell: (n) => n === nr };
   }
 
-  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, createLaufnummer };
+  // Stern-Klicks, die waehrend einer Ladung passierten, auf deren Ergebnis
+  // nachholen (Main las die Favoriten evtl. noch vor dem Klick).
+  function sterneNachholen(kanaele, sterne) {
+    return (sterne || []).reduce((liste, s) => sternAnwenden(liste, s.ch, s.favoriten), kanaele);
+  }
+
+  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, sterneNachholen, createLaufnummer };
 });

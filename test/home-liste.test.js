@@ -95,3 +95,18 @@ test('nur Offline-Favoriten: kein Favoriten-Abschnitt, sie fuehren Offline an', 
   assert.deepEqual(r.abschnitte.map((a) => a.art), ['offline']);
   assert.deepEqual(r.abschnitte[0].kanaele.map((x) => x.login), ['a', 'b']);
 });
+
+test('Twitch-Treffer gelten nur fuer den Suchtext, zu dem sie gehoeren', () => {
+  const twitch = [k('fremd', { gefolgt: undefined })];
+  const alt = L.abschnitte({ kanaele, nadel: 'ab', twitch, twitchFuer: 'fr', zu: {} });
+  assert.equal(alt.abschnitte.some((a) => a.art === 'twitch'), false);
+  const passend = L.abschnitte({ kanaele, nadel: 'fr', twitch, twitchFuer: 'fr', zu: {} });
+  assert.equal(passend.abschnitte.some((a) => a.art === 'twitch'), true);
+});
+
+test('sterneNachholen: Stern-Klicks waehrend des Ladens gehen nicht verloren', () => {
+  const geladen = [k('gefolgtaus')]; // Main las die Favoriten vor dem Klick
+  const r = L.sterneNachholen(geladen, [{ ch: k('fremd', { gefolgt: false }), favoriten: ['fremd'] }]);
+  assert.deepEqual(r.map((x) => [x.login, x.favorit]), [['gefolgtaus', false], ['fremd', true]]);
+  assert.deepEqual(L.sterneNachholen(geladen, []), geladen);
+});

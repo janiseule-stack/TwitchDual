@@ -23,7 +23,8 @@ try { abschnitteZu = HomeAbschnitte.lies(localStorage.getItem('homeAbschnitteZu'
 let kanaele = [];          // aus home-kanaele: Kanal + {favorit, gefolgt}
 let gefolgtFehler = null;
 let geladen = false;       // erster Stand da? (sonst Platzhalter)
-let twitch = { channels: [], exakt: null }; // letzte Twitch-Treffer zur Suche
+let twitch = { nadel: null, channels: [], exakt: null }; // letzte Twitch-Treffer + ihr Suchtext
+let sterneWaehrendLaden = []; // Stern-Klicks, die eine laufende Ladung noch nicht kennt
 let suchNr = 0;            // verwirft verspaetete Suchantworten
 let suchTimer = null;
 let refreshTimer = null;
@@ -76,11 +77,13 @@ function closeHomeResume() {
 async function ladeKanaele() {
   if (!geladen) zeichnePlatzhalter();
   const nr = ladeLauf.start();
+  sterneWaehrendLaden = []; // diese Ladung liest die aktuellen Favoriten
   let res;
   try { res = await window.twitchDual.homeKanaele(); } catch (e) { res = { ok: false, error: e.message || String(e) }; }
-  if (!ladeLauf.aktuell(nr)) return; // neuere Ladung oder Stern-Klick kam dazwischen
+  if (!ladeLauf.aktuell(nr)) return; // neuere Ladung kam dazwischen
   if (!res.ok) { gefolgtFehler = res.error || 'unbekannt'; geladen = true; renderHome(); return; }
-  kanaele = res.kanaele;
+  kanaele = HomeListe.sterneNachholen(res.kanaele, sterneWaehrendLaden);
+  sterneWaehrendLaden = [];
   gefolgtFehler = res.gefolgtFehler;
   geladen = true;
   renderHome();
@@ -102,7 +105,7 @@ function zeichnePlatzhalter() {
 }
 
 function renderHome() {
-  const r = HomeListe.abschnitte({ kanaele, nadel: nadel(), twitch: twitch.channels, exakt: twitch.exakt, zu: abschnitteZu });
+  const r = HomeListe.abschnitte({ kanaele, nadel: nadel(), twitch: twitch.channels, exakt: twitch.exakt, twitchFuer: twitch.nadel, zu: abschnitteZu });
   $liste.innerHTML = '';
   if (r.keineEigenen) $liste.appendChild(emptyMsg('Keine eigenen Kanäle passen.'));
   for (const a of r.abschnitte) $liste.appendChild(abschnittBox(a));
@@ -164,7 +167,7 @@ function sucheGetippt() {
     let res = null;
     try { res = await window.twitchDual.kanalSuche(n); } catch { /* still */ }
     if (nr !== suchNr || !res || !res.ok) return; // veraltet oder Fehler
-    twitch = { channels: res.channels || [], exakt: res.exakt || null };
+    twitch = { nadel: n, channels: res.channels || [], exakt: res.exakt || null };
     renderHome();
   }, 250);
 }
@@ -189,7 +192,7 @@ async function sternUmschalten(ch) {
     ? await window.twitchDual.removeFavorite(ch.login)
     : await window.twitchDual.addFavorite(ch.login);
   if (!r.ok) return;
-  ladeLauf.start(); // laufende Ladung kennt den neuen Stern noch nicht
+  sterneWaehrendLaden.push({ ch, favoriten: r.favorites }); // laufende Ladung holt ihn nach
   kanaele = HomeListe.sternAnwenden(kanaele, ch, r.favorites);
   renderHome();
 }
