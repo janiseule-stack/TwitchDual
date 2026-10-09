@@ -449,3 +449,20 @@ test('Sakura-Ast: deckt genug Flaeche ab, genug aber nicht zu viele Blueten', ()
     assert.ok(A.blueten.length <= 600, `${w}x${h} Saat ${saat}: ${A.blueten.length} Blueten sind zu viele`);
   });
 });
+
+test('Bodenteppich: gefallene Blueten nur im unteren Streifen, Menge nach Breite', () => {
+  const W = ladeSakuraStile();
+  const punkte = [];
+  let x = 0, y = 0;
+  const g = {
+    save() {}, restore() {}, rotate() {}, beginPath() {}, moveTo() {}, lineTo() {}, bezierCurveTo() {}, closePath() {}, fill() { punkte.push([x, y]); },
+    translate(a, b) { x = a; y = b; }, fillRect(a, b) { punkte.push([a, b]); }, set fillStyle(v) {}, set globalAlpha(v) {}
+  };
+  W.bodenTeppich(g, 1000, 800, ['#ffc4dd'], { gross: 1 });
+  assert.ok(punkte.length >= 80, 'genug Blueten: ' + punkte.length);
+  assert.ok(punkte.every(([, py]) => py >= 800 * 0.8 && py <= 800), 'nur unten');
+  const pix = [];
+  const gp = { ...g, fill() {}, fillRect(a, b) { pix.push([a, b]); } };
+  W.bodenTeppich(gp, 200, 300, ['#ffc4dd'], { pixel: true });
+  assert.ok(pix.length > 0 && pix.every(([, py]) => py >= 300 * 0.8), 'Pixel-Variante als Pixel');
+});
