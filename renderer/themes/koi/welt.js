@@ -61,8 +61,11 @@
       for (let k = 0; k < n; k++) f.flecken.push({ s: Math.floor(rnd(1, 9)), dx: rnd(-0.5, 0.5), r: rnd(0.55, 1.0) });
       return f;
     }
+    // Fischzahl nach Teichgroesse in Entwurfs-Proportionen (Hoehe ~470, wie
+    // Wald/Sakura) - vorher fest 5 x Stufe, im grossen Chat wirkte der Teich leer.
     function passeAnzahl() {
-      const ziel = Math.max(2, Math.round(5 * engine.faktor));
+      const m = Math.max(0.5, L.h / 470);
+      const ziel = Math.max(2, Math.min(18, Math.round(6 * Math.pow(W.dichte(L.w / m, L.h / m), 0.8) * engine.faktor)));
       while (fische.length < ziel) fische.push(neuerFisch(fische.length));
       if (fische.length > ziel) fische.length = ziel;
     }
@@ -75,8 +78,11 @@
       const rand = 12;
       const gruppen = [];
       const anzahlGruppen = Math.max(1, Math.round(n / 5));
+      // Gruppen ueber die ganze Breite verteilen (je eine Spalte), sonst
+      // ballten sie sich zufaellig in der Mitte.
+      const spalte = (L.w - 2 * rand) / anzahlGruppen;
       for (let k = 0; k < anzahlGruppen; k++) {
-        gruppen.push({ x: rnd(rand, L.w - rand), y: rnd(rand, L.h - rand), r: rnd(40, 90) * skala() });
+        gruppen.push({ x: rand + spalte * (k + rnd(0.15, 0.85)), y: rnd(rand, L.h - rand), r: rnd(40, 90) * skala() });
       }
       blaetter = [];
       for (let b = 0; b < n; b++) {

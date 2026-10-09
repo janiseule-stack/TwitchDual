@@ -60,13 +60,16 @@
       if (p.form === 'bluete') p.s *= 1.2; else if (p.form === 'yae') p.s *= 1.4;
       return p;
     }
+    // Menge in Entwurfs-Proportionen (Hoehe ~470, wie Wald und Koi), damit
+    // "viel" bei allen Themes aehnlich voll wirkt (Janis 09.10.2026).
     function zielAnzahl() {
-      const n = 18 * Math.pow(W.dichte(L.w, L.h), 0.8) * engine.faktor;
-      return Math.max(4, Math.min(55, Math.round(n)));
+      const m = Math.max(0.5, L.h / 470);
+      const n = 18 * Math.pow(W.dichte(L.w / m, L.h / m), 0.8) * engine.faktor;
+      return Math.max(4, Math.min(50, Math.round(n)));
     }
 
     function neuesBlatt(x, y, vx, vy) {
-      if (x === undefined && A.blueten.length && Math.random() < 0.6) {
+      if (x === undefined && A.blueten.length && Math.random() < 0.45) { // Rest ueber die ganze Breite
         const bl = A.blueten[Math.floor(Math.random() * A.blueten.length)];
         x = bl.x; y = bl.y;
       }

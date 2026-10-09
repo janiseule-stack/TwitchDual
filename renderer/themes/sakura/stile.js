@@ -132,7 +132,10 @@
 
   // Ast: verzweigte Linien von einer oberen Ecke. Groesse waechst mit der Flaeche.
   function baueAst(w, h, vonRechts) {
-    const sk = Math.max(0.8, Math.min(2, Math.min(w, h) / 420));
+    // Groesse an der Hoehe ausrichten (wie der Wald, Entwurf ~470 px hoch) -
+    // im schmalen hohen Chat war der Ast sonst ein Fitzel oben in der Ecke.
+    const sk = Math.max(0.8, Math.min(2.4, Math.min(w * 1.3, h) / 430));
+    const hoch = h / Math.max(1, w); // > 1.5 = schmaler, hoher Chat
     const aus = { seg: [], blueten: [], sk };
     const stellen = [];
     function zweig(x, y, a, len, br, tiefe) {
@@ -140,6 +143,8 @@
       let cx = x, cy = y, ca = a;
       for (let i = 0; i < n; i++) {
         ca += rnd(-0.28, 0.28);
+        // Nie ueber den oberen Rand: zeigt der Zweig dorthin, nach unten spiegeln.
+        if (cy + Math.sin(ca) * len / n < 8) ca = -ca;
         const nx = cx + Math.cos(ca) * len / n, ny = cy + Math.sin(ca) * len / n;
         const b = br * (1 - i / n * 0.6);
         aus.seg.push({ x1: cx, y1: cy, x2: nx, y2: ny, w: b });
@@ -153,13 +158,22 @@
     }
     // Unter den Leisten oben anfangen, sonst verschwindet der Ansatz.
     const y0 = Math.min(h * 0.35, Math.max(56, h * 0.1));
-    const len = Math.min(w * 0.95, 560 * sk);
-    if (vonRechts) zweig(w + 10, y0, Math.PI - 0.3, len, 13 * sk, 3);
-    else zweig(-10, y0, 0.3, len, 13 * sk, 3);
+    // Je hoeher das Fenster im Verhaeltnis, desto steiler haengt der Ast herab.
+    const winkel = hoch > 1.5 ? 0.85 : hoch > 1.05 ? 0.5 : 0.3;
+    const len = Math.min(Math.hypot(w, h) * 0.8, 560 * sk);
+    if (vonRechts) zweig(w + 10, y0, Math.PI - winkel, len, 13 * sk, 3);
+    else zweig(-10, y0, winkel, len, 13 * sk, 3);
     // Breite Fenster (Video): ein zweiter, kleinerer Zweig von der anderen Seite.
     if (w > h * 1.4) {
       if (vonRechts) zweig(-10, y0 * 1.3, 0.25, len * 0.65, 9 * sk, 2);
       else zweig(w + 10, y0 * 1.3, Math.PI - 0.25, len * 0.65, 9 * sk, 2);
+    }
+    // Schmale, hohe Chats: weiter unten ein zweiter Zweig von der anderen Seite,
+    // damit Blueten und fallende Blaetter nicht nur oben an einer Seite haengen.
+    if (hoch > 1.5) {
+      const y1 = y0 + h * 0.32;
+      if (vonRechts) zweig(-10, y1, winkel * 0.8, len * 0.6, 9 * sk, 2);
+      else zweig(w + 10, y1, Math.PI - winkel * 0.8, len * 0.6, 9 * sk, 2);
     }
     for (const s of stellen) {
       const k = 1 + Math.floor(Math.random() * 3);

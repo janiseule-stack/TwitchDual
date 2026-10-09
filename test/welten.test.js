@@ -362,3 +362,32 @@ test('wald: Gast schwebt ueber das Video und endet von selbst', () => {
     welt.stop();
   }
 });
+
+// --- Sakura-Ast passt sich der Fenstergroesse an (Janis 09.10.2026) -----------
+function ladeSakuraStile() {
+  global.window = global.window || {};
+  const datei = path.join(__dirname, '..', 'renderer', 'themes', 'sakura', 'stile.js');
+  delete require.cache[datei];
+  require(datei);
+  return global.window.SakuraStile.werkzeug;
+}
+
+test('Sakura-Ast: waechst nie ueber den oberen Rand hinaus', () => {
+  const W = ladeSakuraStile();
+  for (const [w, h] of [[340, 1000], [900, 1000], [1400, 900], [1397, 1332]]) {
+    for (let i = 0; i < 20; i++) {
+      const A = W.baueAst(w, h, i % 2 === 1);
+      for (const s of A.seg) assert.ok(Math.min(s.y1, s.y2) >= 0, `${w}x${h}: Segment bei y=${Math.min(s.y1, s.y2)}`);
+    }
+  }
+});
+
+test('Sakura-Ast: im schmalen hohen Chat reicht er ein gutes Stueck nach unten', () => {
+  const W = ladeSakuraStile();
+  let tief = 0;
+  for (let i = 0; i < 20; i++) {
+    const A = W.baueAst(340, 1000, false);
+    tief += Math.max(...A.seg.map((s) => Math.max(s.y1, s.y2))) / 1000;
+  }
+  assert.ok(tief / 20 > 0.4, 'im Schnitt tiefer als 40 % der Hoehe: ' + (tief / 20).toFixed(2));
+});
