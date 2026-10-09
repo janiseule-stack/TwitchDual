@@ -116,7 +116,7 @@ unter Node mit den echten Mitschnitten getestet.
 
 - **Pin-Leiste** ganz oben: eine Zeile (gekuerzt), Klick klappt den vollen
   Text auf; Links klickbar (oeffnen extern wie Chat-Links); „angeheftet von X";
-  ✕ blendet aus, bis eine andere Pin-ID kommt.
+  ✕ verkleinert zu einem 📌-Knopf (Klick holt die Leiste zurueck); eine andere Pin-ID erscheint wieder als Leiste.
 - **Ereignis-Karte** darunter (Umfrage und/oder Vorhersage, gestapelt):
   Titel, Countdown, je Option Balken mit Anteil (animierte Breite). Neues
   Ereignis klappt automatisch auf; Einklappen auf eine Zeile Titel+Countdown.

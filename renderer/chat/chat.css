@@ -663,6 +663,11 @@ button:focus-visible, input:focus-visible {
 .ke-link { color: var(--accent-title); }
 .ke-x { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; }
 .ke-x:hover { color: var(--text); }
+.ke-pin-knopf {
+  align-self: flex-end; background: var(--panel); border: 1px solid var(--accent-border); border-radius: 8px;
+  padding: 2px 8px; cursor: pointer; font-size: .9em; line-height: 1.4; opacity: .75;
+}
+.ke-pin-knopf:hover { opacity: 1; box-shadow: 0 0 10px var(--accent-glow); }
 .ke-karte { padding: 6px 8px 8px; }
 .ke-kopf { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; font-weight: 600; }
 .ke-titel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent-title); }

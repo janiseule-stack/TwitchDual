@@ -248,8 +248,15 @@
     };
   }
 
+  // Weggeklickter Pin bleibt als kleiner 📌-Knopf zurueckholbar; ein neuer
+  // Pin (andere ID) erscheint wieder als volle Leiste.
+  function pinAnzeige(pin, pinWeg) {
+    if (!pin) return null;
+    return pin.id === pinWeg ? 'knopf' : 'leiste';
+  }
+
   return {
     createZustand, createNeuaufbauSperre, MIN_EINSATZ, MAX_EINSATZ, CHIPS,
-    quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag
+    quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag, pinAnzeige
   };
 });

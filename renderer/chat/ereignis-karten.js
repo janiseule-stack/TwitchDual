@@ -7,7 +7,7 @@
   function create({ doc, wirt, KE, setzen, linkOeffnen, anmelden, effekt, jetzt = Date.now }) {
     let stand = null;
     let angemeldet = false;
-    let pinWeg = null;            // ID des weggeklickten Pins
+    let pinWeg = null;            // ID des weggeklickten Pins (dann nur 📌-Knopf)
     const eingeklappt = new Set(); // Karten-IDs, die der Nutzer zugeklappt hat
     const endeSeit = new Map();    // Karten-ID -> Zeitpunkt, ab dem sie beendet ist
     let pinOffen = false;
@@ -62,11 +62,20 @@
       if (pinOffen && p.angeheftetVon) t.appendChild(el('div', 'ke-pin-von', 'angeheftet von ' + p.angeheftetVon));
       b.appendChild(t);
       const x = el('button', 'ke-x', '✕');
-      x.title = 'Ausblenden';
+      x.title = 'Verkleinern (📌 holt sie zurück)';
       x.addEventListener('click', (ev) => { ev.stopPropagation(); pinWeg = p.id; zeichne(); });
       b.appendChild(x);
       b.addEventListener('click', () => { pinOffen = !pinOffen; zeichne(); });
       return b;
+    }
+
+    // Ausgeblendeter Pin: kleiner Knopf, Klick holt die Leiste zurueck.
+    function pinKnopf() {
+      const k = el('button', 'ke-pin-knopf', '📌');
+      k.type = 'button';
+      k.title = 'Angepinnte Nachricht wieder anzeigen';
+      k.addEventListener('click', () => { pinWeg = null; zeichne(); });
+      return k;
     }
 
     // bis: Zeitpunkt fuer den Countdown (ms) oder null fuer festen Text.
@@ -166,7 +175,9 @@
         ? { option: a.dataset.option, wert: a.value } : null;
       wirt.textContent = '';
       if (!stand) return;
-      if (stand.pin && stand.pin.id !== pinWeg) wirt.appendChild(pinLeiste(stand.pin));
+      const pinArt = KE.pinAnzeige(stand.pin, pinWeg);
+      if (pinArt === 'leiste') wirt.appendChild(pinLeiste(stand.pin));
+      if (pinArt === 'knopf') wirt.appendChild(pinKnopf());
       const u = stand.umfrage;
       if (sichtbar(u, u && u.status !== 'ACTIVE')) wirt.appendChild(umfrageKarte(u));
       const v = stand.vorhersage;

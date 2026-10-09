@@ -223,3 +223,10 @@ test('meineTipps aus dem Startzustand setzen meinTipp fuer die laufende Vorhersa
   ] }, T0, { erstes: true });
   assert.deepEqual(z.stand().meinTipp, { eventId: gesperrt.id, optionId: gesperrt.outcomes[1].id, punkte: 10500 });
 });
+
+test('pinAnzeige: Leiste, nach ✕ nur 📌-Knopf, neuer Pin wieder als Leiste', () => {
+  assert.equal(KE.pinAnzeige(null, null), null);
+  assert.equal(KE.pinAnzeige({ id: 'p1' }, null), 'leiste');
+  assert.equal(KE.pinAnzeige({ id: 'p1' }, 'p1'), 'knopf');
+  assert.equal(KE.pinAnzeige({ id: 'p2' }, 'p1'), 'leiste');
+});
