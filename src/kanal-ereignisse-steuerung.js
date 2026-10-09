@@ -166,4 +166,10 @@ function createSteuerung({
   };
 }
 
-module.exports = { createSteuerung };
+// Pins/Umfragen/Vorhersagen laufen nur bei Live-Kanal und geschlossenem
+// Home-Overlay (home-open stoppt sie; Web-Login darf sie nicht wieder starten).
+function sollLaufen({ login, channelID, homeOffen }) {
+  return !!login && !!channelID && !homeOffen;
+}
+
+module.exports = { createSteuerung, sollLaufen };

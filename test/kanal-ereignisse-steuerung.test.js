@@ -237,3 +237,11 @@ test('Rueckfall fragt nur Pin + Umfrage ab; Netzfehler laesst Karten stehen', as
   assert.ok(letzte.stand.pin, 'Pin bleibt trotz Netzfehler');
   assert.equal(letzte.stand.vorhersage.status, 'ACTIVE');
 });
+
+test('sollLaufen: nur mit Live-Kanal und geschlossenem Home', () => {
+  const { sollLaufen } = require('../src/kanal-ereignisse-steuerung');
+  assert.equal(sollLaufen({ login: 'x', channelID: '1', homeOffen: false }), true);
+  assert.equal(sollLaufen({ login: 'x', channelID: '1', homeOffen: true }), false);
+  assert.equal(sollLaufen({ login: null, channelID: '1', homeOffen: false }), false);
+  assert.equal(sollLaufen({ login: 'x', channelID: null, homeOffen: false }), false);
+});

@@ -545,7 +545,7 @@ function kisteEinloesen(channelID, claimID) {
 // Ablauf in src/kanal-ereignisse-steuerung.js; hier nur Electron-Anschluss.
 const { createKanalEreignisseApi } = require('./src/twitch-kanal-ereignisse');
 const { createHermes } = require('./src/hermes');
-const { createSteuerung } = require('./src/kanal-ereignisse-steuerung');
+const { createSteuerung, sollLaufen } = require('./src/kanal-ereignisse-steuerung');
 
 const kanalApi = createKanalEreignisseApi({});
 let currentLiveChannelId = null; // Twitch-ID zu currentLiveChannel
@@ -578,7 +578,10 @@ kanalSteuerung = createSteuerung({
 });
 
 function kanalEreignisseStarten() {
-  if (!currentLiveChannel || !currentLiveChannelId) { kanalSteuerung.aus(); return; }
+  if (!sollLaufen({ login: currentLiveChannel, channelID: currentLiveChannelId, homeOffen: punkteHomeOffen })) {
+    kanalSteuerung.aus();
+    return;
+  }
   kanalSteuerung.kanalGeladen({ login: currentLiveChannel, channelID: currentLiveChannelId })
     .catch((e) => kanalDiag('start-fehler', { fehler: [e.message] }));
 }
