@@ -104,6 +104,9 @@ if (!isTwitchFrame) {
     // bleibt im Main - hier gehen nur abgeleitete Werte durch (bool, Text,
     // Bilanz, Belohnungsliste).
     startWebLogin: () => ipcRenderer.invoke('web-login-start'),
+    anmelden: () => ipcRenderer.invoke('anmelden'),
+    abmelden: () => ipcRenderer.invoke('abmelden'),
+    onWebLoginGeaendert: (cb) => { ipcRenderer.on('web-login-geaendert', (_e, st) => cb(st)); },
     webLoginStatus: () => ipcRenderer.invoke('web-login-status'),
     webLogout: () => ipcRenderer.invoke('web-login-logout'),
     getRewards: () => ipcRenderer.invoke('points-rewards'),

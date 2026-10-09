@@ -405,7 +405,7 @@ ipcMain.handle('get-volume-guard-source', () => {
 // den Prozess. Siehe Praefungsschritt am Ende der Aufgabe.
 const createPointsApi = require('./src/twitch-points');
 const createPointsState = require('./renderer/lib/points-state');
-const { createWebAuthStore, oeffneLoginFenster } = require('./src/twitch-web-auth');
+const { createWebAuthStore, oeffneLoginFenster, oeffneAnmeldeFenster } = require('./src/twitch-web-auth');
 const { createIntegrityStore, ernteIntegrity } = require('./src/twitch-integrity');
 
 const pointsApi = createPointsApi({});
@@ -463,21 +463,27 @@ function punkteAbsage() {
   return null;
 }
 
+// Web-Token (Kanalpunkte) uebernehmen - aus dem Einzel- wie dem Gesamt-Login.
+function webLoginUebernehmen(token) {
+  webAuth.speichern(token);
+  webToken = token;
+  webTokenAbgelaufen = false;
+  diagLog.melde('punkte', 'anmeldung', { was: 'eingeloggt' });
+  // Takt frisch anlaufen lassen: nach einem abgelaufenen Token steht
+  // der Abstand sonst noch auf bis zu 5 Minuten und das Neuanmelden
+  // bliebe so lange ohne sichtbare Wirkung.
+  pointsState.zuruecksetzen();
+  meineWebId = null;
+  kanalEreignisseStarten(); // neu abonnieren: mit/ohne Nutzer-Themen
+  broadcast('web-login-geaendert', { angemeldet: true });
+}
+
 ipcMain.handle('web-login-start', () => new Promise((resolve) => {
   oeffneLoginFenster({
     BrowserWindow,
     onToken: async (token) => {
       try {
-        webAuth.speichern(token);
-        webToken = token;
-        webTokenAbgelaufen = false;
-        diagLog.melde('punkte', 'anmeldung', { was: 'eingeloggt' });
-        // Takt frisch anlaufen lassen: nach einem abgelaufenen Token steht
-        // der Abstand sonst noch auf bis zu 5 Minuten und das Neuanmelden
-        // bliebe so lange ohne sichtbare Wirkung.
-        pointsState.zuruecksetzen();
-        meineWebId = null;
-        kanalEreignisseStarten(); // neu abonnieren: mit/ohne Nutzer-Themen
+        webLoginUebernehmen(token);
         resolve({ ok: true });
       } catch (e) {
         resolve({ ok: false, error: e.message });
@@ -487,16 +493,37 @@ ipcMain.handle('web-login-start', () => new Promise((resolve) => {
   });
 }));
 
+// Ein Anmelden fuer beides (Janis 09.10.2026): Web-Login + Device Flow in
+// einem Fenster, nur die fehlenden Schritte.
+let anmeldeFenster = null;
+ipcMain.handle('anmelden', () => new Promise((resolve) => {
+  const brauchtWeb = !webTokenNutzbar();
+  const brauchtGeraet = !authManager.status().loggedIn;
+  if (!brauchtWeb && !brauchtGeraet) { resolve({ ok: true }); return; }
+  if (anmeldeFenster && !anmeldeFenster.isDestroyed()) { anmeldeFenster.focus(); resolve({ ok: false, error: 'Anmeldung läuft schon' }); return; }
+  anmeldeFenster = oeffneAnmeldeFenster({
+    BrowserWindow, brauchtWeb, brauchtGeraet,
+    onWebToken: (token) => { try { webLoginUebernehmen(token); } catch (e) { diagLog.melde('punkte', 'anmeldung', { fehler: e.message }); } },
+    starteGeraet: () => authManager.startDeviceFlow(),
+    istGeraetFertig: () => authManager.status().loggedIn,
+    onFertig: () => { anmeldeFenster = null; resolve({ ok: true }); },
+    onAbbruch: () => { anmeldeFenster = null; resolve({ ok: false, error: 'Anmeldung abgebrochen' }); }
+  });
+}));
+
 ipcMain.handle('web-login-status', () => ({ angemeldet: webTokenNutzbar() }));
-ipcMain.handle('web-login-logout', () => {
+function webLoginAbmelden() {
   webAuth.loeschen();
   webToken = null;
   meineWebId = null;
   kanalEreignisseStarten(); // neu abonnieren: mit/ohne Nutzer-Themen
   diagLog.melde('punkte', 'anmeldung', { was: 'abgemeldet' });
   webTokenAbgelaufen = false;
-  return { ok: true };
-});
+  broadcast('web-login-geaendert', { angemeldet: false });
+}
+ipcMain.handle('web-login-logout', () => { webLoginAbmelden(); return { ok: true }; });
+// Abmelden heisst: beide Logins weg.
+ipcMain.handle('abmelden', () => { authManager.logout(); webLoginAbmelden(); return { ok: true }; });
 
 ipcMain.handle('points-rewards', async () => {
   const absage = punkteAbsage();

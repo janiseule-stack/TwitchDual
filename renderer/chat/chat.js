@@ -1601,7 +1601,7 @@ function zeigeZuwachs(z) {
 }
 
 async function starteWebLogin() {
-  const r = await window.twitchDual.startWebLogin();
+  const r = await window.twitchDual.anmelden(); // ein Anmelden fuer Chat + Kanalpunkte
   if (!r.ok) {
     $pointsChip.classList.remove('hidden');
     $pointsChip.classList.add('err');
@@ -1746,7 +1746,7 @@ const ereignisKarten = EreignisKarten.create({
   KE: KanalEreignisse,
   setzen: (outcomeID, points) => window.twitchDual.vorhersageSetzen(outcomeID, points),
   linkOeffnen: (url) => window.twitchDual.linkOeffnen(url),
-  anmelden: () => window.twitchDual.startWebLogin(),
+  anmelden: () => window.twitchDual.anmelden(),
   effekt: (s) => {
     // Gewinn: grosser Effekt + "+X" am Chip ueber denselben Weg wie die Kiste.
     if (s.art === 'tipp-gewonnen') zeigeZuwachs({ quelle: 'kiste', betrag: s.betrag });

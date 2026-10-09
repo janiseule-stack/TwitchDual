@@ -67,4 +67,61 @@ function oeffneLoginFenster({ BrowserWindow, onToken, onAbbruch }) {
   return win;
 }
 
-module.exports = { tokenAusCookies, createWebAuthStore, oeffneLoginFenster };
+// Ein Fenster fuer beide Logins: erst twitch.tv/login (Web-Token fuer
+// Kanalpunkte), danach im selben, schon angemeldeten Fenster die
+// Aktivierungsseite des Device Flows mit vorausgefuelltem Code (Chat/Gefolgt)
+// -> nur noch "Aktivieren" + "Autorisieren" klicken. Fehlt nur ein Teil, nur
+// diesen Schritt. Ein Takt (1 s) prueft erst das Cookie, dann den Device Flow.
+function oeffneAnmeldeFenster({
+  BrowserWindow, brauchtWeb, brauchtGeraet, onWebToken, starteGeraet, istGeraetFertig,
+  onFertig, onAbbruch, setIntervalImpl = setInterval, clearIntervalImpl = clearInterval
+}) {
+  const { aktivierungsUrl } = require('../renderer/lib/anmeldung');
+  const win = new BrowserWindow({
+    width: 1000, height: 800, autoHideMenuBar: true,
+    webPreferences: { nodeIntegration: false, contextIsolation: true }
+  });
+  let fertig = false;
+  let phase = brauchtWeb ? 'web' : 'geraet-start';
+  let timer = null;
+
+  function ende() {
+    fertig = true;
+    if (timer !== null) { clearIntervalImpl(timer); timer = null; }
+    onFertig();
+    try { win.close(); } catch { /* schon zu */ }
+  }
+
+  async function geraetStarten() {
+    if (!brauchtGeraet) { ende(); return; }
+    phase = 'geraet-laeuft';
+    const d = await starteGeraet();
+    if (fertig) return;
+    try { win.setTitle('Twitch – Code ' + (d.user_code || '') + ' aktivieren'); } catch { /* egal */ }
+    win.loadURL(aktivierungsUrl(d));
+  }
+
+  async function takt() {
+    if (fertig) return;
+    if (phase === 'web') {
+      const cookies = await win.webContents.session.cookies.get({ domain: '.twitch.tv', name: 'auth-token' });
+      const token = tokenAusCookies(cookies);
+      if (!token) return;
+      onWebToken(token);
+      await geraetStarten();
+    } else if (phase === 'geraet-laeuft' && istGeraetFertig()) {
+      ende();
+    }
+  }
+
+  timer = setIntervalImpl(() => { takt().catch(() => {}); }, 1000);
+  win.on('closed', () => {
+    if (timer !== null) { clearIntervalImpl(timer); timer = null; }
+    if (!fertig && onAbbruch) onAbbruch();
+  });
+  if (brauchtWeb) win.loadURL('https://www.twitch.tv/login');
+  else geraetStarten().catch(() => {});
+  return win;
+}
+
+module.exports = { tokenAusCookies, createWebAuthStore, oeffneLoginFenster, oeffneAnmeldeFenster };

@@ -51,21 +51,12 @@
 #auth-login { background: var(--accent); color: var(--accent-contrast); font-weight: 600; }
 #auth-login:hover { filter: brightness(1.15); background: var(--accent); }
 #auth-login:disabled { opacity: .5; cursor: default; }
-#auth-code {
-  padding: 12px; text-align: center;
-  border-bottom: 1px solid var(--line); background: var(--panel);
-}
-#auth-code p { margin: 0 0 4px; font-size: 13px; color: var(--text); }
-#auth-code-val {
-  font: 700 22px/1.4 var(--mono); letter-spacing: 3px; margin: 6px 0; color: var(--accent-title);
-}
-.auth-code-actions { display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; }
-.auth-code-actions button {
-  padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
-  background: var(--hover); color: var(--text);
-}
-.auth-code-actions button:hover { background: var(--line); }
-#auth-wait { color: var(--muted); font-size: 12px; }
+/* Halb angemeldet (nur Chat oder nur Kanalpunkte): auffaellig, damit man
+   den zweiten Schritt nicht uebersieht. */
+#auth-bar.unvollstaendig { background: color-mix(in srgb, #ffb84d 14%, transparent); box-shadow: inset 0 0 0 1px rgba(255,184,77,.5); border-radius: 8px; }
+#auth-bar.unvollstaendig #auth-state { color: #ffcf7a; font-weight: 700; }
+#auth-bar.unvollstaendig #auth-login { animation: auth-puls 1.6s ease-in-out infinite; }
+@keyframes auth-puls { 50% { box-shadow: 0 0 0 4px rgba(255,184,77,.35); } }
 
 #home-kanaele, #home-vod-view {
   flex: 1; overflow-y: auto; padding: 12px;
