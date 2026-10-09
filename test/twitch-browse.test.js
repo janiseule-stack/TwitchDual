@@ -86,3 +86,23 @@ test('getLiveStatus: GQL-Fehler mit HTTP 200 (users null) -> error statt stumm o
   const r = await browse.getLiveStatus(['streamer', 'zweiter'], { fetchImpl, retries: 0 });
   assert.deepEqual(r.map((k) => k.error), [true, true]);
 });
+
+test('streamInfo live: Name, Titel, Spiel, Zuschauer, Startzeit, Avatar', async () => {
+  const fetchImpl = async (_u, init) => {
+    const { variables } = JSON.parse(init.body);
+    assert.equal(variables.login, 'streamer');
+    return { ok: true, status: 200, async json() { return { data: { user: { login: 'streamer', displayName: 'Streamer', profileImageURL: 'a.png',
+      stream: { title: 'Titel', viewersCount: 42, createdAt: '2026-10-09T18:00:00Z', game: { displayName: 'Spiel' } } } } }; } };
+  };
+  assert.deepEqual(await browse.streamInfo({ mode: 'live', wert: 'Streamer' }, { fetchImpl, retries: 0 }),
+    { art: 'live', name: 'Streamer', avatar: 'a.png', titel: 'Titel', spiel: 'Spiel', zuschauer: 42, start: '2026-10-09T18:00:00Z' });
+});
+
+test('streamInfo: offline, VOD, unbekannt', async () => {
+  const antwort = (data) => async () => ({ ok: true, status: 200, async json() { return { data }; } });
+  assert.deepEqual(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: { login: 'x', displayName: 'X', profileImageURL: null, stream: null } }), retries: 0 }),
+    { art: 'offline', name: 'X', avatar: null });
+  assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' } } }), retries: 0 }),
+    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z' });
+  assert.equal(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: null }), retries: 0 }), null);
+});

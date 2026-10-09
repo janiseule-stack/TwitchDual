@@ -86,6 +86,7 @@ if (!isTwitchFrame) {
     addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
     removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
     channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
+    streamInfo: (mode, wert) => ipcRenderer.invoke('stream-info', { mode, wert }),
 
     // Werbe-Status empfangen (Video-Fenster). Adblock ist immer an (kein Schalter).
     onAdblockState: (cb) => {

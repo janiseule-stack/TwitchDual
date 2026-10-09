@@ -1208,6 +1208,12 @@ ipcMain.handle('remove-favorite', (_evt, login) => {
   return { ok: true, favorites: favs };
 });
 
+// Infos zum laufenden Stream fuer die Leiste im Video-Fenster.
+ipcMain.handle('stream-info', async (_evt, quelle) => {
+  try { return { ok: true, info: await browse.streamInfo(quelle || {}) }; }
+  catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
 ipcMain.handle('channel-vods', async (_evt, args) => {
   try {
     const { login, limit } = args || {};

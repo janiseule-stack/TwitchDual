@@ -224,8 +224,7 @@ $channel.addEventListener('keydown', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key.toLowerCase() === 'l') {
     e.preventDefault();
-    $channel.focus();
-    $channel.select();
+    eingabeZeigen();
     return;
   }
   const t = e.target;
@@ -248,6 +247,8 @@ refreshHistory().then((prefs) => {
 
 // Broadcast von Main: beide Fenster laden denselben Channel/VOD.
 window.twitchDual.onLoad((payload) => {
+  infoQuelle = payload.mode === 'vod' ? { mode: 'vod', wert: payload.videoId } : { mode: 'live', wert: payload.channel };
+  infoLaden(true);
   onAirMode = payload.mode;
   onAirPlayerState = null;
   updateOnAir();
@@ -425,3 +426,67 @@ function updateOnAir() {
   const el = document.getElementById('oa-label');
   if (el) el.textContent = label ? ('● ' + label) : '';
 }
+
+
+// ---------------------------------------------------------------------------
+// Was laeuft gerade: Infos statt des Eingabefelds (Name · Titel, darunter
+// Spiel · Zuschauer · Laufzeit). Klick oder Strg+L -> Eingabefeld; Esc oder
+// Klick daneben -> wieder die Infos. Ohne Quelle/Infos bleibt das Feld.
+// ---------------------------------------------------------------------------
+const $streamInfo = document.getElementById('stream-info');
+const $siAvatar = document.getElementById('si-avatar');
+const $siOben = document.getElementById('si-oben');
+const $siUnten = document.getElementById('si-unten');
+let infoQuelle = null;   // { mode, wert } der geladenen Quelle
+let info = null;         // letzte Infos von Twitch
+let bearbeiten = false;  // Eingabefeld statt Infos
+let infoLauf = 0;        // verwirft verspaetete Antworten
+
+// neu = gerade eine Quelle geladen -> zurueck zu den Infos. Die Minuten-
+// Auffrischung laesst ein offenes Eingabefeld in Ruhe (man tippt evtl. gerade).
+async function infoLaden(neu) {
+  if (!infoQuelle) return;
+  const nr = ++infoLauf;
+  let r = null;
+  try { r = await window.twitchDual.streamInfo(infoQuelle.mode, infoQuelle.wert); } catch { /* still */ }
+  if (nr !== infoLauf) return;
+  info = r && r.ok ? r.info : null;
+  if (neu) bearbeiten = false;
+  infoZeigen();
+}
+
+function infoZeigen() {
+  const zeigen = !!info && !bearbeiten;
+  $streamInfo.classList.toggle('hidden', !zeigen);
+  $channel.classList.toggle('hidden', zeigen);
+  $load.classList.toggle('hidden', zeigen);
+  if (!zeigen) return;
+  const z = StreamInfo.zeilen(info, Date.now());
+  $siOben.textContent = z.oben;
+  $siUnten.textContent = z.unten;
+  $streamInfo.classList.toggle('live', z.live);
+  if (info.avatar) { $siAvatar.src = info.avatar; $siAvatar.style.visibility = ''; } else $siAvatar.style.visibility = 'hidden';
+}
+
+function eingabeZeigen() {
+  bearbeiten = true;
+  infoZeigen();
+  $channel.focus();
+  $channel.select();
+}
+
+function eingabeFertig() {
+  if (!info) return;
+  bearbeiten = false;
+  infoZeigen();
+}
+
+$streamInfo.addEventListener('click', eingabeZeigen);
+$channel.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); $channel.blur(); eingabeFertig(); } });
+// Klick daneben: zurueck zu den Infos - ausser es wird gerade "Laden" geklickt.
+$channel.addEventListener('blur', () => setTimeout(() => {
+  if (document.activeElement !== $load && document.activeElement !== $channel) eingabeFertig();
+}, 0));
+// Zuschauer/Titel jede Minute auffrischen, die Laufzeit jede halbe Minute.
+setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 60000);
+setInterval(() => { if (info && info.art === 'live' && !bearbeiten) infoZeigen(); }, 30000);

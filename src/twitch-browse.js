@@ -77,6 +77,32 @@ async function sucheVorschlaege(query, opts = {}) {
     });
 }
 
+// Infos fuer die Leiste im Video-Fenster (statt des Eingabefelds).
+const INFO_LIVE_QUERY =
+  `query($login:String!){ user(login:$login){ login displayName profileImageURL(width:70) ` +
+  `stream{ title viewersCount createdAt game{ displayName } } } }`;
+const INFO_VOD_QUERY =
+  `query($id:ID!){ video(id:$id){ title lengthSeconds createdAt game{ displayName } ` +
+  `owner{ displayName profileImageURL(width:70) } } }`;
+
+async function streamInfo({ mode, wert }, opts = {}) {
+  if (mode === 'vod') {
+    const data = await gql({ query: INFO_VOD_QUERY, variables: { id: String(wert) } }, opts);
+    const v = data && data.data && data.data.video;
+    if (!v) return null;
+    return { art: 'vod', name: (v.owner && v.owner.displayName) || '', avatar: (v.owner && v.owner.profileImageURL) || null,
+      titel: v.title || '', spiel: (v.game && v.game.displayName) || '', laenge: v.lengthSeconds || 0, datum: v.createdAt || null };
+  }
+  const login = String(wert || '').trim().toLowerCase();
+  const data = await gql({ query: INFO_LIVE_QUERY, variables: { login } }, opts);
+  const u = data && data.data && data.data.user;
+  if (!u) return null;
+  const name = u.displayName || u.login;
+  if (!u.stream) return { art: 'offline', name, avatar: u.profileImageURL || null };
+  return { art: 'live', name, avatar: u.profileImageURL || null, titel: u.stream.title || '',
+    spiel: (u.stream.game && u.stream.game.displayName) || '', zuschauer: u.stream.viewersCount || 0, start: u.stream.createdAt || null };
+}
+
 const VODS_QUERY =
   `query($login:String!,$n:Int!){ user(login:$login){ videos(first:$n,type:ARCHIVE,sort:TIME){ ` +
   `edges{ node{ id title lengthSeconds publishedAt viewCount ` +
@@ -91,4 +117,4 @@ async function getChannelVods(login, limit = 20, opts = {}) {
   return edges.map((e) => mapVod(e.node)).filter(Boolean);
 }
 
-module.exports = { getLiveStatus, findChannel, sucheVorschlaege, getChannelVods };
+module.exports = { getLiveStatus, findChannel, sucheVorschlaege, streamInfo, getChannelVods };
