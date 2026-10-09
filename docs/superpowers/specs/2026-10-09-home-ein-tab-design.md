@@ -27,9 +27,10 @@ sind ein Stern an jeder Karte und stehen ganz oben.
 
 1. **Suchfeld** (`#home-suche`) mit ⟳ daneben. Fokus beim Öffnen von Home.
    Filtert über Name, Spiel und Titel (bestehendes `matchesFilter`).
-2. **★ Favoriten**: Stern-Kanäle; live als Vorschau-Karten, offline kompakt.
+2. **★ Favoriten**: Stern-Kanäle, die live sind (Vorschau-Karten).
 3. **Live**: gefolgte Kanäle, die gerade live sind, ohne Stern-Kanäle.
-4. **Offline**: übrige gefolgte Kanäle, alphabetisch.
+4. **Offline**: zuerst offline Stern-Kanäle, dann übrige gefolgte, jeweils alphabetisch
+   (Janis 09.10.2026: offline Favoriten gehören unter Live).
 5. **Auf Twitch**: nur bei mindestens 2 Zeichen Suchtext. Twitch-Vorschläge
    (`browse.sucheVorschlaege`) und ein exakter Login-Treffer (`browse.findChannel`),
    ohne Kanäle, die schon in 2–4 stehen. Kompakte Karten, ✓ bei verifizierten,

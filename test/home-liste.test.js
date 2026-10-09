@@ -13,9 +13,10 @@ const kanaele = [
 test('ohne Suche: Favoriten, Live, Offline; kein Twitch', () => {
   const r = L.abschnitte({ kanaele, nadel: '', twitch: [k('fremd')], zu: {} });
   assert.deepEqual(r.abschnitte.map((a) => a.art), ['favoriten', 'live', 'offline']);
-  assert.deepEqual(r.abschnitte[0].kanaele.map((x) => x.login), ['favlive', 'favaus']);
+  assert.deepEqual(r.abschnitte[0].kanaele.map((x) => x.login), ['favlive']);
   assert.deepEqual(r.abschnitte[1].kanaele.map((x) => x.login), ['gefolgtlive']);
-  assert.deepEqual(r.abschnitte[2].kanaele.map((x) => x.login), ['gefolgtaus']);
+  // Offline-Favoriten nicht oben, sondern zuerst im Offline-Abschnitt.
+  assert.deepEqual(r.abschnitte[2].kanaele.map((x) => x.login), ['favaus', 'gefolgtaus']);
   assert.equal(r.keineEigenen, false);
   assert.equal(r.abschnitte[0].titel, '★ Favoriten');
 });
@@ -87,4 +88,10 @@ test('createLaufnummer: nur die zuletzt gestartete Ladung ist aktuell', () => {
   assert.equal(lauf.aktuell(neu), true);
   lauf.start(); // z. B. Stern-Klick entwertet laufende Ladungen
   assert.equal(lauf.aktuell(neu), false);
+});
+
+test('nur Offline-Favoriten: kein Favoriten-Abschnitt, sie fuehren Offline an', () => {
+  const r = L.abschnitte({ kanaele: [k('b'), k('a', { favorit: true })], nadel: '', zu: {} });
+  assert.deepEqual(r.abschnitte.map((a) => a.art), ['offline']);
+  assert.deepEqual(r.abschnitte[0].kanaele.map((x) => x.login), ['a', 'b']);
 });

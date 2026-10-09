@@ -32,9 +32,10 @@
     const n = String(nadel || '').trim().toLowerCase().replace(/^#/, '');
     const eigene = kanaele.filter((k) => passt(k, n));
     const gruppen = {
-      favoriten: eigene.filter((k) => k.favorit),
+      // Oben nur live Favoriten; offline Favoriten fuehren den Offline-Abschnitt an.
+      favoriten: eigene.filter((k) => k.favorit && k.live),
       live: eigene.filter((k) => !k.favorit && k.live),
-      offline: eigene.filter((k) => !k.favorit && !k.live),
+      offline: [...eigene.filter((k) => k.favorit && !k.live), ...eigene.filter((k) => !k.favorit && !k.live)],
       twitch: []
     };
     if (n.length >= MIN_TWITCH) {
