@@ -242,8 +242,8 @@
 :root[data-theme="wald"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
 
 :root[data-theme="wald"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
-:root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-fav-view,
-:root[data-theme="wald"] #home-vod-view, :root[data-theme="wald"] #followed-view { scrollbar-color: var(--accent-border) transparent; }
+:root[data-theme="wald"] #messages, :root[data-theme="wald"] #home-kanaele,
+:root[data-theme="wald"] #home-vod-view { scrollbar-color: var(--accent-border) transparent; }
 :root[data-theme="wald"] #emote-panel, :root[data-theme="wald"] #ac-bar { background: var(--balken); }
 
 :root[data-theme="wald"] #bar, :root[data-theme="wald"] #home-head, :root[data-theme="wald"] #head {
@@ -268,7 +268,7 @@
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
 :root[data-theme="wald"] #channel, :root[data-theme="wald"] #chat-input,
-:root[data-theme="wald"] #filter-input, :root[data-theme="wald"] #add-input {
+:root[data-theme="wald"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }
 :root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card,

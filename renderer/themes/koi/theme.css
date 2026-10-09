@@ -158,8 +158,8 @@
 :root[data-theme="koi"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
 
 :root[data-theme="koi"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
-:root[data-theme="koi"] #messages, :root[data-theme="koi"] #home-fav-view,
-:root[data-theme="koi"] #home-vod-view, :root[data-theme="koi"] #followed-view { scrollbar-color: var(--accent-border) transparent; }
+:root[data-theme="koi"] #messages, :root[data-theme="koi"] #home-kanaele,
+:root[data-theme="koi"] #home-vod-view { scrollbar-color: var(--accent-border) transparent; }
 :root[data-theme="koi"] #emote-panel, :root[data-theme="koi"] #ac-bar { background: var(--balken); }
 
 :root[data-theme="koi"] #bar, :root[data-theme="koi"] #home-head, :root[data-theme="koi"] #head {
@@ -184,7 +184,7 @@
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
 :root[data-theme="koi"] #channel, :root[data-theme="koi"] #chat-input,
-:root[data-theme="koi"] #filter-input, :root[data-theme="koi"] #add-input {
+:root[data-theme="koi"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card,

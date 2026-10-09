@@ -239,10 +239,7 @@
     <div class="theme-deko" aria-hidden="true"></div>
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
-      <button id="tab-followed" type="button" class="hidden">Gefolgt</button>
-      <button id="tab-favorites" type="button" class="hidden active">Favoriten</button>
-      <span id="home-title">Favoriten</span>
-      <button id="fav-tools-toggle" title="Suche & Hinzufügen ein-/ausblenden">🔍</button>
+      <span id="home-title">Home</span>
       <button id="home-close" title="Schließen">✕</button>
     </div>
 
@@ -261,36 +258,19 @@
       <span id="auth-wait">Warte auf Bestätigung …</span>
     </div>
 
-    <div id="home-fav-view">
-      <div id="add-row">
-        <input id="add-input" type="text" placeholder="Channel zu Favoriten hinzufügen …" autocomplete="off" />
-        <button id="add-btn">+ Hinzufügen</button>
+    <div id="home-kanaele">
+      <div id="home-such-zeile">
+        <input id="home-suche" type="text" placeholder="Kanäle suchen (Name, Spiel, Titel) …" autocomplete="off" />
         <button id="refresh-btn" title="Aktualisieren">⟳</button>
       </div>
-      <div id="filter-row">
-        <input id="filter-input" type="text" placeholder="Favoriten durchsuchen (Name, Spiel, Titel) …" autocomplete="off" />
-      </div>
-      <div id="fav-list"></div>
-      <div id="fav-empty" class="empty hidden">
-        Noch keine Favoriten.<br /><br />
-        Oben einen Twitch-Channel-Namen eintragen und „+ Hinzufügen" drücken —
-        die Liste zeigt dann, wer gerade live ist, und führt zu den VODs.
-      </div>
-      <div id="fav-nomatch" class="empty hidden">Kein Favorit passt zum Filter.</div>
+      <div id="home-hinweis" class="empty hidden"></div>
+      <div id="home-liste"></div>
     </div>
 
     <div id="home-vod-view" class="hidden">
       <div id="vod-list"></div>
     </div>
 
-    <div id="followed-view" class="hidden">
-      <div id="followed-filter-row">
-        <input id="followed-filter" type="text" placeholder="Gefolgte durchsuchen (Name, Spiel, Titel) …" autocomplete="off" />
-      </div>
-      <div id="followed-list"></div>
-      <div id="followed-empty" class="empty hidden">Keine gefolgten Live-Channels.</div>
-      <div id="followed-nomatch" class="empty hidden">Kein gefolgter Channel passt zum Filter.</div>
-    </div>
     <div id="home-version"></div>
   </div>
 
@@ -302,6 +282,7 @@
   <script src="../lib/fx-engine.js"></script>
   <script src="../lib/theme-runtime.js"></script>
   <script src="../lib/home-abschnitte.js"></script>
+  <script src="../lib/home-liste.js"></script>
   <script src="video.js"></script>
   <script src="home.js"></script>
 </body>

@@ -242,8 +242,8 @@
 :root[data-theme="sakura"] #onair-bar { position: relative; z-index: 1; background: var(--balken); }
 
 :root[data-theme="sakura"] #messages::-webkit-scrollbar-thumb { background: var(--line); }
-:root[data-theme="sakura"] #messages, :root[data-theme="sakura"] #home-fav-view,
-:root[data-theme="sakura"] #home-vod-view, :root[data-theme="sakura"] #followed-view { scrollbar-color: var(--accent-border) transparent; }
+:root[data-theme="sakura"] #messages, :root[data-theme="sakura"] #home-kanaele,
+:root[data-theme="sakura"] #home-vod-view { scrollbar-color: var(--accent-border) transparent; }
 :root[data-theme="sakura"] #emote-panel, :root[data-theme="sakura"] #ac-bar { background: var(--balken); }
 
 :root[data-theme="sakura"] #bar, :root[data-theme="sakura"] #home-head, :root[data-theme="sakura"] #head {
@@ -268,7 +268,7 @@
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
 :root[data-theme="sakura"] #channel, :root[data-theme="sakura"] #chat-input,
-:root[data-theme="sakura"] #filter-input, :root[data-theme="sakura"] #add-input {
+:root[data-theme="sakura"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }
 :root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card,

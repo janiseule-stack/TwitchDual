@@ -1,4 +1,6 @@
-// Home-Overlay: Favoriten mit Live-Status + VOD-Browser.
+// Home-Overlay: eine Ansicht mit Suche, ★-Favoriten, gefolgten Kanaelen
+// (Live/Offline) und Twitch-Treffern beim Suchen + VOD-Browser.
+// Spec: docs/superpowers/specs/2026-10-09-home-ein-tab-design.md
 // Auswahl ruft window.twitchDual.submitLoad(...) auf -> laedt beide Fenster.
 
 const $home = document.getElementById('home');
@@ -6,168 +8,53 @@ const $homeBtn = document.getElementById('home-btn');
 const $homeClose = document.getElementById('home-close');
 const $homeBack = document.getElementById('home-back');
 const $homeTitle = document.getElementById('home-title');
-const $favView = document.getElementById('home-fav-view');
+const $kanaeleView = document.getElementById('home-kanaele');
 const $vodView = document.getElementById('home-vod-view');
-const $favList = document.getElementById('fav-list');
-const $favEmpty = document.getElementById('fav-empty');
 const $vodList = document.getElementById('vod-list');
-const $addInput = document.getElementById('add-input');
-const $addBtn = document.getElementById('add-btn');
+const $suche = document.getElementById('home-suche');
 const $refreshBtn = document.getElementById('refresh-btn');
-const $filterInput = document.getElementById('filter-input');
-const $favNoMatch = document.getElementById('fav-nomatch');
-const $favTools = document.getElementById('fav-tools-toggle');
-const $followedView = document.getElementById('followed-view');
-const $followedList = document.getElementById('followed-list');
-const $followedEmpty = document.getElementById('followed-empty');
-const $followedFilter = document.getElementById('followed-filter');
-const $followedNoMatch = document.getElementById('followed-nomatch');
-const $tabFollowed = document.getElementById('tab-followed');
-const $tabFavorites = document.getElementById('tab-favorites');
+const $hinweis = document.getElementById('home-hinweis');
+const $liste = document.getElementById('home-liste');
 
-// Suche/Hinzufuegen ein-/ausblendbar; Zustand bleibt ueber Sitzungen erhalten.
-let toolsCollapsed = true; // Default: eingeklappt; nur ein explizit gemerkter Zustand oeffnet wieder
-try {
-  const stored = localStorage.getItem('favToolsCollapsed');
-  if (stored != null) toolsCollapsed = stored === '1';
-} catch { /* egal */ }
-function applyToolsState() {
-  $favView.classList.toggle('tools-collapsed', toolsCollapsed);
-  $favTools.classList.toggle('active', toolsCollapsed);
-}
-
-// Live/Offline einklappbar (gilt fuer Favoriten UND Gefolgt), gemerkt.
+// Welche Abschnitte zu sind, gemerkt.
 let abschnitteZu = { ...HomeAbschnitte.STANDARD };
 try { abschnitteZu = HomeAbschnitte.lies(localStorage.getItem('homeAbschnitteZu')); } catch { /* egal */ }
 
-// Haengt pro nicht-leerem Abschnitt Kopf + Inhalt an $liste. Umschalten
-// toggelt nur Klassen (kein Neu-Rendern, Live-Vorschauen bleiben stehen).
-function renderAbschnitte($liste, kanaele, filterAktiv, opts) {
-  for (const a of HomeAbschnitte.teile(kanaele, abschnitteZu, filterAktiv)) {
-    const box = document.createElement('div');
-    box.className = 'home-abschnitt' + (a.offen ? '' : ' zu');
-    box.dataset.art = a.art;
-    const kopf = document.createElement('button');
-    kopf.type = 'button';
-    kopf.className = 'abschnitt-kopf';
-    const pfeil = document.createElement('span'); pfeil.className = 'abschnitt-pfeil'; pfeil.textContent = '▾';
-    const titel = document.createElement('span'); titel.textContent = a.titel;
-    const anzahl = document.createElement('span'); anzahl.className = 'abschnitt-anzahl'; anzahl.textContent = a.kanaele.length;
-    kopf.append(pfeil, titel, anzahl);
-    const inhalt = document.createElement('div');
-    inhalt.className = 'abschnitt-inhalt';
-    if (a.art === 'live') {
-      const grid = document.createElement('div');
-      grid.id = 'live-grid';
-      for (const ch of a.kanaele) grid.appendChild(buildLiveCard(ch, opts));
-      inhalt.appendChild(grid);
-    } else {
-      for (const ch of a.kanaele) inhalt.appendChild(buildFavCard(ch, opts));
-    }
-    kopf.addEventListener('click', () => {
-      abschnitteZu = HomeAbschnitte.umschalten(abschnitteZu, a.art);
-      try { localStorage.setItem('homeAbschnitteZu', JSON.stringify(abschnitteZu)); } catch { /* egal */ }
-      // Gleiche Art im anderen Tab mitziehen; in einer gefilterten Liste bleibt alles offen.
-      for (const b of document.querySelectorAll('.home-abschnitt[data-art="' + a.art + '"]')) {
-        const filter = b.closest('#followed-list') ? $followedFilter : $filterInput;
-        b.classList.toggle('zu', !(filter.value.trim() || !abschnitteZu[a.art]));
-      }
-    });
-    box.append(kopf, inhalt);
-    $liste.appendChild(box);
-  }
-}
-
+let kanaele = [];          // aus home-kanaele: Kanal + {favorit, gefolgt}
+let gefolgtFehler = null;
+let geladen = false;       // erster Stand da? (sonst Platzhalter)
+let twitch = { channels: [], exakt: null }; // letzte Twitch-Treffer zur Suche
+let suchNr = 0;            // verwirft verspaetete Suchantworten
+let suchTimer = null;
 let refreshTimer = null;
-let favorites = [];
-let lastChannels = []; // letzter Live-Status (sortiert vom Main-Prozess)
+let loggedIn = false;      // aus renderAuth (Login-Teil unten)
+
+function nadel() { return $suche.value.trim().toLowerCase().replace(/^#/, ''); }
 
 // --- Sichtbarkeit / Navigation --------------------------------------------
-let homeTab = 'favorites'; // zuletzt aktiver Tab -> beim erneuten Home-Oeffnen wiederherstellen
-
-function showFavView() {
-  homeTab = 'favorites';
+function showKanaeleView() {
   $vodView.classList.add('hidden');
-  $followedView.classList.add('hidden');
-  $favView.classList.remove('hidden');
+  $kanaeleView.classList.remove('hidden');
   $homeBack.classList.add('hidden');
-  $favTools.classList.remove('hidden'); // Umschalter nur bei Favoriten
-  $homeTitle.textContent = 'Favoriten';
-  $tabFavorites.classList.add('active');
-  $tabFollowed.classList.remove('active');
+  $homeTitle.textContent = 'Home';
 }
 
 function showVodView(login, displayName) {
-  $favView.classList.add('hidden');
-  $followedView.classList.add('hidden');
+  $kanaeleView.classList.add('hidden');
   $vodView.classList.remove('hidden');
   $homeBack.classList.remove('hidden');
-  $favTools.classList.add('hidden'); // in der VOD-Ansicht kein Suchfeld
   $homeTitle.textContent = 'VODs · ' + (displayName || login);
-}
-
-// --- Gefolgte Channels (Task 8) --------------------------------------------
-function showFollowedView() {
-  homeTab = 'followed';
-  $favView.classList.add('hidden');
-  $vodView.classList.add('hidden');
-  $followedView.classList.remove('hidden');
-  $homeBack.classList.add('hidden');
-  $favTools.classList.add('hidden'); // Gefolgt hat kein Such-/Hinzufuegen-Feld
-  $homeTitle.textContent = 'Gefolgt';
-  $tabFollowed.classList.add('active');
-  $tabFavorites.classList.remove('active');
-  $followedFilter.focus(); // direkt lostippen
-  refreshFollowed();
-}
-
-// Wird nach jeder Login-Statusaenderung aus renderAuth() aufgerufen (siehe unten).
-// Blendet die Tabs je nach Login-Status ein/aus und laedt bei Bedarf die Liste.
-async function refreshFollowed() {
-  $tabFollowed.classList.toggle('hidden', !loggedIn);
-  $tabFavorites.classList.toggle('hidden', !loggedIn);
-  if (!loggedIn) {
-    // Abmeldung waehrend die Gefolgt-Ansicht offen ist -> zurueck zu Favoriten.
-    if (!$followedView.classList.contains('hidden')) showFavView();
-    return;
-  }
-  if ($followedView.classList.contains('hidden')) return; // nur laden, wenn sichtbar
-  const res = await window.twitchDual.getFollowed();
-  if (!res.ok) {
-    $followedList.innerHTML = '';
-    $followedNoMatch.classList.add('hidden');
-    $followedEmpty.textContent = 'Fehler: ' + (res.error || 'unbekannt');
-    $followedEmpty.classList.remove('hidden');
-    return;
-  }
-  // getFollowed() liefert bereits sortiert: live nach Zuschauern, offline alphabetisch.
-  lastFollowed = res.channels;
-  $followedEmpty.textContent = 'Keine gefolgten Channels.';
-  $followedEmpty.classList.toggle('hidden', res.channels.length > 0);
-  renderFollowed();
-}
-
-let lastFollowed = [];
-function renderFollowed() {
-  const needle = $followedFilter.value.trim().toLowerCase();
-  const filtered = lastFollowed.filter((ch) => matchesFilter(ch, needle));
-  $followedList.innerHTML = '';
-  renderAbschnitte($followedList, filtered, !!needle, { showRemove: false });
-  $followedNoMatch.classList.toggle('hidden', !(lastFollowed.length && !filtered.length));
 }
 
 function openHome() {
   window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
-  // Zuletzt aktiven Tab wiederherstellen (Gefolgt nur wenn eingeloggt).
-  if (homeTab === 'followed' && loggedIn) showFollowedView();
-  else showFavView();
-  loadAndRefresh();
+  showKanaeleView();
+  $suche.focus(); // direkt lostippen
+  ladeKanaele();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
-      if (!$home.classList.contains('hidden') && !$favView.classList.contains('hidden')) {
-        refreshLive();
-      }
+      if (!$home.classList.contains('hidden') && !$kanaeleView.classList.contains('hidden')) ladeKanaele();
     }, 60000);
   }
 }
@@ -184,67 +71,140 @@ function closeHomeResume() {
   window.twitchDual.notifyHomeClose();
 }
 
-// --- Favoriten laden / anzeigen -------------------------------------------
-async function loadAndRefresh() {
-  favorites = await window.twitchDual.getFavorites();
-  renderFavoritesSkeleton();
-  await refreshLive();
+// --- Laden / Zeichnen -------------------------------------------------------
+async function ladeKanaele() {
+  if (!geladen) zeichnePlatzhalter();
+  let res;
+  try { res = await window.twitchDual.homeKanaele(); } catch (e) { res = { ok: false, error: e.message || String(e) }; }
+  if (!res.ok) { gefolgtFehler = res.error || 'unbekannt'; geladen = true; renderHome(); return; }
+  kanaele = res.kanaele;
+  gefolgtFehler = res.gefolgtFehler;
+  geladen = true;
+  renderHome();
 }
 
-function renderFavoritesSkeleton() {
-  $favList.innerHTML = '';
-  $favNoMatch.classList.add('hidden');
-  if (!favorites.length) {
-    lastChannels = [];
-    $favEmpty.classList.remove('hidden');
-    return;
+// Nur beim allerersten Laden schimmernde Platzhalter.
+function zeichnePlatzhalter() {
+  $liste.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.id = 'live-grid';
+  for (let i = 0; i < 3; i++) {
+    const sk = document.createElement('div');
+    sk.className = 'live-card skeleton';
+    sk.innerHTML = '<div class="lc-thumbwrap"></div><div class="lc-body">' +
+      '<div class="sk-line w60"></div></div>'; // statisches Markup, keine Fremddaten
+    grid.appendChild(sk);
   }
-  $favEmpty.classList.add('hidden');
-  // Nur beim allerersten Laden (noch kein Live-Status da) schimmernde
-  // Platzhalter zeigen; spaetere Refreshes ersetzen die Daten in place.
-  if (!lastChannels.length) {
+  $liste.appendChild(grid);
+}
+
+function renderHome() {
+  const r = HomeListe.abschnitte({ kanaele, nadel: nadel(), twitch: twitch.channels, exakt: twitch.exakt, zu: abschnitteZu });
+  $liste.innerHTML = '';
+  if (r.keineEigenen) $liste.appendChild(emptyMsg('Keine eigenen Kanäle passen.'));
+  for (const a of r.abschnitte) $liste.appendChild(abschnittBox(a));
+  renderHinweis();
+}
+
+function renderHinweis() {
+  let text = '';
+  if (gefolgtFehler) text = 'Gefolgte Kanäle nicht abrufbar: ' + gefolgtFehler;
+  else if (geladen && !loggedIn) text = 'Mit Twitch anmelden, um deine gefolgten Kanäle zu sehen.';
+  else if (geladen && !kanaele.length) text = 'Noch keine Kanäle – oben suchen und mit ☆ merken.';
+  $hinweis.textContent = text;
+  $hinweis.classList.toggle('hidden', !text);
+}
+
+// Kopf + Inhalt eines Abschnitts. Live-Kanaele (ausser bei „Auf Twitch“)
+// als Vorschau-Karten im Grid, der Rest kompakt.
+function abschnittBox(a) {
+  const box = document.createElement('div');
+  box.className = 'home-abschnitt' + (a.offen ? '' : ' zu');
+  box.dataset.art = a.art;
+  const kopf = document.createElement('button');
+  kopf.type = 'button';
+  kopf.className = 'abschnitt-kopf';
+  const pfeil = document.createElement('span'); pfeil.className = 'abschnitt-pfeil'; pfeil.textContent = '▾';
+  const titel = document.createElement('span'); titel.textContent = a.titel;
+  const anzahl = document.createElement('span'); anzahl.className = 'abschnitt-anzahl'; anzahl.textContent = a.kanaele.length;
+  kopf.append(pfeil, titel, anzahl);
+  const inhalt = document.createElement('div');
+  inhalt.className = 'abschnitt-inhalt';
+  const gross = a.art !== 'twitch';
+  const live = gross ? a.kanaele.filter((ch) => ch.live) : [];
+  if (live.length) {
     const grid = document.createElement('div');
     grid.id = 'live-grid';
-    const n = Math.min(favorites.length, 3);
-    for (let i = 0; i < n; i++) {
-      const sk = document.createElement('div');
-      sk.className = 'live-card skeleton';
-      sk.innerHTML = '<div class="lc-thumbwrap"></div><div class="lc-body">' +
-        '<div class="sk-line w60"></div></div>'; // statisches Markup, keine Fremddaten
-      grid.appendChild(sk);
-    }
-    $favList.appendChild(grid);
+    for (const ch of live) grid.appendChild(buildLiveCard(ch));
+    inhalt.appendChild(grid);
   }
+  for (const ch of a.kanaele) if (!live.includes(ch)) inhalt.appendChild(buildFavCard(ch));
+  // Umschalten toggelt nur die Klasse (Live-Vorschauen bleiben stehen).
+  kopf.addEventListener('click', () => {
+    abschnitteZu = HomeAbschnitte.umschalten(abschnitteZu, a.art);
+    try { localStorage.setItem('homeAbschnitteZu', JSON.stringify(abschnitteZu)); } catch { /* egal */ }
+    box.classList.toggle('zu', !(nadel() || !abschnitteZu[a.art]));
+  });
+  box.append(kopf, inhalt);
+  return box;
 }
 
-async function refreshLive() {
-  if (!favorites.length) return;
-  const res = await window.twitchDual.liveStatus(favorites);
-  if (!res.ok) return;
-  // Sortierung (live zuerst, dann Zuschauer) macht der Main-Prozess
-  // via browse-map.sortByLive - hier nur noch rendern.
-  lastChannels = res.channels;
-  renderFavorites();
+// --- Suche -------------------------------------------------------------------
+// Eigene Kanaele filtern sofort; Twitch-Treffer kommen entprellt nach.
+function sucheGetippt() {
+  renderHome();
+  clearTimeout(suchTimer);
+  const n = nadel();
+  const nr = ++suchNr;
+  if (n.length < HomeListe.MIN_TWITCH) return;
+  suchTimer = setTimeout(async () => {
+    let res = null;
+    try { res = await window.twitchDual.kanalSuche(n); } catch { /* still */ }
+    if (nr !== suchNr || !res || !res.ok) return; // veraltet oder Fehler
+    twitch = { channels: res.channels || [], exakt: res.exakt || null };
+    renderHome();
+  }, 250);
 }
 
-// Filter ueber Name, Spiel und Stream-Titel (case-insensitiv).
-function matchesFilter(ch, needle) {
-  if (!needle) return true;
-  const hay = `${ch.login} ${ch.displayName} ${ch.game || ''} ${ch.title || ''}`.toLowerCase();
-  return hay.includes(needle);
+// --- Stern ---------------------------------------------------------------------
+function sternKnopf(ch) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'stern' + (ch.favorit ? ' an' : '');
+  b.textContent = ch.favorit ? '★' : '☆';
+  b.title = ch.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten';
+  b.addEventListener('click', (e) => {
+    e.stopPropagation(); // nicht den Karten-Klick (Stream laden) ausloesen
+    sternUmschalten(ch);
+  });
+  return b;
 }
 
-function renderFavorites() {
-  const needle = $filterInput.value.trim().toLowerCase();
-  const filtered = lastChannels.filter((ch) => matchesFilter(ch, needle));
-  $favList.innerHTML = '';
-  // Live-Kanaele als grosse Vorschau-Karten im Grid, offline kompakt darunter,
-  // beide Abschnitte einklappbar.
-  renderAbschnitte($favList, filtered, !!needle);
-  $favNoMatch.classList.toggle('hidden', !(lastChannels.length && !filtered.length));
+// Ohne Netzabfrage: Flags lokal anpassen und neu zeichnen.
+async function sternUmschalten(ch) {
+  const r = ch.favorit
+    ? await window.twitchDual.removeFavorite(ch.login)
+    : await window.twitchDual.addFavorite(ch.login);
+  if (!r.ok) return;
+  kanaele = HomeListe.sternAnwenden(kanaele, ch, r.favorites);
+  renderHome();
 }
 
-function buildFavCard(ch, { showRemove = true } = {}) {
+// --- Karten ----------------------------------------------------------------------
+function nameMitHaken(ch) {
+  const s = document.createElement('span');
+  s.textContent = ch.displayName || ch.login;
+  if (ch.verifiziert) {
+    const h = document.createElement('span');
+    h.className = 'haken';
+    h.textContent = '✓';
+    h.title = 'Verifiziert';
+    s.appendChild(h);
+  }
+  return s;
+}
+
+function buildFavCard(ch) {
   const card = document.createElement('div');
   card.className = 'fav';
 
@@ -257,12 +217,9 @@ function buildFavCard(ch, { showRemove = true } = {}) {
 
   const info = document.createElement('div');
   info.className = 'info';
-
   const name = document.createElement('div');
   name.className = 'name';
-  const nameText = document.createElement('span');
-  nameText.textContent = ch.displayName || ch.login;
-  name.appendChild(nameText);
+  name.appendChild(nameMitHaken(ch));
   const badge = document.createElement('span');
   badge.className = 'badge' + (ch.live ? '' : ' off');
   badge.textContent = ch.live ? 'live' : 'offline';
@@ -284,7 +241,6 @@ function buildFavCard(ch, { showRemove = true } = {}) {
 
   const actions = document.createElement('div');
   actions.className = 'actions';
-
   const watch = document.createElement('button');
   watch.className = 'watch';
   watch.textContent = '▶ Live';
@@ -294,26 +250,12 @@ function buildFavCard(ch, { showRemove = true } = {}) {
     closeHome();
   });
   actions.appendChild(watch);
-
   const vods = document.createElement('button');
   vods.className = 'vods';
   vods.textContent = 'VODs';
   vods.addEventListener('click', () => openVods(ch.login, ch.displayName));
   actions.appendChild(vods);
-
-  if (showRemove) {
-    const remove = document.createElement('button');
-    remove.className = 'remove';
-    remove.textContent = '✕';
-    remove.title = 'Aus Favoriten entfernen';
-    remove.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const r = await window.twitchDual.removeFavorite(ch.login);
-      if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
-    });
-    actions.appendChild(remove);
-  }
-
+  actions.appendChild(sternKnopf(ch));
   card.appendChild(actions);
   return card;
 }
@@ -325,7 +267,7 @@ function previewUrl(login) {
   return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(login)}-440x248.jpg?t=${bust}`;
 }
 
-function buildLiveCard(ch, { showRemove = true } = {}) {
+function buildLiveCard(ch) {
   const card = document.createElement('div');
   card.className = 'live-card';
   card.title = 'Klick: Stream laden';
@@ -367,7 +309,7 @@ function buildLiveCard(ch, { showRemove = true } = {}) {
   info.className = 'lc-info';
   const name = document.createElement('div');
   name.className = 'lc-name';
-  name.textContent = ch.displayName || ch.login;
+  name.appendChild(nameMitHaken(ch));
   info.appendChild(name);
   const meta = document.createElement('div');
   meta.className = 'lc-meta';
@@ -386,33 +328,10 @@ function buildLiveCard(ch, { showRemove = true } = {}) {
     openVods(ch.login, ch.displayName);
   });
   actions.appendChild(vods);
-  if (showRemove) {
-    const remove = document.createElement('button');
-    remove.className = 'remove';
-    remove.textContent = '✕';
-    remove.title = 'Aus Favoriten entfernen';
-    remove.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const r = await window.twitchDual.removeFavorite(ch.login);
-      if (r.ok) { favorites = r.favorites; renderFavoritesSkeleton(); refreshLive(); }
-    });
-    actions.appendChild(remove);
-  }
+  actions.appendChild(sternKnopf(ch));
   card.appendChild(actions);
 
   return card;
-}
-
-// --- Favoriten hinzufuegen ------------------------------------------------
-async function doAdd() {
-  const name = $addInput.value.trim();
-  if (!name) return;
-  const r = await window.twitchDual.addFavorite(name);
-  if (!r.ok) { $addInput.placeholder = r.error; return; }
-  $addInput.value = '';
-  favorites = r.favorites;
-  renderFavoritesSkeleton();
-  refreshLive();
 }
 
 // --- VOD-Ansicht ----------------------------------------------------------
@@ -479,25 +398,14 @@ $homeBtn.addEventListener('click', () => {
   else closeHomeResume();
 });
 $homeClose.addEventListener('click', closeHomeResume);
-$homeBack.addEventListener('click', showFavView);
-$addBtn.addEventListener('click', doAdd);
-$addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
-$refreshBtn.addEventListener('click', refreshLive);
-$filterInput.addEventListener('input', renderFavorites);
-$followedFilter.addEventListener('input', renderFollowed);
-$tabFollowed.addEventListener('click', showFollowedView);
-$tabFavorites.addEventListener('click', showFavView);
-$favTools.addEventListener('click', () => {
-  toolsCollapsed = !toolsCollapsed;
-  try { localStorage.setItem('favToolsCollapsed', toolsCollapsed ? '1' : '0'); } catch { /* egal */ }
-  applyToolsState();
-});
-applyToolsState();
+$homeBack.addEventListener('click', showKanaeleView);
+$refreshBtn.addEventListener('click', ladeKanaele);
+$suche.addEventListener('input', sucheGetippt);
 
 // Esc schliesst das Overlay (bzw. fuehrt aus der VOD-Ansicht zurueck).
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || $home.classList.contains('hidden')) return;
-  if (!$vodView.classList.contains('hidden')) showFavView();
+  if (!$vodView.classList.contains('hidden')) showKanaeleView();
   else closeHomeResume();
 });
 
@@ -514,15 +422,20 @@ const $authCodeVal = document.getElementById('auth-code-val');
 const $authCopy = document.getElementById('auth-copy');
 const $authOpen = document.getElementById('auth-open');
 
-let loggedIn = false;
+let authBekannt = false; // erster Status kommt beim Start; openHome laedt da schon
 
 function renderAuth(st) {
+  const vorher = loggedIn;
   loggedIn = !!(st && st.loggedIn);
   $authState.textContent = loggedIn ? ('Angemeldet als ' + st.displayName) : 'Nicht angemeldet';
   $authLogin.classList.toggle('hidden', loggedIn);
   $authLogout.classList.toggle('hidden', !loggedIn);
   if (loggedIn) $authCode.classList.add('hidden');
-  if (typeof refreshFollowed === 'function') refreshFollowed(); // Task 8
+  // Anmelden/Abmelden aendert die gefolgten Kanaele -> neu laden, falls offen.
+  const wechsel = authBekannt && vorher !== loggedIn;
+  authBekannt = true;
+  if (wechsel && !$home.classList.contains('hidden')) ladeKanaele();
+  else if (geladen) renderHinweis();
 }
 
 window.twitchDual.authStatus().then(renderAuth).catch(() => {});
@@ -548,6 +461,6 @@ $authOpen.addEventListener('click', () => {
 });
 $authLogout.addEventListener('click', () => window.twitchDual.authLogout());
 
-// Beim Start Overlay zeigen, damit man gleich Favoriten sieht.
+// Beim Start Overlay zeigen, damit man gleich seine Kanaele sieht.
 // (Dieses Script laeuft am Ende von <body>, die Elemente existieren bereits.)
 openHome();
