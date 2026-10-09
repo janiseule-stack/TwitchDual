@@ -145,6 +145,7 @@
       transition: background-color 120ms ease, color 120ms ease;
     }
     #vollbild-btn:hover, #video-only-btn:hover { background: var(--hover); color: var(--text); }
+    #vollbild-btn.an, #video-only-btn.an { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: 0 0 10px var(--accent-border), inset 0 0 0 1px var(--accent-border); }
     /* Im Modus: alles ausser dem Player ausblenden. */
     body.video-only #bar,
     body.video-only #onair-bar { display: none; }

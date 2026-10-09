@@ -305,6 +305,12 @@ function showControlsBriefly() {
 
 document.getElementById('video-only-btn').addEventListener('click', enterVideoOnly);
 document.getElementById('vollbild-btn').addEventListener('click', () => window.twitchDual.layoutVollbild());
+// Aktiver Modus leuchtet (Main meldet 'vollbild' / 'nurvideo' / null).
+window.twitchDual.onLayoutModus((m) => {
+  const modus = m && m.modus;
+  document.getElementById('vollbild-btn').classList.toggle('an', modus === 'vollbild');
+  document.getElementById('video-only-btn').classList.toggle('an', modus === 'nurvideo');
+});
 $videoExit.addEventListener('click', leaveVideoOnly);
 // Doppelklick auf die Videoflaeche verlaesst den Modus ebenfalls.
 document.getElementById('player').addEventListener('dblclick', () => {

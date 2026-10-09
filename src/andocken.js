@@ -96,4 +96,23 @@ function nurVideo(wa) {
   };
 }
 
-module.exports = { SCHWELLE, KOMFORT, erkenneSeite, position, istGeloest, liesSeite, einpassen, vollbild, nurVideo };
+// Trennlinie zwischen Video und Chat (◫ bzw. Nur-Video): Video links bis zur
+// Linie, Chat rechts bis zum Bildschirmrand in voller Hoehe. Nur-Video bleibt
+// 16:9 und senkrecht mittig; passt das nicht in die Hoehe, rueckt die Linie.
+const MIN_TEILUNG = { video: 480, chat: 250 };
+function teile(wa, linie, modus) {
+  const R = wa.x + wa.width;
+  let x = Math.min(R - MIN_TEILUNG.chat, Math.max(wa.x + MIN_TEILUNG.video, Math.round(linie)));
+  let video;
+  if (modus === 'nurvideo') {
+    let vw = x - wa.x;
+    let vh = Math.round(vw * 9 / 16);
+    if (vh > wa.height) { vh = wa.height; vw = Math.round(vh * 16 / 9); x = wa.x + vw; }
+    video = { x: wa.x, y: wa.y + Math.floor((wa.height - vh) / 2), width: vw, height: vh };
+  } else {
+    video = { x: wa.x, y: wa.y, width: x - wa.x, height: wa.height };
+  }
+  return { video, chat: { x, y: wa.y, width: R - x, height: wa.height } };
+}
+
+module.exports = { SCHWELLE, KOMFORT, erkenneSeite, position, istGeloest, liesSeite, einpassen, vollbild, nurVideo, teile };

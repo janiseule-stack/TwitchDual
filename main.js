@@ -168,6 +168,25 @@ const Andocken = require('./src/andocken');
 let andockSeite = Andocken.liesSeite(store.get('chatAndocken'));
 let eigeneBewegungBis = 0; // eigene setBounds-Aufrufe loesen move-Events aus -> ignorieren
 
+// Aktive Bildschirm-Aufteilung: 'vollbild' (◫) oder 'nurvideo' (⛶), sonst null.
+// Das Video-Fenster laesst den passenden Knopf leuchten.
+let layoutModus = null;
+function setzeLayoutModus(modus) {
+  layoutModus = modus;
+  if (videoWin && !videoWin.isDestroyed()) videoWin.webContents.send('layout-modus', { modus });
+}
+
+// Trennlinie: der linke Rand des Chats. Waehrend des Ziehens folgt nur das
+// Video; beim Loslassen rastet der Chat am rechten Rand in voller Hoehe ein.
+function teilungAnwenden(fertig) {
+  if (!layoutModus || !videoWin || !chatWin || videoWin.isDestroyed() || chatWin.isDestroyed()) return;
+  const wa = screen.getDisplayMatching(videoWin.getBounds()).workArea;
+  const r = Andocken.teile(wa, chatWin.getBounds().x, layoutModus);
+  eigeneBewegungBis = Date.now() + 300;
+  videoWin.setBounds(r.video);
+  if (fertig) chatWin.setBounds(r.chat);
+}
+
 function andockenMoeglich() {
   return videoWin && chatWin && !videoWin.isDestroyed() && !chatWin.isDestroyed()
     && !videoWin.isMaximized() && !videoWin.isFullScreen() && !videoWin.isMinimized()
@@ -181,7 +200,7 @@ function setzeAndockSeite(seite) {
 }
 
 function chatNachziehen() {
-  if (!andockSeite || !andockenMoeglich()) return;
+  if (layoutModus || !andockSeite || !andockenMoeglich()) return;
   const soll = Andocken.position(videoWin.getBounds(), chatWin.getBounds(), andockSeite);
   eigeneBewegungBis = Date.now() + 200;
   chatWin.setBounds(soll);
@@ -189,7 +208,7 @@ function chatNachziehen() {
 
 // Video + Chat ganz auf den Monitor des Videos bringen (ruecken/verkleinern).
 function einpassen() {
-  if (!andockSeite || !andockenMoeglich()) return;
+  if (layoutModus || !andockSeite || !andockenMoeglich()) return;
   const vb = videoWin.getBounds();
   const wa = screen.getDisplayMatching(vb).workArea;
   const r = Andocken.einpassen(vb, chatWin.getBounds(), andockSeite, wa);
@@ -203,10 +222,21 @@ function andockenVerdrahten() {
   // (sonst kaempft die App gegen die Maus).
   for (const ev of ['move', 'resize']) videoWin.on(ev, chatNachziehen);
   for (const ev of ['moved', 'resized', 'restore', 'unmaximize', 'leave-full-screen']) {
-    videoWin.on(ev, () => { if (Date.now() >= eigeneBewegungBis) einpassen(); });
+    videoWin.on(ev, () => {
+      if (Date.now() < eigeneBewegungBis) return;
+      // Nutzer verschiebt das Video selbst -> ◫-Aufteilung ist vorbei.
+      if (layoutModus === 'vollbild') { vorVollbild = null; setzeLayoutModus(null); }
+      einpassen();
+    });
+  }
+  // Chat seitlich ziehen (Rand oder ganzes Fenster) = Trennlinie verschieben.
+  for (const ev of ['move', 'resize']) {
+    // Ohne Sperre: teile() ist bei gleicher Linie idempotent, eigene setBounds schaden nicht.
+    chatWin.on(ev, () => { if (layoutModus) teilungAnwenden(false); });
   }
   // Ende einer Nutzer-Bewegung am Chat: andocken, loesen oder zurueckschnappen.
   const chatLosgelassen = () => {
+    if (layoutModus) { teilungAnwenden(true); return; }
     if (Date.now() < eigeneBewegungBis || !andockenMoeglich()) return;
     const video = videoWin.getBounds();
     const chat = chatWin.getBounds();
@@ -236,6 +266,7 @@ ipcMain.on('layout-vollbild', () => {
     videoWin.setBounds(alt.video);
     chatWin.setBounds(alt.chat);
     setzeAndockSeite(alt.seite);
+    setzeLayoutModus(null);
     return;
   }
   if (videoWin.isFullScreen()) videoWin.setFullScreen(false);
@@ -246,6 +277,7 @@ ipcMain.on('layout-vollbild', () => {
   chatWin.setBounds(r.chat);
   if (chatWin.isMinimized()) chatWin.restore();
   setzeAndockSeite('rechts');
+  setzeLayoutModus('vollbild');
 });
 
 function broadcast(channel, payload) {
@@ -1041,6 +1073,7 @@ ipcMain.on('window-control', (evt, action) => {
       win.setContentSize(w, Math.round(w * 9 / 16)); // sofort auf 16:9, Breite behalten
     }
     win.setAspectRatio(16 / 9); // bleibt beim Resize 16:9 -> nie wieder Balken
+    if (win === videoWin) { preVideoOnlyBounds.set('modus', layoutModus); setzeLayoutModus('nurvideo'); }
   } else if (action === 'video-only-off') {
     win.setAspectRatio(0); // Seitenverhaeltnis-Sperre wieder loesen
     const b = preVideoOnlyBounds.get(win.id);
@@ -1049,6 +1082,7 @@ ipcMain.on('window-control', (evt, action) => {
     const c = preVideoOnlyBounds.get('chat');
     if (c && chatWin && !chatWin.isDestroyed()) chatWin.setBounds(c);
     preVideoOnlyBounds.delete('chat');
+    if (win === videoWin) { setzeLayoutModus(preVideoOnlyBounds.get('modus') || null); preVideoOnlyBounds.delete('modus'); }
   }
 });
 

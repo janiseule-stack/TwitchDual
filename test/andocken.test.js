@@ -109,3 +109,27 @@ test('nurVideo: Video 16:9 so gross wie moeglich, Chat fuellt den Rest daneben',
   assert.equal(breit.chat.width, 951);
   assert.equal(breit.video.x + breit.video.width, breit.chat.x);
 });
+
+test('teile: Trennlinie verschieben -> Video links bis zur Linie, Chat rechts bis zum Rand', () => {
+  const wa = { x: 0, y: 0, width: 1920, height: 1040 };
+  const v = D.teile(wa, 1400, 'vollbild');
+  assert.deepEqual(v.video, { x: 0, y: 0, width: 1400, height: 1040 });
+  assert.deepEqual(v.chat, { x: 1400, y: 0, width: 520, height: 1040 });
+  const n = D.teile(wa, 1400, 'nurvideo');
+  assert.deepEqual(n.video, { x: 0, y: 126, width: 1400, height: 788 });
+  assert.deepEqual(n.chat, { x: 1400, y: 0, width: 520, height: 1040 });
+});
+
+test('teile: Grenzen - Video mind. 480 breit, Chat mind. 250; Nur-Video nie hoeher als der Bildschirm', () => {
+  const wa = { x: 0, y: 0, width: 1920, height: 1040 };
+  assert.equal(D.teile(wa, 100, 'vollbild').video.width, 480);
+  assert.equal(D.teile(wa, 1900, 'vollbild').chat.width, 250);
+  // Breiter Monitor: 16:9 waere hoeher als der Bildschirm -> Hoehe begrenzt,
+  // der Chat bekommt den Rest
+  const breit = { x: 0, y: 0, width: 2560, height: 1000 };
+  const n = D.teile(breit, 2300, 'nurvideo');
+  assert.equal(n.video.height, 1000);
+  assert.equal(n.video.width, 1778);
+  assert.equal(n.chat.x, 1778);
+  assert.equal(n.chat.width, 782);
+});
