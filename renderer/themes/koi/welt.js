@@ -66,7 +66,10 @@
     // Wald/Sakura) - vorher fest 5 x Stufe, im grossen Chat wirkte der Teich leer.
     function passeAnzahl() {
       const m = Math.max(0.5, L.h / 470);
-      const ziel = Math.max(2, Math.min(18, Math.round(6 * Math.pow(W.dichte(L.w / m, L.h / m), 0.8) * engine.faktor)));
+      // Grundzahl 4, hoechstens 12; die Stufe zaehlt quadratisch-ish (f^1.5),
+      // damit "wenig" wirklich wenig ist - jeder Fisch kostet GPU (Janis 09.10.2026).
+      const f = Math.pow(engine.faktor, 1.5);
+      const ziel = Math.max(2, Math.min(12, Math.round(4 * Math.pow(W.dichte(L.w / m, L.h / m), 0.8) * f)));
       while (fische.length < ziel) fische.push(neuerFisch(fische.length));
       if (fische.length > ziel) fische.length = ziel;
     }
