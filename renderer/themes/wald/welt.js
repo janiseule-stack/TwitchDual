@@ -132,15 +132,22 @@
       S.fliege(g, 0, 0, a, FARBE, W);
       g.restore();
     }
+    // Hintergrund noch von der alten Groesse (Neubau erst nach BG_RUHE_MS):
+    // gleichmaessig skalieren + beschneiden statt verzerrt strecken.
+    function zeichneBg(g) {
+      const a = FxEngine.deckend(bg.width, bg.height, L.w, L.h);
+      g.drawImage(bg, a.sx, a.sy, a.sw, a.sh, 0, 0, L.w, L.h);
+    }
+
     function bild(k) {
       const g = L.ctx;
       if (S.pixel) {
         const vorher = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
-        g.drawImage(bg, 0, 0, L.w, L.h);
+        zeichneBg(g);
         g.imageSmoothingEnabled = vorher;
       } else {
-        g.drawImage(bg, 0, 0, L.w, L.h);
+        zeichneBg(g);
       }
       const m = massstab(), vw = L.w / m, vh = L.h / m;
       const mv = maus && uhr - maus.zeit < MAUS_ALT_MS ? { x: maus.x / m, y: maus.y / m } : null;

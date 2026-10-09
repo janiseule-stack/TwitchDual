@@ -99,7 +99,11 @@
       }
     }
 
-    function baueHintergrund() {
+    // Fester Zufall je Welt-Start: Ast/Steine bleiben beim Neuzeichnen nach
+    // einer Groessenaenderung dieselben, nur in der neuen Groesse.
+    const SAAT = Math.floor(Math.random() * 1e9);
+    function baueHintergrund() { FxEngine.mitSaat(SAAT, baueHintergrundRoh); }
+    function baueHintergrundRoh() {
       const d = L.dpr || 1;
       const c = W.leinwand(L.w * d, L.h * d);
       const g = c.getContext('2d');
@@ -213,9 +217,16 @@
       schwarm = schwarm.filter((f) => f.segs[f.segs.length - 1].x < L.w + 40);
     }
 
+    // Hintergrund noch von der alten Groesse (Neubau erst nach BG_RUHE_MS):
+    // gleichmaessig skalieren + beschneiden statt verzerrt strecken.
+    function zeichneBg(g) {
+      const a = FxEngine.deckend(bg.width, bg.height, L.w, L.h);
+      g.drawImage(bg, a.sx, a.sy, a.sw, a.sh, 0, 0, L.w, L.h);
+    }
+
     function bild(nun) {
       const g = L.ctx;
-      g.drawImage(bg, 0, 0, L.w, L.h);
+      zeichneBg(g);
       if (S.unter) S.unter(g, t, L.w, L.h, W, zustand);
       for (const f of fische) S.fisch(g, f, W);
       for (const f of schwarm) S.fisch(g, f, W);

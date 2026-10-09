@@ -192,5 +192,33 @@
     };
   }
 
-  return { createEngine, tr, rnd };
+  // Quell-Ausschnitt, um ein Bild (bw x bh) gleichmaessig skaliert in eine
+  // Flaeche (w x h) zu legen: fuellt sie ganz, beschneidet seitlich mittig bzw.
+  // unten (oben verankert - Himmel/Aeste bleiben). Fuer den Moment, in dem der
+  // Hintergrund noch zur alten Fenstergroesse passt: lieber beschneiden als
+  // verzerren (Janis 09.10.2026: Sakura "verzieht sich").
+  function deckend(bw, bh, w, h) {
+    const s = Math.max(w / bw, h / bh);
+    const sw = Math.round(w / s), sh = Math.round(h / s);
+    return { sx: Math.round((bw - sw) / 2), sy: 0, sw, sh };
+  }
+
+  // fn mit festem Zufall (gleiche Saat -> gleiche Zahlen) ausfuehren, z. B. den
+  // Hintergrund: so springt der Ast beim Neuzeichnen nach einer
+  // Groessenaenderung nicht in eine neue Form. Math.random wird danach
+  // immer wiederhergestellt.
+  function mitSaat(saat, fn) {
+    let a = saat >>> 0;
+    const echt = Math.random;
+    Math.random = () => { // mulberry32
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    try { return fn(); } finally { Math.random = echt; }
+  }
+
+  return { createEngine, tr, rnd, deckend, mitSaat };
 });

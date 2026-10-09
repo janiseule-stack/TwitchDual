@@ -78,7 +78,11 @@
       });
     }
 
-    function baueHintergrund() {
+    // Fester Zufall je Welt-Start: Ast/Steine bleiben beim Neuzeichnen nach
+    // einer Groessenaenderung dieselben, nur in der neuen Groesse.
+    const SAAT = Math.floor(Math.random() * 1e9);
+    function baueHintergrund() { FxEngine.mitSaat(SAAT, baueHintergrundRoh); }
+    function baueHintergrundRoh() {
       const d = L.dpr || 1;
       A = W.baueAst(L.w, L.h, !!S.vonRechts);
       Z.dpr = d;
@@ -161,15 +165,22 @@
       return true;
     }
 
+    // Hintergrund noch von der alten Groesse (Neubau erst nach BG_RUHE_MS):
+    // gleichmaessig skalieren + beschneiden statt verzerrt strecken.
+    function zeichneBg(g) {
+      const a = FxEngine.deckend(bg.width, bg.height, L.w, L.h);
+      g.drawImage(bg, a.sx, a.sy, a.sw, a.sh, 0, 0, L.w, L.h);
+    }
+
     function bild(nun) {
       const g = L.ctx;
       if (S.pixel) {
         const vorher = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
-        g.drawImage(bg, 0, 0, L.w, L.h);
+        zeichneBg(g);
         g.imageSmoothingEnabled = vorher;
       } else {
-        g.drawImage(bg, 0, 0, L.w, L.h);
+        zeichneBg(g);
       }
       if (S.unter) S.unter(g, t, L.w, L.h, W, Z);
       for (const p of blaetter) if (p.schwimmt) zeichneBlatt(g, p);

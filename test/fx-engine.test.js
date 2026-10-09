@@ -180,3 +180,26 @@ test('animiere: laeuft trotz Pause, endet bei false, stop bricht ab', () => {
   engine.stop();
   assert.equal(frames.size, 0, 'stop raeumt ab');
 });
+
+const FxEngine = require('../renderer/lib/fx-engine');
+
+test('deckend: altes Bild gleichmaessig skalieren und beschneiden statt verzerren', () => {
+  // Bild 1000x500 in Flaeche 500x500: Hoehe fuellt, Breite wird mittig beschnitten
+  assert.deepEqual(FxEngine.deckend(1000, 500, 500, 500), { sx: 250, sy: 0, sw: 500, sh: 500 });
+  // Bild 400x800 in Flaeche 400x400: oben verankert (Ast/Himmel bleiben sichtbar)
+  assert.deepEqual(FxEngine.deckend(400, 800, 400, 400), { sx: 0, sy: 0, sw: 400, sh: 400 });
+  // gleiches Seitenverhaeltnis -> ganzes Bild
+  assert.deepEqual(FxEngine.deckend(800, 400, 400, 200), { sx: 0, sy: 0, sw: 800, sh: 400 });
+});
+
+test('mitSaat: gleiche Saat -> gleicher Zufall; Math.random danach wieder echt', () => {
+  const orig = Math.random;
+  const a = FxEngine.mitSaat(42, () => [Math.random(), Math.random()]);
+  const b = FxEngine.mitSaat(42, () => [Math.random(), Math.random()]);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, FxEngine.mitSaat(7, () => [Math.random(), Math.random()]));
+  assert.equal(Math.random, orig);
+  assert.ok(a.every((x) => x >= 0 && x < 1));
+  assert.throws(() => FxEngine.mitSaat(1, () => { throw new Error('x'); }));
+  assert.equal(Math.random, orig, 'auch nach Fehler wiederhergestellt');
+});

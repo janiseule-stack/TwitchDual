@@ -305,7 +305,6 @@ function showControlsBriefly() {
 
 document.getElementById('video-only-btn').addEventListener('click', enterVideoOnly);
 document.getElementById('vollbild-btn').addEventListener('click', () => window.twitchDual.layoutVollbild());
-Teiler.binde({ doc: document, seite: 'rechts', ziehen: (x) => window.twitchDual.teilungZiehen(x), onModus: window.twitchDual.onLayoutModus });
 // Aktiver Modus leuchtet (Main meldet 'vollbild' / 'nurvideo' / null).
 window.twitchDual.onLayoutModus((m) => {
   const modus = m && m.modus;
