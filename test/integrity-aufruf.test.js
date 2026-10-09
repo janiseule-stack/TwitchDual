@@ -37,3 +37,15 @@ test('andere Fehler werden durchgereicht', async () => {
   const m = createIntegrityAufruf({ store: store(SATZ), ernte: async () => null });
   await assert.rejects(m(async () => { throw new Error('netz'); }), /netz/);
 });
+
+test('gleichzeitige Aufrufe teilen sich EINE Ernte (Kiste + Setzen)', async () => {
+  let ernten = 0; let fertig;
+  const ernte = () => { ernten++; return new Promise((r) => { fertig = r; }); };
+  const m = createIntegrityAufruf({ store: store(null), ernte });
+  const a = m(async (kopf) => 'kiste:' + kopf['Client-Integrity']);
+  const b = m(async (kopf) => 'setzen:' + kopf['Client-Integrity']);
+  await new Promise((r) => setImmediate(r));
+  fertig(SATZ);
+  assert.deepEqual(await Promise.all([a, b]), ['kiste:I1', 'setzen:I1']);
+  assert.equal(ernten, 1);
+});

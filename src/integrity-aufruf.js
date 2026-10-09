@@ -12,11 +12,22 @@ function createIntegrityAufruf({ store, ernte, jetzt = Date.now, melde = () => {
   });
   const KEIN_SATZ = { ok: false, error: 'Integrity-Kopfzeilen nicht erhalten' };
 
-  async function hole(grund) {
-    const s = await ernte();
-    melde('integrity-ernte', { ergebnis: s ? 'ok' : 'fehlgeschlagen', grund });
-    if (s) store.setzen(s, jetzt());
-    return s;
+  // Single-Flight: ernteIntegrity vertraegt nur einen Lauscher pro Sitzung.
+  // Laeuft schon eine Ernte (z. B. Kiste), wartet der zweite Aufruf (Setzen) mit.
+  let laufend = null;
+  function hole(grund) {
+    if (laufend) return laufend;
+    laufend = (async () => {
+      try {
+        const s = await ernte();
+        melde('integrity-ernte', { ergebnis: s ? 'ok' : 'fehlgeschlagen', grund });
+        if (s) store.setzen(s, jetzt());
+        return s;
+      } finally {
+        laufend = null;
+      }
+    })();
+    return laufend;
   }
 
   return async function mitIntegrity(fn) {
