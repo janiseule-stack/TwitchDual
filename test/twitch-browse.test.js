@@ -41,3 +41,42 @@ test('sucheVorschlaege: nur Kanaele aus Twitchs Vorschlaegen, Reihenfolge bleibt
     { login: 'zweiter', displayName: 'Zweiter', avatar: 'b.png', live: true, verifiziert: true, game: 'Just Chatting' }
   ]);
 });
+
+// GQL-Fake: beantwortet users(logins:) mit den uebergebenen Nutzern, merkt Bloecke.
+function usersFake(bekannt, { scheitertBlock = -1 } = {}) {
+  const bloecke = [];
+  const fetchImpl = async (_url, init) => {
+    const { variables } = JSON.parse(init.body);
+    const nr = bloecke.push(variables.logins) - 1;
+    if (nr === scheitertBlock) return { ok: false, status: 400, async json() { return {}; } };
+    const users = variables.logins.map((l) => bekannt[l] || null);
+    return { ok: true, status: 200, async json() { return { data: { users } }; } };
+  };
+  return { fetchImpl, bloecke };
+}
+const nutzer = (login, live) => ({ login, displayName: login.toUpperCase(), profileImageURL: login + '.png', stream: live ? { id: 's', title: 't', viewersCount: 5, game: { displayName: 'G' } } : null });
+
+test('getLiveStatus: Bloecke zu 100, eine Abfrage pro Block', async () => {
+  const logins = Array.from({ length: 250 }, (_, i) => 'k' + i);
+  const { fetchImpl, bloecke } = usersFake({});
+  const r = await browse.getLiveStatus(logins, { fetchImpl, retries: 0 });
+  assert.deepEqual(bloecke.map((b) => b.length), [100, 100, 50]);
+  assert.equal(r.length, 250);
+});
+
+test('getLiveStatus: unbekannte als Platzhalter, live zuerst, Duplikate einmal', async () => {
+  const { fetchImpl } = usersFake({ streamer: nutzer('streamer', false), zweiter: nutzer('zweiter', true) });
+  const r = await browse.getLiveStatus(['Streamer', 'gibtsnicht', 'zweiter', 'streamer'], { fetchImpl, retries: 0 });
+  assert.deepEqual(r.map((k) => k.login), ['zweiter', 'gibtsnicht', 'streamer']);
+  assert.equal(r[0].live, true);
+  assert.deepEqual(r[1], { login: 'gibtsnicht', displayName: 'gibtsnicht', avatar: null, live: false });
+});
+
+test('getLiveStatus: gescheiterter Block -> nur dessen Kanaele mit error', async () => {
+  const logins = Array.from({ length: 150 }, (_, i) => 'k' + i);
+  const { fetchImpl } = usersFake({ k120: nutzer('k120', true) }, { scheitertBlock: 0 });
+  const r = await browse.getLiveStatus(logins, { fetchImpl, retries: 0 });
+  assert.equal(r.find((k) => k.login === 'k5').error, true);
+  assert.equal(r.find((k) => k.login === 'k120').live, true);
+  assert.equal(r.find((k) => k.login === 'k130').error, undefined);
+});

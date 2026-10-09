@@ -10,28 +10,33 @@ const LIVE_QUERY =
   `profileImageURL(width:70) stream{ id title type viewersCount ` +
   `game{ displayName } previewImageURL(width:320,height:180) } } }`;
 
-// Live-Status fuer mehrere Logins (parallel). Fehlerhafte einzelne Kanaele
-// werden uebersprungen, nicht die ganze Liste.
-async function getLiveStatus(logins, opts = {}) {
-  const clean = (logins || [])
-    .map((l) => String(l).trim().toLowerCase().replace(/^#/, ''))
-    .filter(Boolean);
+const LIVE_BATCH_QUERY =
+  `query($logins:[String!]){ users(logins:$logins){ id login displayName ` +
+  `profileImageURL(width:70) stream{ id title type viewersCount ` +
+  `game{ displayName } previewImageURL(width:320,height:180) } } }`;
+const LIVE_BLOCK = 100; // gemessen 09.10.2026: 100 Logins pro Abfrage ok
 
-  const results = await Promise.all(
-    clean.map(async (login) => {
-      try {
-        const data = await gql({ query: LIVE_QUERY, variables: { login } }, opts);
-        const node = data && data.data && data.data.user;
-        const model = mapLiveUser(node);
-        // Falls Channel nicht existiert -> Platzhalter, damit UI ihn zeigt.
-        return model || { login, displayName: login, avatar: null, live: false };
-      } catch (e) {
-        return { login, displayName: login, avatar: null, live: false, error: true };
-      }
-    })
-  );
-  // Live zuerst, dann nach Zuschauern - zentral hier statt im Renderer.
-  return sortByLive(results);
+// Live-Status fuer viele Logins, gebuendelt (300 Kanaele = 3 Abfragen).
+// Scheitert ein Block, werden nur dessen Kanaele zu Platzhaltern mit error.
+async function getLiveStatus(logins, opts = {}) {
+  const clean = [...new Set((logins || [])
+    .map((l) => String(l).trim().toLowerCase().replace(/^#/, ''))
+    .filter(Boolean))];
+  const bloecke = [];
+  for (let i = 0; i < clean.length; i += LIVE_BLOCK) bloecke.push(clean.slice(i, i + LIVE_BLOCK));
+  const teile = await Promise.all(bloecke.map(async (block) => {
+    try {
+      const data = await gql({ query: LIVE_BATCH_QUERY, variables: { logins: block } }, opts);
+      const users = (data && data.data && data.data.users) || [];
+      const nachLogin = new Map(users.filter(Boolean).map((u) => [String(u.login).toLowerCase(), u]));
+      // Kanal existiert nicht -> Platzhalter, damit die UI ihn zeigt.
+      return block.map((login) => mapLiveUser(nachLogin.get(login)) || { login, displayName: login, avatar: null, live: false });
+    } catch (e) {
+      return block.map((login) => ({ login, displayName: login, avatar: null, live: false, error: true }));
+    }
+  }));
+  // Live zuerst (nach Zuschauern), offline alphabetisch - zentral hier.
+  return sortByLive(teile.flat());
 }
 
 // Genau einen Kanal nachschlagen (Vorschlaege oben). Die Twitch-Suche liefert
