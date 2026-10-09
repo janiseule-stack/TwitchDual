@@ -1,7 +1,7 @@
 // Setzen-Bedienung fuer die Vorhersage-Karte (ereignis-karten.js ruft
 // EreignisKartenSetzen.bediene). Erster Klick waehlt, zweiter bestaetigt.
 (function (root) {
-  function bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl, waehle, sende, meldung, anmelden }) {
+  function bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl, waehle, sende, meldung, anmelden, fehler }) {
     if (v.status !== 'ACTIVE') return;
     const box = el('div', 'ke-setzen');
     if (!angemeldet) {
@@ -34,7 +34,9 @@
       feld.addEventListener('keydown', (ev) => {
         if (ev.key !== 'Enter') return;
         const r = KE.eigenerBetrag(feld.value, stand.guthaben);
-        if (r.fehler) { feld.classList.add('falsch'); feld.title = r.fehler; return; }
+        // Fehler als Kartenmeldung: ueberlebt den Neuaufbau (Hermes ~1/s), die
+        // Feld-Markierung allein waere nach einer Sekunde weg.
+        if (r.fehler) { fehler(r.fehler); return; }
         waehle({ optionId: o.id, betrag: r.betrag });
       });
       reihe.appendChild(feld);

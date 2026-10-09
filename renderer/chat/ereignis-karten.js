@@ -144,12 +144,13 @@
         if (t && t.optionId === o.id) z.appendChild(el('div', 'ke-meins', t.punkte.toLocaleString('de-DE') + ' gesetzt'));
         karte.appendChild(z);
       }
-      if (root.EreignisKartenSetzen) root.EreignisKartenSetzen.bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl: () => auswahl, waehle, sende, meldung: () => meldung, anmelden });
+      if (root.EreignisKartenSetzen) root.EreignisKartenSetzen.bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl: () => auswahl, waehle, sende, meldung: () => meldung, anmelden, fehler: meldeFehler });
       return karte;
     }
 
     // Fuer Task 9 (Setzen-Bedienung).
     function waehle(a) { auswahl = a; meldung = null; zeichne(); }
+    function meldeFehler(text) { meldung = { text, ok: false }; zeichne(); }
     async function sende() {
       if (!auswahl || (meldung && meldung.laeuft)) return; // Doppelklick
       const a = auswahl;
