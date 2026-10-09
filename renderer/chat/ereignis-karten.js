@@ -11,6 +11,11 @@
     const eingeklappt = new Set(); // Karten-IDs, die der Nutzer zugeklappt hat
     const endeSeit = new Map();    // Karten-ID -> Zeitpunkt, ab dem sie beendet ist
     let pinOffen = false;
+    const VS = root.VorhersageStatistik;
+    const verlauf = VS.createVerlauf();
+    let funkenAusstehend = [];     // Options-IDs mit neuem Zuwachs (einmal Funken)
+    let vorhersageTab = 'duell';
+    try { vorhersageTab = localStorage.getItem('vorhersageTab') || 'duell'; } catch (e) { /* egal */ }
     let auswahl = null;            // { optionId, betrag } fuer Task 9
     let meldung = null;            // { text, ok, laeuft } Rueckmeldung beim Setzen
     // Waehrend die Maus gedrueckt ist, wird nicht neu aufgebaut (sonst geht der
@@ -81,7 +86,12 @@
     // bis: Zeitpunkt fuer den Countdown (ms) oder null fuer festen Text.
     function kopf(karte, id, titel, untertitel, bis) {
       const k = el('div', 'ke-kopf');
-      k.appendChild(el('span', 'ke-titel', titel));
+      const t = el('span', 'ke-titel');
+      // Fuehrendes Emoji (🔮, 📊) eigens: auf dunklem Grund sonst kaum zu sehen.
+      const m = /^(\p{Extended_Pictographic}️?)\s(.*)$/su.exec(titel);
+      if (m) { t.appendChild(el('span', 'ke-icon', m[1])); t.appendChild(doc.createTextNode(m[2])); }
+      else t.textContent = titel;
+      k.appendChild(t);
       const zeit = el('span', 'ke-zeit', untertitel);
       if (bis) zeit.dataset.bis = String(bis);
       k.appendChild(zeit);
@@ -123,29 +133,38 @@
     function vorhersageKarte(v) {
       const karte = el('div', 'ke-karte ke-vorhersage' + (eingeklappt.has(v.id) ? ' zu' : '') + neuKlasse(v.id));
       const status = v.status === 'ACTIVE' ? KE.countdownText(KE.restMs(v.einreichungBis, jetzt()))
-        : v.status === 'LOCKED' ? 'Warte auf Ergebnis'
-        : v.status === 'CANCELED' ? 'Abgebrochen – Punkte zurück'
-        : 'Ergebnis';
+        : v.status === 'LOCKED' ? 'Setzen vorbei · warte auf Ergebnis'
+        : v.status === 'CANCELED' ? 'Abgebrochen'
+        : 'Entschieden';
       kopf(karte, v.id, '🔮 ' + v.titel, status, v.status === 'ACTIVE' ? v.einreichungBis : null);
       if (eingeklappt.has(v.id)) return karte;
-      const t = stand.meinTipp && stand.meinTipp.eventId === v.id ? stand.meinTipp : null;
-      for (const o of v.optionen) {
-        const z = el('div', 'ke-option' + (v.gewinnerId === o.id ? ' gewinner' : '') + (t && t.optionId === o.id ? ' meins' : ''));
-        z.dataset.option = o.id;
-        const zeile = el('div', 'ke-zeile');
-        zeile.appendChild(el('span', 'ke-opt-titel ' + String(o.farbe || '').toLowerCase(), o.titel));
-        zeile.appendChild(el('span', 'ke-opt-wert', Math.round(o.anteil * 100) + ' %'));
-        z.appendChild(zeile);
-        z.appendChild(balken(o.anteil, o.farbe));
-        const info = el('div', 'ke-info');
-        info.textContent = o.punkte.toLocaleString('de-DE') + ' · ' + KE.quoteText(o.quote) + ' · ' +
-          o.nutzer.toLocaleString('de-DE') + ' 👤 · Top ' + o.topEinsatz.toLocaleString('de-DE');
-        z.appendChild(info);
-        if (t && t.optionId === o.id) z.appendChild(el('div', 'ke-meins', t.punkte.toLocaleString('de-DE') + ' gesetzt'));
-        karte.appendChild(z);
-      }
-      if (root.EreignisKartenSetzen) root.EreignisKartenSetzen.bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl: () => auswahl, waehle, sende, meldung: () => meldung, anmelden, fehler: meldeFehler });
+      root.VorhersageKarte.baue({
+        doc, el, karte, v, stand, KE, VS, verlauf, tab: vorhersageTab, jetzt,
+        setzeTab: (t) => { vorhersageTab = t; try { localStorage.setItem('vorhersageTab', t); } catch (e) { /* egal */ } zeichne(); },
+        zaehle, funken: funkenAusstehend.splice(0),
+        endeSeit: (id) => (endeSeit.has(id) ? endeSeit.get(id) : null),
+        bedieneSetzen: () => {
+          if (root.EreignisKartenSetzen) root.EreignisKartenSetzen.bediene({ doc, karte, v, stand, angemeldet, KE, el, auswahl: () => auswahl, waehle, sende, meldung: () => meldung, anmelden, fehler: meldeFehler });
+        }
+      });
       return karte;
+    }
+
+    // Zahlen weich hochzaehlen: merkt den zuletzt gezeigten Wert je Schluessel.
+    const angezeigt = new Map();
+    function zaehle(elem, schluessel, neu, format) {
+      const alt = angezeigt.has(schluessel) ? angezeigt.get(schluessel) : neu;
+      angezeigt.set(schluessel, neu);
+      if (alt === neu || typeof requestAnimationFrame !== 'function') { elem.textContent = format(neu); return; }
+      const start = jetzt();
+      elem.textContent = format(alt);
+      const schritt = () => {
+        if (!elem.isConnected) return; // Neuaufbau hat das Element ersetzt
+        const f = (jetzt() - start) / 600;
+        elem.textContent = format(f >= 1 ? neu : VS.zaehlStand(alt, neu, f));
+        if (f < 1) requestAnimationFrame(schritt);
+      };
+      requestAnimationFrame(schritt);
     }
 
     // Fuer Task 9 (Setzen-Bedienung).
@@ -193,14 +212,21 @@
     // Countdown laeuft ohne Neuaufbau weiter (nur die Zeit-Texte).
     setInterval(() => {
       for (const s of wirt.querySelectorAll('.ke-zeit[data-bis]')) {
-        s.textContent = KE.countdownText(KE.restMs(Number(s.dataset.bis), jetzt()));
+        const rest = KE.restMs(Number(s.dataset.bis), jetzt());
+        s.textContent = KE.countdownText(rest);
+        s.classList.toggle('knapp', rest > 0 && rest <= 10000);
       }
     }, 1000);
 
     return {
       zeige(p) {
         const altVorhersage = stand && stand.vorhersage && stand.vorhersage.id;
+        const altV = stand && stand.vorhersage;
         stand = p && p.stand;
+        if (stand && stand.vorhersage) {
+          verlauf.nimm(stand.vorhersage, jetzt());
+          funkenAusstehend = VS.zuwachs(altV, stand.vorhersage);
+        }
         angemeldet = !!(p && p.angemeldet);
         if (!stand || !stand.vorhersage || stand.vorhersage.id !== altVorhersage) { auswahl = null; meldung = null; }
         for (const s of (p && p.signale) || []) {

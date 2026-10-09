@@ -33,6 +33,11 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   ★-Favoriten ganz oben, gefolgte Live/Offline (offline alphabetisch);
   Tabs Gefolgt/Favoriten und Kanal-Feld-Vorschläge entfernt; Live-Status
   gebündelt (100 pro Abfrage). Pin ✕ → 📌-Knopf zum Zurückholen.
+- Vorhersage-Karte neu (`renderer/chat/vorhersage-karte.js`, Logik
+  `renderer/lib/vorhersage-statistik.js`): Tabs Duell (Quoten, Ring,
+  Tauziehen-Balken) · Verlauf (Kurve, Trend) · Stats (Tabelle, Top-Setzer,
+  Pkt/Min); Funken, Hochzählen, roter Countdown, Konfetti/Pokal beim Sieg.
+  Pin-Leiste unter Umfrage/Vorhersage.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).

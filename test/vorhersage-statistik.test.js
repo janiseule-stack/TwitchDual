@@ -118,3 +118,10 @@ test('zaehlStand: Zahl zaehlt weich von alt nach neu', () => {
   const mitte = VS.zaehlStand(100, 200, 0.5);
   assert.ok(mitte > 150 && mitte < 200, 'ease-out: nach halber Zeit mehr als die Haelfte');
 });
+
+test('momentum: unter 10 s Daten keine Hochrechnung (sonst absurde Pkt/Min)', () => {
+  const vl = VS.createVerlauf();
+  vl.nimm(v('e', 1000, 1000), 0);
+  vl.nimm(v('e', 90000, 1000), 600);
+  assert.deepEqual(VS.momentum(vl.punkte(), 600), { proMinute: 0, nach: null });
+});

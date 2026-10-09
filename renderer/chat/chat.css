@@ -714,3 +714,73 @@ button:focus-visible, input:focus-visible {
 .ke-meldung.fehler { color: #ff7a7a; }
 .ke-guthaben { font-family: var(--mono); font-size: .75em; color: var(--muted); text-align: right; }
 .ke-los:disabled { opacity: .6; cursor: default; animation: none; }
+
+/* --- Vorhersage-Karte (vorhersage-karte.js): Duell · Verlauf · Stats ------- */
+.ke-icon { filter: brightness(1.6) saturate(1.2) drop-shadow(0 0 4px rgba(255,255,255,.35)); margin-right: 4px; }
+.ke-zeit.knapp { color: #ff6b6b; animation: vk-puls 1s infinite; }
+.ke-vorhersage { position: relative; overflow: hidden; }
+.vk-tabs { display: flex; gap: 4px; margin: 6px 0 8px; }
+.vk-tab {
+  flex: 1; font: inherit; font-size: .8em; font-weight: 700; padding: 3px 0; border-radius: 6px; cursor: pointer;
+  border: 0; background: rgba(255,255,255,.06); color: var(--muted);
+}
+.vk-tab:hover { color: var(--text); }
+.vk-tab.an { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-title); box-shadow: inset 0 0 0 1px var(--accent-border); }
+.vk-lbl { font-size: .72em; letter-spacing: .05em; text-transform: uppercase; color: #b3b8c8; }
+.vk-rechts { text-align: right; margin-top: 2px; }
+.vk-klein { font-size: .82em; color: #b3b8c8; }
+.vk-duell { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.vk-duell.vk-viele { align-items: flex-start; }
+.vk-liste { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 4px; }
+.vk-seite { position: relative; flex: 1; text-align: center; padding: 4px 2px; border-radius: 8px; color: var(--vk-farbe); transition: background-color .4s ease, opacity .4s ease; }
+.vk-seite.meins { box-shadow: inset 0 0 0 1px var(--vk-farbe); }
+.vk-seite.sieger { background: rgba(255,211,77,.12); box-shadow: inset 0 0 0 1px rgba(255,211,77,.6); }
+.vk-seite.verlierer { opacity: .4; filter: grayscale(.6); }
+.vk-name { font-weight: 800; font-size: 1.05em; }
+.vk-quote { font-size: 1.7em; font-weight: 900; line-height: 1.1; text-shadow: 0 0 12px currentColor; font-variant-numeric: tabular-nums; }
+.vk-seite .vk-klein { color: #b3b8c8; }
+.vk-ring { width: 88px; height: 88px; flex: none; filter: drop-shadow(0 0 8px rgba(109,182,255,.45)); }
+.vk-ring-seg { transition: stroke-dasharray .8s cubic-bezier(.2,.9,.3,1), stroke-dashoffset .8s cubic-bezier(.2,.9,.3,1); }
+.vk-pokal { font-size: 34px; line-height: 1; flex: none; padding: 0 10px; filter: brightness(1.3) drop-shadow(0 0 8px #ffd34d); animation: vk-hops 1.4s ease-in-out infinite; }
+.vk-tau { position: relative; display: flex; height: 22px; border-radius: 11px; overflow: hidden; margin-top: 8px; box-shadow: 0 0 14px rgba(255,111,182,.2), 0 0 14px rgba(109,182,255,.2); }
+.vk-tau-seg {
+  display: flex; align-items: center; font-weight: 800; font-size: .8em; white-space: nowrap; overflow: hidden; color: #fff;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--vk-farbe) 70%, #000), var(--vk-farbe));
+  transition: width .8s cubic-bezier(.2,.9,.3,1); text-shadow: 0 1px 2px rgba(0,0,0,.5);
+}
+.vk-tau-seg.links { padding-left: 9px; }
+.vk-tau-seg.rechts { justify-content: flex-end; padding-right: 9px; background: linear-gradient(90deg, var(--vk-farbe), color-mix(in srgb, var(--vk-farbe) 70%, #000)); }
+.vk-glanz { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.3) 50%, transparent 70%); animation: vk-glanz 2.8s linear infinite; }
+.vk-meins {
+  margin-top: 8px; text-align: center; font-weight: 700; font-size: .9em; color: var(--vk-farbe);
+  background: color-mix(in srgb, var(--vk-farbe) 14%, transparent); border: 1px solid color-mix(in srgb, var(--vk-farbe) 45%, transparent); border-radius: 6px; padding: 3px;
+}
+.vk-banner { margin-top: 8px; text-align: center; font-weight: 900; font-size: 1.1em; }
+.vk-banner.sieg { color: #ffd34d; text-shadow: 0 0 12px rgba(255,211,77,.8); animation: vk-puls 1.2s infinite; }
+.vk-banner.niederlage { color: #b3b8c8; }
+.vk-banner.neutral { color: var(--accent-title); }
+.ke-vorhersage.vk-sieg { box-shadow: 0 0 0 2px #ffd34d, 0 0 18px rgba(255,211,77,.5); }
+.ke-vorhersage.vk-niederlage { animation: vk-grau 1.5s ease-out; }
+.vk-kurve { display: block; width: 100%; height: 150px; }
+.vk-achse { fill: #b3b8c8; }
+.vk-gitter { stroke: rgba(255,255,255,.12); }
+.vk-mitte { stroke: rgba(255,255,255,.25); stroke-dasharray: 4 4; }
+.vk-trend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin-top: 4px; font-weight: 700; font-size: .9em; }
+.vk-tabelle { width: 100%; border-collapse: collapse; font-size: .9em; }
+.vk-tabelle td { padding: 3px 2px; border-bottom: 1px solid rgba(255,255,255,.06); color: #b3b8c8; }
+.vk-tabelle td.vk-z { text-align: right; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.vk-top { margin-top: 8px; }
+.vk-top-zeile { display: flex; justify-content: space-between; font-size: .9em; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.vk-platz { display: inline-block; width: 18px; color: #ffd34d; font-weight: 800; }
+.vk-momentum { margin-top: 8px; text-align: center; font-size: .9em; padding: 4px; border-radius: 6px; background: rgba(109,182,255,.12); color: #9fd0ff; }
+.vk-funke {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%; pointer-events: none;
+  background: var(--vk-farbe); box-shadow: 0 0 8px var(--vk-farbe); animation: vk-funke .9s ease-out forwards;
+}
+.vk-konfetti { position: absolute; top: -10px; width: 6px; height: 10px; border-radius: 1px; pointer-events: none; animation: vk-fall linear infinite; }
+@keyframes vk-puls { 50% { opacity: .55; } }
+@keyframes vk-glanz { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes vk-hops { 50% { transform: translateY(-3px) scale(1.06); } }
+@keyframes vk-grau { 0% { filter: grayscale(1) brightness(.7); } 100% { filter: none; } }
+@keyframes vk-funke { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+@keyframes vk-fall { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(260px) rotate(540deg); opacity: 0; } }

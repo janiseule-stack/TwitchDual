@@ -9,6 +9,7 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   const FENSTER_MS = 60000;
+  const MIN_SPANNE_MS = 10000;
 
   // Anteile/Punkte je Option ueber die Zeit. Nur Aenderungen zaehlen; eine
   // neue Vorhersage (andere ID) beginnt einen neuen Verlauf.
@@ -53,7 +54,8 @@
     const letzte = punkte[punkte.length - 1];
     const ref = bezug(punkte, jetzt, fenster);
     const dt = letzte.t - ref.t;
-    if (dt <= 0) return { proMinute: 0, nach: null };
+    // Zu kurze Spanne -> Hochrechnung auf eine Minute waere Unsinn.
+    if (dt < MIN_SPANNE_MS) return { proMinute: 0, nach: null };
     let nach = null;
     let meist = 0;
     for (const k of Object.keys(letzte.punkte)) {
