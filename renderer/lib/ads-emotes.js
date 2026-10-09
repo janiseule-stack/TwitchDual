@@ -9,7 +9,6 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   const EMOTES = [
-    { name: 'Adge', id: '01FER7BSPG000A35M54YK6J5Y7' },
     { name: 'block', id: '01HWTPMG7R0003S49WDMY4P5E5' },
     { name: 'roadblock', id: '01GYP3RCMR0000V37N96CPBMDT' },
     { name: 'Stop', id: '01FVPZD9W0000B05D8JC8TFHBC' },
