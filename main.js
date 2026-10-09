@@ -982,14 +982,15 @@ ipcMain.handle('vorschlag-quellen', async () => {
   return { gefolgt: gefolgtCache || [], favoriten: store.get('favorites', []), verlauf: store.get('history', []) };
 });
 
-// Twitch-weite Kanalsuche (nur eingeloggt; Helix braucht ein Token).
+// Kanalsuche oben: Twitchs eigene Vorschlaege + exakter Login-Treffer.
+// Beides anonym per GQL, klappt also auch ohne Anmeldung.
 ipcMain.handle('kanal-suche', async (_evt, query) => {
-  try {
-    const acc = await authManager.getAccess();
-    if (!acc) return { ok: false, channels: [] };
-    const channels = await helix.searchChannels({ query: String(query || '').slice(0, 50), accessToken: acc.accessToken });
-    return { ok: true, channels };
-  } catch (e) { return { ok: false, channels: [], error: e.message || String(e) }; }
+  const q = String(query || '').slice(0, 50);
+  const [channels, exakt] = await Promise.all([
+    browse.sucheVorschlaege(q).catch(() => []),
+    browse.findChannel(q).catch(() => null)
+  ]);
+  return { ok: true, channels, exakt };
 });
 
 // Eigene Twitch-Emotes fuer den Picker.

@@ -60,5 +60,15 @@
     return out.slice(0, max);
   }
 
-  return { sollSuchen, lokaleTreffer, zusammenfuehren };
+  // Exakt eingetippten Kanal einreihen: hinter eigenen (lokalen) und
+  // verifizierten Twitch-Kanaelen, vor dem Rest der Twitch-Vorschlaege.
+  function mitExaktTreffer(liste, exakt) {
+    const rest = (liste || []).filter((k) => !exakt || k.login !== exakt.login);
+    if (!exakt) return rest;
+    let i = rest.findIndex((k) => k.quelle === 'twitch' && !k.verifiziert);
+    if (i < 0) i = rest.length;
+    return [...rest.slice(0, i), exakt, ...rest.slice(i)];
+  }
+
+  return { sollSuchen, lokaleTreffer, zusammenfuehren, mitExaktTreffer };
 });

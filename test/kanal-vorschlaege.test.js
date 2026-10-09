@@ -86,3 +86,16 @@ test('sollSuchen: nur fuer kanalartige Eingaben, nicht fuer VOD-Links/IDs', () =
   assert.equal(V.sollSuchen('https://www.twitch.tv/videos/2251234567'), false);
   assert.equal(V.sollSuchen('twitch.tv/papaplatte'), false);
 });
+
+test('mitExaktTreffer: hinter Lokalen und verifizierten Twitch-Kanaelen, ohne Duplikat', () => {
+  const liste = [
+    { login: 'l', quelle: 'gefolgt' },
+    { login: 'streamertv', quelle: 'twitch', verifiziert: true },
+    { login: 'streamerfan', quelle: 'twitch' },
+    { login: 'streamer', quelle: 'twitch' }
+  ];
+  const r = V.mitExaktTreffer(liste, { login: 'streamer', quelle: 'twitch' });
+  assert.deepEqual(r.map((k) => k.login), ['l', 'streamertv', 'streamer', 'streamerfan']);
+  assert.deepEqual(V.mitExaktTreffer([{ login: 'x' }], null).map((k) => k.login), ['x']);
+  assert.deepEqual(V.mitExaktTreffer([], { login: 'e' }).map((k) => k.login), ['e']);
+});

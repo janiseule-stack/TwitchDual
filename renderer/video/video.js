@@ -132,6 +132,13 @@ function vorschlaegeZeigen(liste) {
     const name = document.createElement('span');
     name.className = 'vs-name';
     name.textContent = k.displayName || k.login;
+    if (k.verifiziert) {
+      const haken = document.createElement('span');
+      haken.className = 'vs-haken';
+      haken.textContent = '✓';
+      haken.title = 'Verifiziert';
+      name.appendChild(haken);
+    }
     const meta = document.createElement('span');
     meta.className = 'vs-meta';
     if (k.live) {
@@ -180,7 +187,11 @@ function vorschlaegeAktualisieren() {
     let res = null;
     try { res = await window.twitchDual.kanalSuche(query); } catch { /* still */ }
     if (nr !== vsNr || document.activeElement !== $channel) return; // veraltet
-    if (res && res.ok) vorschlaegeZeigen(KanalVorschlaege.zusammenfuehren(lokal, res.channels));
+    if (!res || !res.ok) return;
+    const liste = KanalVorschlaege.zusammenfuehren(lokal, res.channels);
+    // Exakt getippten Kanal einreihen, falls Twitchs Vorschlaege ihn auslassen.
+    const fehlt = res.exakt && !liste.some((k) => k.login === res.exakt.login);
+    vorschlaegeZeigen(fehlt ? KanalVorschlaege.mitExaktTreffer(liste, { ...res.exakt, quelle: 'twitch' }) : liste);
   }, 250);
 }
 
