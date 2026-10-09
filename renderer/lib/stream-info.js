@@ -38,5 +38,18 @@
     return { oben, unten: 'offline', live: false };
   }
 
-  return { laufzeit, zeilen };
+  // Neuer Stand von Twitch (alle 30 s): Zuschauer sofort, Titel und Spiel
+  // nur alle 5 Minuten (Janis 09.10.2026) - ausser beim ersten Stand oder
+  // wenn sich die Art aendert (live/offline/VOD).
+  const TITEL_MS = 5 * 60000;
+  function mische(zustand, neu, jetzt) {
+    const alt = zustand && zustand.info;
+    if (!neu) return { info: null, titelZeit: 0 };
+    if (!alt || alt.art !== neu.art || alt.name !== neu.name || jetzt - (zustand.titelZeit || 0) >= TITEL_MS) {
+      return { info: neu, titelZeit: jetzt };
+    }
+    return { info: { ...neu, titel: alt.titel, spiel: alt.spiel }, titelZeit: zustand.titelZeit };
+  }
+
+  return { laufzeit, zeilen, mische };
 });

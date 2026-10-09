@@ -26,3 +26,22 @@ test('zeilen: fehlende Teile fallen weg statt "undefined"', () => {
   const z = SI.zeilen({ art: 'live', name: 'x', titel: '', spiel: '', zuschauer: 0, start: null }, T);
   assert.deepEqual(z, { oben: 'x', unten: '0 Zuschauer', live: true });
 });
+
+test('mische: Zuschauer immer neu, Titel/Spiel erst nach 5 Minuten (oder bei neuer Quelle)', () => {
+  const alt = { art: 'live', name: 'A', titel: 'Alt', spiel: 'Spiel1', zuschauer: 100, start: 's' };
+  const neu = { art: 'live', name: 'A', titel: 'Neu', spiel: 'Spiel2', zuschauer: 250, start: 's' };
+  const t0 = 1000000;
+  const a = SI.mische({ info: alt, titelZeit: t0 }, neu, t0 + 30000);
+  assert.equal(a.info.zuschauer, 250);
+  assert.equal(a.info.titel, 'Alt');
+  assert.equal(a.info.spiel, 'Spiel1');
+  assert.equal(a.titelZeit, t0);
+  const b = SI.mische({ info: alt, titelZeit: t0 }, neu, t0 + 5 * 60000);
+  assert.equal(b.info.titel, 'Neu');
+  assert.equal(b.info.spiel, 'Spiel2');
+  assert.equal(b.titelZeit, t0 + 5 * 60000);
+  const c = SI.mische({ info: null, titelZeit: 0 }, neu, t0);
+  assert.equal(c.info.titel, 'Neu', 'erster Stand sofort komplett');
+  const d = SI.mische({ info: alt, titelZeit: t0 }, { art: 'offline', name: 'A' }, t0 + 1000);
+  assert.equal(d.info.art, 'offline', 'Wechsel live -> offline sofort');
+});

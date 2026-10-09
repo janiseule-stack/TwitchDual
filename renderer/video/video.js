@@ -205,6 +205,7 @@ window.twitchDual.getUiPrefs().then((prefs) => {
 // Broadcast von Main: beide Fenster laden denselben Channel/VOD.
 window.twitchDual.onLoad((payload) => {
   infoQuelle = payload.mode === 'vod' ? { mode: 'vod', wert: payload.videoId } : { mode: 'live', wert: payload.channel };
+  info = null; titelZeit = 0; // neue Quelle -> alles sofort
   infoLaden();
   onAirMode = payload.mode;
   onAirPlayerState = null;
@@ -392,7 +393,8 @@ const $siAvatar = document.getElementById('si-avatar');
 const $siOben = document.getElementById('si-oben');
 const $siUnten = document.getElementById('si-unten');
 let infoQuelle = null;   // { mode, wert } der geladenen Quelle
-let info = null;         // letzte Infos von Twitch
+let info = null;         // angezeigte Infos (Titel/Spiel nur alle 5 min erneuert)
+let titelZeit = 0;       // wann Titel/Spiel zuletzt uebernommen wurden
 let infoLauf = 0;        // verwirft verspaetete Antworten
 
 async function infoLaden() {
@@ -401,7 +403,8 @@ async function infoLaden() {
   let r = null;
   try { r = await window.twitchDual.streamInfo(infoQuelle.mode, infoQuelle.wert); } catch { /* still */ }
   if (nr !== infoLauf) return;
-  info = r && r.ok ? r.info : null;
+  const m = StreamInfo.mische({ info, titelZeit }, r && r.ok ? r.info : null, Date.now());
+  info = m.info; titelZeit = m.titelZeit;
   infoZeigen();
 }
 
@@ -423,6 +426,6 @@ function infoZeigen() {
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();
-// Zuschauer/Titel/Spiel alle 30 s auffrischen, die Laufzeit ebenso.
+// Alle 30 s auffrischen: Zuschauer + Laufzeit sofort, Titel/Spiel nur alle 5 min (StreamInfo.mische).
 setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 30000);
 setInterval(() => { if (info && info.art === 'live') infoZeigen(); }, 30000);
