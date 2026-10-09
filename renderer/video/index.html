@@ -202,6 +202,7 @@
       background: none; border: 1px solid transparent; border-radius: 8px; padding: 3px 10px 3px 4px; color: var(--text); cursor: text; text-align: left; }
     #stream-info:hover { background: var(--hover); border-color: var(--line); }
     #stream-info.hidden { display: none; }
+    body.home-offen #stream-info { display: none; } /* in Home steht oben nur "Ads blocked" */
     #si-avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; background: var(--line); object-fit: cover; }
     #stream-info.live #si-avatar { box-shadow: 0 0 0 2px #e91916; }
     #si-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }

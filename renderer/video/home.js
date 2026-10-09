@@ -51,6 +51,7 @@ function showVodView(login, displayName) {
 function openHome() {
   window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
+  document.body.classList.add('home-offen'); // Leiste oben: nur "Ads blocked"
   showKanaeleView();
   $suche.focus(); // direkt lostippen
   ladeKanaele();
@@ -63,6 +64,7 @@ function openHome() {
 
 function closeHome() {
   $home.classList.add('hidden');
+  document.body.classList.remove('home-offen');
 }
 
 // Home schliessen und zur bereits laufenden Quelle zurueck -> Chat wieder
