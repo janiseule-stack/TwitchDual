@@ -157,15 +157,80 @@
     return { ok, breite, hoehe, blueten, punkte: Math.min(1, breite / 0.55) + Math.min(1, hoehe / 0.33) + Math.min(1, blueten / 45) };
   }
 
+  // Ein Ast in zwei Schritten (wie prozedurale Baeume ueblich):
+  // 1. Skelett wachsen lassen: kleine Schritte mit sanfter Kruemmung,
+  //    Gabelungen im Abstand, Seitenaeste wechseln die Seite, Kurztriebe an
+  //    den dicken Achsen.
+  // 2. Dicke nach dem Roehrenmodell (Leonardo): von den Spitzen zum Ansatz,
+  //    r^D = Summe r_kind^D (D = 2.2) - der Hauptast wird kraeftig, duenner
+  //    wird es an den Gabelungen. Viele kurze Abschnitte mit runden Enden
+  //    ergeben beim Zeichnen eine glatte, sich verjuengende Form.
+  const ROEHRE = 2.2;
   function baueAstEinmal(w, h, vonRechts) {
-    // Groesse an der Hoehe ausrichten (wie der Wald, Entwurf ~470 px hoch).
     const sk = Math.max(0.8, Math.min(2.4, Math.min(w * 1.3, h) / 430));
     const hoch = h / Math.max(1, w); // > 1.5 = schmaler, hoher Chat
-    const stamm = 13 * sk;
-    const duenn = stamm * 0.3;           // ab hier darf es bluehen
-    const spitze = Math.max(0.9, stamm * 0.07);
+    const stamm = 18 * sk;
+    const duenn = Math.max(3 * sk, stamm * 0.2);
+    const schritt = 9 * sk;
     const aus = { seg: [], blueten: [], spitzen: [], sk, stamm, duenn };
 
+    function knoten(x, y, eltern) {
+      const k = { x, y, kinder: [] };
+      if (eltern) eltern.kinder.push(k);
+      return k;
+    }
+
+    // Eine Achse wachsen lassen; Seitenaeste zweigen in Abstaenden ab.
+    function achse(start, a, laenge, tiefe) {
+      const n = Math.max(3, Math.round(laenge / schritt));
+      let k = start, ca = a, seite = Math.random() < 0.5 ? -1 : 1;
+      let naechste = Math.round(rnd(4, 8)), kinder = 0;
+      for (let i = 0; i < n; i++) {
+        // sanft kruemmen, leicht zur Waagrechten ziehen (Kirschen breiten sich aus)
+        ca += rnd(-0.08, 0.08) + (Math.cos(ca) >= 0 ? (0.15 - ca) : (Math.PI - 0.15 - ca)) * 0.015;
+        if (k.y + Math.sin(ca) * schritt < 8) ca = -ca; // nie ueber den oberen Rand
+        const neu = knoten(k.x + Math.cos(ca) * schritt, k.y + Math.sin(ca) * schritt, k);
+        k = neu;
+        const rest = n - i;
+        const muss = tiefe > 0 && kinder < 2 && rest <= 3 - kinder;
+        if (tiefe > 0 && i >= 2 && rest > 1 && (i >= naechste || muss)) {
+          kinder++;
+          seite = -seite;
+          achse(k, ca + seite * rnd(0.45, 0.85), laenge * rnd(0.38, 0.62) * (0.55 + 0.45 * rest / n), tiefe - 1);
+          naechste = i + Math.round(rnd(5, 10));
+        } else if (tiefe >= 2 && Math.random() < 0.12) {
+          // Kurztrieb: kurz und duenn, traegt Blueten am dicken Holz
+          const ka = ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.7, 1.3);
+          let s = k;
+          for (let j = 0; j < 3; j++) s = knoten(s.x + Math.cos(ka) * schritt * 0.9, Math.max(8, s.y + Math.sin(ka) * schritt * 0.9), s);
+          s.kurztrieb = true;
+        }
+      }
+    }
+
+    // Dicke von den Spitzen her (Roehrenmodell) + Abschnitte/Blueten ausgeben.
+    function radius(k) {
+      if (!k.kinder.length) return (k.r = 1);
+      let summe = 0.02; // waechst entlang der Achse minimal mit
+      for (const c of k.kinder) summe += Math.pow(radius(c), ROEHRE);
+      return (k.r = Math.pow(summe, 1 / ROEHRE));
+    }
+    function ausgeben(k, mass) {
+      const bw = Math.max(1.1, 2 * k.r * mass);
+      for (const c of k.kinder) {
+        const cw = Math.max(1.1, 2 * c.r * mass);
+        const sw = (bw + cw) / 2;
+        aus.seg.push({ x1: k.x, y1: k.y, x2: c.x, y2: c.y, w: sw });
+        // Blueten nur, wo der Abschnitt selbst duenn ist - nie am dicken Holz.
+        if (!c.kinder.length) {
+          aus.spitzen.push({ x: c.x, y: c.y, w: cw });
+          if (sw <= duenn) bluehe(c.x, c.y, c.kurztrieb ? 1 + Math.floor(Math.random() * 2) : 1);
+        } else if (sw <= duenn && Math.random() < 0.12) {
+          bluehe(c.x, c.y, 1 + Math.floor(Math.random() * 2));
+        }
+        ausgeben(c, mass);
+      }
+    }
     function bluehe(x, y, menge) {
       for (let j = 0; j < menge; j++) {
         const z = Math.random();
@@ -173,50 +238,11 @@
         aus.blueten.push({ x: x + rnd(-4, 4) * sk, y: y + rnd(-4, 4) * sk, r: rnd(5, 8.5) * sk * (art === 'yae' ? 1.15 : 1), a: rnd(0, TAU), art });
       }
     }
-
-    // Kurztrieb am dicken Holz: kurz, duenn, traegt ein Bluetenbueschel.
-    function kurztrieb(x, y, a) {
-      const l = rnd(26, 40) * sk;
-      const nx = x + Math.cos(a) * l, ny = Math.max(8, y + Math.sin(a) * l);
-      aus.seg.push({ x1: x, y1: y, x2: nx, y2: ny, w: duenn * 0.55 });
-      aus.spitzen.push({ x: nx, y: ny, w: duenn * 0.55 });
-      bluehe(nx, ny, 1 + Math.floor(Math.random() * 3));
-    }
-
-    function zweig(x, y, a, len, br, tiefe) {
-      const n = tiefe >= 2 ? 9 : 7;
-      let cx = x, cy = y, ca = a;
-      let kinder = 0;
-      for (let i = 0; i < n; i++) {
-        ca += rnd(-0.26, 0.26);
-        // Nie ueber den oberen Rand: zeigt der Zweig dorthin, nach unten spiegeln.
-        if (cy + Math.sin(ca) * len / n < 8) ca = -ca;
-        const nx = cx + Math.cos(ca) * len / n, ny = cy + Math.sin(ca) * len / n;
-        // Verjuengung bis zur Spitze (letztes Stueck = spitze).
-        const b = br + (spitze - br) * Math.pow((i + 1) / n, 0.9);
-        aus.seg.push({ x1: cx, y1: cy, x2: nx, y2: ny, w: b });
-        // Mindestens 2 Unterzweige (kein kahler Strich).
-        const muss = tiefe > 0 && kinder < 2 && i >= n - 1 - (2 - kinder);
-        if (tiefe > 0 && i >= 1 && i < n - 1 && (muss || Math.random() < 0.5)) {
-          kinder++;
-          zweig(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.5, 1.0), len * rnd(0.4, 0.6), Math.min(b * 0.7, br * 0.6), tiefe - 1);
-        }
-        const segLen = len / n;
-        if (b <= duenn) {
-          // Duennes Holz: Bueschel nach Laenge (etwa eins je 60 px Zweig).
-          const erwartet = segLen / (60 * sk);
-          const m = Math.floor(erwartet) + (Math.random() < erwartet % 1 ? 1 : 0);
-          for (let k = 0; k < m; k++) {
-            const t = rnd(0.35, 1); // nicht direkt am Ansatz (dort grenzt dickeres Holz)
-            bluehe(cx + (nx - cx) * t, cy + (ny - cy) * t, 1 + Math.floor(Math.random() * 2));
-          }
-        } else if (Math.random() < 0.4) {
-          kurztrieb(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.6, 1.3));
-        }
-        cx = nx; cy = ny;
-      }
-      aus.spitzen.push({ x: cx, y: cy, w: aus.seg[aus.seg.length - 1].w });
-      bluehe(cx, cy, 1 + Math.floor(Math.random() * 2)); // Spitze bluehen lassen
+    function baum(x, y, a, laenge, dicke, tiefe) {
+      const wurzel = knoten(x, y, null);
+      achse(wurzel, a, laenge, tiefe);
+      radius(wurzel);
+      ausgeben(wurzel, dicke / (2 * wurzel.r));
     }
 
     // Unter den Leisten oben anfangen, sonst verschwindet der Ansatz.
@@ -224,21 +250,22 @@
     // Je hoeher das Fenster im Verhaeltnis, desto steiler haengt der Ast herab.
     const winkel = hoch > 1.5 ? 0.85 : hoch > 1.05 ? 0.5 : 0.3;
     const len = Math.min(Math.hypot(w, h) * 0.8, 560 * sk);
-    if (vonRechts) zweig(w + 10, y0, Math.PI - winkel, len, stamm, 3);
-    else zweig(-10, y0, winkel, len, stamm, 3);
-    // Breite Fenster: ein zweiter, kleinerer Zweig von der anderen Seite.
+    if (vonRechts) baum(w + 10, y0, Math.PI - winkel, len, stamm, 3);
+    else baum(-10, y0, winkel, len, stamm, 3);
+    // Breite Fenster: ein zweiter, kleinerer Ast von der anderen Seite.
     if (w > h * 1.4) {
-      if (vonRechts) zweig(-10, y0 * 1.3, 0.25, len * 0.65, stamm * 0.7, 2);
-      else zweig(w + 10, y0 * 1.3, Math.PI - 0.25, len * 0.65, stamm * 0.7, 2);
+      if (vonRechts) baum(-10, y0 * 1.3, 0.25, len * 0.65, stamm * 0.7, 2);
+      else baum(w + 10, y0 * 1.3, Math.PI - 0.25, len * 0.65, stamm * 0.7, 2);
     }
-    // Schmale, hohe Chats: weiter unten ein zweiter Zweig von der anderen Seite.
+    // Schmale, hohe Chats: weiter unten ein zweiter Ast von der anderen Seite.
     if (hoch > 1.5) {
       const y1 = y0 + h * 0.32;
-      if (vonRechts) zweig(-10, y1, winkel * 0.8, len * 0.6, stamm * 0.7, 2);
-      else zweig(w + 10, y1, Math.PI - winkel * 0.8, len * 0.6, stamm * 0.7, 2);
+      if (vonRechts) baum(-10, y1, winkel * 0.8, len * 0.6, stamm * 0.7, 2);
+      else baum(w + 10, y1, Math.PI - winkel * 0.8, len * 0.6, stamm * 0.7, 2);
     }
     return aus;
   }
+
   function astLinien(g, seg, faktor, farbe, wackel) {
     g.strokeStyle = farbe; g.lineCap = 'round';
     for (const s of seg) {
