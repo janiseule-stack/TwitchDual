@@ -153,3 +153,19 @@ test('zuruecksetzen loescht die Basislinie mit', () => {
   s.zuruecksetzen();
   assert.deepEqual(s.zuwaechse(5000), []);
 });
+
+test('vorabGemeldet: schon gefeierter Vorhersage-Gewinn wird nicht nochmal als Zuwachs gemeldet', () => {
+  const s = createPointsState({ intervalMs: 15000 });
+  s.zuwaechse(10000);            // Basislinie
+  s.vorabGemeldet(2000);         // tipp-gewonnen schon gezeigt
+  assert.deepEqual(s.zuwaechse(12050), [{ betrag: 50, quelle: 'passiv' }]);
+  assert.deepEqual(s.zuwaechse(12100), [{ betrag: 50, quelle: 'passiv' }], 'Abzug gilt nur einmal');
+});
+
+test('vorabGemeldet: kommt die Auszahlung in zwei Takten, wird der Rest beim naechsten abgezogen', () => {
+  const s = createPointsState({ intervalMs: 15000 });
+  s.zuwaechse(10000);
+  s.vorabGemeldet(2000);
+  assert.deepEqual(s.zuwaechse(11000), []);
+  assert.deepEqual(s.zuwaechse(12010), [{ betrag: 10, quelle: 'passiv' }]);
+});

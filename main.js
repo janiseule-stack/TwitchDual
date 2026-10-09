@@ -573,7 +573,12 @@ kanalSteuerung = createSteuerung({
   getToken: () => (webTokenNutzbar() ? webToken : null),
   getUserId: webNutzerId,
   mitIntegrity,
-  senden: (nutzlast) => broadcast('kanal-ereignisse', nutzlast),
+  senden: (nutzlast) => {
+    // Gewinn wird im Chat schon gefeiert -> der naechste Punkte-Takt soll die
+    // Auszahlung nicht nochmal als Zuwachs zeigen.
+    for (const s of nutzlast.signale || []) if (s.art === 'tipp-gewonnen') pointsState.vorabGemeldet(s.betrag);
+    broadcast('kanal-ereignisse', nutzlast);
+  },
   diag: kanalDiag
 });
 

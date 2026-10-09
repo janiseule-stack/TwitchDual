@@ -18,6 +18,7 @@
     let abstand = intervalMs;
     let letzteAbfrage = null;
     let letzterStand = null;
+    let vorab = 0; // schon gefeierte Gewinne (Vorhersage), beim naechsten Zuwachs abziehen
     const claimVersuche = new Map();
     const gesperrteKanaele = new Set();
 
@@ -60,7 +61,11 @@
         // Deckel: wurde zwischen zwei Takten zusaetzlich eingeloest, ist der
         // sichtbare Zuwachs kleiner als die Kiste hergab.
         const kiste = Math.max(0, Math.min(kistenBetrag || 0, gesamt));
-        const passiv = gesamt - kiste;
+        // Vorhersage-Gewinn wurde schon per tipp-gewonnen gezeigt -> nicht
+        // nochmal als passiven Tropfen melden (Rest bleibt fuer den naechsten Takt).
+        const abzug = Math.min(vorab, gesamt - kiste);
+        vorab -= abzug;
+        const passiv = gesamt - kiste - abzug;
         const liste = [];
         if (passiv > 0) liste.push({ betrag: passiv, quelle: 'passiv' });
         if (kiste > 0) liste.push({ betrag: kiste, quelle: 'kiste' });
@@ -68,8 +73,12 @@
       },
       // Kanalwechsel: der Stand des neuen Kanals hat mit dem alten nichts zu
       // tun. Ohne das waere die Differenz der volle neue Kontostand.
+      vorabGemeldet(betrag) {
+        if (typeof betrag === 'number' && betrag > 0) vorab += betrag;
+      },
       standVergessen() {
         letzterStand = null;
+        vorab = 0;
       },
       // Nach einem frischen Anmelden muss der Takt sofort wieder greifen.
       // Ohne das steht der Abstand nach einem abgelaufenen Token noch auf bis
@@ -83,6 +92,7 @@
         abstand = intervalMs;
         letzteAbfrage = null;
         letzterStand = null;
+        vorab = 0;
       },
       kanalGesperrt(channelLogin) {
         gesperrteKanaele.add(channelLogin);
