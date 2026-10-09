@@ -43,7 +43,9 @@ function createHermes({
     if (waechter) clearTimeoutImpl(waechter);
     waechter = setTimeoutImpl(() => {
       diag('keepalive-ausfall', {});
-      sock.close();
+      // terminate statt close: bei halboffener Verbindung wartet close() noch
+      // ~30 s auf den Schliess-Handschlag, bevor onclose neu verbindet.
+      if (typeof sock.terminate === 'function') sock.terminate(); else sock.close();
     }, (keepaliveSec || 15) * 2000);
   }
 
@@ -64,6 +66,9 @@ function createHermes({
     ws = sock;
     aboZuThema = new Map();
     let keepaliveSec = 15;
+    // Schon ab Aufbau wachen: kommt nie ein welcome (haengender Handschlag),
+    // waere Hermes sonst bis zum Kanalwechsel tot.
+    waechterNeu(sock, keepaliveSec);
 
     sock.onmessage = (ev) => {
       if (ws !== sock) return;

@@ -146,3 +146,24 @@ test('schliesse: zu und keine Neuverbindung', () => {
   assert.equal(a.Ws.instanzen.length, 1);
   assert.equal(a.Ws.instanzen[0].zu, true);
 });
+
+test('kein welcome: Waechter laeuft ab Verbindungsaufbau, danach Neuverbindung', () => {
+  const a = aufbau();
+  a.h.setzeThemen(['polls.1']);
+  const ws = a.Ws.instanzen[0];
+  a.timer.feuere(30000); // nie eine Nachricht -> 2x Standard-keepalive (15 s)
+  assert.equal(ws.zu, true);
+  a.timer.feuere(1234);
+  assert.equal(a.Ws.instanzen.length, 2);
+});
+
+test('keepalive-Ausfall: terminate statt close (halboffene Verbindung)', () => {
+  const a = aufbau();
+  a.h.setzeThemen(['polls.1']);
+  const ws = a.Ws.instanzen[0];
+  let terminiert = false;
+  ws.terminate = () => { terminiert = true; ws.zu = true; if (ws.onclose) ws.onclose({}); };
+  ws.rein(fix.welcome);
+  a.timer.feuere(30000); // fixture welcome: keepaliveSec 15
+  assert.equal(terminiert, true);
+});
