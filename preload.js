@@ -79,9 +79,9 @@ if (!isTwitchFrame) {
 
     // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
     getFavorites: () => ipcRenderer.invoke('get-favorites'),
+    homeKanaele: () => ipcRenderer.invoke('home-kanaele'),
     addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
     removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
-    liveStatus: (logins) => ipcRenderer.invoke('live-status', logins),
     channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
 
     // Werbe-Status empfangen (Video-Fenster). Adblock ist immer an (kein Schalter).
@@ -94,8 +94,6 @@ if (!isTwitchFrame) {
     authStart: () => ipcRenderer.invoke('auth-start'),
     authLogout: () => ipcRenderer.invoke('auth-logout'),
     onAuthChanged: (cb) => { ipcRenderer.on('auth-changed', (_e, st) => cb(st)); },
-    getFollowed: () => ipcRenderer.invoke('get-followed'),
-    vorschlagQuellen: () => ipcRenderer.invoke('vorschlag-quellen'),
     kanalSuche: (query) => ipcRenderer.invoke('kanal-suche', query),
     getUserEmotes: () => ipcRenderer.invoke('get-user-emotes'),
     chatSend: (text) => ipcRenderer.invoke('chat-send', { text }),

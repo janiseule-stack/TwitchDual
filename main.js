@@ -24,6 +24,7 @@ const ThemeKatalog = require('./renderer/lib/themes');
 const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
+const { ladeHomeKanaele } = require('./src/home-kanaele');
 const { ChatSender } = require('./src/chat-send');
 const { safeStorage, session } = require('electron');
 
@@ -56,7 +57,6 @@ function initAuth() {
   authManager = new AuthManager({
     tokenStore,
     onChanged: async (st) => {
-      gefolgtCache = null; // anderer/kein Account -> Vorschlaege neu aufbauen
       broadcast('auth-changed', st);
       // Sende-Socket an den neuen Login-Zustand anpassen.
       if (st.loggedIn) {
@@ -77,8 +77,6 @@ function initAuth() {
 
 const HISTORY_MAX = 10;
 
-// Letzte bekannte Gefolgt-Liste fuer die Vorschlaege oben (siehe vorschlag-quellen).
-let gefolgtCache = null;
 
 // Erfolgreich geladene Quelle in den Verlauf aufnehmen (vorn, dedupliziert).
 function pushHistory(entry) {
@@ -956,30 +954,20 @@ ipcMain.handle('auth-start', async () => {
 });
 ipcMain.handle('auth-logout', () => { authManager.logout(); return { ok: true }; });
 
-// Gefolgte Channels (mit Live-Status, live-first via browse.getLiveStatus).
-ipcMain.handle('get-followed', async () => {
+// Home: Favoriten + gefolgte Kanaele mit Live-Status (live nach Zuschauern,
+// offline alphabetisch). Ohne Login nur Favoriten.
+ipcMain.handle('home-kanaele', async () => {
   try {
-    const acc = await authManager.getAccess();
-    if (!acc) return { ok: false, error: 'Nicht angemeldet.' };
-    const followed = await helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken });
-    const channels = await browse.getLiveStatus(followed.map((f) => f.login));
-    gefolgtCache = channels.map((c) => ({ login: c.login, displayName: c.displayName, avatar: c.avatar, live: c.live }));
-    return { ok: true, channels };
+    const r = await ladeHomeKanaele({
+      favoriten: store.get('favorites', []),
+      holeGefolgt: async () => {
+        const acc = await authManager.getAccess();
+        return acc ? helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken }) : null;
+      },
+      liveStatus: (logins) => browse.getLiveStatus(logins)
+    });
+    return { ok: true, ...r };
   } catch (e) { return { ok: false, error: e.message || String(e) }; }
-});
-
-// Quellen fuer lokale Vorschlaege im Kanal-Feld (Gefolgt, Favoriten, Verlauf).
-ipcMain.handle('vorschlag-quellen', async () => {
-  if (!gefolgtCache) {
-    try {
-      const acc = await authManager.getAccess();
-      if (acc) {
-        const f = await helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken });
-        gefolgtCache = f.map((c) => ({ login: c.login, displayName: c.displayName, live: false }));
-      }
-    } catch { /* ohne Gefolgt weiter */ }
-  }
-  return { gefolgt: gefolgtCache || [], favoriten: store.get('favorites', []), verlauf: store.get('history', []) };
 });
 
 // Kanalsuche oben: Twitchs eigene Vorschlaege + exakter Login-Treffer.
@@ -1031,15 +1019,6 @@ ipcMain.handle('remove-favorite', (_evt, login) => {
   const favs = store.get('favorites', []).filter((f) => f !== clean);
   store.set('favorites', favs);
   return { ok: true, favorites: favs };
-});
-
-ipcMain.handle('live-status', async (_evt, logins) => {
-  try {
-    const list = await browse.getLiveStatus(logins);
-    return { ok: true, channels: list };
-  } catch (e) {
-    return { ok: false, error: e.message || String(e) };
-  }
 });
 
 ipcMain.handle('channel-vods', async (_evt, args) => {
