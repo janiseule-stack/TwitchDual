@@ -28,10 +28,11 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Home-Overlay: Favoriten-Suche (Name/Spiel/Titel), Sortierung zentral im
   Main (`sortByLive`), erklärende Leerzustände.
 - Tastenkürzel: `Ctrl+L` Eingabefeld, `Space` Play/Pause, `Esc` Overlay.
-- Kanal-Suche (Branch `feat/kanal-suche`): Vorschlagsliste unter dem Kanal-Feld
-  (Gefolgt/Favoriten/Verlauf sofort, Twitch-weit per Helix `search/channels`
-  entprellt; ↑/↓/Enter/Esc; Logik `renderer/lib/kanal-vorschlaege.js`),
-  Suchfeld im Gefolgt-Tab, Offline-Kanäle alphabetisch.
+- Home als eine Ansicht (Branch `feat/kanal-suche`): Suche oben (eigene
+  Kanäle sofort, „Auf Twitch“ per GQL `searchSuggestions` + exakter Login),
+  ★-Favoriten ganz oben, gefolgte Live/Offline (offline alphabetisch);
+  Tabs Gefolgt/Favoriten und Kanal-Feld-Vorschläge entfernt; Live-Status
+  gebündelt (100 pro Abfrage). Pin ✕ → 📌-Knopf zum Zurückholen.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
