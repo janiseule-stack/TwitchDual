@@ -139,6 +139,7 @@ function createWindows() {
     win.on('resize', save);
     win.on('move', save);
   }
+  andockenVerdrahten();
 
   // Login-Panel oeffnet twitch.tv/activate im Systembrowser (nicht im
   // Electron-Fenster) - Links aus dem Video-Renderer immer extern oeffnen.
@@ -158,6 +159,69 @@ function createWindows() {
     chatWin = null;
   });
 }
+
+// --- Chat magnetisch ans Video andocken (rechts/links/unten) -----------------
+// Rechnerei in src/andocken.js. Angedockt folgt der Chat dem Video (Bewegen +
+// Groesse); weiter als die Schwelle weggezogen loest er sich. Nicht bei
+// maximiertem/Vollbild-/Nur-Video-Fenster (sonst rutscht er aus dem Bild).
+const Andocken = require('./src/andocken');
+let andockSeite = Andocken.liesSeite(store.get('chatAndocken'));
+let eigeneBewegungBis = 0; // eigene setBounds-Aufrufe loesen move-Events aus -> ignorieren
+
+function andockenMoeglich() {
+  return videoWin && chatWin && !videoWin.isDestroyed() && !chatWin.isDestroyed()
+    && !videoWin.isMaximized() && !videoWin.isFullScreen() && !videoWin.isMinimized()
+    && !preVideoOnlyBounds.has(videoWin.id);
+}
+
+function setzeAndockSeite(seite) {
+  andockSeite = seite;
+  store.set('chatAndocken', seite);
+  if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('andocken-zustand', { seite });
+  diagLog.melde('app', 'andocken', { seite: seite || 'geloest' });
+}
+
+function chatNachziehen() {
+  if (!andockSeite || !andockenMoeglich()) return;
+  const soll = Andocken.position(videoWin.getBounds(), chatWin.getBounds(), andockSeite);
+  eigeneBewegungBis = Date.now() + 200;
+  chatWin.setBounds(soll);
+}
+
+function andockenVerdrahten() {
+  for (const ev of ['move', 'resize', 'restore', 'unmaximize', 'leave-full-screen']) videoWin.on(ev, chatNachziehen);
+  // Ende einer Nutzer-Bewegung am Chat: andocken, loesen oder zurueckschnappen.
+  const chatLosgelassen = () => {
+    if (Date.now() < eigeneBewegungBis || !andockenMoeglich()) return;
+    const video = videoWin.getBounds();
+    const chat = chatWin.getBounds();
+    if (andockSeite) {
+      if (Andocken.istGeloest(Andocken.position(video, chat, andockSeite), chat)) setzeAndockSeite(null);
+      else chatNachziehen();
+      return;
+    }
+    const seite = Andocken.erkenneSeite(video, chat);
+    if (seite) { setzeAndockSeite(seite); chatNachziehen(); }
+  };
+  chatWin.on('moved', chatLosgelassen);
+  chatWin.on('resized', chatLosgelassen);
+  chatWin.webContents.on('did-finish-load', () => {
+    chatWin.webContents.send('andocken-zustand', { seite: andockSeite });
+    chatNachziehen();
+  });
+}
+
+// 🔗 im Chat-Kopf: loesen und ein Stueck wegruecken (sonst dockt der naechste
+// Zug sofort wieder an).
+ipcMain.on('andocken-loesen', () => {
+  if (!andockSeite || !chatWin || chatWin.isDestroyed()) return;
+  const b = chatWin.getBounds();
+  const weg = 40;
+  const neu = andockSeite === 'rechts' ? { ...b, x: b.x + weg } : andockSeite === 'links' ? { ...b, x: b.x - weg } : { ...b, y: b.y + weg };
+  setzeAndockSeite(null);
+  eigeneBewegungBis = Date.now() + 200;
+  chatWin.setBounds(neu);
+});
 
 function broadcast(channel, payload) {
   for (const win of [videoWin, chatWin]) {
