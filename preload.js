@@ -95,6 +95,8 @@ if (!isTwitchFrame) {
     authLogout: () => ipcRenderer.invoke('auth-logout'),
     onAuthChanged: (cb) => { ipcRenderer.on('auth-changed', (_e, st) => cb(st)); },
     getFollowed: () => ipcRenderer.invoke('get-followed'),
+    vorschlagQuellen: () => ipcRenderer.invoke('vorschlag-quellen'),
+    kanalSuche: (query) => ipcRenderer.invoke('kanal-suche', query),
     getUserEmotes: () => ipcRenderer.invoke('get-user-emotes'),
     chatSend: (text) => ipcRenderer.invoke('chat-send', { text }),
     onChatNotice: (cb) => { ipcRenderer.on('chat-notice', (_e, n) => cb(n)); },

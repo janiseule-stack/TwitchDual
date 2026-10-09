@@ -56,6 +56,7 @@ function initAuth() {
   authManager = new AuthManager({
     tokenStore,
     onChanged: async (st) => {
+      gefolgtCache = null; // anderer/kein Account -> Vorschlaege neu aufbauen
       broadcast('auth-changed', st);
       // Sende-Socket an den neuen Login-Zustand anpassen.
       if (st.loggedIn) {
@@ -75,6 +76,9 @@ function initAuth() {
 }
 
 const HISTORY_MAX = 10;
+
+// Letzte bekannte Gefolgt-Liste fuer die Vorschlaege oben (siehe vorschlag-quellen).
+let gefolgtCache = null;
 
 // Erfolgreich geladene Quelle in den Verlauf aufnehmen (vorn, dedupliziert).
 function pushHistory(entry) {
@@ -959,8 +963,33 @@ ipcMain.handle('get-followed', async () => {
     if (!acc) return { ok: false, error: 'Nicht angemeldet.' };
     const followed = await helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken });
     const channels = await browse.getLiveStatus(followed.map((f) => f.login));
+    gefolgtCache = channels.map((c) => ({ login: c.login, displayName: c.displayName, avatar: c.avatar, live: c.live }));
     return { ok: true, channels };
   } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
+// Quellen fuer lokale Vorschlaege im Kanal-Feld (Gefolgt, Favoriten, Verlauf).
+ipcMain.handle('vorschlag-quellen', async () => {
+  if (!gefolgtCache) {
+    try {
+      const acc = await authManager.getAccess();
+      if (acc) {
+        const f = await helix.getFollowedChannels({ userId: acc.userId, accessToken: acc.accessToken });
+        gefolgtCache = f.map((c) => ({ login: c.login, displayName: c.displayName, live: false }));
+      }
+    } catch { /* ohne Gefolgt weiter */ }
+  }
+  return { gefolgt: gefolgtCache || [], favoriten: store.get('favorites', []), verlauf: store.get('history', []) };
+});
+
+// Twitch-weite Kanalsuche (nur eingeloggt; Helix braucht ein Token).
+ipcMain.handle('kanal-suche', async (_evt, query) => {
+  try {
+    const acc = await authManager.getAccess();
+    if (!acc) return { ok: false, channels: [] };
+    const channels = await helix.searchChannels({ query: String(query || '').slice(0, 50), accessToken: acc.accessToken });
+    return { ok: true, channels };
+  } catch (e) { return { ok: false, channels: [], error: e.message || String(e) }; }
 });
 
 // Eigene Twitch-Emotes fuer den Picker.

@@ -5,7 +5,6 @@ const $load = document.getElementById('load');
 const $status = document.getElementById('status');
 const $player = document.getElementById('player');
 const $hint = document.getElementById('hint');
-const $history = document.getElementById('history');
 const $adsIndicator = document.getElementById('ads-indicator');
 const adState = window.createAdOverlayState ? window.createAdOverlayState() : null;
 
@@ -80,18 +79,126 @@ function setStatus(text, isError = false) {
   $status.className = (isError ? 'err' : '') + (text ? '' : ' hidden');
 }
 
-// Verlauf (zuletzt geladene Quellen) in die Eingabe-Datalist spiegeln.
+// Verlauf hat sich geaendert -> Vorschlags-Quellen beim naechsten Fokus neu holen.
 async function refreshHistory() {
-  const prefs = await window.twitchDual.getUiPrefs();
-  $history.innerHTML = '';
-  for (const h of prefs.history || []) {
-    const opt = document.createElement('option');
-    opt.value = h.value;
-    opt.label = h.label || h.value;
-    $history.appendChild(opt);
-  }
-  return prefs;
+  vorschlagQuellen = null;
+  return window.twitchDual.getUiPrefs();
 }
+
+// --- Kanal-Vorschlaege ------------------------------------------------------
+// Lokale Treffer (Gefolgt, Favoriten, Verlauf) sofort, Twitch-Suche entprellt
+// hinterher. Logik in renderer/lib/kanal-vorschlaege.js.
+const $vorschlaege = document.getElementById('vorschlaege');
+const QUELLE_LABEL = { gefolgt: 'Gefolgt', favorit: '★ Favorit', verlauf: 'Verlauf' };
+let vorschlagQuellen = null;
+let vorschlaege = [];
+let vsAuswahl = -1;
+let vsTimer = null;
+let vsNr = 0;
+
+async function vorschlagQuellenLaden() {
+  if (vorschlagQuellen) return;
+  try { vorschlagQuellen = await window.twitchDual.vorschlagQuellen(); } catch { vorschlagQuellen = {}; }
+}
+
+function vorschlaegeSchliessen() {
+  clearTimeout(vsTimer);
+  vsNr++; // laufende Suche verwerfen
+  vorschlaege = [];
+  vsAuswahl = -1;
+  $vorschlaege.classList.add('hidden');
+  $vorschlaege.innerHTML = '';
+  $channel.setAttribute('aria-expanded', 'false');
+}
+
+function vorschlaegeZeigen(liste) {
+  if (!liste.length) { vorschlaegeSchliessen(); return; }
+  // Auswahl per Login halten, wenn die Twitch-Treffer nachkommen.
+  const gewaehlt = vorschlaege[vsAuswahl] && vorschlaege[vsAuswahl].login;
+  vorschlaege = liste;
+  vsAuswahl = gewaehlt ? liste.findIndex((k) => k.login === gewaehlt) : -1;
+  $vorschlaege.innerHTML = '';
+  liste.forEach((k, i) => {
+    const zeile = document.createElement('div');
+    zeile.className = 'vs-zeile' + (i === vsAuswahl ? ' aktiv' : '');
+    zeile.setAttribute('role', 'option');
+    const avatar = document.createElement('img');
+    avatar.className = 'vs-avatar' + (k.live ? ' live' : '');
+    avatar.alt = '';
+    if (k.avatar) avatar.src = k.avatar;
+    avatar.onerror = () => avatar.removeAttribute('src');
+    const text = document.createElement('div');
+    text.className = 'vs-text';
+    const name = document.createElement('span');
+    name.className = 'vs-name';
+    name.textContent = k.displayName || k.login;
+    const meta = document.createElement('span');
+    meta.className = 'vs-meta';
+    if (k.live) {
+      const live = document.createElement('span');
+      live.className = 'vs-live';
+      live.textContent = '● live';
+      meta.append(live, k.game ? ' · ' + k.game : '');
+    } else {
+      meta.textContent = k.login;
+    }
+    text.append(name, meta);
+    zeile.append(avatar, text);
+    if (QUELLE_LABEL[k.quelle]) {
+      const q = document.createElement('span');
+      q.className = 'vs-quelle';
+      q.textContent = QUELLE_LABEL[k.quelle];
+      zeile.appendChild(q);
+    }
+    zeile.addEventListener('click', () => vorschlagLaden(k));
+    $vorschlaege.appendChild(zeile);
+  });
+  const r = $channel.getBoundingClientRect();
+  $vorschlaege.style.left = r.left + 'px';
+  $vorschlaege.style.top = (r.bottom + 4) + 'px';
+  $vorschlaege.style.width = Math.max(r.width, 300) + 'px';
+  $vorschlaege.classList.remove('hidden');
+  $channel.setAttribute('aria-expanded', 'true');
+}
+
+function vorschlagLaden(k) {
+  $channel.value = k.login;
+  vorschlaegeSchliessen();
+  doLoad();
+}
+
+function vorschlaegeAktualisieren() {
+  const text = $channel.value;
+  clearTimeout(vsTimer);
+  const nr = ++vsNr;
+  if (!KanalVorschlaege.sollSuchen(text)) { vorschlaegeSchliessen(); return; }
+  const lokal = KanalVorschlaege.lokaleTreffer(text, vorschlagQuellen || {});
+  vorschlaegeZeigen(lokal);
+  const query = text.trim().replace(/^#/, '');
+  if (query.length < 2) return;
+  vsTimer = setTimeout(async () => {
+    let res = null;
+    try { res = await window.twitchDual.kanalSuche(query); } catch { /* still */ }
+    if (nr !== vsNr || document.activeElement !== $channel) return; // veraltet
+    if (res && res.ok) vorschlaegeZeigen(KanalVorschlaege.zusammenfuehren(lokal, res.channels));
+  }, 250);
+}
+
+function vorschlagMarkieren(i) {
+  vsAuswahl = i;
+  [...$vorschlaege.children].forEach((z, j) => z.classList.toggle('aktiv', j === i));
+  const z = $vorschlaege.children[i];
+  if (z) z.scrollIntoView({ block: 'nearest' });
+}
+
+$channel.addEventListener('focus', () => { vorschlagQuellenLaden(); });
+$channel.addEventListener('input', () => {
+  vorschlagQuellenLaden().then(() => { if (document.activeElement === $channel) vorschlaegeAktualisieren(); });
+});
+$channel.addEventListener('blur', vorschlaegeSchliessen);
+// Klick in die Liste darf dem Feld nicht den Fokus nehmen (sonst schliesst blur vor click).
+$vorschlaege.addEventListener('mousedown', (e) => e.preventDefault());
+window.addEventListener('resize', vorschlaegeSchliessen);
 
 // Player (neu) erzeugen. options: {channel} | {video}
 function mountPlayer(options) {
@@ -215,7 +322,19 @@ async function doLoad() {
 
 $load.addEventListener('click', doLoad);
 $channel.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') doLoad();
+  const offen = vorschlaege.length > 0;
+  if (offen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    e.preventDefault();
+    const n = vorschlaege.length;
+    vorschlagMarkieren(e.key === 'ArrowDown' ? (vsAuswahl + 1) % n : (vsAuswahl - 1 + n) % n);
+    return;
+  }
+  if (offen && e.key === 'Escape') { e.preventDefault(); vorschlaegeSchliessen(); return; }
+  if (e.key === 'Enter') {
+    if (offen && vsAuswahl >= 0) { vorschlagLaden(vorschlaege[vsAuswahl]); return; }
+    vorschlaegeSchliessen();
+    doLoad();
+  }
 });
 
 // Tastenkuerzel: Ctrl+L fokussiert das Eingabefeld, Space togglet Play/Pause

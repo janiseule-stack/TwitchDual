@@ -66,3 +66,13 @@ test('sortByLive: live zuerst, dann Zuschauer', () => {
   ];
   assert.deepEqual(m.sortByLive(list).map((x) => x.login), ['c', 'b', 'a']);
 });
+
+test('sortByLive: Offline alphabetisch nach Anzeigename (case-insensitiv)', () => {
+  const list = [
+    { login: 'zeta', displayName: 'Zeta', live: false },
+    { login: 'alpha', displayName: 'alpha', live: false },
+    { login: 'mitte', displayName: 'Mitte', live: false },
+    { login: 'l', displayName: 'L', live: true, viewers: 1 }
+  ];
+  assert.deepEqual(m.sortByLive(list).map((x) => x.login), ['l', 'alpha', 'mitte', 'zeta']);
+});

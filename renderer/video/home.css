@@ -106,12 +106,12 @@
 #refresh-btn { background: var(--hover); color: var(--text); }
 #refresh-btn:hover { background: var(--line); }
 
-#filter-row { margin-bottom: 12px; }
-#filter-input {
+#filter-row, #followed-filter-row { margin-bottom: 12px; }
+#filter-input, #followed-filter {
   width: 100%; max-width: 460px; margin: 0 auto; display: block; padding: 8px 10px; border-radius: 6px;
   border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 14px;
 }
-#filter-input:focus { outline: none; border-color: var(--accent); }
+#filter-input:focus, #followed-filter:focus { outline: none; border-color: var(--accent); }
 
 .empty { color: var(--muted); text-align: center; padding: 24px; font-size: 14px; }
 

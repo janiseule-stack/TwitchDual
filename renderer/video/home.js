@@ -20,6 +20,8 @@ const $favTools = document.getElementById('fav-tools-toggle');
 const $followedView = document.getElementById('followed-view');
 const $followedList = document.getElementById('followed-list');
 const $followedEmpty = document.getElementById('followed-empty');
+const $followedFilter = document.getElementById('followed-filter');
+const $followedNoMatch = document.getElementById('followed-nomatch');
 const $tabFollowed = document.getElementById('tab-followed');
 const $tabFavorites = document.getElementById('tab-favorites');
 
@@ -65,9 +67,11 @@ function renderAbschnitte($liste, kanaele, filterAktiv, opts) {
     kopf.addEventListener('click', () => {
       abschnitteZu = HomeAbschnitte.umschalten(abschnitteZu, a.art);
       try { localStorage.setItem('homeAbschnitteZu', JSON.stringify(abschnitteZu)); } catch { /* egal */ }
-      // Gleiche Art im anderen Tab mitziehen; bei Filter bleibt alles offen.
-      const offen = !!$filterInput.value.trim() || !abschnitteZu[a.art];
-      for (const b of document.querySelectorAll('.home-abschnitt[data-art="' + a.art + '"]')) b.classList.toggle('zu', !offen);
+      // Gleiche Art im anderen Tab mitziehen; in einer gefilterten Liste bleibt alles offen.
+      for (const b of document.querySelectorAll('.home-abschnitt[data-art="' + a.art + '"]')) {
+        const filter = b.closest('#followed-list') ? $followedFilter : $filterInput;
+        b.classList.toggle('zu', !(filter.value.trim() || !abschnitteZu[a.art]));
+      }
     });
     box.append(kopf, inhalt);
     $liste.appendChild(box);
@@ -113,6 +117,7 @@ function showFollowedView() {
   $homeTitle.textContent = 'Gefolgt';
   $tabFollowed.classList.add('active');
   $tabFavorites.classList.remove('active');
+  $followedFilter.focus(); // direkt lostippen
   refreshFollowed();
 }
 
@@ -128,16 +133,27 @@ async function refreshFollowed() {
   }
   if ($followedView.classList.contains('hidden')) return; // nur laden, wenn sichtbar
   const res = await window.twitchDual.getFollowed();
-  $followedList.innerHTML = '';
   if (!res.ok) {
+    $followedList.innerHTML = '';
+    $followedNoMatch.classList.add('hidden');
     $followedEmpty.textContent = 'Fehler: ' + (res.error || 'unbekannt');
     $followedEmpty.classList.remove('hidden');
     return;
   }
-  // getFollowed() liefert bereits live-first sortiert (Main-Prozess, browse.getLiveStatus).
+  // getFollowed() liefert bereits sortiert: live nach Zuschauern, offline alphabetisch.
+  lastFollowed = res.channels;
   $followedEmpty.textContent = 'Keine gefolgten Channels.';
   $followedEmpty.classList.toggle('hidden', res.channels.length > 0);
-  renderAbschnitte($followedList, res.channels, false, { showRemove: false });
+  renderFollowed();
+}
+
+let lastFollowed = [];
+function renderFollowed() {
+  const needle = $followedFilter.value.trim().toLowerCase();
+  const filtered = lastFollowed.filter((ch) => matchesFilter(ch, needle));
+  $followedList.innerHTML = '';
+  renderAbschnitte($followedList, filtered, !!needle, { showRemove: false });
+  $followedNoMatch.classList.toggle('hidden', !(lastFollowed.length && !filtered.length));
 }
 
 function openHome() {
@@ -468,6 +484,7 @@ $addBtn.addEventListener('click', doAdd);
 $addInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAdd(); });
 $refreshBtn.addEventListener('click', refreshLive);
 $filterInput.addEventListener('input', renderFavorites);
+$followedFilter.addEventListener('input', renderFollowed);
 $tabFollowed.addEventListener('click', showFollowedView);
 $tabFavorites.addEventListener('click', showFavView);
 $favTools.addEventListener('click', () => {

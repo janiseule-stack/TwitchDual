@@ -34,6 +34,22 @@ async function getFollowedChannels({ userId, accessToken, fetchImpl = fetch }) {
   return rows.map((r) => ({ login: r.broadcaster_login, displayName: r.broadcaster_name, id: r.broadcaster_id }));
 }
 
+// Twitch-weite Kanalsuche fuer die Vorschlaege oben. Nur eine Seite (Tippen
+// braucht Tempo, nicht Vollstaendigkeit); live zuerst, sonst Twitch-Relevanz.
+async function searchChannels({ query, accessToken, first = 10, fetchImpl = fetch }) {
+  const res = await fetchImpl(
+    `${BASE}/search/channels?query=${encodeURIComponent(query)}&first=${first}`,
+    { headers: headers(accessToken) }
+  );
+  if (!res.ok) throw new Error('Helix ' + res.status);
+  const body = await res.json();
+  const rows = (body.data || []).map((r) => ({
+    login: r.broadcaster_login, displayName: r.display_name, avatar: r.thumbnail_url || null,
+    live: !!r.is_live, game: r.game_name || '', title: r.title || ''
+  }));
+  return [...rows.filter((r) => r.live), ...rows.filter((r) => !r.live)];
+}
+
 async function getUserEmotes({ userId, accessToken, fetchImpl = fetch }) {
   const { rows, template } = await fetchAllPages(
     `${BASE}/chat/emotes/user?user_id=${encodeURIComponent(userId)}`,
@@ -46,4 +62,4 @@ async function getUserEmotes({ userId, accessToken, fetchImpl = fetch }) {
   return rows.map((r) => ({ id: r.id, name: r.name, url: url(r.id) }));
 }
 
-module.exports = { getFollowedChannels, getUserEmotes };
+module.exports = { getFollowedChannels, searchChannels, getUserEmotes };

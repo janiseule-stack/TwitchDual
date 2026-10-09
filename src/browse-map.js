@@ -70,7 +70,9 @@ function mapVod(node, now = Date.now()) {
 function sortByLive(list) {
   return [...list].sort((a, b) => {
     if (a.live !== b.live) return a.live ? -1 : 1;
-    return (b.viewers || 0) - (a.viewers || 0);
+    if (a.live) return (b.viewers || 0) - (a.viewers || 0);
+    // Offline alphabetisch -> bei hunderten Kanaelen schnell auffindbar.
+    return (a.displayName || a.login || '').localeCompare(b.displayName || b.login || '', 'de', { sensitivity: 'base' });
   });
 }
 

@@ -48,3 +48,24 @@ test('getFollowedChannels sendet Client-Id und Bearer-Header', async () => {
   assert.ok(seen.headers['Client-Id']);
   assert.equal(seen.headers.Authorization, 'Bearer AT');
 });
+
+test('searchChannels fragt search/channels ab und mappt live-first', async () => {
+  const calls = [];
+  const fetchImpl = seqFetch([
+    { data: [
+      { broadcaster_login: 'papaplatte2', display_name: 'Papaplatte2', is_live: false, thumbnail_url: 'p2.png', game_name: '', title: '' },
+      { broadcaster_login: 'papaplatte', display_name: 'Papaplatte', is_live: true, thumbnail_url: 'p.png', game_name: 'Just Chatting', title: 'hi' }
+    ], pagination: { cursor: 'NICHT_FOLGEN' } }
+  ], calls);
+  const r = await helix.searchChannels({ query: 'papa platte', accessToken: 'AT', fetchImpl });
+  assert.equal(calls.length, 1, 'nur eine Seite, kein Paginieren');
+  assert.ok(calls[0].url.includes('/search/channels?query=papa%20platte'), calls[0].url);
+  assert.equal(calls[0].opts.headers.Authorization, 'Bearer AT');
+  assert.deepEqual(r.map((c) => c.login), ['papaplatte', 'papaplatte2']);
+  assert.deepEqual(r[0], { login: 'papaplatte', displayName: 'Papaplatte', avatar: 'p.png', live: true, game: 'Just Chatting', title: 'hi' });
+});
+
+test('searchChannels wirft bei HTTP-Fehler', async () => {
+  const fetchImpl = async () => ({ ok: false, status: 401, async json() { return {}; } });
+  await assert.rejects(helix.searchChannels({ query: 'x', accessToken: 'AT', fetchImpl }), /401/);
+});
