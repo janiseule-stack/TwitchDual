@@ -1027,13 +1027,28 @@ ipcMain.on('window-control', (evt, action) => {
   else if (action === 'video-only-on') {
     if (win.isMaximized()) win.unmaximize();
     preVideoOnlyBounds.set(win.id, win.getBounds());
-    const [w] = win.getContentSize();
-    win.setContentSize(w, Math.round(w * 9 / 16)); // sofort auf 16:9, Breite behalten
+    const chatDa = win === videoWin && chatWin && !chatWin.isDestroyed();
+    if (chatDa) {
+      // Video so gross wie moeglich (16:9), Chat fuellt den Rest daneben.
+      preVideoOnlyBounds.set('chat', chatWin.getBounds());
+      const r = Andocken.nurVideo(screen.getDisplayMatching(win.getBounds()).workArea);
+      eigeneBewegungBis = Date.now() + 400;
+      win.setBounds(r.video);
+      if (chatWin.isMinimized()) chatWin.restore();
+      chatWin.setBounds(r.chat);
+    } else {
+      const [w] = win.getContentSize();
+      win.setContentSize(w, Math.round(w * 9 / 16)); // sofort auf 16:9, Breite behalten
+    }
     win.setAspectRatio(16 / 9); // bleibt beim Resize 16:9 -> nie wieder Balken
   } else if (action === 'video-only-off') {
     win.setAspectRatio(0); // Seitenverhaeltnis-Sperre wieder loesen
     const b = preVideoOnlyBounds.get(win.id);
+    eigeneBewegungBis = Date.now() + 400;
     if (b) { win.setBounds(b); preVideoOnlyBounds.delete(win.id); }
+    const c = preVideoOnlyBounds.get('chat');
+    if (c && chatWin && !chatWin.isDestroyed()) chatWin.setBounds(c);
+    preVideoOnlyBounds.delete('chat');
   }
 });
 

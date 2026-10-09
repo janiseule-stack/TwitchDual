@@ -97,3 +97,15 @@ test('vollbild: Video links, Chat rechts mit ~20 % (340-480 px), fuellt den Bild
   assert.equal(D.vollbild({ x: 0, y: 0, width: 1280, height: 680 }).chat.width, 340);
   assert.equal(D.vollbild({ x: 0, y: 0, width: 3440, height: 1400 }).chat.width, 480);
 });
+
+test('nurVideo: Video 16:9 so gross wie moeglich, Chat fuellt den Rest daneben', () => {
+  const r = D.nurVideo({ x: 0, y: 0, width: 1920, height: 1040 });
+  assert.deepEqual(r.video, { x: 0, y: 75, width: 1580, height: 889 });
+  assert.deepEqual(r.chat, { x: 1580, y: 0, width: 340, height: 1040 });
+  // Breiter Monitor: Hoehe begrenzt, Chat bekommt mehr Breite
+  const breit = D.nurVideo({ x: 0, y: 0, width: 3440, height: 1400 });
+  assert.equal(breit.video.height, 1400);
+  assert.equal(breit.video.width, 2489);
+  assert.equal(breit.chat.width, 951);
+  assert.equal(breit.video.x + breit.video.width, breit.chat.x);
+});

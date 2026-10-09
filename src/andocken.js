@@ -84,4 +84,16 @@ function vollbild(wa) {
   };
 }
 
-module.exports = { SCHWELLE, KOMFORT, erkenneSeite, position, istGeloest, liesSeite, einpassen, vollbild };
+// Nur-Video: Video 16:9 so gross wie moeglich (mind. Komfortbreite fuer den
+// Chat bleibt frei), senkrecht mittig; der Chat fuellt den Rest daneben in
+// voller Hoehe (Janis 09.10.2026: "dass alles ausgefuellt wird").
+function nurVideo(wa) {
+  const vw = Math.min(Math.round(wa.height * 16 / 9), wa.width - KOMFORT.chatBreite);
+  const vh = Math.round(vw * 9 / 16);
+  return {
+    video: { x: wa.x, y: wa.y + Math.floor((wa.height - vh) / 2), width: vw, height: vh },
+    chat: { x: wa.x + vw, y: wa.y, width: wa.width - vw, height: wa.height }
+  };
+}
+
+module.exports = { SCHWELLE, KOMFORT, erkenneSeite, position, istGeloest, liesSeite, einpassen, vollbild, nurVideo };
