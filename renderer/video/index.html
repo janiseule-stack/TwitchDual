@@ -50,26 +50,6 @@
       font-size: 14px;
     }
     #channel:focus { outline: none; border-color: var(--accent); }
-    /* Vorschlaege unter dem Kanal-Feld; Position per JS am Feld ausgerichtet. */
-    #vorschlaege {
-      position: fixed; z-index: 60; max-height: 60vh; overflow-y: auto;
-      background: var(--panel); border: 1px solid var(--accent-border); border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .5); padding: 4px;
-    }
-    .vs-zeile {
-      display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 6px;
-      cursor: pointer; font-size: 14px; color: var(--text);
-    }
-    .vs-zeile.aktiv, .vs-zeile:hover { background: var(--hover); }
-    .vs-zeile.aktiv { box-shadow: inset 2px 0 0 var(--accent); }
-    .vs-avatar { width: 26px; height: 26px; border-radius: 50%; flex: none; background: var(--line); object-fit: cover; }
-    .vs-avatar.live { box-shadow: 0 0 0 2px #e91916; }
-    .vs-text { min-width: 0; flex: 1; display: flex; flex-direction: column; }
-    .vs-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .vs-haken { display: inline-grid; place-items: center; width: 14px; height: 14px; margin-left: 5px; border-radius: 50%; background: #9147ff; color: #fff; font-size: 9px; font-weight: 700; vertical-align: 1px; }
-    .vs-meta { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .vs-meta .vs-live { color: #ff4d4d; font-weight: 600; }
-    .vs-quelle { flex: none; color: var(--muted); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
     #load {
       padding: 8px 16px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 6px;
       background: var(--accent); color: var(--accent-contrast); font-weight: 600; cursor: pointer;
@@ -229,7 +209,8 @@
       <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
     </div>
     <div class="bar-center">
-      <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="vorschlaege" aria-expanded="false" />
+      <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
+      <datalist id="history"></datalist>
       <button id="load">Laden</button>
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span id="ads-dot"></span>Ads blocked</span>
     </div>
@@ -248,7 +229,6 @@
     <span id="video-topbar-hint">Nur-Video — Fenster hier ziehen</span>
     <button id="video-exit" title="Nur-Video verlassen">✕ Nur-Video</button>
   </div>
-  <div id="vorschlaege" class="hidden" role="listbox"></div>
   <div id="player">
     <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
   </div>
@@ -322,7 +302,6 @@
   <script src="../lib/fx-engine.js"></script>
   <script src="../lib/theme-runtime.js"></script>
   <script src="../lib/home-abschnitte.js"></script>
-  <script src="../lib/kanal-vorschlaege.js"></script>
   <script src="video.js"></script>
   <script src="home.js"></script>
 </body>
