@@ -2,8 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const A = require('../renderer/lib/ads-emotes');
 
-test('Liste: genau die sieben ausgesuchten 7TV-Emotes', () => {
-  assert.deepEqual(A.EMOTES.map((e) => e.name), ['Adge', 'Ads', 'block', 'roadblock', 'Stop', 'WARNING', 'EMERGENCY']);
+test('Liste: die ausgesuchten 7TV-Emotes', () => {
+  assert.deepEqual(A.EMOTES.map((e) => e.name), ['Adge', 'block', 'roadblock', 'Stop', 'WARNING']);
   for (const e of A.EMOTES) assert.match(A.url(e), /^https:\/\/cdn\.7tv\.app\/emote\/[0-9A-Z]{26}\/2x\.webp$/);
 });
 
