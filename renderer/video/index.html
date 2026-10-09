@@ -40,7 +40,7 @@
     #bar input, #bar button { -webkit-app-region: no-drag; }
     /* Drei Spalten: links Home, Mitte Eingabe (fix zur Fenstermitte), rechts Status/Fenster-Buttons.
        So springt die Mitte nicht, wenn der Status-Text wechselt (bereit -> live: …). */
-    .bar-left { justify-self: start; min-width: 0; }
+    .bar-left { justify-self: start; min-width: 0; display: flex; align-items: center; gap: 10px; }
     .bar-center { display: flex; align-items: center; gap: 8px; justify-self: center; }
     .bar-right { display: flex; align-items: center; gap: 8px; justify-self: end; min-width: 0; }
     #channel {
@@ -81,20 +81,24 @@
        waehrend gerade eine Werbung geblockt wird. */
     #ads-indicator {
       -webkit-app-region: no-drag;
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--muted); white-space: nowrap;
-      padding: 0 4px; user-select: none; cursor: default;
+      display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; user-select: none; cursor: default;
+      font-size: 12px; font-weight: 700; color: var(--accent-title);
+      padding: 3px 11px 3px 4px; border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid var(--accent-border);
+      box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 25%, transparent);
+      transition: box-shadow 200ms ease, transform 200ms ease;
     }
-    #ads-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); flex-shrink: 0;
-      animation: ads-pulse 2.4s ease-in-out infinite;
-    }
-    #ads-indicator.blocking { color: var(--accent-title); }
-    #ads-indicator.blocking #ads-dot { animation-duration: .7s; }
+    #ads-emote { height: 24px; width: auto; min-width: 24px; transition: opacity 250ms ease; }
+    #ads-emote.weg { opacity: 0; }
+    #ads-zahl { min-width: 16px; padding: 1px 6px; border-radius: 999px; font-size: 11px; text-align: center;
+      background: var(--accent); color: var(--accent-contrast); }
+    #ads-zahl.hidden { display: none; }
+    /* Gerade wird Werbung geblockt: Pille leuchtet und pulsiert */
+    #ads-indicator.blocking { animation: ads-pulse .8s ease-in-out infinite; }
     @keyframes ads-pulse {
-      0%, 100% { box-shadow: 0 0 5px 0 var(--accent-dim), 0 0 2px var(--accent); opacity: .8; }
-      50%      { box-shadow: 0 0 11px 2px var(--accent), 0 0 3px var(--accent); opacity: 1; }
+      0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent); transform: scale(1); }
+      50%      { box-shadow: 0 0 18px 3px var(--accent); transform: scale(1.06); }
     }
     #bar button:active { transform: scale(.96); }
     #bar button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
@@ -220,6 +224,7 @@
   <div id="bar">
     <div class="bar-left">
       <button id="home-btn" title="Home: Favoriten & VODs">☰</button>
+      <span id="ads-indicator" title="Werbe-Blocker aktiv"><img id="ads-emote" alt="" /><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
     </div>
     <div class="bar-center">
       <!-- Was laeuft gerade (statt des Eingabefelds); Klick oder Strg+L -> Eingabe -->
@@ -227,7 +232,6 @@
         <img id="si-avatar" alt="" />
         <span id="si-text"><span id="si-oben"></span><span id="si-unten"></span></span>
       </button>
-      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span id="ads-dot"></span>Ads blocked</span>
     </div>
     <div class="bar-right">
       <button id="update-chip" class="hidden" type="button"></button>
@@ -284,6 +288,7 @@
   <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
   <script src="../lib/stream-info.js"></script>
+  <script src="../lib/ads-emotes.js"></script>
   <script src="../lib/ad-overlay-state.js"></script>
   <script src="../lib/theme.js"></script>
   <script src="../lib/themes.js"></script>

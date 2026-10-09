@@ -6,8 +6,8 @@ const $hint = document.getElementById('hint');
 const $adsIndicator = document.getElementById('ads-indicator');
 const adState = window.createAdOverlayState ? window.createAdOverlayState() : null;
 
-// Leuchtpunkt in der Leiste ("Ads blocked"): dauerhaft an (Adblock ist immer
-// aktiv), pulsiert staerker (.blocking) waehrend gerade Werbung geblockt wird.
+// "Ads blocked"-Pille in der Leiste: dauerhaft an (Adblock ist immer aktiv),
+// pulsiert (.blocking), waehrend gerade Werbung geblockt wird.
 // NICHT stummschalten - vaft ersetzt die Werbung bereits durch Inhalt; ein
 // Zwangs-Mute strandete frueher den Ton, wenn das (fragil per console.log-
 // Heuristik erkannte) Werbe-Ende ausblieb. Der 120-s-Watchdog raeumt .blocking
@@ -17,12 +17,37 @@ function renderAdOverlay() {
   $adsIndicator.classList.toggle('blocking', adState.overlayVisible);
 }
 
+// "Ads blocked"-Pille: animierte 7TV-Emotes wechseln ab und zu (alle 45 s,
+// sofort bei geblockter Werbung), Zahl = geblockte Werbungen dieser Sitzung.
+const $adsEmote = document.getElementById('ads-emote');
+const $adsZahl = document.getElementById('ads-zahl');
+let adsEmoteNr = -1;
+let adsGeblockt = 0;
+function adsEmoteWechseln() {
+  if (!$adsEmote || !window.AdsEmotes) return;
+  adsEmoteNr = AdsEmotes.naechstes(adsEmoteNr, Math.random);
+  const e = AdsEmotes.EMOTES[adsEmoteNr];
+  $adsEmote.classList.add('weg');
+  setTimeout(() => { $adsEmote.src = AdsEmotes.url(e); $adsEmote.title = e.name; $adsEmote.classList.remove('weg'); }, 250);
+}
+function adsZahlZeigen() {
+  if (!$adsZahl) return;
+  $adsZahl.textContent = String(adsGeblockt);
+  $adsZahl.classList.toggle('hidden', adsGeblockt === 0);
+  $adsZahl.title = adsGeblockt + (adsGeblockt === 1 ? ' Werbung' : ' Werbungen') + ' in dieser Sitzung geblockt';
+}
+adsEmoteWechseln();
+setInterval(adsEmoteWechseln, 45000);
+
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
 if (window.twitchDual.onAdblockState) {
   window.twitchDual.onAdblockState((payload) => {
     if (!adState) return;
     const phase = payload && payload.phase;
     if (phase === 'start') {
+      adsGeblockt++;
+      adsZahlZeigen();
+      adsEmoteWechseln(); // bei geblockter Werbung sofort ein neues Emote
       let muted = false;
       try { muted = !!(player && player.getMuted && player.getMuted()); } catch (e) {}
       adState.adStart(muted);
