@@ -207,7 +207,6 @@
     #si-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
     #si-oben { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #si-unten { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #channel.hidden, #load.hidden { display: none; }
   </style>
 </head>
 <body>
@@ -223,13 +222,10 @@
     </div>
     <div class="bar-center">
       <!-- Was laeuft gerade (statt des Eingabefelds); Klick oder Strg+L -> Eingabe -->
-      <button id="stream-info" type="button" class="hidden" title="Klicken (oder Strg+L), um etwas anderes zu laden">
+      <button id="stream-info" type="button" class="hidden" title="Klicken (oder Strg+L): Home öffnen und Kanal wechseln">
         <img id="si-avatar" alt="" />
         <span id="si-text"><span id="si-oben"></span><span id="si-unten"></span></span>
       </button>
-      <input id="channel" type="text" placeholder="Channel (live) oder VOD-Link/ID …" autocomplete="off" list="history" />
-      <datalist id="history"></datalist>
-      <button id="load">Laden</button>
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span id="ads-dot"></span>Ads blocked</span>
     </div>
     <div class="bar-right">
@@ -249,7 +245,7 @@
     <button id="video-exit" title="Nur-Video verlassen">✕ Nur-Video</button>
   </div>
   <div id="player">
-    <div id="hint">Channel-Name für LIVE oder VOD-Link/ID eingeben und „Laden" drücken — oder ☰ Home für Favoriten.</div>
+    <div id="hint">☰ Home öffnen und einen Kanal wählen.</div>
   </div>
 
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->

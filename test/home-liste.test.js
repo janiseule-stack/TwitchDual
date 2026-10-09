@@ -110,3 +110,13 @@ test('sterneNachholen: Stern-Klicks waehrend des Ladens gehen nicht verloren', (
   assert.deepEqual(r.map((x) => [x.login, x.favorit]), [['gefolgtaus', false], ['fremd', true]]);
   assert.deepEqual(L.sterneNachholen(geladen, []), geladen);
 });
+
+test('enterLaden: VOD-Link/-ID oder Kanalname direkt laden, sonst nichts', () => {
+  assert.equal(L.enterLaden('https://www.twitch.tv/videos/2251234567'), 'https://www.twitch.tv/videos/2251234567');
+  assert.equal(L.enterLaden(' v2251234567 '), 'v2251234567');
+  assert.equal(L.enterLaden('Papaplatte'), 'Papaplatte');
+  assert.equal(L.enterLaden('#streamer'), '#streamer');
+  assert.equal(L.enterLaden('zwei woerter'), null);
+  assert.equal(L.enterLaden(''), null);
+  assert.equal(L.enterLaden('a'), null, 'ein Zeichen ist kein Kanal');
+});

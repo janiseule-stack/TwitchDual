@@ -408,6 +408,24 @@ $homeClose.addEventListener('click', closeHomeResume);
 $homeBack.addEventListener('click', showKanaeleView);
 $refreshBtn.addEventListener('click', ladeKanaele);
 $suche.addEventListener('input', sucheGetippt);
+// Enter: VOD-Link/-ID oder Kanalname direkt laden (oben gibt es kein
+// Eingabefeld mehr - Kanal wechseln nur hier).
+$suche.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  const wert = HomeListe.enterLaden($suche.value);
+  if (!wert) return;
+  const r = await window.twitchDual.submitLoad(wert);
+  if (r && r.ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
+  $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
+  $hinweis.classList.remove('hidden');
+});
+// Fuer die Leiste im Video-Fenster: Klick auf die Infos / Strg+L.
+window.homeMitSuche = () => {
+  if ($home.classList.contains('hidden')) openHome();
+  else showKanaeleView();
+  $suche.focus();
+  $suche.select();
+};
 
 // Esc schliesst das Overlay (bzw. fuehrt aus der VOD-Ansicht zurueck).
 document.addEventListener('keydown', (e) => {

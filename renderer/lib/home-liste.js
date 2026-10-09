@@ -81,5 +81,15 @@
     return (sterne || []).reduce((liste, s) => sternAnwenden(liste, s.ch, s.favoriten), kanaele);
   }
 
-  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, sterneNachholen, createLaufnummer };
+  // Enter in der Home-Suche: was sich direkt laden laesst (VOD-Link/-ID oder
+  // ein gueltiger Kanalname) geht an submitLoad - das Eingabefeld oben gibt
+  // es nicht mehr (Janis 09.10.2026: Kanal nur noch in Home wechseln).
+  function enterLaden(text) {
+    const t = String(text || '').trim();
+    if (/twitch\.tv\/videos\/\d+/i.test(t) || /^v?\d{4,}$/i.test(t)) return t;
+    if (/^#?[A-Za-z0-9_]{2,25}$/.test(t)) return t;
+    return null;
+  }
+
+  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, sterneNachholen, createLaufnummer, enterLaden };
 });
