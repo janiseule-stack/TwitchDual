@@ -39,3 +39,52 @@ test('liesSeite: nur gueltige Seiten, sonst null', () => {
   assert.equal(D.liesSeite('oben'), null);
   assert.equal(D.liesSeite(undefined), null);
 });
+
+// --- Einpassen in den Bildschirm (Arbeitsbereich ohne Taskleiste) ------------
+const wa = { x: 0, y: 0, width: 1920, height: 1040 };
+const passt = (b) => b.x >= wa.x && b.y >= wa.y && b.x + b.width <= wa.x + wa.width && b.y + b.height <= wa.y + wa.height;
+
+test('einpassen rechts: Chat wuerde rechts rausragen -> Video rueckt nach links', () => {
+  const v = { x: 1000, y: 100, width: 800, height: 450 };
+  const r = D.einpassen(v, { x: 0, y: 0, width: 400, height: 450 }, 'rechts', wa);
+  assert.deepEqual(r.video, { x: 720, y: 100, width: 800, height: 450 });
+  assert.ok(passt(r.chat) && passt(r.video));
+});
+
+test('einpassen rechts: zusammen zu breit -> Video wird schmaler, Hoehe passt mit', () => {
+  const v = { x: 0, y: 0, width: 1800, height: 1013 };
+  const r = D.einpassen(v, { x: 0, y: 0, width: 400, height: 500 }, 'rechts', wa);
+  assert.equal(r.video.width + r.chat.width, 1920);
+  assert.equal(r.chat.width, 400);
+  assert.ok(passt(r.chat) && passt(r.video));
+});
+
+test('einpassen links: Chat wuerde links rausragen -> Video rueckt nach rechts', () => {
+  const r = D.einpassen({ x: 100, y: 100, width: 800, height: 450 }, { x: 0, y: 0, width: 350, height: 450 }, 'links', wa);
+  assert.equal(r.video.x, 350);
+  assert.equal(r.chat.x, 0);
+  assert.ok(passt(r.chat) && passt(r.video));
+});
+
+test('einpassen unten: Chat wuerde unten rausragen -> Video rueckt hoch bzw. wird niedriger', () => {
+  const r = D.einpassen({ x: 100, y: 600, width: 800, height: 450 }, { x: 0, y: 0, width: 800, height: 300 }, 'unten', wa);
+  assert.equal(r.video.y, 290);
+  assert.ok(passt(r.chat) && passt(r.video));
+  const r2 = D.einpassen({ x: 0, y: 0, width: 1600, height: 900 }, { x: 0, y: 0, width: 1600, height: 400 }, 'unten', wa);
+  assert.equal(r2.video.height + r2.chat.height, 1040);
+  assert.ok(passt(r2.chat) && passt(r2.video));
+});
+
+test('einpassen: zu kleiner Bildschirm -> auch der Chat schrumpft, aber nie unter das Minimum', () => {
+  const klein = { x: 0, y: 0, width: 900, height: 700 };
+  const r = D.einpassen({ x: 0, y: 0, width: 800, height: 450 }, { x: 0, y: 0, width: 500, height: 450 }, 'rechts', klein);
+  assert.equal(r.video.width + r.chat.width, 900);
+  assert.ok(r.video.width >= D.MIN.videoBreite && r.chat.width >= D.MIN.chatBreite);
+});
+
+test('einpassen: zweiter Monitor mit Versatz wird beachtet', () => {
+  const rechterMonitor = { x: 1920, y: 0, width: 1920, height: 1040 };
+  const r = D.einpassen({ x: 3000, y: 50, width: 800, height: 450 }, { x: 0, y: 0, width: 400, height: 450 }, 'rechts', rechterMonitor);
+  assert.equal(r.chat.x + r.chat.width, 3840);
+  assert.equal(r.video.x, 2640);
+});

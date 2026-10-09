@@ -26,7 +26,7 @@ const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
 const { ladeHomeKanaele } = require('./src/home-kanaele');
 const { ChatSender } = require('./src/chat-send');
-const { safeStorage, session } = require('electron');
+const { safeStorage, session, screen } = require('electron');
 
 const store = new Store({
   defaults: {
@@ -188,8 +188,24 @@ function chatNachziehen() {
   chatWin.setBounds(soll);
 }
 
+// Video + Chat ganz auf den Monitor des Videos bringen (ruecken/verkleinern).
+function einpassen() {
+  if (!andockSeite || !andockenMoeglich()) return;
+  const vb = videoWin.getBounds();
+  const wa = screen.getDisplayMatching(vb).workArea;
+  const r = Andocken.einpassen(vb, chatWin.getBounds(), andockSeite, wa);
+  eigeneBewegungBis = Date.now() + 300;
+  if (['x', 'y', 'width', 'height'].some((k) => r.video[k] !== vb[k])) videoWin.setBounds(r.video);
+  chatWin.setBounds(r.chat);
+}
+
 function andockenVerdrahten() {
-  for (const ev of ['move', 'resize', 'restore', 'unmaximize', 'leave-full-screen']) videoWin.on(ev, chatNachziehen);
+  // Waehrend des Ziehens folgt der Chat nur; eingepasst wird beim Loslassen
+  // (sonst kaempft die App gegen die Maus).
+  for (const ev of ['move', 'resize']) videoWin.on(ev, chatNachziehen);
+  for (const ev of ['moved', 'resized', 'restore', 'unmaximize', 'leave-full-screen']) {
+    videoWin.on(ev, () => { if (Date.now() >= eigeneBewegungBis) einpassen(); });
+  }
   // Ende einer Nutzer-Bewegung am Chat: andocken, loesen oder zurueckschnappen.
   const chatLosgelassen = () => {
     if (Date.now() < eigeneBewegungBis || !andockenMoeglich()) return;
@@ -197,17 +213,17 @@ function andockenVerdrahten() {
     const chat = chatWin.getBounds();
     if (andockSeite) {
       if (Andocken.istGeloest(Andocken.position(video, chat, andockSeite), chat)) setzeAndockSeite(null);
-      else chatNachziehen();
+      else einpassen();
       return;
     }
     const seite = Andocken.erkenneSeite(video, chat);
-    if (seite) { setzeAndockSeite(seite); chatNachziehen(); }
+    if (seite) { setzeAndockSeite(seite); einpassen(); }
   };
   chatWin.on('moved', chatLosgelassen);
   chatWin.on('resized', chatLosgelassen);
   chatWin.webContents.on('did-finish-load', () => {
     chatWin.webContents.send('andocken-zustand', { seite: andockSeite });
-    chatNachziehen();
+    einpassen();
   });
 }
 
