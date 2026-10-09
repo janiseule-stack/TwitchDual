@@ -66,8 +66,7 @@ if (!isTwitchFrame) {
 
     // Rahmenlose Fenster: Titelleisten-Buttons ('minimize'|'maximize'|'close').
     windowControl: (action) => ipcRenderer.send('window-control', action),
-    onAndockZustand: (cb) => { ipcRenderer.on('andocken-zustand', (_e, z) => cb(z)); },
-    andockenLoesen: () => ipcRenderer.send('andocken-loesen'),
+    layoutVollbild: () => ipcRenderer.send('layout-vollbild'),
 
     // UI-Voreinstellungen: Verlauf, letzte Quelle, Player-Prefs.
     getUiPrefs: () => ipcRenderer.invoke('get-ui-prefs'),

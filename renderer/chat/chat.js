@@ -772,15 +772,6 @@ $optDiagOpen.addEventListener('click', () => window.twitchDual.openDiagFolder())
 document.getElementById('win-min').addEventListener('click', () => window.twitchDual.windowControl('minimize'));
 document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
 document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
-// 🔗 nur sichtbar, solange der Chat ans Video angedockt ist (Main meldet die Seite).
-const $dockBtn = document.getElementById('dock-btn');
-const SEITE_TEXT = { rechts: 'rechts', links: 'links', unten: 'unten' };
-window.twitchDual.onAndockZustand((z) => {
-  const seite = z && z.seite;
-  $dockBtn.classList.toggle('hidden', !seite);
-  $dockBtn.title = seite ? 'Angedockt (' + SEITE_TEXT[seite] + ') – klicken zum Lösen' : '';
-});
-$dockBtn.addEventListener('click', () => window.twitchDual.andockenLoesen());
 // Doppelklick auf die Kopfzeile (nicht auf Buttons) maximiert.
 document.getElementById('head').addEventListener('dblclick', (e) => {
   if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');

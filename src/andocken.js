@@ -38,37 +38,50 @@ function liesSeite(wert) {
   return SEITEN.includes(wert) ? wert : null;
 }
 
-// Nie kleiner als das, sonst ist Video bzw. Chat nicht mehr benutzbar.
-const MIN = { videoBreite: 480, videoHoehe: 270, chatBreite: 250, chatHoehe: 180 };
+// Chat-Masse wie auf twitch.tv: genug Platz daneben -> der Chat nimmt ihn
+// (hoechstens seine eigene Groesse); unter MIN_PLATZ bekommt er die
+// Komfort-Groesse und das Video macht dafuer Platz.
+const KOMFORT = { chatBreite: 340, chatHoehe: 250 };
+const MIN_PLATZ = { breite: 300, hoehe: 200 };
 
-// Video + angedockter Chat muessen ganz auf den Bildschirm (wa = Arbeitsbereich
-// des Monitors, auf dem das Video liegt, ohne Taskleiste). Erst ruecken, dann
-// das Video verkleinern, zuletzt den Chat - nie unter MIN (Janis 09.10.2026:
-// "anpassen, dass alles Platz hat, nachjustieren kann man immer noch").
+// Video + angedockter Chat ganz auf den Monitor (wa = Arbeitsbereich ohne
+// Taskleiste). Das Video bleibt, wie es ist; angepasst wird der Chat
+// (Janis 09.10.2026: "der Chat soll kleiner gemacht werden, so dass es passt").
 function einpassen(video, chat, seite, wa) {
   const v = { ...video };
   let cw = chat.width;
   let ch = chat.height;
-  const rechts = wa.x + wa.width;
-  const unten = wa.y + wa.height;
+  const R = wa.x + wa.width;
+  const U = wa.y + wa.height;
   if (seite === 'unten') {
-    if (v.height + ch > wa.height) v.height = Math.max(MIN.videoHoehe, wa.height - ch);
-    if (v.height + ch > wa.height) ch = Math.max(MIN.chatHoehe, wa.height - v.height);
     v.width = Math.min(v.width, wa.width);
-    if (v.y + v.height + ch > unten) v.y = unten - v.height - ch;
-    if (v.x + v.width > rechts) v.x = rechts - v.width;
+    const platz = U - (v.y + v.height);
+    ch = platz >= MIN_PLATZ.hoehe ? Math.min(ch, platz) : Math.min(ch, KOMFORT.chatHoehe);
+    if (v.height + ch > wa.height) v.height = wa.height - ch;
+    if (v.y + v.height + ch > U) v.y = U - v.height - ch;
+    if (v.x + v.width > R) v.x = R - v.width;
   } else {
-    if (v.width + cw > wa.width) v.width = Math.max(MIN.videoBreite, wa.width - cw);
-    if (v.width + cw > wa.width) cw = Math.max(MIN.chatBreite, wa.width - v.width);
     v.height = Math.min(v.height, wa.height);
-    if (seite === 'rechts' && v.x + v.width + cw > rechts) v.x = rechts - v.width - cw;
-    if (seite === 'links' && v.x + v.width > rechts) v.x = rechts - v.width;
+    const platz = seite === 'rechts' ? R - (v.x + v.width) : v.x - wa.x;
+    cw = platz >= MIN_PLATZ.breite ? Math.min(cw, platz) : Math.min(cw, KOMFORT.chatBreite);
+    if (v.width + cw > wa.width) v.width = wa.width - cw;
+    if (seite === 'rechts' && v.x + v.width + cw > R) v.x = R - v.width - cw;
     if (seite === 'links' && v.x - cw < wa.x) v.x = wa.x + cw;
-    if (v.y + v.height > unten) v.y = unten - v.height;
+    if (v.y + v.height > U) v.y = U - v.height;
   }
   v.x = Math.max(v.x, wa.x);
   v.y = Math.max(v.y, wa.y);
   return { video: v, chat: position(v, { ...chat, width: cw, height: ch }, seite) };
 }
 
-module.exports = { SCHWELLE, MIN, erkenneSeite, position, istGeloest, liesSeite, einpassen };
+// Knopf "Video + Chat bildschirmfuellend": Video links, Chat rechts mit ~20 %
+// der Breite (340-480 px), beide in voller Hoehe.
+function vollbild(wa) {
+  const cw = Math.min(480, Math.max(340, Math.round(wa.width * 0.2)));
+  return {
+    video: { x: wa.x, y: wa.y, width: wa.width - cw, height: wa.height },
+    chat: { x: wa.x + wa.width - cw, y: wa.y, width: cw, height: wa.height }
+  };
+}
+
+module.exports = { SCHWELLE, KOMFORT, erkenneSeite, position, istGeloest, liesSeite, einpassen, vollbild };

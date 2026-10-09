@@ -304,6 +304,7 @@ function showControlsBriefly() {
 }
 
 document.getElementById('video-only-btn').addEventListener('click', enterVideoOnly);
+document.getElementById('vollbild-btn').addEventListener('click', () => window.twitchDual.layoutVollbild());
 $videoExit.addEventListener('click', leaveVideoOnly);
 // Doppelklick auf die Videoflaeche verlaesst den Modus ebenfalls.
 document.getElementById('player').addEventListener('dblclick', () => {

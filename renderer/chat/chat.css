@@ -180,14 +180,14 @@ body { display: flex; flex-direction: column; }
 #messages.no-anim .msg { animation: none; }
 
 /* 🎨 + ⚙: Kopfzeile ist drag-Region -> Buttons explizit klickbar machen. */
-#dock-btn, #theme-btn, #settings-btn {
+#theme-btn, #settings-btn {
   -webkit-app-region: no-drag;
   background: none; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
 }
 #theme-btn { margin-left: auto; /* 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links */ }
 #settings-btn { margin-left: 8px; }
-#dock-btn:hover, #theme-btn:hover, #settings-btn:hover { color: var(--text); }
+#theme-btn:hover, #settings-btn:hover { color: var(--text); }
 
 /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }

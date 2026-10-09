@@ -177,7 +177,6 @@ function andockenMoeglich() {
 function setzeAndockSeite(seite) {
   andockSeite = seite;
   store.set('chatAndocken', seite);
-  if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('andocken-zustand', { seite });
   diagLog.melde('app', 'andocken', { seite: seite || 'geloest' });
 }
 
@@ -221,22 +220,32 @@ function andockenVerdrahten() {
   };
   chatWin.on('moved', chatLosgelassen);
   chatWin.on('resized', chatLosgelassen);
-  chatWin.webContents.on('did-finish-load', () => {
-    chatWin.webContents.send('andocken-zustand', { seite: andockSeite });
-    einpassen();
-  });
+  chatWin.webContents.on('did-finish-load', einpassen);
 }
 
-// 🔗 im Chat-Kopf: loesen und ein Stueck wegruecken (sonst dockt der naechste
-// Zug sofort wieder an).
-ipcMain.on('andocken-loesen', () => {
-  if (!andockSeite || !chatWin || chatWin.isDestroyed()) return;
-  const b = chatWin.getBounds();
-  const weg = 40;
-  const neu = andockSeite === 'rechts' ? { ...b, x: b.x + weg } : andockSeite === 'links' ? { ...b, x: b.x - weg } : { ...b, y: b.y + weg };
-  setzeAndockSeite(null);
-  eigeneBewegungBis = Date.now() + 200;
-  chatWin.setBounds(neu);
+// Knopf "Video + Chat bildschirmfuellend" (Video-Leiste, links neben Nur-Video):
+// Video links, Chat rechts angedockt, beide fuellen den Monitor. Zweiter Klick
+// stellt die vorherige Anordnung wieder her.
+let vorVollbild = null; // { video, chat, seite }
+ipcMain.on('layout-vollbild', () => {
+  if (!videoWin || !chatWin || videoWin.isDestroyed() || chatWin.isDestroyed()) return;
+  eigeneBewegungBis = Date.now() + 400;
+  if (vorVollbild) {
+    const alt = vorVollbild;
+    vorVollbild = null;
+    videoWin.setBounds(alt.video);
+    chatWin.setBounds(alt.chat);
+    setzeAndockSeite(alt.seite);
+    return;
+  }
+  if (videoWin.isFullScreen()) videoWin.setFullScreen(false);
+  if (videoWin.isMaximized()) videoWin.unmaximize();
+  vorVollbild = { video: videoWin.getBounds(), chat: chatWin.getBounds(), seite: andockSeite };
+  const r = Andocken.vollbild(screen.getDisplayMatching(videoWin.getBounds()).workArea);
+  videoWin.setBounds(r.video);
+  chatWin.setBounds(r.chat);
+  if (chatWin.isMinimized()) chatWin.restore();
+  setzeAndockSeite('rechts');
 });
 
 function broadcast(channel, payload) {
