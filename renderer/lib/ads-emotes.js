@@ -1,5 +1,5 @@
 // Animierte 7TV-Emotes fuer "Ads blocked" in der Leiste (Janis 09.10.2026:
-// 1,4,5,6,7,9,11 aus der Vorschau). Wechseln ab und zu, sofort bei einer
+// ausgesucht aus zwei Vorschau-Runden). Wechseln ab und zu, sofort bei einer
 // geblockten Werbung. DOM-frei, UMD -> unter Node testbar.
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
@@ -12,7 +12,11 @@
     { name: 'block', id: '01HWTPMG7R0003S49WDMY4P5E5' },
     { name: 'roadblock', id: '01GYP3RCMR0000V37N96CPBMDT' },
     { name: 'Stop', id: '01FVPZD9W0000B05D8JC8TFHBC' },
-    { name: 'WARNING', id: '01F7K98778000013577RS0MX3J' }
+    { name: 'WARNING', id: '01F7K98778000013577RS0MX3J' },
+    { name: 'NOPERS', id: '01EZY51MDR000CYST6006V20T4' },
+    { name: 'Tssk', id: '01GJECMQKR000FJVP0DX6EYSNN' },
+    { name: 'DENIED', id: '01J35NXJ580001YW89XDYA9B36' },
+    { name: 'BlockedByJames', id: '01GSC9P88R0003BP6R36CJ0X0N' }
   ];
   const url = (e) => 'https://cdn.7tv.app/emote/' + e.id + '/2x.webp';
   // Ein anderes als das aktuelle (zufall: () => 0..1).
