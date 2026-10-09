@@ -43,6 +43,11 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   andocken (`src/andocken.js`), ◫ Video + Chat bildschirmfuellend, Nur-Video
   fuellt mit Chat, Trennlinie mit Griff; Sakura-Ast nach Roehrenmodell,
   Bodenteppich, Koi-Groesse/Menge, Wald-Boden, 🎲 Welt neu generieren.
+- v1.16.0: Leiste zeigt, was laeuft (Name · Titel, Spiel · Zuschauer alle 30 s,
+  Titel/Spiel alle 5 min, Laufzeit); Eingabefeld oben entfernt - Kanal nur in
+  Home wechseln (Enter laedt Kanal/VOD), in Home oben nur ADS BLOCKED;
+  ADS BLOCKED neben ☰ mit wechselnden 7TV-Emotes + Zaehler; weggeklickter Pin
+  bleibt weg (localStorage).
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
