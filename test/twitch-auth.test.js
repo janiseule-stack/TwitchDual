@@ -72,3 +72,8 @@ test('validateToken parst login und user_id', async () => {
   assert.equal(r.login, 'janis');
   assert.equal(r.userId, '123');
 });
+
+test('refreshTokens: HTTP-Status haengt am Fehler (400 = Token tot)', async () => {
+  const fetchImpl = async () => ({ ok: false, status: 400, async json() { return {}; } });
+  await assert.rejects(auth.refreshTokens({ refreshToken: 'RT', fetchImpl }), (e) => e.status === 400);
+});

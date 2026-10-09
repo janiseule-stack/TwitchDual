@@ -49,7 +49,11 @@ async function refreshTokens({ refreshToken, fetchImpl = fetch }) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: form({ client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: refreshToken })
   });
-  if (!res.ok) throw new Error('Token-Refresh fehlgeschlagen (' + res.status + ')');
+  if (!res.ok) {
+    const e = new Error('Token-Refresh fehlgeschlagen (' + res.status + ')');
+    e.status = res.status; // 400/401 = Refresh-Token tot, sonst voruebergehend
+    throw e;
+  }
   return res.json();
 }
 

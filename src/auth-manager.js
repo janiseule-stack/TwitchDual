@@ -6,8 +6,10 @@
 const auth = require('./twitch-auth');
 
 class AuthManager {
-  constructor({ tokenStore, onChanged = () => {} }) {
+  constructor({ tokenStore, onChanged = () => {}, authApi = auth }) {
+    this.auth = authApi;
     this.store = tokenStore;
+    this.erneuern = null; // laufender Refresh (Single-Flight)
     this.onChanged = onChanged;
     this.bundle = this.store.available() ? this.store.load() : null; // {access,refresh,userId,login,expiresAt}
     this.polling = false;
@@ -21,7 +23,7 @@ class AuthManager {
 
   async startDeviceFlow() {
     if (!this.store.available()) throw new Error('Sicherer Speicher auf diesem System nicht verfügbar.');
-    const d = await auth.startDeviceAuth({});
+    const d = await this.auth.startDeviceAuth({});
     this._poll(d.device_code, (d.interval || 5) * 1000, Date.now() + (d.expires_in || 1800) * 1000);
     return { user_code: d.user_code, verification_uri: d.verification_uri };
   }
@@ -32,7 +34,7 @@ class AuthManager {
       if (!this.polling) return;
       if (Date.now() > deadline) { this.polling = false; return; }
       let r;
-      try { r = await auth.pollTokenOnce({ deviceCode }); }
+      try { r = await this.auth.pollTokenOnce({ deviceCode }); }
       catch { r = { status: 'pending' }; }
       if (r.status === 'authorized') {
         this.polling = false;
@@ -47,7 +49,7 @@ class AuthManager {
   }
 
   async _acceptTokens(tokens) {
-    const v = await auth.validateToken({ accessToken: tokens.access_token });
+    const v = await this.auth.validateToken({ accessToken: tokens.access_token });
     this.bundle = {
       access: tokens.access_token,
       refresh: tokens.refresh_token,
@@ -63,17 +65,32 @@ class AuthManager {
     if (!this.bundle) return null;
     // Frueh genug erneuern (60 s Puffer).
     if (Date.now() > this.bundle.expiresAt - 60000) {
-      try {
-        const t = await auth.refreshTokens({ refreshToken: this.bundle.refresh });
-        this.bundle = { ...this.bundle, access: t.access_token, refresh: t.refresh_token,
-          expiresAt: Date.now() + (t.expires_in || 14400) * 1000 };
-        this.store.save(this.bundle);
-      } catch {
-        this.logout();          // Refresh tot (30 Tage) -> sauber ausloggen
-        return null;
-      }
+      // Single-Flight: Twitch-Refresh-Tokens (Device Flow, oeffentlicher Client)
+      // gelten nur EINMAL. Erneuern beim Start Home, Chat und Emotes parallel,
+      // scheiterte der zweite mit 400 und meldete den Nutzer ab.
+      if (!this.erneuern) this.erneuern = this._erneuere().finally(() => { this.erneuern = null; });
+      const ok = await this.erneuern;
+      if (!ok || !this.bundle) return null;
     }
     return { accessToken: this.bundle.access, userId: this.bundle.userId, login: this.bundle.login };
+  }
+
+  // true = neues Token da. Nur eine echte Ablehnung durch Twitch (400/401)
+  // meldet ab; Netzfehler/5xx lassen den Login stehen (naechster Aufruf
+  // versucht es erneut) - sonst flog man bei jedem WLAN-Aussetzer raus.
+  async _erneuere() {
+    const refresh = this.bundle.refresh;
+    try {
+      const t = await this.auth.refreshTokens({ refreshToken: refresh });
+      if (!this.bundle) return false; // inzwischen abgemeldet
+      this.bundle = { ...this.bundle, access: t.access_token, refresh: t.refresh_token,
+        expiresAt: Date.now() + (t.expires_in || 14400) * 1000 };
+      this.store.save(this.bundle);
+      return true;
+    } catch (e) {
+      if (e && (e.status === 400 || e.status === 401)) this.logout(); // Refresh tot (30 Tage) -> sauber ausloggen
+      return false;
+    }
   }
 
   logout() {
