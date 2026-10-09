@@ -403,3 +403,49 @@ test('Sakura-Ast: nie kahl - auch im Pechfall genug Zweige und Blueten', () => {
     }
   }
 });
+
+// --- Generierung: verjuengt, Blueten nur am duennen Holz, gute Abdeckung -----
+const GROESSEN_AST = [[340, 1000], [1340, 1440], [2050, 1440], [900, 600]];
+function aeste(fn) {
+  const W = ladeSakuraStile();
+  const FX = require('../renderer/lib/fx-engine');
+  for (const [w, h] of GROESSEN_AST) for (let saat = 1; saat <= 60; saat++) {
+    fn(FX.mitSaat(saat, () => W.baueAst(w, h, saat % 2 === 0)), w, h, saat);
+  }
+}
+const abstand = (p, s) => {
+  const dx = s.x2 - s.x1, dy = s.y2 - s.y1, l2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((p.x - s.x1) * dx + (p.y - s.y1) * dy) / l2));
+  return Math.hypot(p.x - (s.x1 + t * dx), p.y - (s.y1 + t * dy));
+};
+
+test('Sakura-Ast: jeder Zweig laeuft duenn aus (hoert nicht stumpf auf)', () => {
+  aeste((A, w, h, saat) => {
+    assert.ok(A.spitzen.length > 0);
+    for (const sp of A.spitzen) assert.ok(sp.w <= Math.max(1.6, A.stamm * 0.22), `${w}x${h} Saat ${saat}: Spitze ${sp.w.toFixed(1)} bei Stamm ${A.stamm.toFixed(1)}`);
+  });
+});
+
+test('Sakura-Ast: keine Blueten am dicken Holz', () => {
+  aeste((A, w, h, saat) => {
+    // Jede Bluete hat duennes Holz direkt neben sich (Kreuzungen mit dickeren
+    // Aesten sind erlaubt - sie sitzt dann auf dem duennen Zweig).
+    for (const b of A.blueten) {
+      const duennNah = A.seg.some((s) => s.w <= A.duenn * 1.01 && abstand(b, s) <= 6 * A.sk);
+      assert.ok(duennNah, `${w}x${h} Saat ${saat}: Bluete ohne duennes Holz daneben`);
+    }
+  });
+});
+
+test('Sakura-Ast: deckt genug Flaeche ab, genug aber nicht zu viele Blueten', () => {
+  aeste((A, w, h, saat) => {
+    const xs = A.seg.flatMap((s) => [s.x1, s.x2]).map((x) => Math.max(0, Math.min(w, x)));
+    const ys = A.seg.flatMap((s) => [s.y1, s.y2]);
+    const breite = (Math.max(...xs) - Math.min(...xs)) / w;
+    const hoehe = (Math.max(...ys) - Math.min(...ys)) / h;
+    assert.ok(breite >= 0.5, `${w}x${h} Saat ${saat}: Breite nur ${breite.toFixed(2)}`);
+    assert.ok(hoehe >= 0.3, `${w}x${h} Saat ${saat}: Hoehe nur ${hoehe.toFixed(2)}`);
+    assert.ok(A.blueten.length >= 40, `${w}x${h} Saat ${saat}: nur ${A.blueten.length} Blueten`);
+    assert.ok(A.blueten.length <= 600, `${w}x${h} Saat ${saat}: ${A.blueten.length} Blueten sind zu viele`);
+  });
+});

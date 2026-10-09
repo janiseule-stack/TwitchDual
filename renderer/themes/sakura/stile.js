@@ -130,63 +130,112 @@
     g.restore();
   }
 
-  // Ast: verzweigte Linien von einer oberen Ecke. Groesse waechst mit der Flaeche.
+  // Ast: verzweigte Linien von einer oberen Ecke, Groesse nach der Hoehe.
+  // Regeln (Janis 09.10.2026): jeder Zweig verjuengt sich bis zu einer
+  // duennen Spitze (hoert nie stumpf auf), Blueten nur am duennen Holz -
+  // am dicken Ast wachsen sie an kurzen Seitentrieben -, Menge nach Laenge.
+  // Erzeugen-und-pruefen: bis zu 10 Versuche, bis Abdeckung und Bluetenzahl
+  // stimmen (sonst der beste) - kein kahler Strich, kein Fitzel in der Ecke.
   function baueAst(w, h, vonRechts) {
-    // Groesse an der Hoehe ausrichten (wie der Wald, Entwurf ~470 px hoch) -
-    // im schmalen hohen Chat war der Ast sonst ein Fitzel oben in der Ecke.
+    let bester = null;
+    for (let versuch = 0; versuch < 10; versuch++) {
+      const A = baueAstEinmal(w, h, vonRechts);
+      A.guete = astGuete(A, w, h);
+      if (!bester || A.guete.punkte > bester.guete.punkte) bester = A;
+      if (A.guete.ok) return A;
+    }
+    return bester;
+  }
+
+  function astGuete(A, w, h) {
+    const xs = A.seg.flatMap((s) => [s.x1, s.x2]).map((x) => Math.max(0, Math.min(w, x)));
+    const ys = A.seg.flatMap((s) => [s.y1, s.y2]);
+    const breite = (Math.max(...xs) - Math.min(...xs)) / w;
+    const hoehe = (Math.max(...ys) - Math.min(...ys)) / h;
+    const blueten = A.blueten.length;
+    const ok = breite >= 0.55 && hoehe >= 0.33 && blueten >= 45 && A.seg.length >= 40;
+    return { ok, breite, hoehe, blueten, punkte: Math.min(1, breite / 0.55) + Math.min(1, hoehe / 0.33) + Math.min(1, blueten / 45) };
+  }
+
+  function baueAstEinmal(w, h, vonRechts) {
+    // Groesse an der Hoehe ausrichten (wie der Wald, Entwurf ~470 px hoch).
     const sk = Math.max(0.8, Math.min(2.4, Math.min(w * 1.3, h) / 430));
     const hoch = h / Math.max(1, w); // > 1.5 = schmaler, hoher Chat
-    const aus = { seg: [], blueten: [], sk };
-    const stellen = [];
+    const stamm = 13 * sk;
+    const duenn = stamm * 0.3;           // ab hier darf es bluehen
+    const spitze = Math.max(0.9, stamm * 0.07);
+    const aus = { seg: [], blueten: [], spitzen: [], sk, stamm, duenn };
+
+    function bluehe(x, y, menge) {
+      for (let j = 0; j < menge; j++) {
+        const z = Math.random();
+        const art = z < 0.12 ? 'knospe' : z < 0.25 ? 'halb' : z < 0.45 ? 'yae' : 'einfach';
+        aus.blueten.push({ x: x + rnd(-4, 4) * sk, y: y + rnd(-4, 4) * sk, r: rnd(5, 8.5) * sk * (art === 'yae' ? 1.15 : 1), a: rnd(0, TAU), art });
+      }
+    }
+
+    // Kurztrieb am dicken Holz: kurz, duenn, traegt ein Bluetenbueschel.
+    function kurztrieb(x, y, a) {
+      const l = rnd(26, 40) * sk;
+      const nx = x + Math.cos(a) * l, ny = Math.max(8, y + Math.sin(a) * l);
+      aus.seg.push({ x1: x, y1: y, x2: nx, y2: ny, w: duenn * 0.55 });
+      aus.spitzen.push({ x: nx, y: ny, w: duenn * 0.55 });
+      bluehe(nx, ny, 1 + Math.floor(Math.random() * 3));
+    }
+
     function zweig(x, y, a, len, br, tiefe) {
-      const n = 7;
+      const n = tiefe >= 2 ? 9 : 7;
       let cx = x, cy = y, ca = a;
       let kinder = 0;
       for (let i = 0; i < n; i++) {
-        ca += rnd(-0.28, 0.28);
+        ca += rnd(-0.26, 0.26);
         // Nie ueber den oberen Rand: zeigt der Zweig dorthin, nach unten spiegeln.
         if (cy + Math.sin(ca) * len / n < 8) ca = -ca;
         const nx = cx + Math.cos(ca) * len / n, ny = cy + Math.sin(ca) * len / n;
-        const b = br * (1 - i / n * 0.6);
+        // Verjuengung bis zur Spitze (letztes Stueck = spitze).
+        const b = br + (spitze - br) * Math.pow((i + 1) / n, 0.9);
         aus.seg.push({ x1: cx, y1: cy, x2: nx, y2: ny, w: b });
-        // Mindestens 2 Unterzweige: reiner Muenzwurf liess in ~3 % der Faelle
-        // einen kahlen Strich stehen - mit festem Zufall die ganze Sitzung lang.
+        // Mindestens 2 Unterzweige (kein kahler Strich).
         const muss = tiefe > 0 && kinder < 2 && i >= n - 1 - (2 - kinder);
         if (tiefe > 0 && i >= 1 && i < n - 1 && (muss || Math.random() < 0.5)) {
           kinder++;
-          zweig(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.5, 1.0), len * rnd(0.4, 0.6), b * 0.6, tiefe - 1);
+          zweig(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.5, 1.0), len * rnd(0.4, 0.6), Math.min(b * 0.7, br * 0.6), tiefe - 1);
         }
-        if (tiefe <= 1 && i >= 2 && Math.random() < 0.55) stellen.push({ x: nx, y: ny });
+        const segLen = len / n;
+        if (b <= duenn) {
+          // Duennes Holz: Bueschel nach Laenge (etwa eins je 60 px Zweig).
+          const erwartet = segLen / (60 * sk);
+          const m = Math.floor(erwartet) + (Math.random() < erwartet % 1 ? 1 : 0);
+          for (let k = 0; k < m; k++) {
+            const t = rnd(0.35, 1); // nicht direkt am Ansatz (dort grenzt dickeres Holz)
+            bluehe(cx + (nx - cx) * t, cy + (ny - cy) * t, 1 + Math.floor(Math.random() * 2));
+          }
+        } else if (Math.random() < 0.4) {
+          kurztrieb(nx, ny, ca + (Math.random() < 0.5 ? -1 : 1) * rnd(0.6, 1.3));
+        }
         cx = nx; cy = ny;
       }
-      stellen.push({ x: cx, y: cy });
+      aus.spitzen.push({ x: cx, y: cy, w: aus.seg[aus.seg.length - 1].w });
+      bluehe(cx, cy, 1 + Math.floor(Math.random() * 2)); // Spitze bluehen lassen
     }
+
     // Unter den Leisten oben anfangen, sonst verschwindet der Ansatz.
     const y0 = Math.min(h * 0.35, Math.max(56, h * 0.1));
     // Je hoeher das Fenster im Verhaeltnis, desto steiler haengt der Ast herab.
     const winkel = hoch > 1.5 ? 0.85 : hoch > 1.05 ? 0.5 : 0.3;
     const len = Math.min(Math.hypot(w, h) * 0.8, 560 * sk);
-    if (vonRechts) zweig(w + 10, y0, Math.PI - winkel, len, 13 * sk, 3);
-    else zweig(-10, y0, winkel, len, 13 * sk, 3);
-    // Breite Fenster (Video): ein zweiter, kleinerer Zweig von der anderen Seite.
+    if (vonRechts) zweig(w + 10, y0, Math.PI - winkel, len, stamm, 3);
+    else zweig(-10, y0, winkel, len, stamm, 3);
+    // Breite Fenster: ein zweiter, kleinerer Zweig von der anderen Seite.
     if (w > h * 1.4) {
-      if (vonRechts) zweig(-10, y0 * 1.3, 0.25, len * 0.65, 9 * sk, 2);
-      else zweig(w + 10, y0 * 1.3, Math.PI - 0.25, len * 0.65, 9 * sk, 2);
+      if (vonRechts) zweig(-10, y0 * 1.3, 0.25, len * 0.65, stamm * 0.7, 2);
+      else zweig(w + 10, y0 * 1.3, Math.PI - 0.25, len * 0.65, stamm * 0.7, 2);
     }
-    // Schmale, hohe Chats: weiter unten ein zweiter Zweig von der anderen Seite,
-    // damit Blueten und fallende Blaetter nicht nur oben an einer Seite haengen.
+    // Schmale, hohe Chats: weiter unten ein zweiter Zweig von der anderen Seite.
     if (hoch > 1.5) {
       const y1 = y0 + h * 0.32;
-      if (vonRechts) zweig(-10, y1, winkel * 0.8, len * 0.6, 9 * sk, 2);
-      else zweig(w + 10, y1, Math.PI - winkel * 0.8, len * 0.6, 9 * sk, 2);
-    }
-    for (const s of stellen) {
-      const k = 1 + Math.floor(Math.random() * 3);
-      for (let j = 0; j < k; j++) {
-        const z = Math.random();
-        const art = z < 0.12 ? 'knospe' : z < 0.25 ? 'halb' : z < 0.45 ? 'yae' : 'einfach';
-        aus.blueten.push({ x: s.x + rnd(-9, 9) * sk, y: s.y + rnd(-9, 9) * sk, r: rnd(5, 8.5) * sk * (art === 'yae' ? 1.15 : 1), a: rnd(0, TAU), art });
-      }
+      if (vonRechts) zweig(-10, y1, winkel * 0.8, len * 0.6, stamm * 0.7, 2);
+      else zweig(w + 10, y1, Math.PI - winkel * 0.8, len * 0.6, stamm * 0.7, 2);
     }
     return aus;
   }
@@ -343,7 +392,7 @@
       g.beginPath(); g.moveTo(0, h * 0.78);
       for (let x = 0; x <= w + 15; x += 15) g.lineTo(x, h * 0.76 - Math.sin(x * 0.015 + 1) * 22);
       g.lineTo(w, h); g.lineTo(0, h); g.fill();
-      astLinien(g, A.seg, 1, '#120f26');
+      astLinien(g, A.seg, 1, '#3d2f63'); // heller als der Himmel, sonst schweben die Blueten
       g.shadowColor = 'rgba(255,170,210,.9)'; g.shadowBlur = 10;
       flacheBlueten(g, A, { fuell: '#ffc4dd', innen: '#ffe3ef', knospe: '#ff8ab8', mitte: '#ff6a9a' });
       g.shadowBlur = 0;
