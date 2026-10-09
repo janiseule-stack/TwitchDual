@@ -164,34 +164,32 @@
     const { doc, el, v, VS } = ctx;
     const box = el('div', 'vk-verlauf');
     const punkte = ctx.verlauf.punkte();
-    const B = 300; const H = 120; const L = 30;
-    const s = svg(doc, 'svg', { class: 'vk-kurve', viewBox: '0 0 ' + (B + L) + ' ' + (H + 16), preserveAspectRatio: 'none' });
-    for (const [y, t] of [[0, '100 %'], [H / 2, '50 %'], [H, '0 %']]) {
-      const lbl = svg(doc, 'text', { x: 0, y: y + (y === 0 ? 8 : 3), 'font-size': 9, class: 'vk-achse' });
-      lbl.textContent = t;
-      s.appendChild(lbl);
-      s.appendChild(svg(doc, 'line', { x1: L, x2: L + B, y1: y, y2: y, class: y === H / 2 ? 'vk-mitte' : 'vk-gitter' }));
+    const B = 300; const H = 120;
+    // Kurve streckt in der Breite (preserveAspectRatio none, feste Hoehe),
+    // Beschriftung als HTML daneben -> Schrift bleibt bei jeder Chatbreite gleich.
+    const flaeche = el('div', 'vk-kurve-box');
+    for (const [pos, t] of [['oben', '100 %'], ['mitte', '50 %'], ['unten', '0 %']]) flaeche.appendChild(el('span', 'vk-y vk-y-' + pos, t));
+    const s = svg(doc, 'svg', { class: 'vk-kurve', viewBox: '0 0 ' + B + ' ' + H, preserveAspectRatio: 'none' });
+    for (const y of [0, H / 2, H]) {
+      s.appendChild(svg(doc, 'line', { x1: 0, x2: B, y1: y, y2: y, class: y === H / 2 ? 'vk-mitte' : 'vk-gitter', 'vector-effect': 'non-scaling-stroke' }));
     }
-    if (punkte.length < 2) {
-      const t = svg(doc, 'text', { x: L + B / 2, y: H / 2 - 8, 'text-anchor': 'middle', 'font-size': 10, class: 'vk-achse' });
-      t.textContent = 'Verlauf entsteht, sobald gesetzt wird …';
-      s.appendChild(t);
-    }
-    const pfade = VS.kurven(punkte, v.optionen.map((o) => o.id), B, H);
+    // Erst ab 2 Messpunkten eine Kurve (ein Punkt ergaebe eine schraege Flaeche).
+    const pfade = punkte.length >= 2 ? VS.kurven(punkte, v.optionen.map((o) => o.id), B, H) : {};
     v.optionen.forEach((o, i) => {
       const d = pfade[o.id];
       if (!d) return;
-      const g = svg(doc, 'g', { transform: 'translate(' + L + ',0)' });
       if (i === 0 && v.optionen.length === 2) {
-        g.appendChild(svg(doc, 'path', { d: d + ' L' + B + ',' + H + ' L0,' + H + ' Z', fill: fb[o.id], 'fill-opacity': .14 }));
+        s.appendChild(svg(doc, 'path', { d: d + ' L' + B + ',' + H + ' L0,' + H + ' Z', fill: fb[o.id], 'fill-opacity': .14 }));
       }
-      g.appendChild(svg(doc, 'path', { d, fill: 'none', stroke: fb[o.id], 'stroke-width': 2.2, 'vector-effect': 'non-scaling-stroke' }));
-      s.appendChild(g);
+      s.appendChild(svg(doc, 'path', { d, fill: 'none', stroke: fb[o.id], 'stroke-width': 2.2, 'vector-effect': 'non-scaling-stroke' }));
     });
-    const start = svg(doc, 'text', { x: L, y: H + 13, 'font-size': 9, class: 'vk-achse' }); start.textContent = 'Start';
-    const jetzt = svg(doc, 'text', { x: L + B, y: H + 13, 'font-size': 9, 'text-anchor': 'end', class: 'vk-achse' }); jetzt.textContent = 'jetzt';
-    s.append(start, jetzt);
-    box.appendChild(s);
+    flaeche.appendChild(s);
+    if (punkte.length < 2) {
+      flaeche.appendChild(el('div', 'vk-leer', v.status === 'ACTIVE' ? 'Verlauf entsteht, sobald gesetzt wird …' : 'Kein Verlauf – lief beim Setzen nicht mit'));
+    }
+    const x = el('div', 'vk-x');
+    x.append(el('span', '', 'Start'), el('span', '', 'jetzt'));
+    box.append(flaeche, x);
     const trend = el('div', 'vk-trend');
     for (const o of v.optionen.slice(0, 4)) {
       const d = VS.trend(punkte, o.id, ctx.jetzt());
