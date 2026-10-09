@@ -245,3 +245,19 @@ test('pinAnzeige: Leiste, nach ✕ nur 📌-Knopf, neuer Pin wieder als Leiste',
   assert.equal(KE.pinAnzeige({ id: 'p1' }, 'p1'), 'knopf');
   assert.equal(KE.pinAnzeige({ id: 'p2' }, 'p1'), 'leiste');
 });
+
+test('pinWeg-Liste: merken, lesen, hoechstens 50, Muell ergibt leer', () => {
+  let liste = KE.pinWegLies(null);
+  assert.deepEqual(liste, []);
+  liste = KE.pinWegMerke(liste, 'p1');
+  liste = KE.pinWegMerke(liste, 'p1');
+  assert.deepEqual(liste, ['p1']);
+  for (let i = 0; i < 60; i++) liste = KE.pinWegMerke(liste, 'x' + i);
+  assert.equal(liste.length, 50);
+  assert.equal(liste.includes('p1'), false, 'aelteste fallen raus');
+  assert.deepEqual(KE.pinWegLies(JSON.stringify(['a', 'b'])), ['a', 'b']);
+  assert.deepEqual(KE.pinWegLies('kaputt{'), []);
+  assert.deepEqual(KE.pinWegLies(JSON.stringify([1, 'a', null])), ['a']);
+  assert.equal(KE.pinAnzeige({ id: 'b' }, ['a', 'b']), 'knopf', 'pinAnzeige versteht auch eine Liste');
+  assert.equal(KE.pinAnzeige({ id: 'c' }, ['a', 'b']), 'leiste');
+});

@@ -7,7 +7,11 @@
   function create({ doc, wirt, KE, setzen, linkOeffnen, anmelden, effekt, jetzt = Date.now }) {
     let stand = null;
     let angemeldet = false;
-    let pinWeg = null;            // ID des weggeklickten Pins (dann nur 📌-Knopf)
+    // Weggeklickte Pins (IDs) - dauerhaft gemerkt, damit derselbe Pin beim
+    // naechsten Laden nicht wieder aufklappt; dann nur der 📌-Knopf.
+    let pinWeg = [];
+    try { pinWeg = KE.pinWegLies(localStorage.getItem('pinWeg')); } catch (e) { /* egal */ }
+    const pinWegSpeichern = () => { try { localStorage.setItem('pinWeg', JSON.stringify(pinWeg)); } catch (e) { /* egal */ } };
     const eingeklappt = new Set(); // Karten-IDs, die der Nutzer zugeklappt hat
     const endeSeit = new Map();    // Karten-ID -> Zeitpunkt, ab dem sie beendet ist
     let pinOffen = false;
@@ -68,7 +72,7 @@
       b.appendChild(t);
       const x = el('button', 'ke-x', '✕');
       x.title = 'Verkleinern (📌 holt sie zurück)';
-      x.addEventListener('click', (ev) => { ev.stopPropagation(); pinWeg = p.id; zeichne(); });
+      x.addEventListener('click', (ev) => { ev.stopPropagation(); pinWeg = KE.pinWegMerke(pinWeg, p.id); pinWegSpeichern(); zeichne(); });
       b.appendChild(x);
       b.addEventListener('click', () => { pinOffen = !pinOffen; zeichne(); });
       return b;
@@ -79,7 +83,7 @@
       const k = el('button', 'ke-pin-knopf', '📌');
       k.type = 'button';
       k.title = 'Angepinnte Nachricht wieder anzeigen';
-      k.addEventListener('click', () => { pinWeg = null; zeichne(); });
+      k.addEventListener('click', () => { const id = stand && stand.pin && stand.pin.id; pinWeg = pinWeg.filter((x) => x !== id); pinWegSpeichern(); zeichne(); });
       return k;
     }
 

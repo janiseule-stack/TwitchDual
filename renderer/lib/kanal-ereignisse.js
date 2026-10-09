@@ -261,13 +261,30 @@
 
   // Weggeklickter Pin bleibt als kleiner 📌-Knopf zurueckholbar; ein neuer
   // Pin (andere ID) erscheint wieder als volle Leiste.
+  // pinWeg: eine ID oder die gemerkte Liste weggeklickter Pin-IDs.
   function pinAnzeige(pin, pinWeg) {
     if (!pin) return null;
-    return pin.id === pinWeg ? 'knopf' : 'leiste';
+    const weg = Array.isArray(pinWeg) ? pinWeg.includes(pin.id) : pin.id === pinWeg;
+    return weg ? 'knopf' : 'leiste';
+  }
+
+  // Weggeklickte Pins dauerhaft merken (localStorage, letzte 50) - sonst kam
+  // derselbe Pin bei jedem neuen Laden wieder (Janis 09.10.2026).
+  const PIN_WEG_MAX = 50;
+  function pinWegLies(roh) {
+    try {
+      const a = JSON.parse(roh);
+      return Array.isArray(a) ? a.filter((x) => typeof x === 'string').slice(-PIN_WEG_MAX) : [];
+    } catch (e) { return []; }
+  }
+  function pinWegMerke(liste, id) {
+    const neu = (liste || []).filter((x) => x !== id);
+    neu.push(id);
+    return neu.slice(-PIN_WEG_MAX);
   }
 
   return {
     createZustand, createNeuaufbauSperre, MIN_EINSATZ, MAX_EINSATZ, CHIPS,
-    quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag, pinAnzeige
+    quoteText, restMs, countdownText, setzbareOptionen, chipBetrag, eigenerBetrag, pinAnzeige, pinWegLies, pinWegMerke
   };
 });

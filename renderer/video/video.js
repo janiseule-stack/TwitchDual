@@ -423,6 +423,6 @@ function infoZeigen() {
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();
-// Zuschauer/Titel jede Minute auffrischen, die Laufzeit jede halbe Minute.
-setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 60000);
+// Zuschauer/Titel/Spiel alle 30 s auffrischen, die Laufzeit ebenso.
+setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 30000);
 setInterval(() => { if (info && info.art === 'live') infoZeigen(); }, 30000);
