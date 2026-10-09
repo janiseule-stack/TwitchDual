@@ -428,12 +428,29 @@ async function infoLaden() {
   let r = null;
   try { r = await window.twitchDual.streamInfo(infoQuelle.mode, infoQuelle.wert); } catch { /* still */ }
   if (nr !== infoLauf) return;
+  const vorher = info && info.art === 'live' ? info.zuschauer : null;
   const m = StreamInfo.mische({ info, titelZeit }, r && r.ok ? r.info : null, Date.now());
   info = m.info; titelZeit = m.titelZeit;
-  infoZeigen();
+  if (vorher !== null && info && info.art === 'live' && info.zuschauer !== vorher) zuschauerZaehlen(vorher, info.zuschauer);
+  else infoZeigen();
 }
 
-function infoZeigen() {
+// Zuschauer weich hoch-/runterzaehlen (1 s, ease-out) statt zu springen.
+let zaehlLauf = 0;
+function zuschauerZaehlen(von, nach) {
+  const nr = ++zaehlLauf, start = performance.now();
+  const schritt = (t) => {
+    if (nr !== zaehlLauf || !info) return;
+    const f = Math.min(1, (t - start) / 1000), e = 1 - Math.pow(1 - f, 3);
+    infoZeigen(Math.round(von + (nach - von) * e));
+    if (f < 1) requestAnimationFrame(schritt);
+  };
+  requestAnimationFrame(schritt);
+  // Minimiert/verdeckt laufen keine Animationsbilder -> Endwert sicher setzen.
+  setTimeout(() => { if (nr === zaehlLauf && info) infoZeigen(); }, 1100);
+}
+
+function infoZeigen(zuschauer) {
   $streamInfo.classList.remove('hidden');
   if (!info) {
     $siOben.textContent = infoQuelle ? String(infoQuelle.wert) : 'Nichts geladen';
@@ -442,7 +459,7 @@ function infoZeigen() {
     $siAvatar.style.visibility = 'hidden';
     return;
   }
-  const z = StreamInfo.zeilen(info, Date.now());
+  const z = StreamInfo.zeilen(zuschauer === undefined ? info : { ...info, zuschauer }, Date.now());
   $siOben.textContent = z.oben;
   $siUnten.textContent = z.unten;
   $streamInfo.classList.toggle('live', z.live);
@@ -451,6 +468,6 @@ function infoZeigen() {
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();
-// Alle 30 s auffrischen: Zuschauer + Laufzeit sofort, Titel/Spiel nur alle 5 min (StreamInfo.mische).
-setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 30000);
+// Alle 10 s auffrischen: Zuschauer + Laufzeit sofort, Titel/Spiel nur alle 5 min (StreamInfo.mische).
+setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 10000);
 setInterval(() => { if (info && info.art === 'live') infoZeigen(); }, 30000);
