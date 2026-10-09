@@ -468,6 +468,7 @@ function infoZeigen(zuschauer) {
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();
-// Alle 10 s auffrischen: Zuschauer + Laufzeit sofort, Titel/Spiel nur alle 5 min (StreamInfo.mische).
-setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 10000);
+// Alle 30 s auffrischen (Twitch aktualisiert die Zuschauerzahl selbst nur
+// etwa einmal pro Minute - gemessen 09.10.2026). Titel/Spiel nur alle 5 min.
+setInterval(() => { if (infoQuelle && infoQuelle.mode === 'live') infoLaden(); }, 30000);
 setInterval(() => { if (info && info.art === 'live') infoZeigen(); }, 30000);
