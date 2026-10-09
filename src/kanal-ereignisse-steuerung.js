@@ -144,13 +144,15 @@ function createSteuerung({
       const b = KE.eigenerBetrag(String(points), stand.guthaben);
       if (b.fehler) return { ok: false, text: b.fehler };
       const nr = lauf;
+      const t = stand.meinTipp;
+      const vorher = t && t.eventId === v.id && t.optionId === outcomeID ? t.punkte : 0;
       setztGerade = true;
       try {
         const r = await mitIntegrity((kopf) => api.setze({ token, eventID: v.id, outcomeID, points: b.betrag, kopf }));
         if (r && r.error) { diag('setzen-fehler', { grund: r.error }); return { ok: false, text: r.error }; }
         if (!r.ok) { diag('setzen-fehler', { code: r.code }); return { ok: false, text: fehlerText(r.code) }; }
         diag('setzen', { eventID: v.id, outcomeID, punkte: b.betrag });
-        if (nr === lauf && zustand) schicke(zustand.eigenerTipp({ eventId: v.id, optionId: outcomeID, punkte: b.betrag }));
+        if (nr === lauf && zustand) schicke(zustand.eigenerTipp({ eventId: v.id, optionId: outcomeID, punkte: b.betrag, vorher }));
         return { ok: true, text: b.betrag.toLocaleString('de-DE') + ' gesetzt' };
       } catch (e) {
         diag('setzen-fehler', { fehler: e.message, integrity: !!e.integrity });

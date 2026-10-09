@@ -97,6 +97,21 @@ test('prediction-made setzt meinTipp, points-spent das Guthaben', () => {
   assert.equal(z.stand().guthaben, 17946);
 });
 
+test('eigenerTipp mit vorher: Hermes-Gesamtsumme kam schon -> nicht doppelt zaehlen', () => {
+  const z = KE.createZustand();
+  // Hermes prediction-made (Gesamtsumme 1000) ist VOR der HTTP-Antwort da.
+  z.ausHermes('predictions-user-v1.999', { type: 'prediction-made', data: { prediction: { event_id: 'e', outcome_id: 'o', points: 1000 } } }, T0);
+  z.eigenerTipp({ eventId: 'e', optionId: 'o', punkte: 1000, vorher: 0 });
+  assert.equal(z.stand().meinTipp.punkte, 1000);
+});
+
+test('eigenerTipp mit vorher: Hermes noch nicht da -> vorher + Einsatz', () => {
+  const z = KE.createZustand();
+  z.eigenerTipp({ eventId: 'e', optionId: 'o', punkte: 1000, vorher: 0 });
+  z.eigenerTipp({ eventId: 'e', optionId: 'o', punkte: 500, vorher: 1000 });
+  assert.equal(z.stand().meinTipp.punkte, 1500);
+});
+
 test('eigenerTipp addiert auf derselben Option', () => {
   const z = KE.createZustand();
   z.eigenerTipp({ eventId: 'e', optionId: 'o', punkte: 100 });

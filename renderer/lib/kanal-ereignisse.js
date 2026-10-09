@@ -159,11 +159,17 @@
         return { signale, unbekannt: true };
       },
 
-      eigenerTipp({ eventId, optionId, punkte }) {
+      // vorher: eigener Stand VOR dem Setzen. Hermes meldet die Gesamtsumme
+      // und kann vor der HTTP-Antwort ankommen -> Maximum statt Addition,
+      // sonst zaehlt der Einsatz doppelt. Ohne vorher (Wiederherstellen): addieren.
+      eigenerTipp({ eventId, optionId, punkte, vorher }) {
         const t = z.meinTipp;
-        z.meinTipp = t && t.eventId === eventId && t.optionId === optionId
-          ? { ...t, punkte: t.punkte + punkte }
-          : { eventId, optionId, punkte };
+        const gleich = t && t.eventId === eventId && t.optionId === optionId;
+        if (typeof vorher === 'number') {
+          z.meinTipp = { eventId, optionId, punkte: Math.max(gleich ? t.punkte : 0, vorher + punkte) };
+        } else {
+          z.meinTipp = gleich ? { ...t, punkte: t.punkte + punkte } : { eventId, optionId, punkte };
+        }
         const signale = [];
         endeSignal(signale);
         return signale;
