@@ -38,6 +38,11 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Tauziehen-Balken) · Verlauf (Kurve, Trend) · Stats (Tabelle, Top-Setzer,
   Pkt/Min); Funken, Hochzählen, roter Countdown, Konfetti/Pokal beim Sieg.
   Pin-Leiste unter Umfrage/Vorhersage.
+- v1.15.1: ein Anmelden fuer Chat + Kanalpunkte (ein Fenster, Aktivierung
+  vorausgefuellt), Login-Fix (Refresh Single-Flight); Chat magnetisch
+  andocken (`src/andocken.js`), ◫ Video + Chat bildschirmfuellend, Nur-Video
+  fuellt mit Chat, Trennlinie mit Griff; Sakura-Ast nach Roehrenmodell,
+  Bodenteppich, Koi-Groesse/Menge, Wald-Boden, 🎲 Welt neu generieren.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
