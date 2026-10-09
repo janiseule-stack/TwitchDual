@@ -83,11 +83,6 @@
       -webkit-app-region: no-drag;
       display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; user-select: none; cursor: default;
       font-size: 12px; font-weight: 700; color: var(--accent-title);
-      padding: 3px 11px 3px 4px; border-radius: 999px;
-      background: color-mix(in srgb, var(--accent) 12%, transparent);
-      border: 1px solid var(--accent-border);
-      box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 25%, transparent);
-      transition: box-shadow 200ms ease, transform 200ms ease;
     }
     #ads-emote { height: 24px; width: auto; min-width: 24px; transition: opacity 250ms ease; }
     #ads-emote.weg { opacity: 0; }
@@ -95,10 +90,10 @@
       background: var(--accent); color: var(--accent-contrast); }
     #ads-zahl.hidden { display: none; }
     /* Gerade wird Werbung geblockt: Pille leuchtet und pulsiert */
-    #ads-indicator.blocking { animation: ads-pulse .8s ease-in-out infinite; }
+    #ads-indicator.blocking #ads-emote { animation: ads-pulse .8s ease-in-out infinite; }
     @keyframes ads-pulse {
-      0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent); transform: scale(1); }
-      50%      { box-shadow: 0 0 18px 3px var(--accent); transform: scale(1.06); }
+      0%, 100% { transform: scale(1); filter: none; }
+      50%      { transform: scale(1.18); filter: drop-shadow(0 0 6px var(--accent)); }
     }
     #bar button:active { transform: scale(.96); }
     #bar button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
