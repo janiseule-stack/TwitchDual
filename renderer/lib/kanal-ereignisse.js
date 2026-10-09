@@ -62,7 +62,12 @@
         farbe: o.color,
         punkte: (snake ? o.total_points : o.totalPoints) || 0,
         nutzer: (snake ? o.total_users : o.totalUsers) || 0,
-        topEinsatz: top.reduce((m, t) => Math.max(m, t.points || 0), 0)
+        topEinsatz: top.reduce((m, t) => Math.max(m, t.points || 0), 0),
+        // Top-Setzer mit Namen (GQL: user.displayName, Hermes: user_display_name)
+        top: top.map((t) => ({
+          name: (snake ? t.user_display_name : t.user && t.user.displayName) || '?',
+          punkte: t.points || 0
+        }))
       };
     });
     const summe = roh.reduce((n, o) => n + o.punkte, 0);
