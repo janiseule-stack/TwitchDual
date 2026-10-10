@@ -119,6 +119,7 @@ function createWindows() {
     backgroundColor: '#00000000',
     transparent: true,
     frame: false,
+    skipTaskbar: true, // ein Taskleisten-Eintrag (Video); der Chat kommt als Paar mit
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -140,6 +141,8 @@ function createWindows() {
     win.on('move', save);
   }
   andockenVerdrahten();
+  // Alt+Tab/Taskleiste/Minimieren: Video und Chat immer gemeinsam.
+  require('./src/fenster-paar').verbinde(videoWin, chatWin);
 
   // Login-Panel oeffnet twitch.tv/activate im Systembrowser (nicht im
   // Electron-Fenster) - Links aus dem Video-Renderer immer extern oeffnen.
