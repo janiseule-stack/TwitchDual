@@ -54,6 +54,10 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - v1.18.0: BTTV- und FFZ-Emotes (Kanal + global, `src/twitch-api.js`
   `mergeEmotes`: Kanal vor global, 7TV > BTTV > FFZ); Emote-Panel zeigt alle
   Emotes (vorher bei 200 abgeschnitten) mit Suchfeld oben.
+  Pause-Waechter (`renderer/lib/pause-guard.js`): ungewollte Pause (ohne
+  Klick/Taste) -> play(), weil vaft jede fremde Pause als Nutzerabsicht wertet.
+  Werbe-Zaehler: Erkennung ueber vafts Banner `.tas-adblock-overlay` (der
+  console.log-Hook sah den Worker nie), Zahl neben ADS BLOCKED ab 0 sichtbar.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
