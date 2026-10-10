@@ -33,10 +33,11 @@ function adsEmoteWechseln() {
 function adsZahlZeigen() {
   if (!$adsZahl) return;
   $adsZahl.textContent = String(adsGeblockt);
-  $adsZahl.classList.toggle('hidden', adsGeblockt === 0);
+  $adsZahl.classList.remove('hidden'); // auch die 0 zeigen: der Zaehler ist immer da
   $adsZahl.title = adsGeblockt + (adsGeblockt === 1 ? ' Werbung' : ' Werbungen') + ' in dieser Sitzung geblockt';
 }
 adsEmoteWechseln();
+adsZahlZeigen();
 setInterval(adsEmoteWechseln, 45000);
 
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
@@ -216,6 +217,7 @@ document.addEventListener('keydown', (e) => {
   if (inField) return;
   if (e.key === ' ' && player) {
     e.preventDefault();
+    meldeNutzerEingabe(); // Pause ist gewollt -> Pause-Waechter im Player haelt still
     try {
       if (player.isPaused()) player.play(); else player.pause();
     } catch (err) {}
@@ -317,6 +319,13 @@ const themeRuntime = ThemeRuntime.createRuntime({
 // Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.): die Farbe
 // geht per postMessage ins Twitch-iframe, der Preload dort setzt sie.
 let balkenFarbe = null;
+// Dem Pause-Waechter im Player-iframe sagen: diese Pause kommt vom Nutzer.
+function meldeNutzerEingabe() {
+  const f = $player.querySelector('iframe');
+  if (f && f.contentWindow) {
+    try { f.contentWindow.postMessage({ source: 'twitchdual-nutzer' }, '*'); } catch (e) { /* egal */ }
+  }
+}
 function sendeBalken() {
   const f = $player.querySelector('iframe');
   if (f && f.contentWindow) {

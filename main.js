@@ -548,6 +548,16 @@ ipcMain.handle('get-volume-guard-source', () => {
   return volumeGuardSourceCache;
 });
 
+// Pause-Waechter (renderer/lib/pause-guard.js), gleicher Weg wie oben.
+let pauseGuardSourceCache = null;
+ipcMain.handle('get-pause-guard-source', () => {
+  if (pauseGuardSourceCache === null) {
+    pauseGuardSourceCache = fs.readFileSync(
+      path.join(__dirname, 'renderer', 'lib', 'pause-guard.js'), 'utf8');
+  }
+  return pauseGuardSourceCache;
+});
+
 // --- Kanalpunkte -------------------------------------------------------
 // Der Web-Token bleibt hier im Main. Kein IPC-Kanal gibt ihn heraus - nur
 // abgeleitete Werte (Bilanz, Anmeldestatus als bool, Fehlertexte) verlassen

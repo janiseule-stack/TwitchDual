@@ -207,14 +207,13 @@ if (!isTwitchFrame) {
     // Lautstaerke-Waechter (siehe renderer/lib/volume-guard.js). Faellt er aus,
     // laeuft der Player normal weiter - nur ohne diesen Backstop.
     const volumeGuardSrc = await ipcRenderer.invoke('get-volume-guard-source');
+    // Pause-Waechter (siehe renderer/lib/pause-guard.js), gleiche Regel.
+    const pauseGuardSrc = await ipcRenderer.invoke('get-pause-guard-source');
 
-    // Wrapper: exponiert postMessage-Signal fuer unseren Hook, laedt dann vaft.
-    // vaft loggt Ad-Erkennung; wir beobachten diese Signale defensiv ueber eine
-    // von uns definierte Bruecke window.__twitchDualAd(phase). Ein leichter
-    // console.log-Hook erkennt vafts Ad-Meldungen ueber heuristische Marker.
-    // Reihenfolge: erst der Waechter (definiert window.createVolumeGuard), dann
-    // unser Bootstrap (nutzt ihn sofort), zuletzt vaft.
-    const bootstrap = volumeGuardSrc + '\n' + `
+    // Wrapper: Bruecken fuer Werbe-/Diagnose-Signale, dann die Waechter, zuletzt vaft.
+    // Reihenfolge: erst die Waechter-Module (definieren window.createVolumeGuard /
+    // window.createPauseGuard), dann unser Bootstrap (nutzt sie sofort), zuletzt vaft.
+    const bootstrap = volumeGuardSrc + '\n' + (pauseGuardSrc || '') + '\n' + `
       (function(){
         window.__twitchDualAd = function(phase){
           try { window.postMessage({ source: 'twitchdual-adblock', phase: phase }, '*'); } catch(e){}
@@ -225,19 +224,55 @@ if (!isTwitchFrame) {
               bereich: bereich, ereignis: ereignis, detail: detail }, '*');
           } catch(e){}
         };
-        var _log = console.log.bind(console);
-        console.log = function(){
-          try {
-            var msg = Array.prototype.join.call(arguments, ' ');
-            if (/ad segment|midroll|commercial|purhcasing|stream is ad|adblock/i.test(msg)) {
-              window.__twitchDualAd('start');
+        // Werbe-Erkennung: vaft erkennt Werbung im Web Worker (dessen
+        // console.log sieht hier niemand) und meldet sie per
+        // 'UpdateAdBlockBanner' an den Haupt-Thread, der daraufhin sein Banner
+        // .tas-adblock-overlay sichtbar schaltet (display:block bei hasAds).
+        // Genau diese Flanke beobachten wir - ohne in vaft einzugreifen.
+        (function(){
+          var werbungAn = false;
+          setInterval(function(){
+            try {
+              var b = document.querySelector('.tas-adblock-overlay');
+              var an = !!(b && b.style.display === 'block');
+              if (an !== werbungAn) {
+                werbungAn = an;
+                window.__twitchDualAd(an ? 'start' : 'end');
+              }
+            } catch(e){}
+          }, 500);
+        })();
+        // Pause-Waechter: ungewollte Pausen (ohne Klick/Taste) wieder anwerfen.
+        (function(){
+          if (!window.createPauseGuard) return;
+          var guard = window.createPauseGuard({
+            melde: function(ereignis, detail){
+              try { window.__twitchDualDiag('video', ereignis, detail); } catch(e){}
             }
-            if (/clean stream|main stream|ad(s)? (over|ended|finished)|switching back/i.test(msg)) {
-              window.__twitchDualAd('end');
-            }
-          } catch(e){}
-          return _log.apply(console, arguments);
-        };
+          });
+          function eingabe(){ guard.nutzerEingabe(Date.now()); }
+          document.addEventListener('pointerdown', eingabe, true);
+          document.addEventListener('keydown', eingabe, true);
+          // Space-Kuerzel im Video-Fenster steuert den Player von aussen.
+          window.addEventListener('message', function(e){
+            if (e && e.data && e.data.source === 'twitchdual-nutzer') eingabe();
+          });
+          setInterval(function(){
+            try {
+              var v = document.querySelector('video');
+              if (v && !v.__twitchDualPauseHooked) {
+                v.__twitchDualPauseHooked = true;
+                v.addEventListener('pause', function(){ guard.pausiert(Date.now(), { ended: v.ended }); });
+                v.addEventListener('playing', function(){ guard.spielt(); });
+              }
+              var act = guard.tick(Date.now());
+              if (act && v && v.paused) {
+                var p = v.play();
+                if (p && p.catch) p.catch(function(){});
+              }
+            } catch(e){}
+          }, 300);
+        })();
         // Lautstaerke-Backstop: vaft stellt nach dem Werbe-Reload zwar den
         // Mute-Zustand wieder her, aber nicht die Lautstaerke des neuen
         // <video>-Elements.
