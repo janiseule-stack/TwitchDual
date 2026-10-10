@@ -1274,8 +1274,10 @@ function fillEmoteGrid(container, entries) {
 }
 
 async function openEmotePanel() {
-  // Channel-Emotes aus der bereits geladenen emoteMap (name -> url).
-  fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })).slice(0, 200));
+  // Channel-Emotes aus der bereits geladenen emoteMap (name -> url). Alle,
+  // ohne Deckel: grosse Kanaele haben 900+ 7TV-Emotes, ein Limit von 200 hat
+  // den Rest stillschweigend verschluckt. Bilder laden lazy beim Scrollen.
+  fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })));
   $emotePanel.classList.remove('hidden'); // sofort zeigen; eigenes Grid fuellt sich nach
   await ensureUserEmotes();
 }
