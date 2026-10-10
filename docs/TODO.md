@@ -51,6 +51,9 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - v1.17.0: Video + Chat als Fenster-Paar (`src/fenster-paar.js`): Alt+Tab /
   Taskleiste holt beide, Minimieren/Wiederherstellen gemeinsam, nur ein
   Taskleisten-Eintrag (Chat skipTaskbar); Zuschauerzahl zaehlt weich.
+- v1.18.0: BTTV- und FFZ-Emotes (Kanal + global, `src/twitch-api.js`
+  `mergeEmotes`: Kanal vor global, 7TV > BTTV > FFZ); Emote-Panel zeigt alle
+  Emotes (vorher bei 200 abgeschnitten) mit Suchfeld oben.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
