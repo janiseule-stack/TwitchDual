@@ -1168,6 +1168,7 @@ window.twitchDual.onAuthChanged((st) => { chatLoggedIn = !!(st && st.loggedIn); 
 const $emotePanel = document.getElementById('emote-panel');
 const $epChannel = document.getElementById('ep-channel');
 const $epUser = document.getElementById('ep-user');
+const $epSuche = document.getElementById('ep-suche');
 let userEmotesLoaded = false;
 let userEmoteMap = {}; // name -> url der eigenen Twitch-Emotes (fuer Inline-Wandlung)
 
@@ -1269,9 +1270,24 @@ function fillEmoteGrid(container, entries) {
     img.title = e.name;
     img.loading = 'lazy';
     img.addEventListener('click', () => insertEmote(e.name, e.url));
+    img.hidden = !ChatUi.emoteSucheTrifft(e.name, $epSuche.value);
     container.appendChild(img);
   }
 }
+
+// Suchfeld: blendet in beiden Grids nur die passenden Emotes ein.
+function filterEmoteGrids() {
+  for (const img of $emotePanel.querySelectorAll('.ep-emote')) {
+    img.hidden = !ChatUi.emoteSucheTrifft(img.alt, $epSuche.value);
+  }
+}
+$epSuche.addEventListener('input', filterEmoteGrids);
+$epSuche.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    $emotePanel.classList.add('hidden');
+    $composerInput.focus();
+  }
+});
 
 async function openEmotePanel() {
   // Channel-Emotes aus der bereits geladenen emoteMap (name -> url). Alle,
@@ -1279,6 +1295,7 @@ async function openEmotePanel() {
   // den Rest stillschweigend verschluckt. Bilder laden lazy beim Scrollen.
   fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })));
   $emotePanel.classList.remove('hidden'); // sofort zeigen; eigenes Grid fuellt sich nach
+  filterEmoteGrids(); // alte Suche gilt weiter, auch fuers schon gefuellte eigene Grid
   await ensureUserEmotes();
 }
 

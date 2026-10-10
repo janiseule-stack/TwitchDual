@@ -72,8 +72,16 @@
     return Math.max(0, Math.min(1, n / max));
   }
 
+  // Suchfeld im Emote-Panel: Teilwort, Gross/Klein egal; leer -> alles.
+  function emoteSucheTrifft(name, suche) {
+    const q = String(suche || '').trim().toLowerCase();
+    if (!q) return true;
+    return typeof name === 'string' && name.toLowerCase().includes(q);
+  }
+
   return {
     clampFontSize, emoteProvider, lastMessagesOf, createRateMeter, rateHeat,
+    emoteSucheTrifft,
     FONT_MIN, FONT_MAX, FONT_DEFAULT, ANIM_MAX_RATE
   };
 });

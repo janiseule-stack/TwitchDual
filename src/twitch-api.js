@@ -1,4 +1,4 @@
-// Inoffizielle Twitch-GraphQL- und 7TV-Aufrufe.
+// Inoffizielle Twitch-GraphQL- sowie 7TV-/BTTV-/FFZ-Aufrufe.
 //
 // Client-ID, Endpoint, Persisted-Query-Hash, Timeout/Retry: zentral in
 // ./twitch-gql.js (dort steht auch die Fallback-Skizze fuer API-Aenderungen).
@@ -93,6 +93,97 @@ async function fetch7tvGlobal(opts = {}) {
   return map;
 }
 
+// --- BTTV / FFZ ---------------------------------------------------------
+// Beide liefern pro Kanal eigene Emote-Listen neben 7TV. Modifier (z.B.
+// BTTV "w!", FFZ-Modifier) sind keine eigenstaendigen Bilder -> raus.
+// Fail-soft wie 7TV: kein Konto / Fehler -> leere Map.
+
+function bttvUrl(id) {
+  return `https://cdn.betterttv.net/emote/${encodeURIComponent(id)}/2x.webp`;
+}
+
+function bttvListToMap(list, map = {}) {
+  for (const e of list || []) {
+    if (e && e.id && e.code && !e.modifier) map[e.code] = bttvUrl(e.id);
+  }
+  return map;
+}
+
+async function holeJson(url, opts) {
+  try {
+    const res = await fetchWithRetry(url, {}, opts);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchBttvEmotes(twitchUserId, opts = {}) {
+  const data = await holeJson(
+    `https://api.betterttv.net/3/cached/users/twitch/${twitchUserId}`, opts
+  );
+  if (!data) return {};
+  const map = bttvListToMap(data.channelEmotes);
+  return bttvListToMap(data.sharedEmotes, map);
+}
+
+async function fetchBttvGlobal(opts = {}) {
+  const data = await holeJson('https://api.betterttv.net/3/cached/emotes/global', opts);
+  return Array.isArray(data) ? bttvListToMap(data) : {};
+}
+
+// FFZ: animierte Emotes haben ein eigenes `animated`-URL-Set (WEBP).
+function pickFfzUrl(e) {
+  for (const urls of [e.animated, e.urls]) {
+    if (urls && (urls['2'] || urls['1'])) return urls['2'] || urls['1'];
+  }
+  return null;
+}
+
+function ffzSetsToMap(sets, setIds) {
+  const map = {};
+  for (const id of setIds) {
+    const set = sets && sets[id];
+    for (const e of (set && set.emoticons) || []) {
+      if (!e || !e.name || e.modifier) continue;
+      const url = pickFfzUrl(e);
+      if (url) map[e.name] = url;
+    }
+  }
+  return map;
+}
+
+async function fetchFfzEmotes(twitchUserId, opts = {}) {
+  const data = await holeJson(`https://api.frankerfacez.com/v1/room/id/${twitchUserId}`, opts);
+  if (!data || !data.sets) return {};
+  return ffzSetsToMap(data.sets, Object.keys(data.sets));
+}
+
+// Nur default_sets sind fuer alle sichtbar; die uebrigen Sets gehoeren zu
+// FFZ-Addons und tauchen im normalen Chat nicht auf.
+async function fetchFfzGlobal(opts = {}) {
+  const data = await holeJson('https://api.frankerfacez.com/v1/set/global', opts);
+  if (!data || !data.sets) return {};
+  return ffzSetsToMap(data.sets, (data.default_sets || []).map(String));
+}
+
+// Alle Quellen zu einer name -> url-Map. Vorrang bei gleichem Namen:
+// Kanal vor global, innerhalb davon 7TV vor BTTV vor FFZ (wie Chatterino).
+// Reihenfolge der Schluessel: Kanal-Emotes zuerst - das Emote-Panel zeigt
+// sie in dieser Reihenfolge.
+function mergeEmotes({ global = {}, kanal = {} } = {}) {
+  const stufen = [kanal.sevenTv, kanal.bttv, kanal.ffz, global.sevenTv, global.bttv, global.ffz]
+    .map((m) => m || {});
+  const map = {};
+  for (const stufe of stufen) {
+    for (const [name, url] of Object.entries(stufe)) {
+      if (!Object.prototype.hasOwnProperty.call(map, name)) map[name] = url;
+    }
+  }
+  return map;
+}
+
 // Eine Seite VOD-Kommentare laden, immer per contentOffsetSeconds.
 //
 // WICHTIG: Twitch verlangt fuer die CURSOR-basierte Paginierung inzwischen einen
@@ -176,5 +267,10 @@ module.exports = {
   resolveVideoOwner,
   fetch7tvEmotes,
   fetch7tvGlobal,
+  fetchBttvEmotes,
+  fetchBttvGlobal,
+  fetchFfzEmotes,
+  fetchFfzGlobal,
+  mergeEmotes,
   fetchVodComments
 };

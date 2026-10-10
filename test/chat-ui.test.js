@@ -99,3 +99,14 @@ test('rateHeat: Mitte -> 0.5', () => {
 test('rateHeat: eigener max-Wert', () => {
   assert.strictEqual(ChatUi.rateHeat(30, 60), 0.5);
 });
+
+// --- emoteSucheTrifft -----------------------------------------------------
+test('emoteSucheTrifft: Teilwort, Gross/Klein egal, leere Suche zeigt alles', () => {
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', 'laugh'), true);
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', 'PEPE'), true);
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', 'kekw'), false);
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', ''), true);
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', '   '), true);
+  assert.equal(ChatUi.emoteSucheTrifft('PepeLaugh', ' laugh '), true);
+  assert.equal(ChatUi.emoteSucheTrifft(null, 'x'), false);
+});

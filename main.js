@@ -317,6 +317,8 @@ const sevenTvCache = new Map();   // twitchUserId -> Promise<[{url, title}]>
 const LISTEN_TTL_MS = 60 * 60 * 1000;
 const DRITT_OPTS = { retries: 0, timeoutMs: 5000 };
 const ladeGlobal7tv = cachedLoader(() => twitch.fetch7tvGlobal(), { ttlMs: LISTEN_TTL_MS });
+const ladeGlobalBttv = cachedLoader(() => twitch.fetchBttvGlobal(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
+const ladeGlobalFfz = cachedLoader(() => twitch.fetchFfzGlobal(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
 const ladeGlobalBadges = cachedLoader(() => badgeSources.fetchGlobalBadges(), { ttlMs: LISTEN_TTL_MS });
 const ladeBttvBadges = cachedLoader(() => badgeSources.fetchBttvBadges(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
 const ladeFfzBadges = cachedLoader(() => badgeSources.fetchFfzBadges(DRITT_OPTS), { ttlMs: LISTEN_TTL_MS });
@@ -347,13 +349,22 @@ const quelle = require('./src/quellen-gedaechtnis').createQuellenGedaechtnis();
 ipcMain.handle('aktuelle-quelle', () => quelle.fuerNeustart());
 
 function ladeExtras(ladeId, ownerId) {
+  // Emotes aus 7TV, BTTV und FFZ (je Kanal + global); Vorrang regelt mergeEmotes.
   Promise.all([
     ladeGlobal7tv(),
+    ladeGlobalBttv(),
+    ladeGlobalFfz(),
     ownerId ? twitch.fetch7tvEmotes(ownerId) : {},
+    ownerId ? twitch.fetchBttvEmotes(ownerId, DRITT_OPTS) : {},
+    ownerId ? twitch.fetchFfzEmotes(ownerId, DRITT_OPTS) : {},
     loadBadgeData(ownerId)
-  ]).then(([globalEmotes, channelEmotes, badgeCatalog]) => {
+  ]).then(([g7tv, gBttv, gFfz, k7tv, kBttv, kFfz, badgeCatalog]) => {
     if (ladeId !== ladeZaehler) return; // inzwischen anderer Kanal geladen
-    const extras = { ladeId, emotes: { ...globalEmotes, ...channelEmotes }, badgeCatalog };
+    const emotes = twitch.mergeEmotes({
+      global: { sevenTv: g7tv, bttv: gBttv, ffz: gFfz },
+      kanal: { sevenTv: k7tv, bttv: kBttv, ffz: kFfz }
+    });
+    const extras = { ladeId, emotes, badgeCatalog };
     quelle.extrasDa(extras);
     broadcast('load-extras', extras);
   }).catch((e) => {
