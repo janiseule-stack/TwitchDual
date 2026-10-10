@@ -48,6 +48,9 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
   Home wechseln (Enter laedt Kanal/VOD), in Home oben nur ADS BLOCKED;
   ADS BLOCKED neben ☰ mit wechselnden 7TV-Emotes + Zaehler; weggeklickter Pin
   bleibt weg (localStorage).
+- v1.17.0: Video + Chat als Fenster-Paar (`src/fenster-paar.js`): Alt+Tab /
+  Taskleiste holt beide, Minimieren/Wiederherstellen gemeinsam, nur ein
+  Taskleisten-Eintrag (Chat skipTaskbar); Zuschauerzahl zaehlt weich.
 - Live-Chat-Badges (B/M/V/S), Klick auf Namen kopiert ihn.
 - Native Twitch-Emotes als Bild in Live-Chat UND VOD-Replay (v1.1.0,
   Token-Rendering; IRC-emotes-Tag + Fragment-emote-Feld, CDN-URL zentral).
