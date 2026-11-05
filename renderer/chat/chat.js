@@ -914,7 +914,7 @@ function spiegleThemeUi() {
   const tv = ThemeKatalog.varianteFuer(themePrefs);
   $themeName.textContent = tv ? t.name + ' · ' + tv.name : t.name;
   // 🎲 nur bei Themes mit gezeichneter Welt (Neon Dual hat kein Layout).
-  document.getElementById('galerie-wuerfel').classList.toggle('hidden', !!t.farbenFrei);
+  document.getElementById('welt-wuerfel').classList.toggle('hidden', !!t.farbenFrei);
   for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
   for (const b of $gastOft.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastHaeufigkeit);
   for (const b of $gastViele.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastAnzahl);
@@ -1017,7 +1017,7 @@ $themeBtn.addEventListener('click', () => {
 themeReiter.zeige(themeReiter.start);
 document.getElementById('galerie-zu').addEventListener('click', schliesseGalerie);
 // 🎲: neuer Startwert fuer die Welt des aktiven Themes -> beide Fenster bauen neu.
-document.getElementById('galerie-wuerfel').addEventListener('click', () => {
+document.getElementById('welt-wuerfel').addEventListener('click', () => {
   const neu = Math.floor(Math.random() * 4294967295) + 1;
   window.twitchDual.saveThemePrefs({ saat: { [themePrefs.theme]: neu } });
 });

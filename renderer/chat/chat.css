@@ -180,14 +180,18 @@ body { display: flex; flex-direction: column; }
 #messages.no-anim .msg { animation: none; }
 
 /* 🎨 + ⚙: Kopfzeile ist drag-Region -> Buttons explizit klickbar machen. */
-#theme-btn, #settings-btn {
+#welt-wuerfel, #theme-btn, #settings-btn {
   -webkit-app-region: no-drag;
   background: none; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
 }
-#theme-btn { margin-left: auto; /* 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links */ }
+/* 🎲 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links. 🎲 gibt es
+   nur bei gezeichneten Welten; ist er versteckt, schiebt 🎨 nach rechts. */
+#welt-wuerfel, #theme-btn { margin-left: auto; }
+#welt-wuerfel:not(.hidden) + #theme-btn { margin-left: 8px; }
+#welt-wuerfel.hidden { display: none; }
 #settings-btn { margin-left: 8px; }
-#theme-btn:hover, #settings-btn:hover { color: var(--text); }
+#welt-wuerfel:hover, #theme-btn:hover, #settings-btn:hover { color: var(--text); }
 
 /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
@@ -533,9 +537,6 @@ button:focus-visible, input:focus-visible {
 .galerie-kopf button {
   margin-left: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px;
 }
-#galerie-wuerfel { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-title); margin-right: 6px; }
-#galerie-wuerfel + #galerie-zu { margin-left: 0; }
-#galerie-wuerfel:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 /* 🎨-Fenster: Reiter oben, darunter scrollt die aktive Seite. */
 #theme-reiter { margin: 6px 8px 0; }
 #theme-seiten { flex: 1; overflow-y: auto; font-size: 12px; padding: 0 6px 8px; }
