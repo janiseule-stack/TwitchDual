@@ -41,6 +41,8 @@ const store = new Store({
     diagEnabled: false   // Diagnose-Protokoll: Standard aus = nichts auf der Platte
   }
 });
+// Geblockte Werbungen insgesamt (ueber Neustarts, siehe 'adblock-state').
+const werbeZaehler = require('./src/werbe-zaehler').createWerbeZaehler(store);
 
 // --- Twitch-Login + Sende-Chat (v1.8.0) ------------------------------------
 let authManager = null;
@@ -477,6 +479,7 @@ ipcMain.handle('get-ui-prefs', () => ({
   playerPrefs: store.get('playerPrefs', { volume: null, quality: null }),
   chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true }),
   themePrefs: cleanThemePrefs(store.get('themePrefs')),
+  werbungGeblockt: werbeZaehler.gesamt(),
   appVersion: app.getVersion()
 }));
 
@@ -1124,13 +1127,16 @@ ipcMain.on('window-control', (evt, action) => {
   }
 });
 
-// Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.
+// Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen. Bei
+// 'start' zaehlt der Main dauerhaft mit (src/werbe-zaehler.js) und schickt
+// die Gesamtzahl mit.
 ipcMain.on('adblock-state', (_evt, payload) => {
   const phase = payload && payload.phase;
   if (phase === 'start' || phase === 'end') {
     diagLog.melde('video', phase === 'start' ? 'werbung-start' : 'werbung-ende');
+    const gesamt = phase === 'start' ? werbeZaehler.plusEins() : werbeZaehler.gesamt();
     if (videoWin && !videoWin.isDestroyed()) {
-      videoWin.webContents.send('adblock-state', { phase });
+      videoWin.webContents.send('adblock-state', { phase, gesamt });
     }
   }
 });
