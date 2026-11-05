@@ -183,8 +183,10 @@
         gastFolge.add(id);
       }
     }
+    // Auch Anlaesse ausserhalb des Zeitplans (Kiste) achten auf "Wie oft: Aus".
     function gastJetzt() {
       if (fenster !== 'video' || !gastBedingung || !gastBedingung()) return;
+      if (!Katalog.gastIntervall(letztePrefs)) return;
       gastGruppe();
     }
 

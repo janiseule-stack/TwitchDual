@@ -183,6 +183,18 @@ test('Gast: nur im Video-Fenster, nur wenn die Bedingung stimmt', async () => {
   assert.equal(c.timer.size, 0, 'Chat plant keine Gaeste');
 });
 
+test('Gast: "Wie oft: Aus" heisst nie, auch nicht per Kiste (gastJetzt)', async () => {
+  const log = [];
+  const a = aufbau({ fenster: 'video', welten: { koi: protokollWelt(log) } });
+  a.rt.setzeGastBedingung(() => true);
+  await a.rt.anwenden({ theme: 'koi', gastHaeufigkeit: 'aus' });
+  assert.equal(a.timer.size, 0, 'kein Gast geplant');
+  a.rt.gastJetzt();
+  assert.deepEqual(log, ['start'], 'kein Gast trotz Kiste');
+  a.rt.gastErzwingen();
+  assert.deepEqual(log, ['start', 'gast'], 'Test-Knopf geht weiter');
+});
+
 test('Klick: nur ins Leere, Koordinaten relativ zur hinteren Ebene', async () => {
   const klicks = [];
   const a = aufbau({ welten: { blasen: () => ({ start() {}, stop() {}, klickInsLeere: (x, y) => klicks.push([x, y]) }) } });
