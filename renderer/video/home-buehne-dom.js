@@ -319,19 +319,38 @@ window.HomeBuehneDom = (function () {
     return box.children;
   }
 
-  // Laufzeilen 1,2,4,5,6 neu bauen: Inhalt zweimal hintereinander, das Band
-  // laeuft um -50% und setzt so nahtlos wieder an. Neubau startet die Baender
-  // neu, daher nur einmal je Oeffnen aufrufen.
+  // Laufzeilen 1,2,4,5,6 neu bauen: zwei gleiche Haelften, das Band laeuft
+  // um -50% und setzt so nahtlos wieder an. Jede Haelfte wiederholt den
+  // Zeileninhalt so oft, bis sie mindestens so breit ist wie #home-namen
+  // (sonst liefe bei wenigen Namen eine Luecke mit). Einmal messen beim
+  // Bauen, nie pro Bild. Neubau startet die Baender neu, daher nur einmal
+  // je Oeffnen aufrufen.
+  const MAX_WIEDERHOLUNG = 50;
+  function haelfte(inhalt, mal) {
+    const h = el('div', 'namen-haelfte');
+    for (let i = 0; i < mal; i++) {
+      inhalt.forEach((n) => h.appendChild(el('span', n.live ? 'live' : 'offline', n.name)));
+    }
+    return h;
+  }
   function zeichneNamen(auswahl) {
     const zeilen = namenZeilen();
+    const breite = document.getElementById('home-namen').clientWidth;
     for (let z = 1; z <= 6; z++) {
       if (z === MITTE) continue;
       const band = el('div', 'namen-band');
       const inhalt = HomeBuehne.zeilenInhalt(auswahl || [], z);
-      for (let mal = 0; mal < 2; mal++) {
-        inhalt.forEach((n) => band.appendChild(el('span', n.live ? 'live' : 'offline', n.name)));
-      }
       zeilen[z - 1].replaceChildren(band);
+      if (!inhalt.length) continue; // leere Auswahl -> leeres Band
+      // Einmal messen; ist nichts messbar (Home zu, Zeile ausgeblendet),
+      // grob ueber die Zeichenzahl schaetzen (Zeile ~ 120 Zeichen breit).
+      const probe = haelfte(inhalt, 1);
+      band.appendChild(probe);
+      const w = probe.offsetWidth;
+      const zeichen = inhalt.reduce((s, n) => s + String(n.name).length + 1, 0);
+      const mal = w > 0 && breite > 0 ? Math.ceil(breite / w) : Math.ceil(120 / Math.max(1, zeichen));
+      const k = Math.min(MAX_WIEDERHOLUNG, Math.max(1, mal));
+      band.replaceChildren(haelfte(inhalt, k), haelfte(inhalt, k));
     }
   }
 

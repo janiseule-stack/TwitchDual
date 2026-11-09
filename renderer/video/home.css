@@ -136,10 +136,11 @@
   flex: none; display: flex;
   animation: namen-lauf 60s linear infinite; will-change: transform;
 }
+.namen-haelfte { flex: none; display: flex; }
 /* Abstand je Name statt gap, damit beide Haelften exakt gleich breit sind */
-.namen-band > span { padding-right: .6em; }
-.namen-band > .live { color: color-mix(in srgb, var(--text) 10%, transparent); }
-.namen-band > .offline {
+.namen-haelfte > span { padding-right: .6em; }
+.namen-haelfte > .live { color: color-mix(in srgb, var(--text) 10%, transparent); }
+.namen-haelfte > .offline {
   color: transparent;
   -webkit-text-stroke: 1px color-mix(in srgb, var(--text) 14%, transparent);
 }
@@ -207,7 +208,7 @@
     radial-gradient(circle, transparent 0 15%, #c9ccd5 15.5% 16.5%, transparent 17%),
     repeating-radial-gradient(circle, #e6e8ee 0 2px, #dadde5 2px 3px);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent),
-    0 4px 18px color-mix(in srgb, var(--bg) 60%, transparent);
+    0 0 18px color-mix(in srgb, var(--bg) 60%, transparent); /* ohne Versatz: dreht sonst sichtbar mit */
   animation: cd-dreh 6s linear infinite;
 }
 @keyframes cd-dreh { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -241,6 +242,8 @@
 .cd-schlitten.raus { transform: translateX(50%); transition: transform 220ms ease-out, opacity 200ms ease; }
 #cd-huelle.steht .cd-scheibe,
 #cd-huelle.offline .cd-scheibe { animation: none; }
+/* Rueckseite offen: Scheibe ist verdeckt, Drehung pausiert */
+#cd-huelle.gedreht .cd-scheibe { animation-play-state: paused; }
 #cd-huelle.gedreht .cd-schlitten { opacity: 0; }
 
 /* Vorderseite: Cover hinter Glas */
