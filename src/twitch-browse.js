@@ -57,7 +57,7 @@ async function findChannel(login, opts = {}) {
 const SUGGEST_QUERY =
   `query($q:String!){ searchSuggestions(queryFragment:$q, withOfflineChannelContent:true){ ` +
   `edges{ node{ content{ __typename ... on SearchSuggestionChannel{ login isLive isVerified ` +
-  `profileImageURL(width:50) user{ displayName stream{ game{ displayName } } } } } } } } }`;
+  `profileImageURL(width:300) user{ displayName stream{ game{ displayName } } } } } } } } }`; // 300: Album-Cover im Staender (gemessen 10.11.2026)
 
 async function sucheVorschlaege(query, opts = {}) {
   const data = await gql({ query: SUGGEST_QUERY, variables: { q: String(query || '') } }, opts);
@@ -107,7 +107,7 @@ async function streamInfo({ mode, wert }, opts = {}) {
 const VODS_QUERY =
   `query($login:String!,$n:Int!){ user(login:$login){ videos(first:$n,type:ARCHIVE,sort:TIME){ ` +
   `edges{ node{ id title lengthSeconds publishedAt viewCount ` +
-  `previewThumbnailURL(width:320,height:180) } } } } }`;
+  `previewThumbnailURL(width:640,height:360) } } } } }`; // gross fuer das VOD-Inlay (gemessen 10.11.2026)
 
 async function getChannelVods(login, limit = 20, opts = {}) {
   const clean = String(login).trim().toLowerCase().replace(/^#/, '');

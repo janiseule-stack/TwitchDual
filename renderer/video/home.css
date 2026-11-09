@@ -21,7 +21,7 @@
   background: var(--bg);
   display: flex; flex-direction: column;
   z-index: 10;
-  container-type: size; /* Buehnen-Masse in cqw/cqh */
+  container-type: size; container-name: home; /* Namen-Ebene in cqh; Abfragen per @container home */
 }
 
 #home-head {
@@ -59,7 +59,7 @@
 #auth-bar.unvollstaendig #auth-login { animation: auth-puls 1.6s ease-in-out infinite; }
 @keyframes auth-puls { 50% { box-shadow: 0 0 0 4px rgba(255,184,77,.35); } }
 
-/* Kanal-Ansicht scrollt nicht: Buehne fuellt den Platz, das Regal scrollt waagerecht. */
+/* Kanal-Ansicht scrollt nicht: Buehne fuellt den Platz, der Staender scrollt waagerecht. */
 #home-kanaele {
   flex: 1; min-height: 0; padding: 12px; overflow: hidden;
   display: flex; flex-direction: column;
@@ -92,6 +92,8 @@
 }
 .stern:hover { color: #ffcf40; transform: scale(1.15); }
 .stern.an { color: #ffcf40; }
+/* Auf den dunklen Pillen (Huelle, Album) hell, auch in hellen Themes lesbar */
+.cd-stern:not(.an), .album-stern:not(.an) { color: #fff; }
 .haken {
   display: inline-grid; place-items: center; width: 14px; height: 14px; margin-left: 5px;
   border-radius: 50%; background: #9147ff; color: #fff; font-size: 9px; font-weight: 700; vertical-align: 1px;
@@ -177,14 +179,18 @@
 :root[data-effekte="aus"] .namen-mitte { transform: translateY(-50%); }
 
 /* --- Buehne: Huelle links, Info rechts (schmal: darunter) ----------------- */
+/* Die Buehne ist selbst Groessen-Container: cqh/cqw darin beziehen sich auf
+   den Platz, der zwischen Suche und Staender wirklich da ist (sonst wird die
+   gewachsene VOD-Rueckseite unten abgeschnitten). */
 #home-buehne {
   position: relative; flex: 1; min-height: 0;
+  container-type: size;
   display: flex; align-items: safe center; justify-content: safe center; gap: 4cqw;
   perspective: 1400px;
   overflow: hidden; /* zu hoher Inhalt laeuft nie ueber Suche oder Staender */
 }
 #cd-huelle {
-  --kante: min(40cqh, 30cqw);
+  --kante: min(72cqh, 30cqw);
   position: relative; flex: none;
   width: var(--kante); height: var(--kante);
   margin-right: calc(var(--kante) * .46); /* Platz fuer die halb herausstehende CD */
@@ -369,7 +375,7 @@
 
 /* --- Rueckseite: gedrucktes Inlay mit 2x2 VODs, Huelle waechst ----------- */
 #cd-huelle.gedreht {
-  --kante: min(78cqh, 62cqw);
+  --kante: min(94cqh, 62cqw);
   transform: rotateY(180deg); margin-right: 0;
 }
 #home-buehne.vods-offen #cd-info { display: none; }
@@ -397,7 +403,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .inlay-t {
-  font-family: var(--schrift-titel, inherit); font-size: clamp(18px, 3.6cqh, 30px);
+  font-family: var(--schrift-titel, inherit); font-size: clamp(18px, 5cqh, 30px);
   font-weight: 800; letter-spacing: -.01em; margin-top: 4px;
 }
 .inlay-knopf {
@@ -447,7 +453,7 @@
 #cd-info .cd-status {
   font: 700 11px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--accent-title);
 }
-#cd-info .cd-name { font-size: clamp(22px, 5.5cqh, 46px); font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
+#cd-info .cd-name { font-size: clamp(22px, 8cqh, 46px); font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
 #cd-info .cd-titel {
   font-size: 16px; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
@@ -516,8 +522,10 @@
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   display: grid; place-items: center; overflow: hidden;
 }
+/* Masse relativ zur Buehne (Container): Geraet oben, Schublade darunter,
+   Terminal erst nach dem Schliessen (kein Ueberlappen). */
 .lw-geraet {
-  position: absolute; left: 50%; top: 34%; width: min(64cqw, 520px); height: 9cqh;
+  position: absolute; left: 50%; top: 14%; width: min(64cqw, 520px); height: 10cqh;
   transform: translateX(-50%); border-radius: 4px; z-index: 2;
   background: linear-gradient(180deg, #2b2630, #17131b);
   box-shadow: 0 10px 24px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .08);
@@ -527,8 +535,8 @@
   background: #7cff9a; box-shadow: 0 0 6px #7cff9a;
 }
 .lw-lade {
-  position: absolute; left: 50%; top: calc(34% + 9cqh); width: min(40cqw, 320px); height: min(40cqw, 320px);
-  margin-left: calc(min(40cqw, 320px) / -2); z-index: 1;
+  position: absolute; left: 50%; top: calc(14% + 10cqh); width: min(40cqw, 62cqh, 320px); height: min(40cqw, 62cqh, 320px);
+  margin-left: calc(min(40cqw, 62cqh, 320px) / -2); z-index: 1;
   background: linear-gradient(180deg, #221d27, #120e15); border-radius: 0 0 6px 6px;
   transform-origin: top center; transform: scaleY(0);
 }
@@ -543,7 +551,7 @@
 .lw-cd-label { position: absolute; inset: 22%; border-radius: 50%; overflow: hidden; }
 .lw-cd-label img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lw-terminal {
-  position: absolute; left: 50%; top: 55%; transform: translateX(-50%);
+  position: absolute; left: 50%; top: calc(14% + 14cqh); transform: translateX(-50%);
   font: 600 14px var(--mono); color: #8bd3ff; line-height: 1.7; opacity: 0;
   min-width: min(64cqw, 520px); padding: 14px 18px; border-radius: 6px; background: #05070a;
   box-shadow: 0 0 0 1px rgba(139, 211, 255, .2);
@@ -551,28 +559,28 @@
 .lw-datei { color: #fff; }
 .lw-balken { margin-top: 6px; height: 10px; border: 1px solid rgba(139, 211, 255, .5); border-radius: 2px; overflow: hidden; }
 .lw-fuellung { height: 100%; width: 100%; background: #8bd3ff; transform-origin: left center; transform: scaleX(0); }
-/* Zeitplan: 0-450 ms Schublade aus + CD faellt rein, 450-750 ms zu + LED orange,
-   650-1500 ms Terminal mit Ladebalken */
+/* Zeitplan: 0-450 ms Schublade aus + CD faellt rein, 450-750 ms zu, LED
+   blinkt ab 450 ms orange und bleibt orange, 750-1500 ms Terminal + Balken */
 #cd-laufwerk.laeuft .lw-lade { animation: lw-lade 750ms ease both; }
 #cd-laufwerk.laeuft .lw-cd { animation: lw-cd 450ms ease-out 150ms both; }
-#cd-laufwerk.laeuft .lw-led { animation: lw-led 300ms steps(2) 450ms 4 both; }
-#cd-laufwerk.laeuft .lw-terminal { animation: lw-ein 200ms ease 650ms both; }
-#cd-laufwerk.laeuft .lw-fuellung { animation: lw-fuellung 800ms ease-in-out 700ms both; }
+#cd-laufwerk.laeuft .lw-led { animation: lw-led 300ms steps(2) 450ms 4 backwards; background: #ffb347; box-shadow: 0 0 8px #ffb347; }
+#cd-laufwerk.laeuft .lw-terminal { animation: lw-ein 200ms ease 750ms both; }
+#cd-laufwerk.laeuft .lw-fuellung { animation: lw-fuellung 700ms ease-in-out 800ms both; }
 @keyframes lw-lade { 0% { transform: scaleY(0); } 35%, 60% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
 @keyframes lw-cd { from { transform: translateY(-120%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes lw-led { from { background: #ffb347; box-shadow: 0 0 8px #ffb347; } to { background: #4a3420; box-shadow: none; } }
+@keyframes lw-led { 0% { background: #7cff9a; box-shadow: 0 0 6px #7cff9a; } 50% { background: #ffb347; box-shadow: 0 0 8px #ffb347; } 100% { background: #4a3420; box-shadow: none; } }
 @keyframes lw-ein { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lw-fuellung { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
-@container (max-height: 520px) {
+@container home (max-height: 520px) {
   #home-staender { height: 96px; padding-top: 10px; }
   .namen-zeile:nth-child(1), .namen-zeile:nth-child(5), .namen-zeile:nth-child(6) { display: none; }
   #cd-info .cd-titel { display: none; }
 }
-@container (max-width: 900px) {
+@container home (max-width: 900px) {
   #home-buehne { flex-direction: column; gap: 14px; }
-  #cd-huelle { --kante: min(30cqh, 56cqw); }
-  #cd-huelle.gedreht { --kante: min(62cqh, 90cqw); }
+  #cd-huelle { --kante: min(52cqh, 56cqw); }
+  #cd-huelle.gedreht { --kante: min(94cqh, 90cqw); }
   #cd-info { flex: 0 1 auto; min-height: 0; overflow: hidden; width: min(100%, 560px); align-items: center; text-align: center; }
   .cd-text { align-items: center; }
 }

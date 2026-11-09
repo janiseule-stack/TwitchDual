@@ -271,7 +271,6 @@
 :root[data-theme="sakura"] #points-chip, :root[data-theme="sakura"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card { border: var(--karte-rand); }
 
-/* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
 
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
 :root[data-theme="sakura"][data-variante="pixel"] .vod,

@@ -271,7 +271,6 @@
 :root[data-theme="wald"] #points-chip, :root[data-theme="wald"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: var(--karte-rand); }
 
-/* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
 
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
 :root[data-theme="wald"][data-variante="pixel"] .vod,

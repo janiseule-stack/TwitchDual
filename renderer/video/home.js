@@ -113,6 +113,9 @@ function closeHome() {
 // verbinden (der Player lief unter dem Overlay weiter). NICHT benutzen, wenn
 // gerade eine neue Quelle geladen wird - das erledigt onLoad im Chat selbst.
 function closeHomeResume() {
+  // Laeuft gerade ein Laden aus Home (Laufwerk), ist die neue Quelle schon
+  // unterwegs: nur schliessen, sonst verbaende sich der Chat doppelt neu.
+  if (ladenLaeuft || laufwerk.laeuft) { closeHome(); return; }
   closeHome();
   window.twitchDual.notifyHomeClose();
 }
@@ -140,7 +143,7 @@ async function ladeKanaele() {
     // Riesen-Namen nur einmal je Oeffnen (Neubau startet die Laufbaender neu).
     const offlineFavs = abschnittKanaele(HomeListe.abschnitte({ kanaele, nadel: '' }), 'offline').filter((k) => k.favorit);
     namenAuswahl = HomeBuehne.namenAuswahl(live, offlineFavs);
-    namenTheme = document.documentElement.dataset.theme || null;
+    namenTheme = namenSchluessel();
     HomeBuehneDom.zeichneNamen(namenAuswahl);
     oeffnenAusstehend = false;
   } else buehne.aktualisieren(reihe());
@@ -255,7 +258,12 @@ const staenderHandler = {
 function schritt(r) {
   if (offlineAnsicht) offlineAnsicht = null;
   else if (rueckseite) rueckseite = null;
-  else buehne.blaettern(r);
+  else if (!buehne.blaettern(r)) {
+    // Ende der Live-Reihe: Staender weiterschieben, damit die Offline- und
+    // Twitch-Alben dahinter erreichbar sind (keine sichtbare Scrollleiste).
+    $staender.scrollBy({ left: r * $staender.clientWidth * 0.6, behavior: 'smooth' });
+    return;
+  }
   renderHome();
 }
 
@@ -336,7 +344,16 @@ function setzeMitteY() {
   if (!h.height || !n.height) return;
   $namen.style.setProperty('--mitte-y', Math.round(h.top + h.height / 2 - n.top) + 'px');
 }
-if (typeof ResizeObserver === 'function') new ResizeObserver(setzeMitteY).observe($buehneFlaeche);
+// Neu messen, wenn sich Buehne, Huelle oder Info-Block in der Groesse aendern
+// (schmales Layout: Info-Text verschiebt die Huelle) und nach dem Wachsen der
+// Huelle (VOD-Rueckseite, 400 ms Uebergang).
+if (typeof ResizeObserver === 'function') {
+  const ro = new ResizeObserver(setzeMitteY);
+  ro.observe($buehneFlaeche);
+  ro.observe($huelle);
+  ro.observe(document.getElementById('cd-info'));
+}
+$huelle.addEventListener('transitionend', (e) => { if (e.target === $huelle) setzeMitteY(); });
 
 // Vorschaubilder der Nachbar-CDs in den Cache holen (Blaettern ohne Warten).
 function vorladen() {
@@ -469,7 +486,7 @@ async function sternUmschalten(ch) {
 async function openVods(login, displayName) {
   showVodView(login, displayName);
   $vodList.innerHTML = '<div class="empty">lade VODs …</div>';
-  const res = await window.twitchDual.channelVods(login, 20);
+  const res = await window.twitchDual.channelVods(login, 100); // mehr als die Rueckseite (24)
   if (!res.ok) { $vodList.innerHTML = ''; $vodList.appendChild(emptyMsg('Fehler: ' + res.error)); return; }
   if (!res.vods.length) { $vodList.innerHTML = ''; $vodList.appendChild(emptyMsg('Keine VODs gefunden.')); return; }
   $vodList.innerHTML = '';
@@ -589,11 +606,16 @@ window.homeMitSuche = () => {
 // kann anders breit sein -> Baender mit derselben Auswahl neu bauen. Nur bei
 // echtem Theme-Wechsel; Farb-/Deckkraft-Vorschauen (Schieberegler) lassen die
 // Baender laufen, statt sie bei jedem Schritt neu zu starten.
+// Schluessel: Theme + Titelschrift (Varianten von Koi/Sakura wechseln die Schrift).
+function namenSchluessel() {
+  const r = document.documentElement;
+  return (r.dataset.theme || '') + '|' + getComputedStyle(r).getPropertyValue('--schrift-titel').trim();
+}
 window.homeNamenNeu = () => {
   if ($home.classList.contains('hidden') || !namenAuswahl) return;
-  const theme = document.documentElement.dataset.theme || null;
-  if (theme === namenTheme) return;
-  namenTheme = theme;
+  const schluessel = namenSchluessel();
+  if (schluessel === namenTheme) return;
+  namenTheme = schluessel;
   HomeBuehneDom.zeichneNamen(namenAuswahl);
 };
 

@@ -212,7 +212,7 @@ function startTimeBroadcast() {
 // (nur ausserhalb von Eingabefeldern; greift nicht, wenn das Player-iframe
 // selbst den Fokus hat - dann uebernimmt der Twitch-Player).
 document.addEventListener('keydown', (e) => {
-  if (e.defaultPrevented) return; // schon behandelt (z. B. Regal-Ruecken auf Home)
+  if (e.defaultPrevented) return; // schon behandelt (z. B. Album im Staender auf Home)
   if (e.ctrlKey && e.key.toLowerCase() === 'l') {
     e.preventDefault();
     if (window.homeMitSuche) window.homeMitSuche();
@@ -221,7 +221,7 @@ document.addEventListener('keydown', (e) => {
   const t = e.target;
   const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (inField) return;
-  // Knopf auf Home (Huelle, Regal): Leertaste loest den Knopf aus, pausiert nicht.
+  // Knopf auf Home (Huelle, Staender): Leertaste loest den Knopf aus, pausiert nicht.
   const homeKnopf = t && t.closest && t.closest('#home') &&
     (t.tagName === 'BUTTON' || t.getAttribute('role') === 'button');
   if (homeKnopf) return;
