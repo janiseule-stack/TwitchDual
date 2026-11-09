@@ -1,4 +1,4 @@
-/* Home-Overlay: CD-Buehne (Live-Kanaele), Regal (Offline-Favoriten) + VOD-Browser */
+/* Home-Overlay: CD-Buehne (gewaehlte CD), CD-Staender (alle Live + Offline-Favoriten), Laufwerk + VOD-Browser */
 
 #home-btn {
   padding: 8px 12px; border: none; border-radius: 6px;
@@ -124,7 +124,7 @@
 }
 .vod .vmeta { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-/* --- Namen-Ebene: Riesen-Namen hinter dem Inhalt -------------------------- */
+/* --- Namen-Ebene: Riesen-Namen hinter dem Inhalt (Runde 2: ~3x langsamer) - */
 #home-namen { display: flex; flex-direction: column; justify-content: center; }
 .namen-zeile {
   flex: none; display: flex; white-space: nowrap; overflow: visible;
@@ -134,7 +134,7 @@
 /* Laufzeilen: Inhalt doppelt, Band laeuft um die Haelfte -> nahtlos */
 .namen-band {
   flex: none; display: flex;
-  animation: namen-lauf 60s linear infinite; will-change: transform;
+  animation: namen-lauf 180s linear infinite; will-change: transform;
 }
 .namen-haelfte { flex: none; display: flex; }
 /* Abstand je Name statt gap, damit beide Haelften exakt gleich breit sind */
@@ -144,49 +144,52 @@
   color: transparent;
   -webkit-text-stroke: 1px color-mix(in srgb, var(--text) 14%, transparent);
 }
-.namen-zeile:nth-child(1) .namen-band { animation-duration: 60s; animation-direction: reverse; }
-.namen-zeile:nth-child(2) .namen-band { animation-duration: 75s; }
-.namen-zeile:nth-child(4) .namen-band { animation-duration: 90s; }
-.namen-zeile:nth-child(5) .namen-band { animation-duration: 70s; animation-direction: reverse; }
-.namen-zeile:nth-child(6) .namen-band { animation-duration: 85s; }
+.namen-zeile:nth-child(1) .namen-band { animation-duration: 180s; animation-direction: reverse; }
+.namen-zeile:nth-child(2) .namen-band { animation-duration: 225s; }
+.namen-zeile:nth-child(4) .namen-band { animation-duration: 270s; }
+.namen-zeile:nth-child(5) .namen-band { animation-duration: 210s; animation-direction: reverse; }
+.namen-zeile:nth-child(6) .namen-band { animation-duration: 255s; }
 @keyframes namen-lauf { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-/* Mittelzeile: Name der CD vorne, leuchtend, driftet langsam hin und her */
+/* Mittelzeile: Name der gewaehlten CD direkt hinter der CD (Hoehe --mitte-y
+   setzt home.js), kraeftig in Akzentfarbe mit Leuchten, driftet langsam. */
 .namen-mitte {
-  justify-content: center;
-  color: var(--accent-title); opacity: .9;
-  text-shadow: 0 0 .18em color-mix(in srgb, var(--accent) 55%, transparent),
-    0 0 .5em color-mix(in srgb, var(--accent) 30%, transparent);
-  animation: namen-drift 120s ease-in-out infinite;
+  position: absolute; left: 0; right: 0; top: var(--mitte-y, 40%);
+  justify-content: center; z-index: 1;
+  font-size: 15cqh; color: var(--accent);
+  text-shadow: 0 0 .12em color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 .45em color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: namen-drift 150s ease-in-out infinite;
 }
 @keyframes namen-drift {
-  0%, 100% { transform: translateX(-4cqw); }
-  50% { transform: translateX(4cqw); }
+  0%, 100% { transform: translate(-4cqw, -50%); }
+  50% { transform: translate(4cqw, -50%); }
 }
-/* Namenswechsel: neuer Text blendet ein */
 .namen-mitte-text { animation: namen-ein 300ms ease-out; }
 @keyframes namen-ein { from { opacity: 0; } to { opacity: 1; } }
 
 /* Effekte aus: Namen stehen, CD dreht nicht */
 :root[data-effekte="aus"] .namen-band,
 :root[data-effekte="aus"] .namen-mitte,
-:root[data-effekte="aus"] .cd-scheibe { animation: none; }
+:root[data-effekte="aus"] .cd-label-bild,
+:root[data-effekte="aus"] .cd-regenbogen,
+:root[data-effekte="aus"] .cd-flip.flippt { animation: none; }
+:root[data-effekte="aus"] .namen-mitte { transform: translateY(-50%); }
 
 /* --- Buehne: Huelle links, Info rechts (schmal: darunter) ----------------- */
 #home-buehne {
-  flex: 1; min-height: 0;
+  position: relative; flex: 1; min-height: 0;
   display: flex; align-items: safe center; justify-content: safe center; gap: 4cqw;
   perspective: 1400px;
-  overflow: hidden; /* zu hoher Inhalt laeuft nie ueber Suche oder Regal */
+  overflow: hidden; /* zu hoher Inhalt laeuft nie ueber Suche oder Staender */
 }
 #cd-huelle {
-  --kante: min(46cqh, 34cqw);
+  --kante: min(40cqh, 30cqw);
   position: relative; flex: none;
   width: var(--kante); height: var(--kante);
-  /* Platz fuer die halb herausstehende CD */
-  margin-right: calc(var(--kante) * .46);
+  margin-right: calc(var(--kante) * .46); /* Platz fuer die halb herausstehende CD */
   transform-style: preserve-3d;
-  transition: transform 450ms ease;
+  transition: transform 500ms ease, width 400ms ease, height 400ms ease, margin 400ms ease;
   outline: none;
 }
 #cd-huelle:focus-visible .cd-front { outline: 2px solid var(--accent-dim); outline-offset: 4px; }
@@ -194,105 +197,151 @@
 #cd-huelle > .cd-front,
 #cd-huelle > .cd-rueck { position: absolute; inset: 0; }
 
-/* Schlitten verschiebt (CD halb heraus), Scheibe dreht - getrennt, damit
-   sich die beiden transforms nicht ueberschreiben. */
+/* Drei Elemente, drei transforms: Schlitten verschiebt, Flip dreht um die
+   senkrechte Achse (Silber -> Label), Label-Bild dreht sich selbst. */
 .cd-schlitten {
   display: grid; place-items: center; pointer-events: none;
-  transform: translateX(50%);
+  transform: translateX(50%); perspective: 900px;
   transition: transform 220ms ease, opacity 200ms ease;
 }
-.cd-scheibe {
-  position: relative; width: 92%; aspect-ratio: 1; border-radius: 50%;
+.cd-flip {
+  position: relative; width: 94%; aspect-ratio: 1;
+  transform-style: preserve-3d; transform: rotateY(180deg);
+}
+/* Neue CD: erst Silber, dann einmal auf die Label-Seite drehen */
+.cd-flip.flippt { animation: cd-flip 900ms cubic-bezier(.5, 0, .2, 1) 250ms both; }
+@keyframes cd-flip { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
+.cd-seite {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  backface-visibility: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .25), 0 10px 26px rgba(0, 0, 0, .45);
+}
+/* Silberseite: feine Rillen, metallischer Glanz, Loch + klarer Innenring */
+.cd-silber {
   background:
-    radial-gradient(circle, var(--bg) 0 7%, transparent 7.5%),
-    radial-gradient(circle, transparent 0 15%, #c9ccd5 15.5% 16.5%, transparent 17%),
-    repeating-radial-gradient(circle, #e6e8ee 0 2px, #dadde5 2px 3px);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent),
-    0 0 18px color-mix(in srgb, var(--bg) 60%, transparent); /* ohne Versatz: dreht sonst sichtbar mit */
-  animation: cd-dreh 6s linear infinite;
+    radial-gradient(circle, var(--bg) 0 7%, rgba(225, 230, 238, .55) 7.5% 15%, rgba(255, 255, 255, .35) 15.5% 16%, transparent 16.5%),
+    repeating-radial-gradient(circle, rgba(255, 255, 255, .07) 0 1px, transparent 1px 3px),
+    conic-gradient(from 200deg, #c7ccd6, #f1f3f7 12%, #b9c0cc 24%, #eef0f4 38%, #aab2bf 52%, #f6f7f9 66%, #c2c8d2 80%, #e9ecf1 92%, #c7ccd6);
+}
+/* Regenbogen nur auf dem spiegelnden Ring (nicht in der Mitte), dreht langsam */
+.cd-regenbogen {
+  position: absolute; inset: 0; border-radius: 50%; opacity: .6;
+  background: conic-gradient(from 110deg, transparent 0 8%, #9fd6ff 12%, #c9a6ff 16%, #ff9fd0 20%, transparent 26% 58%,
+    #fff0a0 62%, #9fffd8 66%, #9fd6ff 70%, transparent 76%);
+  -webkit-mask: radial-gradient(circle, transparent 0 17%, #000 18% 97%, transparent 98%);
+  mask: radial-gradient(circle, transparent 0 17%, #000 18% 97%, transparent 98%);
+  animation: cd-dreh 14s linear infinite;
+}
+/* Label-Seite: Profilbild bedruckt, Rand silbern, Loch in der Mitte */
+.cd-label {
+  transform: rotateY(180deg);
+  background: conic-gradient(from 200deg, #c7ccd6, #eef0f4 25%, #b9c0cc 50%, #f1f3f7 75%, #c7ccd6);
+}
+.cd-label-bild {
+  position: absolute; inset: 4%; border-radius: 50%; overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 45%, var(--bg));
+  animation: cd-dreh 8s linear infinite;
+}
+.cd-label-bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cd-label::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 15%; height: 15%;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 0 0 4px rgba(225, 230, 238, .7), 0 0 0 5px rgba(255, 255, 255, .4);
 }
 @keyframes cd-dreh { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-/* Regenbogen-Schimmer auf dem Silber (feste Pastelltoene, ohne Blend-Modus):
-   zwei helle Glanz-Keile ueber einem Pastell-Kreis; dreht mit der Scheibe.
-   Die Mitte (Loch + Nabe) bleibt per Maske frei. */
-.cd-schimmer {
-  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
-  background:
-    conic-gradient(from 0deg,
-      transparent 0 28deg, rgba(255, 255, 255, .75) 40deg, transparent 52deg 208deg,
-      rgba(255, 255, 255, .6) 220deg, transparent 232deg 360deg),
-    conic-gradient(#c9d6ff, #ffd6f0, #d6fff4, #fff3c9, #e2d6ff, #c9d6ff);
-  -webkit-mask: radial-gradient(circle, transparent 0 16.5%, #000 17.5%);
-  mask: radial-gradient(circle, transparent 0 16.5%, #000 17.5%);
-  opacity: .55;
-  transition: opacity 200ms ease;
-}
-#cd-huelle.offline .cd-schimmer { opacity: 0; }
-/* Theme-Motiv als Maske: Farbe aus dem Theme, Form aus dem SVG. Grundmotiv
-   (Neon Dual); die Themes tauschen nur das Bild (theme.css). */
-.cd-aufdruck {
-  position: absolute; inset: 20%; border-radius: 50%;
-  background-color: color-mix(in srgb, var(--accent) 70%, var(--text));
-  -webkit-mask: url(../themes/neon-dual/cd-motiv.svg) center/contain no-repeat;
-  mask: url(../themes/neon-dual/cd-motiv.svg) center/contain no-repeat;
-}
-/* CD-Wechsel (Bedienung, immer animiert): rein in die Huelle, Inhalt
-   tauschen, wieder raus. Nur der Schlitten bewegt sich, die Scheibe dreht weiter. */
+/* CD-Wechsel (Bedienung, immer animiert): rein, Inhalt tauschen, wieder raus */
 .cd-schlitten.rein { transform: translateX(0); transition: transform 180ms ease-in, opacity 200ms ease; }
 .cd-schlitten.raus { transform: translateX(50%); transition: transform 220ms ease-out, opacity 200ms ease; }
-#cd-huelle.steht .cd-scheibe,
-#cd-huelle.offline .cd-scheibe { animation: none; }
-/* Rueckseite offen: Scheibe ist verdeckt, Drehung pausiert */
-#cd-huelle.gedreht .cd-scheibe { animation-play-state: paused; }
+#cd-huelle.steht .cd-label-bild,
+#cd-huelle.offline .cd-label-bild,
+#cd-huelle.steht .cd-regenbogen { animation: none; }
+#cd-huelle.offline .cd-label-bild img { filter: grayscale(1); }
+#cd-huelle.leer .cd-schlitten { opacity: 0; }
+/* Rueckseite offen: CD verdeckt, Drehung pausiert */
+#cd-huelle.gedreht .cd-label-bild,
+#cd-huelle.gedreht .cd-regenbogen { animation-play-state: paused; }
 #cd-huelle.gedreht .cd-schlitten { opacity: 0; }
 
-/* Vorderseite: Cover hinter Glas */
+/* --- Vorderseite: echte CD-Huelle (Plastik, Scharnier, Booklet) ---------- */
 .cd-front {
   border-radius: 3px; transform: translateZ(1px); backface-visibility: hidden;
-  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
-  background: color-mix(in srgb, var(--text) 4%, var(--bg));
+  background: #120b17;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, .55);
 }
+/* Scharnier links */
+.cd-front::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7%; z-index: 2;
+  background: linear-gradient(90deg, #3a3440, #1d1822 40%, #4a4352 60%, #221c27);
+  border-radius: 3px 0 0 3px; pointer-events: none;
+}
+/* Plastik-Glanz und Kante ueber allem */
 .cd-front::after {
-  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--text) 18%, transparent), color-mix(in srgb, var(--text) 4%, transparent));
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, .32);
+  background: linear-gradient(120deg, rgba(255, 255, 255, .2) 0 16%, transparent 28% 72%, rgba(255, 255, 255, .07) 82%);
 }
 .cd-cover {
-  position: absolute; inset: 6%; overflow: hidden; border-radius: 2px;
+  position: absolute; left: 7%; top: 0; right: 0; bottom: 0; overflow: hidden;
   background: color-mix(in srgb, var(--accent) 35%, var(--bg)); /* ohne Bild: Theme-Farbe */
 }
 .cd-cover[title] { cursor: pointer; }
-.cd-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-#cd-huelle.offline .cd-cover { filter: grayscale(1); }
+.cd-foto { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cd-cover-verlauf {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .7));
+}
+.cd-cover-schrift {
+  position: absolute; left: 8%; right: 8%; bottom: 8%; color: #fff; pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .5);
+}
+.cd-cover-u {
+  font-size: calc(var(--kante) * .032); letter-spacing: .3em; text-transform: uppercase; opacity: .8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: .5em;
+}
+.cd-cover-t {
+  font-family: var(--schrift-titel, inherit);
+  font-size: calc(var(--kante) * .085); font-weight: 900; line-height: .95; letter-spacing: -.01em;
+  text-transform: uppercase; overflow-wrap: anywhere;
+}
+/* Hover: Stream-Vorschau 16:9 ganz ueber dem Booklet */
+.cd-vorschau {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: rgba(8, 5, 10, .88); opacity: 0; pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.cd-vorschau img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; display: block; }
+#cd-huelle:hover .cd-vorschau:has(img) { opacity: 1; }
+#cd-huelle.offline .cd-foto { filter: grayscale(1) brightness(.8); }
 #cd-huelle.gedreht .cd-front { pointer-events: none; }
 
 .cd-play {
-  position: absolute; right: 9%; bottom: 9%; z-index: 2;
-  width: 18%; aspect-ratio: 1; border-radius: 50%; border: none; padding: 0;
+  position: absolute; right: 7%; bottom: 7%; z-index: 4;
+  width: 17%; aspect-ratio: 1; border-radius: 50%; border: none; padding: 0;
   display: grid; place-items: center;
   background: var(--accent); color: var(--accent-contrast);
-  font-size: calc(var(--kante) * .07); cursor: pointer;
-  box-shadow: 0 2px 10px color-mix(in srgb, var(--bg) 60%, transparent);
+  font-size: calc(var(--kante) * .065); cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
 }
 .cd-play:hover { filter: brightness(1.12); }
 .cd-play:disabled { opacity: .45; cursor: default; filter: none; }
 
 /* Stern + VODs nur bei Hover/Fokus auf der Huelle */
 .cd-stern, .cd-vods {
-  position: absolute; top: 9%; z-index: 2; opacity: 0;
+  position: absolute; top: 6%; z-index: 4; opacity: 0;
   transition: opacity 160ms ease, transform 120ms ease, color 120ms ease;
 }
 .cd-stern {
-  right: 9%; padding: 4px 7px; border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  right: 6%; padding: 4px 7px; border-radius: 999px;
+  background: rgba(10, 6, 12, .6);
 }
 .cd-vods {
-  left: 9%; padding: 4px 10px; border-radius: 999px; cursor: pointer;
-  font: inherit; font-size: 12px; font-weight: 600;
-  color: var(--text); background: color-mix(in srgb, var(--bg) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  left: 12%; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  color: #fff; background: rgba(10, 6, 12, .6);
+  border: 1px solid rgba(255, 255, 255, .3);
 }
 .cd-vods:hover { border-color: var(--accent); }
-/* #home-Praefix: schlaegt die allgemeine #home-button-Transition */
 #home .cd-stern, #home .cd-vods {
   transition: opacity 160ms ease, transform 120ms ease, color 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
@@ -300,16 +349,17 @@
 #cd-huelle:hover .cd-vods, #cd-huelle:focus-within .cd-vods { opacity: 1; }
 
 .cd-sticker {
-  position: absolute; left: 9%; bottom: 9%; z-index: 2;
+  position: absolute; right: 4%; top: 18%; z-index: 4;
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 999px; transform: rotate(-6deg);
-  background: var(--accent); color: var(--accent-contrast); font-size: 12px; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px; transform: rotate(6deg);
+  background: var(--accent); color: var(--accent-contrast); font-size: 12px; font-weight: 800;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .35);
 }
 .cd-sticker img, .cd-sticker svg { width: 16px; height: 16px; }
 
 .cd-leer {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  padding: 12%; text-align: center; color: var(--muted); font-size: 14px;
+  position: absolute; inset: 0 0 0 7%; display: grid; place-items: center; z-index: 1;
+  padding: 12%; text-align: center; color: rgba(255, 255, 255, .7); font-size: 14px;
 }
 
 /* Erster Ladevorgang: Huelle pulsiert (nur opacity) */
@@ -317,107 +367,214 @@
 #cd-huelle.ladend .cd-schlitten { animation: cd-puls 1.2s ease-in-out infinite alternate; }
 @keyframes cd-puls { from { opacity: .4; } to { opacity: .8; } }
 
-/* Rueckseite: Tracklist der VODs (3D-Flip der ganzen Huelle) */
-#cd-huelle.gedreht { transform: rotateY(180deg); }
+/* --- Rueckseite: gedrucktes Inlay mit 2x2 VODs, Huelle waechst ----------- */
+#cd-huelle.gedreht {
+  --kante: min(78cqh, 62cqw);
+  transform: rotateY(180deg); margin-right: 0;
+}
+#home-buehne.vods-offen #cd-info { display: none; }
 .cd-rueck {
   transform: rotateY(180deg) translateZ(1px); backface-visibility: hidden;
-  display: flex; flex-direction: column; gap: 6px; padding: 6%; overflow: hidden;
-  border-radius: 3px; color: var(--text);
-  border: 1px solid color-mix(in srgb, var(--text) 35%, transparent);
-  background: color-mix(in srgb, var(--text) 8%, var(--bg));
+  display: flex; flex-direction: column; gap: 3%; padding: 5% 6% 5% 10%; overflow: hidden;
+  border-radius: 3px; color: #f4eef7;
+  background: linear-gradient(180deg, #2a1826, #140c16);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, .55);
+}
+.cd-rueck::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5%;
+  background: linear-gradient(90deg, #3a3440, #1d1822 40%, #4a4352 60%, #221c27);
+}
+.cd-rueck::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, .28);
+  background: linear-gradient(120deg, rgba(255, 255, 255, .1) 0 12%, transparent 22%);
 }
 #cd-huelle:not(.gedreht) .cd-rueck { pointer-events: none; }
-.cd-rueck-kopf { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
-.cd-rueck-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.cd-zu, .cd-mehr {
-  padding: 3px 9px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
-  color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+.inlay-kopf { display: flex; align-items: flex-start; gap: 10px; flex: none; }
+.inlay-titelbox { flex: 1; min-width: 0; }
+.inlay-u {
+  font-size: 11px; letter-spacing: .3em; text-transform: uppercase; opacity: .7;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cd-zu:hover, .cd-mehr:hover { border-color: var(--accent); }
-.cd-mehr { align-self: flex-end; }
-.cd-rueck-status { margin: auto; color: var(--muted); font-size: 13px; }
-.cd-tracks {
-  list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 1px; scrollbar-width: thin;
+.inlay-t {
+  font-family: var(--schrift-titel, inherit); font-size: clamp(18px, 3.6cqh, 30px);
+  font-weight: 800; letter-spacing: -.01em; margin-top: 4px;
 }
-.cd-track {
-  display: grid; grid-template-columns: 2ch minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline;
-  width: 100%; padding: 4px 6px; border: none; border-radius: 4px; cursor: pointer;
-  background: none; color: var(--text); font: inherit; font-size: 12px; text-align: left;
+.inlay-knopf {
+  padding: 4px 11px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700;
+  color: #f4eef7; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .25);
 }
-.cd-track:hover, .cd-track:focus-visible { background: color-mix(in srgb, var(--text) 10%, transparent); }
-.cd-track .nr, .cd-track .laenge { font-family: var(--mono); color: var(--muted); }
-.cd-track .titel { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.cd-track .datum { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.inlay-knopf:hover:not(:disabled) { border-color: var(--accent); }
+.inlay-knopf:disabled { opacity: .35; cursor: default; }
+.inlay-status { margin: auto; opacity: .7; font-size: 14px; }
+.inlay-raster {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 4% 4%;
+}
+.inlay-vod {
+  min-height: 0; display: flex; flex-direction: column; gap: 4px;
+  padding: 0; border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.inlay-bild {
+  position: relative; flex: 1; min-height: 0; border-radius: 4px; overflow: hidden;
+  background: rgba(255, 255, 255, .06);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.inlay-vod:hover .inlay-bild, .inlay-vod:focus-visible .inlay-bild {
+  transform: translateY(-2px); box-shadow: 0 0 0 2px var(--accent);
+}
+.inlay-bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.inlay-laenge {
+  position: absolute; right: 6px; bottom: 6px;
+  font: 600 11px var(--mono); background: rgba(0, 0, 0, .75); color: #fff; padding: 1px 6px; border-radius: 3px;
+}
+.inlay-vtitel {
+  font-weight: 700; font-size: 13px; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.inlay-nr { font-family: var(--mono); opacity: .45; font-weight: 800; }
+.inlay-meta { font-size: 11px; opacity: .6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inlay-fuss { display: flex; align-items: center; gap: 8px; flex: none; }
+.inlay-seite { font: 600 12px var(--mono); opacity: .7; }
+.inlay-alle { margin-left: auto; }
 
-/* Info-Block neben der Huelle */
+/* --- Info-Block neben der Huelle ------------------------------------------ */
 #cd-info {
-  flex: 0 1 34cqw; min-width: 0;
+  flex: 0 1 32cqw; min-width: 0;
   display: flex; flex-direction: column; gap: 10px; color: var(--text);
 }
-.cd-text { display: flex; flex-direction: column; gap: 6px; }
-#cd-info .cd-name { font-size: clamp(20px, 5cqh, 42px); font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
+.cd-text { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+#cd-info .cd-status {
+  font: 700 11px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--accent-title);
+}
+#cd-info .cd-name { font-size: clamp(22px, 5.5cqh, 46px); font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
 #cd-info .cd-titel {
-  font-size: 15px; line-height: 1.35;
+  font-size: 16px; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 #cd-info .cd-meta { font-size: 13px; color: var(--muted); }
-#cd-info .cd-hinweis {
-  font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--accent-title);
+.cd-einlegen {
+  margin-top: 6px; padding: 9px 18px; border-radius: 999px; border: none; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 800;
+  background: var(--accent); color: var(--accent-contrast);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
 }
-.cd-nachbarn { display: flex; gap: 8px; }
-.cd-nachbar {
-  width: 56px; aspect-ratio: 1; padding: 0; overflow: hidden; cursor: pointer; border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
-  transition: transform 120ms ease, border-color 120ms ease;
-}
-.cd-nachbar:hover { border-color: var(--accent); transform: translateY(-2px); }
-.cd-nachbar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cd-einlegen:hover { filter: brightness(1.1); }
 
-/* --- Regal: Offline-Favoriten als Ruecken, waagerecht scrollbar ----------- */
-#home-regal {
-  flex: none; height: 96px;
-  display: flex; gap: 3px; align-items: stretch;
+/* --- CD-Staender: alle Alben schraeg nebeneinander --------------------------- */
+#home-staender {
+  position: relative; flex: none; height: clamp(110px, 24cqh, 190px);
+  display: flex; align-items: flex-end; gap: 0;
   overflow-x: auto; overflow-y: hidden;
-  padding: 6px 4px 4px;
-  border-top: 1px solid color-mix(in srgb, var(--text) 15%, transparent);
-  scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 25%, transparent) transparent;
+  padding: 18px 3cqw 14px; perspective: 900px;
+  scrollbar-width: none;
 }
-.ruecken {
-  position: relative; flex: none; width: 22px;
-  display: flex; align-items: flex-end; justify-content: center;
-  padding: 18px 0 4px; overflow: hidden; cursor: pointer; outline: none;
-  border-radius: 2px; color: var(--text);
-  background: color-mix(in srgb, var(--text) 12%, transparent);
-  transition: background-color 120ms ease, transform 120ms ease;
+#home-staender::-webkit-scrollbar { display: none; }
+.album {
+  position: relative; flex: none; height: 82%; aspect-ratio: 1;
+  margin-left: -1.6%; border-radius: 2px; overflow: hidden; cursor: pointer; outline: none;
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg));
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(255, 255, 255, .18);
+  transform: rotateY(-24deg); transform-origin: left center;
+  transition: transform 220ms ease, height 220ms ease, filter 200ms ease;
 }
-.ruecken:hover, .ruecken:focus-visible {
-  background: color-mix(in srgb, var(--text) 22%, transparent); transform: translateY(-3px);
+.album:first-child { margin-left: 0; }
+.album:hover, .album:focus-visible { transform: rotateY(-10deg) translateY(-6%); z-index: 2; }
+.album.gewaehlt {
+  height: 96%; transform: rotateY(-6deg) translateY(-10%); z-index: 3;
+  box-shadow: 0 0 0 2px var(--accent), 0 14px 30px rgba(0, 0, 0, .55);
 }
-.ruecken-name {
-  writing-mode: vertical-rl; transform: rotate(180deg);
-  font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-height: 100%;
+.album-foto { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-verlauf {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, .7));
 }
-.ruecken .haken { margin: 0 0 4px; }
-.ruecken-stern {
-  position: absolute; top: 1px; left: 50%; translate: -50% 0;
-  font-size: 12px; padding: 1px; opacity: 0;
+.album-name {
+  position: absolute; left: 7%; right: 7%; bottom: 6%; color: #fff;
+  font-family: var(--schrift-titel, inherit); font-size: clamp(9px, 1.6cqh, 13px);
+  font-weight: 900; text-transform: uppercase; line-height: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ruecken:hover .ruecken-stern, .ruecken:focus-within .ruecken-stern { opacity: 1; }
+.album-name .haken { width: 11px; height: 11px; font-size: 7px; margin-left: 3px; }
+.album-punkt {
+  position: absolute; top: 7%; left: 7%; width: 8px; height: 8px; border-radius: 50%;
+  background: #ff3b5c; box-shadow: 0 0 0 3px rgba(255, 59, 92, .25);
+}
+.album-offline, .album-twitch:not(.ist-live) { filter: grayscale(1) brightness(.65); height: 70%; }
+.album-offline:hover, .album-offline.gewaehlt { filter: grayscale(.4) brightness(.9); }
+.album-twitch { box-shadow: 0 10px 22px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(145, 71, 255, .6); }
+.album-stern {
+  position: absolute; top: 3%; right: 3%; font-size: 13px; padding: 2px 4px; opacity: 0;
+  background: rgba(10, 6, 12, .55); border-radius: 999px;
+}
+.album:hover .album-stern, .album:focus-within .album-stern, .album-stern.an { opacity: 1; }
+.staender-luecke { flex: none; width: 3cqw; }
+
+/* --- Laufwerk beim Abspielen (~1,5 s): Schublade aus, CD rein, zu, Terminal - */
+#cd-laufwerk {
+  position: absolute; inset: 0; z-index: 6;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  display: grid; place-items: center; overflow: hidden;
+}
+.lw-geraet {
+  position: absolute; left: 50%; top: 34%; width: min(64cqw, 520px); height: 9cqh;
+  transform: translateX(-50%); border-radius: 4px; z-index: 2;
+  background: linear-gradient(180deg, #2b2630, #17131b);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.lw-led {
+  position: absolute; right: 5%; top: 42%; width: 7px; height: 7px; border-radius: 50%;
+  background: #7cff9a; box-shadow: 0 0 6px #7cff9a;
+}
+.lw-lade {
+  position: absolute; left: 50%; top: calc(34% + 9cqh); width: min(40cqw, 320px); height: min(40cqw, 320px);
+  margin-left: calc(min(40cqw, 320px) / -2); z-index: 1;
+  background: linear-gradient(180deg, #221d27, #120e15); border-radius: 0 0 6px 6px;
+  transform-origin: top center; transform: scaleY(0);
+}
+.lw-cd {
+  position: absolute; left: 12%; top: 8%; width: 76%; aspect-ratio: 1; border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 7%, rgba(225, 230, 238, .6) 7.5% 15%, transparent 15.5%),
+    conic-gradient(from 200deg, #c7ccd6, #f1f3f7 12%, #9fd6ff 18%, #ff9fd0 22%, #eef0f4 30%, #aab2bf 52%, #f6f7f9 66%, #fff0a0 72%, #c2c8d2 80%, #c7ccd6);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .5);
+  transform: translateY(-120%); opacity: 0;
+}
+.lw-cd-label { position: absolute; inset: 22%; border-radius: 50%; overflow: hidden; }
+.lw-cd-label img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lw-terminal {
+  position: absolute; left: 50%; top: 55%; transform: translateX(-50%);
+  font: 600 14px var(--mono); color: #8bd3ff; line-height: 1.7; opacity: 0;
+  min-width: min(64cqw, 520px); padding: 14px 18px; border-radius: 6px; background: #05070a;
+  box-shadow: 0 0 0 1px rgba(139, 211, 255, .2);
+}
+.lw-datei { color: #fff; }
+.lw-balken { margin-top: 6px; height: 10px; border: 1px solid rgba(139, 211, 255, .5); border-radius: 2px; overflow: hidden; }
+.lw-fuellung { height: 100%; width: 100%; background: #8bd3ff; transform-origin: left center; transform: scaleX(0); }
+/* Zeitplan: 0-450 ms Schublade aus + CD faellt rein, 450-750 ms zu + LED orange,
+   650-1500 ms Terminal mit Ladebalken */
+#cd-laufwerk.laeuft .lw-lade { animation: lw-lade 750ms ease both; }
+#cd-laufwerk.laeuft .lw-cd { animation: lw-cd 450ms ease-out 150ms both; }
+#cd-laufwerk.laeuft .lw-led { animation: lw-led 300ms steps(2) 450ms 4 both; }
+#cd-laufwerk.laeuft .lw-terminal { animation: lw-ein 200ms ease 650ms both; }
+#cd-laufwerk.laeuft .lw-fuellung { animation: lw-fuellung 800ms ease-in-out 700ms both; }
+@keyframes lw-lade { 0% { transform: scaleY(0); } 35%, 60% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+@keyframes lw-cd { from { transform: translateY(-120%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes lw-led { from { background: #ffb347; box-shadow: 0 0 8px #ffb347; } to { background: #4a3420; box-shadow: none; } }
+@keyframes lw-ein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lw-fuellung { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 @container (max-height: 520px) {
-  #home-regal { height: 68px; }
+  #home-staender { height: 96px; padding-top: 10px; }
   .namen-zeile:nth-child(1), .namen-zeile:nth-child(5), .namen-zeile:nth-child(6) { display: none; }
-  #cd-info .cd-titel, #cd-info .cd-nachbarn { display: none; }
+  #cd-info .cd-titel { display: none; }
 }
 @container (max-width: 900px) {
   #home-buehne { flex-direction: column; gap: 14px; }
-  #cd-huelle { --kante: min(30cqh, 60cqw); }
+  #cd-huelle { --kante: min(30cqh, 56cqw); }
+  #cd-huelle.gedreht { --kante: min(62cqh, 90cqw); }
   #cd-info { flex: 0 1 auto; min-height: 0; overflow: hidden; width: min(100%, 560px); align-items: center; text-align: center; }
+  .cd-text { align-items: center; }
 }
 
 /* Overlay gleitet ein. .hidden nutzt display:none - die Animation startet

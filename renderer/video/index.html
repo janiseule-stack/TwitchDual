@@ -275,13 +275,20 @@
       <div id="home-hinweis" class="empty hidden"></div>
       <div id="home-buehne">
         <div id="cd-huelle" tabindex="0">
-          <div class="cd-schlitten"><div class="cd-scheibe"><div class="cd-schimmer"></div><div class="cd-aufdruck"></div></div></div>
+          <!-- Schlitten verschiebt, Flip dreht um die senkrechte Achse (Silber -> Label),
+               die Seiten drehen sich selbst - drei Elemente, drei transforms. -->
+          <div class="cd-schlitten"><div class="cd-flip">
+            <div class="cd-seite cd-silber"><div class="cd-regenbogen"></div></div>
+            <div class="cd-seite cd-label"><div class="cd-label-bild"></div></div>
+          </div></div>
           <div class="cd-front"></div>
           <div class="cd-rueck"></div>
         </div>
         <div id="cd-info"></div>
+        <!-- Laufwerk beim Abspielen: Schublade, CD, Terminal (home-buehne-dom.js) -->
+        <div id="cd-laufwerk" class="hidden" aria-hidden="true"></div>
       </div>
-      <div id="home-regal"></div>
+      <div id="home-staender"></div>
     </div>
 
     <div id="home-vod-view" class="hidden">

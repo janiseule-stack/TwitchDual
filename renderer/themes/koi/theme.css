@@ -188,4 +188,3 @@
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card { border: var(--karte-rand); }
 
 /* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
-:root[data-theme="koi"] .cd-aufdruck { -webkit-mask-image: url(cd-motiv.svg); mask-image: url(cd-motiv.svg); }

@@ -1,8 +1,9 @@
-// Darstellung der Home-Buehne: CD-Huelle (Vorder- und Rueckseite),
-// Info-Block mit Nachbarn, Regal mit Ruecken. Nur DOM, keine Steuerung:
-// Zustand und Klick-Folgen kommen von home.js (Handler-Objekt h).
+// Darstellung der Home-Buehne (Runde 2): echte CD-Huelle mit Booklet-Cover,
+// CD mit Profilbild-Label (Flip), VOD-Inlay auf der Rueckseite, CD-Staender
+// unten, Laufwerk beim Abspielen. Nur DOM, keine Steuerung: Zustand und
+// Klick-Folgen kommen von home.js (Handler-Objekt h).
 // IIFE: setzt nur window.HomeBuehneDom (gemeinsamer globaler Bereich mit
-// video.js/home.js, siehe Plan 2026-11-09-home-cd).
+// video.js/home.js). Spec: docs/superpowers/specs/2026-11-09-home-cd-v2-design.md
 
 window.HomeBuehneDom = (function () {
   function el(tag, cls, text) {
@@ -18,7 +19,7 @@ window.HomeBuehneDom = (function () {
     if (h && typeof h[name] === 'function') h[name].apply(null, args);
   }
 
-  // Knopf, dessen Klick nicht zum Cover/Ruecken darunter durchgeht.
+  // Knopf, dessen Klick nicht zum Cover/Album darunter durchgeht.
   function knopf(cls, text, title, beiKlick) {
     const b = el('button', cls, text);
     b.type = 'button';
@@ -39,19 +40,13 @@ window.HomeBuehneDom = (function () {
     return s;
   }
 
-  function sternKnopf(k, cls, h) {
-    const b = knopf(cls + ' stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
-      k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
-    return b;
-  }
-
-  // Bild mit Rueckfall: erst die Vorschau, dann das Profilbild, sonst
-  // bleibt nur die Theme-Farbe des Rahmens sichtbar.
-  function bild(urls) {
+  // Bild mit Rueckfall-Kette; ohne ladbares Bild bleibt die Theme-Farbe.
+  function bild(urls, cls) {
     const liste = urls.filter(Boolean);
     if (!liste.length) return null;
-    const img = el('img');
+    const img = el('img', cls);
     img.alt = '';
+    img.decoding = 'async';
     let i = 0;
     img.onerror = () => {
       i += 1;
@@ -62,15 +57,11 @@ window.HomeBuehneDom = (function () {
     return img;
   }
 
-  // Teil von #cd-info finden oder anlegen (Text und Nachbarn getrennt,
-  // damit zeichneBuehne die Nachbarn nicht loescht und umgekehrt).
+  // Teil von #cd-info finden oder anlegen.
   function infoTeil(cls) {
     const info = document.getElementById('cd-info');
     let t = info.querySelector(':scope > .' + cls);
-    if (!t) {
-      t = el('div', cls);
-      if (cls === 'cd-text') info.prepend(t); else info.appendChild(t);
-    }
+    if (!t) { t = el('div', cls); info.appendChild(t); }
     return t;
   }
 
@@ -96,25 +87,36 @@ window.HomeBuehneDom = (function () {
     return svg;
   }
 
-  // Vorderseite einmal je CD (Modus + Login) aufbauen. Die Knoepfe lesen
-  // Kanal und Handler aus cd, damit ein Neuzeichnen sie nur aktualisiert
-  // (kein Blinken des Covers, Tastatur-Fokus bleibt).
+  // --- Vorderseite: Booklet hinter Plastik -----------------------------------
+  // Einmal je CD (Modus + Login) aufbauen; Knoepfe lesen Kanal und Handler aus
+  // cd, damit ein Neuzeichnen sie nur aktualisiert (kein Blinken, Fokus bleibt).
   function baueFront(front, k, modus) {
     const live = modus === 'live';
-    const cd = { schluessel: modus + '|' + k.login, k, h: null, vorschau: null, img: null, sticker: null };
+    const cd = { schluessel: modus + '|' + k.login, k, h: null, vorschau: null, vorschauImg: null, sticker: null };
     const cover = el('div', 'cd-cover');
-    if (modus !== 'offline') cd.vorschau = HomeBuehne.vorschauUrl(k.login, Date.now());
-    cd.img = bild([cd.vorschau, k.avatar]);
-    if (cd.img) cover.appendChild(cd.img);
+    // Booklet: Profilbild als Foto, Spiel klein ueber dem Namen.
+    const foto = bild([k.avatar], 'cd-foto');
+    if (foto) cover.appendChild(foto);
+    cover.appendChild(el('div', 'cd-cover-verlauf'));
+    const schrift = el('div', 'cd-cover-schrift');
+    cd.untertitel = el('div', 'cd-cover-u', '');
+    cd.titel = el('div', 'cd-cover-t', name(k));
+    schrift.append(cd.untertitel, cd.titel);
+    cover.appendChild(schrift);
+    // Hover: Stream-Vorschau 16:9 ganz (nicht zugeschnitten) ueber dem Booklet.
+    if (modus !== 'offline') {
+      cd.vorschauBox = el('div', 'cd-vorschau');
+      cover.appendChild(cd.vorschauBox);
+    }
     if (live) {
-      cover.title = 'Klick: Stream laden';
+      cover.title = 'Klick: einlegen & abspielen';
       cover.addEventListener('click', () => ruf(cd.h, 'laden', cd.k.login));
     }
     front.appendChild(cover);
     cd.cover = cover;
 
     if (modus !== 'offline') {
-      const play = knopf('cd-play', '▶', live ? 'Stream laden' : 'Gerade offline', () => ruf(cd.h, 'laden', cd.k.login));
+      const play = knopf('cd-play', '▶', live ? 'Einlegen & abspielen' : 'Gerade offline', () => ruf(cd.h, 'laden', cd.k.login));
       play.disabled = !live;
       front.appendChild(play);
     }
@@ -124,21 +126,43 @@ window.HomeBuehneDom = (function () {
     return cd;
   }
 
-  // Neue Vorschau erst tauschen, wenn sie geladen ist; bis dahin bleibt das alte Bild.
+  // Vorschau erst einsetzen, wenn sie geladen ist (kein leeres Bild beim Hover).
   function neueVorschau(cd, url) {
-    if (!url || url === cd.vorschau) return;
+    if (!cd.vorschauBox || !url || url === cd.vorschau) return;
     cd.vorschau = url;
     const probe = new Image();
     probe.onload = () => {
       if (cd.vorschau !== url || !cd.cover.isConnected) return;
-      if (cd.img && cd.img.isConnected) {
-        cd.img.src = url;
-      } else {
-        cd.img = bild([url, cd.k.avatar]);
-        if (cd.img) cd.cover.prepend(cd.img);
+      if (!cd.vorschauImg) {
+        cd.vorschauImg = el('img');
+        cd.vorschauImg.alt = '';
+        cd.vorschauBox.appendChild(cd.vorschauImg);
       }
+      cd.vorschauImg.src = url;
     };
     probe.src = url;
+  }
+
+  // CD-Label: Profilbild der CD vorne; bei neuem Kanal flippt die CD einmal
+  // von der Silberseite auf die Label-Seite.
+  let labelLogin = null;
+  function zeichneLabel(k, modus) {
+    const huelle = document.getElementById('cd-huelle');
+    const box = huelle.querySelector('.cd-label-bild');
+    const login = k ? k.login : null;
+    if (login === labelLogin) return;
+    labelLogin = login;
+    box.replaceChildren();
+    if (k) {
+      const img = bild([k.avatar]);
+      if (img) box.appendChild(img);
+    }
+    const flip = huelle.querySelector('.cd-flip');
+    flip.classList.remove('flippt');
+    if (k && modus !== 'offline') {
+      void flip.offsetWidth; // Animation neu starten
+      flip.classList.add('flippt');
+    }
   }
 
   function zeichneFront(front, stand, h) {
@@ -157,6 +181,8 @@ window.HomeBuehneDom = (function () {
     }
     cd.k = k;
     cd.h = h;
+    cd.titel.textContent = name(k);
+    cd.untertitel.textContent = modus === 'offline' ? 'offline' : (k.game || '');
     cd.stern.className = 'cd-stern stern' + (k.favorit ? ' an' : '');
     cd.stern.textContent = k.favorit ? '★' : '☆';
     cd.stern.title = k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten';
@@ -173,75 +199,98 @@ window.HomeBuehneDom = (function () {
     }
   }
 
-  // Rueckseite nur neu bauen, wenn sich Kanal, Status oder VOD-Liste
-  // aendern; Knoepfe lesen Handler und Kanal aus rueck (bleiben frisch).
-  // Nach einem Neubau Fokus per data-id wiederherstellen.
+  // --- Rueckseite: gedrucktes Inlay mit 2x2 VODs ------------------------------
+  // Nur neu bauen, wenn sich Kanal, Status, Seite oder VODs aendern; danach
+  // Fokus per data-id wiederherstellen.
+  const JE_SEITE = 4;
   function zeichneRueck(rueck, stand, h) {
     const k = stand.kanal;
     const r = stand.rueckseite;
     rueck._h = h;
     rueck._k = k;
+    const seite = r && r.seite ? r.seite : 0;
     const schluessel = k && r
-      ? [k.login, name(k), r.status, r.mehr ? 1 : 0, (r.vods || []).map((v) => v.id).join(',')].join('|')
+      ? [k.login, name(k), r.status, seite, (r.vods || []).map((v) => v.id).join(',')].join('|')
       : null;
     if (rueck._schluessel === schluessel) return;
     rueck._schluessel = schluessel;
     const fokus = merkeFokus(rueck, 'id');
     rueck.replaceChildren();
     if (!k || !r) return;
-    const kopf = el('div', 'cd-rueck-kopf');
-    kopf.appendChild(el('span', 'cd-rueck-name', name(k)));
-    const zu = knopf('cd-zu', '↩', 'Zurueckdrehen', () => ruf(rueck._h, 'rueckseiteZu'));
+    const kopf = el('div', 'inlay-kopf');
+    const titelBox = el('div', 'inlay-titelbox');
+    titelBox.append(el('div', 'inlay-u', name(k) + ' · VODs'), el('div', 'inlay-t', 'Die letzten Streams'));
+    kopf.appendChild(titelBox);
+    const zu = knopf('inlay-knopf', '↩', 'Zurueckdrehen', () => ruf(rueck._h, 'rueckseiteZu'));
     zu.dataset.id = 'zu';
     kopf.appendChild(zu);
     rueck.appendChild(kopf);
 
     const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[r.status];
     if (status) {
-      rueck.appendChild(el('div', 'cd-rueck-status', status));
+      rueck.appendChild(el('div', 'inlay-status', status));
       stelleFokusHer(rueck, 'id', fokus);
       return;
     }
-    const liste = el('ol', 'cd-tracks');
-    (r.vods || []).forEach((v, i) => {
-      const li = el('li');
-      const b = knopf('cd-track', null, v.title, () => ruf(rueck._h, 'vod', v.id));
+    const alle = r.vods || [];
+    const seiten = Math.max(1, Math.ceil(alle.length / JE_SEITE));
+    const s = Math.min(seite, seiten - 1);
+    const raster = el('div', 'inlay-raster');
+    alle.slice(s * JE_SEITE, s * JE_SEITE + JE_SEITE).forEach((v, i) => {
+      const b = knopf('inlay-vod', null, v.title, () => ruf(rueck._h, 'vod', v.id));
       b.dataset.id = 'vod-' + v.id;
-      b.append(
-        el('span', 'nr', String(i + 1)),
-        el('span', 'titel', v.title || ''),
-        el('span', 'laenge', v.lengthLabel || ''),
-        el('span', 'datum', v.publishedLabel || ''));
-      li.appendChild(b);
-      liste.appendChild(li);
+      const bildBox = el('div', 'inlay-bild');
+      const img = bild([v.thumb]);
+      if (img) bildBox.appendChild(img);
+      if (v.lengthLabel) bildBox.appendChild(el('span', 'inlay-laenge', v.lengthLabel));
+      const titel = el('div', 'inlay-vtitel');
+      titel.append(el('span', 'inlay-nr', String(s * JE_SEITE + i + 1).padStart(2, '0')), document.createTextNode(' ' + (v.title || '')));
+      const meta = [v.publishedLabel, v.viewsLabel ? v.viewsLabel + ' Aufrufe' : ''].filter(Boolean).join(' · ');
+      b.append(bildBox, titel, el('div', 'inlay-meta', meta));
+      raster.appendChild(b);
     });
-    rueck.appendChild(liste);
-    if (r.mehr) {
-      const mehr = knopf('cd-mehr', 'Mehr', 'Alle VODs', () => ruf(rueck._h, 'mehr', rueck._k));
-      mehr.dataset.id = 'mehr';
-      rueck.appendChild(mehr);
+    rueck.appendChild(raster);
+    const fuss = el('div', 'inlay-fuss');
+    if (seiten > 1) {
+      const zurueck = knopf('inlay-knopf', '‹', 'Neuere', () => ruf(rueck._h, 'vodSeite', -1));
+      zurueck.dataset.id = 'zurueck';
+      zurueck.disabled = s === 0;
+      const vor = knopf('inlay-knopf', '›', 'Aeltere', () => ruf(rueck._h, 'vodSeite', 1));
+      vor.dataset.id = 'vor';
+      vor.disabled = s >= seiten - 1;
+      fuss.append(zurueck, el('span', 'inlay-seite', (s + 1) + ' / ' + seiten), vor);
     }
+    if (r.mehr) {
+      const mehr = knopf('inlay-knopf inlay-alle', 'Alle VODs', 'Alle VODs in der Liste', () => ruf(rueck._h, 'mehr', rueck._k));
+      mehr.dataset.id = 'mehr';
+      fuss.appendChild(mehr);
+    }
+    if (fuss.children.length) rueck.appendChild(fuss);
     stelleFokusHer(rueck, 'id', fokus);
   }
 
-  function zeichneInfo(stand) {
+  // --- Info-Block rechts --------------------------------------------------------
+  function zeichneInfo(stand, h) {
     const t = infoTeil('cd-text');
     t.replaceChildren();
     const k = stand.kanal;
     if (!k) return;
-    t.appendChild(nameMitHaken(k, 'cd-name'));
-    if (stand.modus === 'markiert') t.appendChild(el('div', 'cd-hinweis', 'gerade offline gegangen'));
-    if (stand.modus === 'offline') {
-      t.appendChild(el('div', 'cd-meta', k.error ? 'Status nicht abrufbar' : 'offline'));
-      return;
+    const status = el('div', 'cd-status');
+    if (stand.modus === 'live') {
+      const teile = ['● LIVE', k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', StreamInfo.laufzeit(k.start, Date.now())].filter(Boolean);
+      status.textContent = teile.join(' · ');
+    } else if (stand.modus === 'markiert') {
+      status.textContent = 'gerade offline gegangen';
+    } else {
+      status.textContent = k.error ? 'Status nicht abrufbar' : 'offline';
     }
-    if (k.title) t.appendChild(el('div', 'cd-titel', k.title));
-    const teile = [
-      StreamInfo.laufzeit(k.start, Date.now()),
-      k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '',
-      k.game || '',
-    ].filter(Boolean);
-    if (teile.length) t.appendChild(el('div', 'cd-meta', teile.join(' · ')));
+    t.appendChild(status);
+    t.appendChild(nameMitHaken(k, 'cd-name'));
+    if (stand.modus !== 'offline' && k.title) t.appendChild(el('div', 'cd-titel', k.title));
+    if (stand.modus !== 'offline' && k.game) t.appendChild(el('div', 'cd-meta', k.game));
+    if (stand.modus === 'live') {
+      t.appendChild(knopf('cd-einlegen', '▶ Einlegen & abspielen', 'Stream laden', () => ruf(h, 'laden', k.login)));
+    }
   }
 
   function zeichneBuehne(stand, h) {
@@ -251,23 +300,15 @@ window.HomeBuehneDom = (function () {
     const rueck = huelle.querySelector('.cd-rueck');
     const k = s.kanal || null;
     huelle.classList.toggle('ladend', !!s.ladend);
+    huelle.classList.toggle('leer', !k);
     huelle.classList.toggle('steht', !!k && s.modus === 'markiert');
     huelle.classList.toggle('offline', !!k && s.modus === 'offline');
     huelle.classList.toggle('gedreht', !!k && !!s.rueckseite);
+    document.getElementById('home-buehne').classList.toggle('vods-offen', !!k && !!s.rueckseite);
     zeichneFront(front, s, h);
     zeichneRueck(rueck, s, h);
-    zeichneInfo(s);
-  }
-
-  function zeichneNachbarn(kanaele, beiKlick) {
-    const box = infoTeil('cd-nachbarn');
-    box.replaceChildren();
-    (kanaele || []).slice(0, 3).forEach((k) => {
-      const b = knopf('cd-nachbar', null, name(k), () => { if (beiKlick) beiKlick(k.login); });
-      const img = bild([HomeBuehne.vorschauUrl(k.login, Date.now()), k.avatar]);
-      if (img) b.appendChild(img);
-      box.appendChild(b);
-    });
+    zeichneLabel(k, s.modus);
+    zeichneInfo(s, h);
   }
 
   // Fokus vor einem Neubau merken: Wert von data-<feld> am fokussierten
@@ -287,52 +328,65 @@ window.HomeBuehneDom = (function () {
     ziel.focus({ preventScroll: true });
   }
 
-  // Nur neu bauen, wenn sich der Inhalt aendert (sonst geht der
-  // Tastatur-Fokus bei jedem renderHome verloren).
-  function zeichneRegal(eintraege, h) {
-    const regal = document.getElementById('home-regal');
+  // --- CD-Staender unten ------------------------------------------------------
+  // Alle Alben schraeg nebeneinander; nur neu bauen, wenn sich der Inhalt
+  // aendert. Die Auswahl wird per Klasse markiert und in Sicht gescrollt.
+  function zeichneStaender(eintraege, gewaehlt, h) {
+    const box = document.getElementById('home-staender');
     const liste = eintraege || [];
-    // Klicks lesen Handler und Kanal-Stand von hier (bleiben bei behaltenen Knoten frisch).
-    regal._h = h;
-    regal._kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
-    const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal),
+    box._h = h;
+    box._kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
+    const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal), e.kanal.avatar || '',
       e.kanal.favorit ? 1 : 0, e.kanal.verifiziert ? 1 : 0, e.kanal.live ? 1 : 0].join('|')).join('\n');
-    if (regal._schluessel === schluessel) return;
-    regal._schluessel = schluessel;
-    const fokus = merkeFokus(regal, 'login');
-    regal.replaceChildren();
-    liste.forEach((e) => {
-      const k = e.kanal;
-      const jetzt = () => regal._kanal.get(e.art + '|' + k.login) || k;
-      const hJetzt = { stern: () => ruf(regal._h, 'stern', jetzt()) };
-      const r = el('div', 'ruecken');
-      r.tabIndex = 0;
-      r.setAttribute('role', 'button');
-      r.title = name(k);
-      r.dataset.art = e.art;
-      r.dataset.login = k.login;
-      const oeffnen = () => {
-        if (e.art === 'twitch' && k.live) ruf(regal._h, 'laden', k.login);
-        else ruf(regal._h, 'oeffne', jetzt());
-      };
-      r.addEventListener('click', oeffnen);
-      r.addEventListener('keydown', (ev) => {
-        if (ev.target !== r || (ev.key !== 'Enter' && ev.key !== ' ')) return;
-        ev.preventDefault();
-        ev.stopPropagation(); // Leertaste nicht als Play/Pause im Video-Fenster
-        oeffnen();
+    if (box._schluessel !== schluessel) {
+      box._schluessel = schluessel;
+      const fokus = merkeFokus(box, 'login');
+      box.replaceChildren();
+      let vorher = null;
+      liste.forEach((e) => {
+        const k = e.kanal;
+        if (vorher === 'live' && e.art !== 'live') box.appendChild(el('div', 'staender-luecke'));
+        vorher = e.art;
+        const jetzt = () => box._kanal.get(e.art + '|' + k.login) || k;
+        const a = el('div', 'album album-' + e.art + (k.live ? ' ist-live' : ''));
+        a.tabIndex = 0;
+        a.setAttribute('role', 'button');
+        a.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
+        a.dataset.login = k.login;
+        a.dataset.art = e.art;
+        const waehle = () => ruf(box._h, 'waehle', jetzt(), e.art);
+        a.addEventListener('click', waehle);
+        a.addEventListener('keydown', (ev) => {
+          if (ev.target !== a || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+          ev.preventDefault();
+          ev.stopPropagation(); // Leertaste nicht als Play/Pause im Video-Fenster
+          waehle();
+        });
+        const foto = bild([k.avatar], 'album-foto');
+        if (foto) a.appendChild(foto);
+        a.appendChild(el('div', 'album-verlauf'));
+        a.appendChild(nameMitHaken(k, 'album-name'));
+        if (k.live) a.appendChild(el('span', 'album-punkt'));
+        const stern = knopf('album-stern stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
+          k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(box._h, 'stern', jetzt()));
+        a.appendChild(stern);
+        box.appendChild(a);
       });
-      r.appendChild(sternKnopf(k, 'ruecken-stern', hJetzt));
-      r.appendChild(nameMitHaken(k, 'ruecken-name'));
-      regal.appendChild(r);
+      stelleFokusHer(box, 'login', fokus);
+    }
+    let wahl = null;
+    box.querySelectorAll('.album').forEach((a) => {
+      const an = a.dataset.login === gewaehlt;
+      a.classList.toggle('gewaehlt', an);
+      if (an) wahl = a;
     });
-    stelleFokusHer(regal, 'login', fokus);
+    if (wahl && wahl !== box._wahl) {
+      box._wahl = wahl;
+      wahl.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    }
   }
 
-  // CD-Wechsel: Schlitten faehrt in 180 ms in die Huelle (.rein), dann
-  // tauscht tausche() den Inhalt, und er faehrt in 220 ms wieder heraus
-  // (.raus). Die Scheibe dreht dabei unabhaengig weiter. Kommt waehrend
-  // .rein ein weiterer Wechsel, zeichnet das eine tausche() den letzten Stand.
+  // --- CD-Wechsel: Schlitten faehrt rein, Inhalt tauscht, faehrt raus ----------
   let reinTimer = null;
   let rausTimer = null;
   function cdWechsel(tausche) {
@@ -356,10 +410,41 @@ window.HomeBuehneDom = (function () {
   }
   function cdWechselLaeuft() { return reinTimer !== null; }
 
+  // --- Laufwerk beim Abspielen (PC-Schublade + Terminal) ------------------------
+  // Zeitplan in CSS (.laeuft, ~1,5 s); hier nur Inhalt setzen und ein-/ausblenden.
+  function zeigeLaufwerk(k) {
+    const lw = document.getElementById('cd-laufwerk');
+    lw.replaceChildren();
+    const geraet = el('div', 'lw-geraet');
+    geraet.appendChild(el('span', 'lw-led'));
+    const lade = el('div', 'lw-lade');
+    const cd = el('div', 'lw-cd');
+    const label = el('div', 'lw-cd-label');
+    const img = k ? bild([k.avatar]) : null;
+    if (img) label.appendChild(img);
+    cd.appendChild(label);
+    lade.appendChild(cd);
+    const term = el('div', 'lw-terminal');
+    const datei = String((k && k.login) || 'disc').toUpperCase() + '.ISO';
+    term.append(el('div', 'lw-zeile', 'Lese Disc …'), el('div', 'lw-zeile lw-datei', datei));
+    const balken = el('div', 'lw-balken');
+    balken.appendChild(el('div', 'lw-fuellung'));
+    term.appendChild(balken);
+    lw.append(lade, geraet, term);
+    lw.classList.remove('hidden', 'laeuft');
+    void lw.offsetWidth; // Animation neu starten
+    lw.classList.add('laeuft');
+  }
+  function versteckeLaufwerk() {
+    const lw = document.getElementById('cd-laufwerk');
+    lw.classList.add('hidden');
+    lw.classList.remove('laeuft');
+    lw.replaceChildren();
+  }
+
   // --- Riesen-Namen hinter der Buehne --------------------------------------
-  // #home-namen hat 6 Zeilen; Zeile 3 ist die Mittelzeile (Name der CD vorne).
-  // Die Zeilen entstehen beim ersten Zugriff, damit zeichneMitte auch vor dem
-  // ersten zeichneNamen funktioniert.
+  // #home-namen hat 6 Zeilen; Zeile 3 ist die Mittelzeile (Name der CD vorne),
+  // per CSS direkt hinter die CD gesetzt (Hoehe aus --mitte-y, setzt home.js).
   const MITTE = 3;
   function namenZeilen() {
     const box = document.getElementById('home-namen');
@@ -372,12 +457,9 @@ window.HomeBuehneDom = (function () {
     return box.children;
   }
 
-  // Laufzeilen 1,2,4,5,6 neu bauen: zwei gleiche Haelften, das Band laeuft
-  // um -50% und setzt so nahtlos wieder an. Jede Haelfte wiederholt den
-  // Zeileninhalt so oft, bis sie mindestens so breit ist wie #home-namen
-  // bzw. wie der Bildschirm (sonst liefe bei wenigen Namen eine Luecke mit). Einmal messen beim
-  // Bauen, nie pro Bild. Neubau startet die Baender neu, daher nur einmal
-  // je Oeffnen und nach einem Theme-Wechsel aufrufen.
+  // Laufzeilen 1,2,4,5,6: zwei gleiche Haelften, das Band laeuft um -50% und
+  // setzt nahtlos an. Jede Haelfte wiederholt den Inhalt, bis sie mindestens
+  // so breit ist wie der Bildschirm. Einmal messen beim Bauen, nie pro Bild.
   const MAX_WIEDERHOLUNG = 50;
   function haelfte(inhalt, mal) {
     const h = el('div', 'namen-haelfte');
@@ -388,8 +470,6 @@ window.HomeBuehneDom = (function () {
   }
   function zeichneNamen(auswahl) {
     const zeilen = namenZeilen();
-    // Bildschirmbreite deckt jedes Fenster auf diesem Bildschirm (auch nach
-    // dem Vergroessern ohne Neubau).
     const breite = Math.max(document.getElementById('home-namen').clientWidth, screen.availWidth || 0);
     for (let z = 1; z <= 6; z++) {
       if (z === MITTE) continue;
@@ -397,8 +477,6 @@ window.HomeBuehneDom = (function () {
       const inhalt = HomeBuehne.zeilenInhalt(auswahl || [], z);
       zeilen[z - 1].replaceChildren(band);
       if (!inhalt.length) continue; // leere Auswahl -> leeres Band
-      // Einmal messen; ist nichts messbar (Home zu, Zeile ausgeblendet),
-      // grob ueber die Zeichenzahl schaetzen (Zeile ~ 120 Zeichen breit).
       const probe = haelfte(inhalt, 1);
       band.appendChild(probe);
       const w = probe.offsetWidth;
@@ -409,8 +487,7 @@ window.HomeBuehneDom = (function () {
     }
   }
 
-  // Mittelzeile: gleicher Name -> nichts tun (Drift und Schein laufen weiter),
-  // sonst neuer Text, der einblendet. null -> leer.
+  // Mittelzeile: gleicher Name -> nichts tun, sonst neuer Text blendet ein.
   let mitteName;
   function zeichneMitte(neu) {
     const n = neu || null;
@@ -421,5 +498,8 @@ window.HomeBuehneDom = (function () {
     if (n) zeile.appendChild(el('span', 'namen-mitte-text', n));
   }
 
-  return { zeichneBuehne, zeichneNachbarn, zeichneRegal, cdWechsel, cdWechselLaeuft, zeichneNamen, zeichneMitte };
+  return {
+    zeichneBuehne, zeichneStaender, cdWechsel, cdWechselLaeuft,
+    zeigeLaufwerk, versteckeLaufwerk, zeichneNamen, zeichneMitte,
+  };
 })();

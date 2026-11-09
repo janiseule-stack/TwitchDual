@@ -272,7 +272,6 @@
 :root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card { border: var(--karte-rand); }
 
 /* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
-:root[data-theme="sakura"] .cd-aufdruck { -webkit-mask-image: url(cd-motiv.svg); mask-image: url(cd-motiv.svg); }
 
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
 :root[data-theme="sakura"][data-variante="pixel"] .vod,
