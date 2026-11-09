@@ -91,5 +91,48 @@
     return null;
   }
 
-  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, sterneNachholen, createLaufnummer, enterLaden };
+  // Suchtext vereinheitlichen: trim, klein, fuehrende Raute weg.
+  function normalisiere(text) {
+    return String(text || '').trim().toLowerCase().replace(/^#/, '');
+  }
+
+  // Bester Live-Treffer (Login) fuer den Suchtext oder null.
+  // Rang (klein = besser): 0 gleich, 1 Anfang, 2 enthalten (Name),
+  // 3 Spiel/Titel enthalten. Gleichstand: frueherer Platz in live.
+  function besterTreffer(live, text) {
+    const n = normalisiere(text);
+    if (!n) return null;
+    let bester = null;
+    let besterRang = 99;
+    (live || []).forEach((k) => {
+      const namen = [String(k.login || '').toLowerCase(), String(k.displayName || '').toLowerCase()];
+      let rang = 99;
+      if (namen.some((s) => s === n)) rang = 0;
+      else if (namen.some((s) => s.startsWith(n))) rang = 1;
+      else if (namen.some((s) => s.includes(n))) rang = 2;
+      else if (`${k.game || ''} ${k.title || ''}`.toLowerCase().includes(n)) rang = 3;
+      if (rang < besterRang) { bester = k.login; besterRang = rang; }
+    });
+    return bester;
+  }
+
+  // Was Enter in der Home-Suche tut, in fester Reihenfolge:
+  // VOD > eigener exakter Kanal > Twitch-Exakttreffer / warten >
+  // vorderste CD per Praefix > enterLaden-Rueckfall.
+  function enterZiel({ text, eigene, exakt, exaktFuer, sucheLaeuft, vordere } = {}) {
+    const n = normalisiere(text);
+    const roh = String(text || '').trim();
+    if (/twitch\.tv\/videos\/\d+/i.test(roh) || /^v?\d{4,}$/i.test(roh)) return { art: 'laden', wert: roh };
+    const eigener = (eigene || []).find((k) => String(k.login || '').toLowerCase() === n || String(k.displayName || '').toLowerCase() === n);
+    if (eigener) return { art: 'laden', wert: eigener.login };
+    if (exakt && normalisiere(exaktFuer) === n) return { art: 'laden', wert: exakt.login };
+    if (sucheLaeuft) return { art: 'warten' };
+    if (vordere && [vordere.login, vordere.displayName].some((s) => String(s || '').toLowerCase().startsWith(n))) {
+      return { art: 'laden', wert: vordere.login };
+    }
+    const wert = enterLaden(roh);
+    return wert ? { art: 'laden', wert } : null;
+  }
+
+  return { MIN_TWITCH, abschnitte, mitExaktTreffer, sternAnwenden, sterneNachholen, createLaufnummer, enterLaden, normalisiere, besterTreffer, enterZiel };
 });
