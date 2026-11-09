@@ -42,14 +42,14 @@
 :root[data-theme="blasen"] .lc-live { background: #7b6cff; }
 :root[data-theme="blasen"] .lc-actions button, :root[data-theme="blasen"] .fav .actions button,
 :root[data-theme="blasen"] #home-head button, :root[data-theme="blasen"] #auth-bar button,
-:root[data-theme="blasen"] #home-btn, :root[data-theme="blasen"] #emote-btn, :root[data-theme="blasen"] #rewards-btn {
+:root[data-theme="blasen"] #home-btn {
   border-radius: 999px; background: #eef0ff; color: #7b6cff; border: 1px solid #d6dcff;
 }
-:root[data-theme="blasen"] #load, :root[data-theme="blasen"] #chat-send, :root[data-theme="blasen"] .fav .watch,
+:root[data-theme="blasen"] #load, :root[data-theme="blasen"] .fav .watch,
 :root[data-theme="blasen"] #home-head button.active, :root[data-theme="blasen"] #fav-tools-toggle.active {
   border-radius: 999px; background: linear-gradient(90deg, #9ad0ff, #c8a8ff); color: #fff; border: none; font-weight: 700;
 }
-:root[data-theme="blasen"] #channel, :root[data-theme="blasen"] #chat-input,
+:root[data-theme="blasen"] #channel, :root[data-theme="blasen"] #chat-feld,
 :root[data-theme="blasen"] #home-suche {
   border-radius: 999px; background: #fff; border: 1px solid #d6dcff;
 }

@@ -260,14 +260,14 @@
 
 :root[data-theme="wald"] .lc-actions button, :root[data-theme="wald"] .fav .actions button,
 :root[data-theme="wald"] #home-head button, :root[data-theme="wald"] #auth-bar button,
-:root[data-theme="wald"] #home-btn, :root[data-theme="wald"] #emote-btn, :root[data-theme="wald"] #rewards-btn {
+:root[data-theme="wald"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="wald"] #load, :root[data-theme="wald"] #chat-send, :root[data-theme="wald"] .fav .watch,
+:root[data-theme="wald"] #load, :root[data-theme="wald"] .fav .watch,
 :root[data-theme="wald"] #home-head button.active, :root[data-theme="wald"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
-:root[data-theme="wald"] #channel, :root[data-theme="wald"] #chat-input,
+:root[data-theme="wald"] #channel, :root[data-theme="wald"] #chat-feld,
 :root[data-theme="wald"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }

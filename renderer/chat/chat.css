@@ -40,10 +40,14 @@ body { display: flex; flex-direction: column; }
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
   font-size: var(--chat-font-size, 14px); line-height: 1.45;
-  scrollbar-width: thin; scrollbar-color: #23232e transparent;
+  scrollbar-width: none;
 }
-#messages::-webkit-scrollbar { width: 8px; }
-#messages::-webkit-scrollbar-thumb { background: #23232e; border-radius: 4px; }
+/* Keine sichtbaren Scrollbalken im ganzen Chat-Fenster (Janis 09.11.2026):
+   Mausrad/Touchpad scrollt weiter, nur der Balken an der Seite ist weg.
+   scrollbar-width schlaegt in Chromium 121+ die ::-webkit-scrollbar-Regeln
+   der Themes, die Farb-Regeln dort wirken damit einfach nicht mehr. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
 
 .msg { padding: 3px 4px; border-radius: 4px; word-wrap: break-word; }
 /* Hover halb durchsichtig: das Theme dahinter bleibt sichtbar. */
@@ -311,9 +315,9 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 
 /* --- Neon Dual - On Air (v1.5.0) ------------------------------------------ */
 
-/* Fensterrahmen in der Fensterfarbe (randloses Fenster). */
+/* Kein 1-px-Rahmen mehr (Janis 09.11.2026): angedockt lagen Video- und
+   Chat-Rahmen als Doppellinie nebeneinander. Das weiche Leuchten bleibt. */
 body {
-  border: 1px solid var(--accent-border);
   box-shadow: inset 0 0 24px -12px var(--accent-glow);
 }
 
@@ -410,15 +414,26 @@ button:focus-visible, input:focus-visible {
 }
 
 /* Chat-Eingabezeile (v1.8.0): nur eingeloggt + Live aktiv (updateComposerState). */
+/* Eingabe (Janis 09.11.2026): EIN Feld, Knoepfe als kleine Symbole rechts
+   darin; Slow-Mode & Co. als duenner Streifen darueber. Frueher standen
+   Hinweis, Feld und Knoepfe nebeneinander - bei schmalem Chat wurde das Feld
+   auf Null gedrueckt, sichtbar blieb nur sein Scrollbalken. */
 #composer {
-  display: flex; gap: 6px; padding: 6px 8px; align-items: center;
+  display: flex; flex-direction: column; gap: 4px; padding: 6px 8px;
   position: relative; flex-shrink: 0;
   background: var(--panel); border-top: 1px solid var(--line);
 }
+#chat-feld {
+  display: flex; align-items: flex-end; gap: 2px; padding: 2px 4px 2px 0;
+  border-radius: 6px; background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--accent-border);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+#chat-feld:focus-within { border-color: var(--accent-dim); box-shadow: 0 0 0 2px var(--accent-glow); }
 #chat-input {
-  flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px;
-  background: rgba(255, 255, 255, .06); color: var(--text);
-  border: 1px solid var(--accent-border); font-family: inherit; font-size: 13px;
+  flex: 1; min-width: 0; padding: 6px 8px;
+  background: none; color: var(--text); border: none;
+  font-family: inherit; font-size: 13px;
   /* contenteditable statt <input>: rendert Emote-Bilder inline (wie Twitch). */
   max-height: 84px; overflow-y: auto; line-height: 1.5;
   white-space: pre-wrap; word-break: break-word; outline: none;
@@ -431,14 +446,16 @@ button:focus-visible, input:focus-visible {
   height: 1.5em; vertical-align: middle; margin: 0 1px;
   border-radius: 3px; user-select: all;
 }
+/* Symbole im Feld: ohne eigenen Rahmen, nur beim Drueberfahren hinterlegt. */
 #chat-send, #emote-btn, #rewards-btn {
-  cursor: pointer; background: var(--hover); color: var(--text);
-  border: 1px solid var(--accent-border); border-radius: 6px; padding: 6px 10px;
+  flex-shrink: 0; cursor: pointer; background: none; color: var(--accent-title);
+  border: none; border-radius: 5px; padding: 4px 5px; margin-bottom: 1px;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1;
 }
-#emote-btn, #rewards-btn { padding: 4px 6px; display: inline-flex; align-items: center; }
+#chat-send { font-size: 15px; width: 28px; }
 #emote-btn img, #rewards-btn img { height: 20px; width: auto; display: block; }
-#chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled), #rewards-btn:hover:not(:disabled) { border-color: var(--accent-dim); }
-#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .5; }
+#chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled), #rewards-btn:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .4; }
 #chat-error {
   position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 4px;
   background: #4a1220; color: #ffb3c4; padding: 4px 8px; border-radius: 6px;
@@ -481,8 +498,8 @@ button:focus-visible, input:focus-visible {
   padding: 6px 8px; background: none; border: none; color: inherit; cursor: pointer; }
 #rewards-panel .reward:hover:not(:disabled) { background: var(--hover); }
 #rewards-panel .reward:disabled { opacity: 0.5; cursor: default; }
-#room-state { font-size: 11px; color: var(--muted, #8b8b9c); background: rgba(255,255,255,.06);
-  padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
+/* Streifen ueber dem Feld; lange Texte brechen um statt das Feld zu druecken. */
+#room-state { font-size: 11px; color: var(--muted, #8b8b9c); padding: 0 4px; line-height: 1.4; }
 #room-state.hidden { display: none; }
 /* Autocomplete-Leiste: zeigt beim Tab-Durchgehen die Treffer als Bild,
    der aktuelle ist hervorgehoben. */
@@ -826,3 +843,23 @@ button:focus-visible, input:focus-visible {
 .teiler-griff:hover::after, .teiler-griff.zieht::after { background: var(--accent, #35e0ff); height: 96px; margin-top: -48px; }
 .teiler-rechts { right: 0; }
 .teiler-links { left: 0; }
+/* Per Klick ausgeblendet: unsichtbar, beim Drueberfahren wieder da. */
+.teiler-griff.versteckt:not(:hover):not(.zieht) { background: transparent; }
+.teiler-griff.versteckt:not(:hover):not(.zieht)::after { opacity: 0; }
+.teiler-griff::after { transition: height 150ms ease, background-color 150ms ease, opacity 200ms ease; }
+
+/* Runde Positions-Pille rechts am Chat (renderer/lib/scroll-pille.js):
+   gleiche Optik wie der Griff an der Trennlinie, nur beim Scrollen da. */
+.scroll-pille {
+  position: absolute; right: 2px; top: 0; width: 12px; z-index: 4;
+  cursor: grab; touch-action: none;
+  opacity: 0; pointer-events: none; transition: opacity 250ms ease;
+}
+.scroll-pille::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 4px; border-radius: 2px;
+  background: var(--accent-border, rgba(255,255,255,.35));
+  transition: left 150ms ease, width 150ms ease, background-color 150ms ease;
+}
+.scroll-pille.sichtbar { opacity: 1; pointer-events: auto; }
+.scroll-pille:hover::after, .scroll-pille.zieht::after { left: 3px; width: 6px; border-radius: 3px; background: var(--accent, #35e0ff); }
+.scroll-pille.zieht { cursor: grabbing; }

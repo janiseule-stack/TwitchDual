@@ -151,11 +151,15 @@
   </div>
   <div id="composer">
     <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
-    <span id="room-state" class="hidden"></span>
-    <div id="chat-input" contenteditable="false" data-placeholder="Zum Chatten anmelden"></div>
-    <button id="emote-btn" type="button" title="Emotes" aria-label="Emotes" disabled><img src="https://cdn.betterttv.net/emote/5f1b0186cf6d2144653d2970/1x.webp" alt="catJAM"></button>
-    <button id="rewards-btn" type="button" title="Belohnungen" aria-label="Belohnungen"><img src="https://cdn.7tv.app/emote/01FHPG3BCR00093JSPCMYFBG0E/1x.webp" alt="peepoMoney"></button>
-    <button id="chat-send" type="button" disabled>Senden</button>
+    <!-- Slow-Mode & Co.: duenner Streifen ueber dem Feld, nur wenn aktiv. -->
+    <div id="room-state" class="hidden"></div>
+    <!-- Ein Feld: Eingabe links, Knoepfe als kleine Symbole rechts darin. -->
+    <div id="chat-feld">
+      <div id="chat-input" contenteditable="false" data-placeholder="Zum Chatten anmelden"></div>
+      <button id="emote-btn" type="button" title="Emotes" aria-label="Emotes" disabled><img src="https://cdn.betterttv.net/emote/5f1b0186cf6d2144653d2970/1x.webp" alt="catJAM"></button>
+      <button id="rewards-btn" type="button" title="Belohnungen" aria-label="Belohnungen"><img src="https://cdn.7tv.app/emote/01FHPG3BCR00093JSPCMYFBG0E/1x.webp" alt="peepoMoney"></button>
+      <button id="chat-send" type="button" title="Senden (Enter)" aria-label="Senden" disabled>➤</button>
+    </div>
     <div id="chat-error" class="hidden"></div>
     <!-- Ergebnis einer Belohnungs-Einloesung. Geschwister von #rewards-panel,
          damit ein Neuaufbau des Panels die Meldung nicht mitreisst. Eigenes
@@ -221,6 +225,7 @@
   <script src="../lib/points-icon.js"></script>
   <script src="../lib/kanal-ereignisse.js"></script>
   <script src="../lib/teiler.js"></script>
+  <script src="../lib/scroll-pille.js"></script>
   <script src="../lib/vorhersage-statistik.js"></script>
   <script src="vorhersage-karte.js"></script>
   <script src="ereignis-karten.js"></script>

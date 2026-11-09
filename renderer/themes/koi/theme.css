@@ -176,14 +176,14 @@
 
 :root[data-theme="koi"] .lc-actions button, :root[data-theme="koi"] .fav .actions button,
 :root[data-theme="koi"] #home-head button, :root[data-theme="koi"] #auth-bar button,
-:root[data-theme="koi"] #home-btn, :root[data-theme="koi"] #emote-btn, :root[data-theme="koi"] #rewards-btn {
+:root[data-theme="koi"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="koi"] #load, :root[data-theme="koi"] #chat-send, :root[data-theme="koi"] .fav .watch,
+:root[data-theme="koi"] #load, :root[data-theme="koi"] .fav .watch,
 :root[data-theme="koi"] #home-head button.active, :root[data-theme="koi"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
-:root[data-theme="koi"] #channel, :root[data-theme="koi"] #chat-input,
+:root[data-theme="koi"] #channel, :root[data-theme="koi"] #chat-feld,
 :root[data-theme="koi"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }

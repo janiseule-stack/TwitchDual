@@ -132,6 +132,8 @@ function createWindows() {
   videoWin.loadURL(`http://localhost:${serverPort}/video/index.html`);
   chatWin.loadURL(`http://localhost:${serverPort}/chat/index.html`);
   diagLog.melde('app', 'fenster', { welches: 'beide', was: 'auf' });
+  // Windows 11: keine runden Ecken, kein 1-px-Systemrand (Desktop schien durch).
+  require('./src/fenster-ecken').eckenAus([videoWin, chatWin]);
 
   // Fenster-Bounds bei jeder Aenderung merken.
   const save = () => {

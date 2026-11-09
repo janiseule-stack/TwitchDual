@@ -260,14 +260,14 @@
 
 :root[data-theme="sakura"] .lc-actions button, :root[data-theme="sakura"] .fav .actions button,
 :root[data-theme="sakura"] #home-head button, :root[data-theme="sakura"] #auth-bar button,
-:root[data-theme="sakura"] #home-btn, :root[data-theme="sakura"] #emote-btn, :root[data-theme="sakura"] #rewards-btn {
+:root[data-theme="sakura"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="sakura"] #load, :root[data-theme="sakura"] #chat-send, :root[data-theme="sakura"] .fav .watch,
+:root[data-theme="sakura"] #load, :root[data-theme="sakura"] .fav .watch,
 :root[data-theme="sakura"] #home-head button.active, :root[data-theme="sakura"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
-:root[data-theme="sakura"] #channel, :root[data-theme="sakura"] #chat-input,
+:root[data-theme="sakura"] #channel, :root[data-theme="sakura"] #chat-feld,
 :root[data-theme="sakura"] #home-suche {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund); color: var(--text);
 }

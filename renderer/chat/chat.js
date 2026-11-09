@@ -80,12 +80,17 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'Home') userScrollsUp();
 });
 
-// Scrollbar gepackt? Klick rechts der Inhaltsflaeche (clientWidth ist ohne
-// Scrollbar) - waehrend des Ziehens entscheiden die Scroll-Events.
-$messages.addEventListener('mousedown', (e) => {
-  if (e.offsetX >= $messages.clientWidth) scrollbarDrag = true;
+// Runde Positions-Pille statt Scrollbalken (renderer/lib/scroll-pille.js; der
+// Balken ist per CSS ausgeblendet). Ihr Ziehen zaehlt wie frueher das
+// Scrollbalken-Ziehen als Nutzer-Eingabe - waehrend des Ziehens entscheiden
+// die Scroll-Events.
+const scrollPille = ScrollPille.binde({
+  doc: document, liste: $messages, eltern: document.getElementById('chat-mitte'),
+  istUnten: nearBottom, beimZiehen: (an) => { scrollbarDrag = an; }
 });
-window.addEventListener('mouseup', () => { scrollbarDrag = false; });
+window.addEventListener('keydown', (e) => {
+  if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) scrollPille.aktivGescrollt();
+});
 
 // Zaehler fuer Nachrichten, die unterhalb des Sichtbereichs aufgelaufen sind,
 // waehrend der Nutzer hochgescrollt ist.
@@ -702,6 +707,7 @@ for (const b of $optKiste.children) {
 window.twitchDual.getUiPrefs().then((prefs) => {
   chatPrefs = { ...chatPrefs, ...((prefs && prefs.chatPrefs) || {}) };
   applyChatPrefs();
+  teiler.setzeVersteckt(!!chatPrefs.teilerVersteckt); // laeuft async, teiler steht dann schon
 }).catch(() => {}); // Prefs sind Komfort - ohne sie gelten die Defaults
 
 $settingsBtn.addEventListener('click', () => {
@@ -773,7 +779,11 @@ document.getElementById('win-min').addEventListener('click', () => window.twitch
 document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
 document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
 // Griff an der linken Kante (nur im ◫/⛶-Modus): Video/Chat-Aufteilung ziehen.
-Teiler.binde({ doc: document, seite: 'links', ziehen: (x) => window.twitchDual.teilungZiehen(x), onModus: window.twitchDual.onLayoutModus });
+// Klick ohne Ziehen blendet ihn aus (gemerkt in chatPrefs.teilerVersteckt).
+const teiler = Teiler.binde({
+  doc: document, seite: 'links', ziehen: (x) => window.twitchDual.teilungZiehen(x), onModus: window.twitchDual.onLayoutModus,
+  beimUmschalten: (versteckt) => { chatPrefs.teilerVersteckt = versteckt; window.twitchDual.saveChatPrefs(chatPrefs); }
+});
 // Doppelklick auf die Kopfzeile (nicht auf Buttons) maximiert.
 document.getElementById('head').addEventListener('dblclick', (e) => {
   if (!e.target.closest('button')) window.twitchDual.windowControl('maximize');
