@@ -96,39 +96,80 @@ window.HomeBuehneDom = (function () {
     return svg;
   }
 
+  // Vorderseite einmal je CD (Modus + Login) aufbauen. Die Knoepfe lesen
+  // Kanal und Handler aus cd, damit ein Neuzeichnen sie nur aktualisiert
+  // (kein Blinken des Covers, Tastatur-Fokus bleibt).
+  function baueFront(front, k, modus) {
+    const live = modus === 'live';
+    const cd = { schluessel: modus + '|' + k.login, k, h: null, vorschau: null, img: null, sticker: null };
+    const cover = el('div', 'cd-cover');
+    if (modus !== 'offline') cd.vorschau = HomeBuehne.vorschauUrl(k.login, Date.now());
+    cd.img = bild([cd.vorschau, k.avatar]);
+    if (cd.img) cover.appendChild(cd.img);
+    if (live) {
+      cover.title = 'Klick: Stream laden';
+      cover.addEventListener('click', () => ruf(cd.h, 'laden', cd.k.login));
+    }
+    front.appendChild(cover);
+    cd.cover = cover;
+
+    if (modus !== 'offline') {
+      const play = knopf('cd-play', '▶', live ? 'Stream laden' : 'Gerade offline', () => ruf(cd.h, 'laden', cd.k.login));
+      play.disabled = !live;
+      front.appendChild(play);
+    }
+    front.appendChild(knopf('cd-vods', 'VODs', 'VODs ansehen', () => ruf(cd.h, 'vods', cd.k)));
+    cd.stern = knopf('cd-stern stern', '☆', '', () => ruf(cd.h, 'stern', cd.k));
+    front.appendChild(cd.stern);
+    return cd;
+  }
+
+  // Neue Vorschau erst tauschen, wenn sie geladen ist; bis dahin bleibt das alte Bild.
+  function neueVorschau(cd, url) {
+    if (!url || url === cd.vorschau) return;
+    cd.vorschau = url;
+    const probe = new Image();
+    probe.onload = () => {
+      if (cd.vorschau !== url || !cd.cover.isConnected) return;
+      if (cd.img && cd.img.isConnected) {
+        cd.img.src = url;
+      } else {
+        cd.img = bild([url, cd.k.avatar]);
+        if (cd.img) cd.cover.prepend(cd.img);
+      }
+    };
+    probe.src = url;
+  }
+
   function zeichneFront(front, stand, h) {
     const k = stand.kanal;
     const modus = stand.modus;
     if (!k) {
+      front.replaceChildren();
+      front._cd = null;
       if (stand.leerText) front.appendChild(el('div', 'cd-leer', stand.leerText));
       return;
     }
-    const live = modus === 'live';
-    const cover = el('div', 'cd-cover');
-    const img = modus === 'offline'
-      ? bild([k.avatar])
-      : bild([HomeBuehne.vorschauUrl(k.login, Date.now()), k.avatar]);
-    if (img) cover.appendChild(img);
-    if (live) {
-      cover.title = 'Klick: Stream laden';
-      cover.addEventListener('click', () => ruf(h, 'laden', k.login));
+    let cd = front._cd;
+    if (!cd || cd.schluessel !== modus + '|' + k.login) {
+      front.replaceChildren();
+      cd = front._cd = baueFront(front, k, modus);
     }
-    front.appendChild(cover);
+    cd.k = k;
+    cd.h = h;
+    cd.stern.className = 'cd-stern stern' + (k.favorit ? ' an' : '');
+    cd.stern.textContent = k.favorit ? '★' : '☆';
+    cd.stern.title = k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten';
+    if (modus !== 'offline') neueVorschau(cd, HomeBuehne.vorschauUrl(k.login, Date.now()));
 
-    if (modus !== 'offline') {
-      const play = knopf('cd-play', '▶', live ? 'Stream laden' : 'Gerade offline', () => ruf(h, 'laden', k.login));
-      play.disabled = !live;
-      front.appendChild(play);
-    }
-    front.appendChild(knopf('cd-vods', 'VODs', 'VODs ansehen', () => ruf(h, 'vods', k)));
-    front.appendChild(sternKnopf(k, 'cd-stern', h));
-
+    if (cd.sticker) { cd.sticker.remove(); cd.sticker = null; }
     if (stand.punkte && modus !== 'offline') {
       const st = el('div', 'cd-sticker');
       st.title = 'Kanalpunkte';
       st.appendChild(punkteSymbol(stand.punkte.symbol));
       st.appendChild(el('span', 'cd-sticker-zahl', Number(stand.punkte.balance || 0).toLocaleString('de-DE')));
       front.appendChild(st);
+      cd.sticker = st;
     }
   }
 
@@ -192,7 +233,6 @@ window.HomeBuehneDom = (function () {
     huelle.classList.toggle('steht', !!k && s.modus === 'markiert');
     huelle.classList.toggle('offline', !!k && s.modus === 'offline');
     huelle.classList.toggle('gedreht', !!k && !!s.rueckseite);
-    front.replaceChildren();
     rueck.replaceChildren();
     zeichneFront(front, s, h);
     zeichneRueck(rueck, s, h);

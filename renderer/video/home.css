@@ -71,7 +71,8 @@
 #home-vod-view::-webkit-scrollbar { width: 8px; }
 #home-vod-view::-webkit-scrollbar-thumb { background: #23232e; border-radius: 4px; }
 
-#home-such-zeile { display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; flex: none; }
+/* Ueber der Buehne (deren Huelle hat transforms) - Suche bleibt immer klickbar. */
+#home-such-zeile { display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; flex: none; position: relative; z-index: 3; }
 #home-suche {
   flex: 0 1 460px; min-width: 0; padding: 8px 10px; border-radius: 6px;
   border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 14px;
@@ -129,8 +130,9 @@
 /* --- Buehne: Huelle links, Info rechts (schmal: darunter) ----------------- */
 #home-buehne {
   flex: 1; min-height: 0;
-  display: flex; align-items: center; justify-content: center; gap: 4cqw;
+  display: flex; align-items: safe center; justify-content: safe center; gap: 4cqw;
   perspective: 1400px;
+  overflow: hidden; /* zu hoher Inhalt laeuft nie ueber Suche oder Regal */
 }
 #cd-huelle {
   --kante: min(46cqh, 34cqw);
@@ -213,6 +215,10 @@
   border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
 }
 .cd-vods:hover { border-color: var(--accent); }
+/* #home-Praefix: schlaegt die allgemeine #home-button-Transition */
+#home .cd-stern, #home .cd-vods {
+  transition: opacity 160ms ease, transform 120ms ease, color 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
 #cd-huelle:hover .cd-stern, #cd-huelle:focus-within .cd-stern,
 #cd-huelle:hover .cd-vods, #cd-huelle:focus-within .cd-vods { opacity: 1; }
 
@@ -328,10 +334,12 @@
 
 @container (max-height: 520px) {
   #home-regal { height: 68px; }
+  #cd-info .cd-titel, #cd-info .cd-nachbarn { display: none; }
 }
 @container (max-width: 900px) {
   #home-buehne { flex-direction: column; gap: 14px; }
-  #cd-info { flex: none; width: min(100%, 560px); align-items: center; text-align: center; }
+  #cd-huelle { --kante: min(30cqh, 60cqw); }
+  #cd-info { flex: 0 1 auto; min-height: 0; overflow: hidden; width: min(100%, 560px); align-items: center; text-align: center; }
 }
 
 /* Overlay gleitet ein. .hidden nutzt display:none - die Animation startet
