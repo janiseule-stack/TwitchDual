@@ -22,6 +22,8 @@ test('findChannel und getLiveStatus fragen createdAt ab', async () => {
   await browse.getLiveStatus(['kanal_a'], { fetchImpl, retries: 0 });
   assert.equal(bodies.length, 2);
   for (const b of bodies) assert.match(JSON.parse(b).query, /createdAt/);
+  // Profilbild gross genug fuer Album-Cover und CD-Label (gemessen: 300 lieferbar)
+  for (const b of bodies) assert.match(JSON.parse(b).query, /profileImageURL\(width:300\)/);
 });
 
 test('findChannel: unbekannter Kanal -> null statt Platzhalter', async () => {

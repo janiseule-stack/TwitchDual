@@ -181,5 +181,68 @@
       '-640x360.jpg?t=' + Math.floor(jetztMs / 60000);
   }
 
-  return { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl };
+  // Staender unten (Runde 2): ohne Suche alle Live-CDs, dann die Offline-
+  // Favoriten; mit Suche Live-, Offline- und Twitch-Treffer, jeder Kanal einmal.
+  function staenderEintraege(o) {
+    const opt = o || {};
+    const gesehen = new Set();
+    const out = [];
+    const dazu = (liste, art) => (liste || []).forEach((kanal) => {
+      if (!kanal || gesehen.has(kanal.login)) return;
+      gesehen.add(kanal.login);
+      out.push({ kanal, art });
+    });
+    dazu(opt.live, 'live');
+    if (opt.suche) {
+      dazu(opt.offlineTreffer, 'offline');
+      dazu(opt.twitchTreffer, 'twitch');
+    } else {
+      dazu(opt.offlineFavoriten, 'offline');
+    }
+    return out;
+  }
+
+  // Laufwerk-Ablauf beim Abspielen: fertig erst, wenn die Mindestdauer der
+  // Animation vorbei ist UND das Laden gemeldet wurde; ein Fehler beendet sofort.
+  function createLaufwerk(o) {
+    const opt = o || {};
+    const mindestMs = opt.mindestMs === undefined ? 1500 : opt.mindestMs;
+    let lauf = null; // { cb, zeitUm, ladenOk, timer }
+    function pruefe() {
+      if (!lauf || !lauf.zeitUm || lauf.ladenOk === null) return;
+      const cb = lauf.cb;
+      lauf = null;
+      cb(true);
+    }
+    const api = {
+      get laeuft() { return lauf !== null; },
+      start(beiFertig) {
+        if (lauf) return false;
+        const l = { cb: beiFertig, zeitUm: false, ladenOk: null, timer: null };
+        lauf = l;
+        l.timer = opt.setzeTimer(() => { if (lauf !== l) return; l.timer = null; l.zeitUm = true; pruefe(); }, mindestMs);
+        return true;
+      },
+      geladen(ok) {
+        if (!lauf) return;
+        if (!ok) {
+          const l = lauf;
+          lauf = null;
+          if (l.timer !== null) opt.loescheTimer(l.timer);
+          l.cb(false);
+          return;
+        }
+        lauf.ladenOk = true;
+        pruefe();
+      },
+      abbrechen() {
+        if (!lauf) return;
+        if (lauf.timer !== null) opt.loescheTimer(lauf.timer);
+        lauf = null;
+      },
+    };
+    return api;
+  }
+
+  return { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl, staenderEintraege, createLaufwerk };
 });

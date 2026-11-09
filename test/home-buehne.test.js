@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl } = require('../renderer/lib/home-buehne.js');
+const { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl, staenderEintraege, createLaufwerk } = require('../renderer/lib/home-buehne.js');
 
 const k = (login, viewers = 0, extra = {}) => ({ login, displayName: login.toUpperCase(), viewers, ...extra });
 const logins = (arr) => arr.map((x) => x.login);
@@ -168,4 +168,79 @@ test('markierte CD weggeblaettert bis leer, dann neuer Live-Kanal -> aktuell', (
 
 test('vorschauUrl', () => {
   assert.ok(vorschauUrl('kanal_a', 120000).endsWith('kanal_a-640x360.jpg?t=2'));
+});
+
+// --- Staender (Runde 2) --------------------------------------------------------
+const arten = (l) => l.map((e) => e.art + ':' + e.kanal.login);
+
+test('staenderEintraege ohne Suche: Live, dann Offline-Favoriten', () => {
+  const r = staenderEintraege({ live: [k('a'), k('b')], offlineFavoriten: [k('c')] });
+  assert.deepEqual(arten(r), ['live:a', 'live:b', 'offline:c']);
+});
+
+test('staenderEintraege mit Suche: Live-, Offline-, Twitch-Treffer ohne Doppelte', () => {
+  const r = staenderEintraege({
+    suche: true, live: [k('a')], offlineTreffer: [k('c'), k('d')],
+    twitchTreffer: [k('d'), k('e')], offlineFavoriten: [k('x')],
+  });
+  assert.deepEqual(arten(r), ['live:a', 'offline:c', 'offline:d', 'twitch:e']);
+});
+
+test('staenderEintraege leer', () => {
+  assert.deepEqual(staenderEintraege({}), []);
+});
+
+// --- Laufwerk-Ablauf (Runde 2) -------------------------------------------------
+function laufwerk() {
+  const z = { zeit: 0, timer: [], fertig: [] };
+  let id = 1;
+  z.lw = createLaufwerk({
+    mindestMs: 1500,
+    jetzt: () => z.zeit,
+    setzeTimer: (fn, ms) => { const t = { id: id++, fn, ms }; z.timer.push(t); return t.id; },
+    loescheTimer: (i) => { z.timer = z.timer.filter((t) => t.id !== i); },
+  });
+  z.feuere = () => { const l = z.timer; z.timer = []; l.forEach((t) => t.fn()); };
+  return z;
+}
+
+test('Laufwerk: fertig erst nach Mindestzeit UND Laden', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  assert.equal(z.lw.laeuft, true);
+  z.lw.geladen(true);              // Laden schneller als die Animation
+  assert.deepEqual(z.fertig, []);
+  z.feuere();                      // Mindestzeit vorbei
+  assert.deepEqual(z.fertig, [true]);
+  assert.equal(z.lw.laeuft, false);
+});
+
+test('Laufwerk: Laden langsamer als Mindestzeit', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.feuere();
+  assert.deepEqual(z.fertig, []);
+  z.lw.geladen(true);
+  assert.deepEqual(z.fertig, [true]);
+});
+
+test('Laufwerk: Fehler beendet sofort mit false', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.lw.geladen(false);
+  assert.deepEqual(z.fertig, [false]);
+  assert.equal(z.timer.length, 0);
+  z.lw.geladen(true);              // spaete Meldung ohne Wirkung
+  assert.deepEqual(z.fertig, [false]);
+});
+
+test('Laufwerk: abbrechen ohne Rueckruf, start waehrend Lauf ignoriert', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  assert.equal(z.lw.start(() => z.fertig.push('zweiter')), false);
+  z.lw.abbrechen();
+  z.feuere();
+  z.lw.geladen(true);
+  assert.deepEqual(z.fertig, []);
+  assert.equal(z.lw.laeuft, false);
 });

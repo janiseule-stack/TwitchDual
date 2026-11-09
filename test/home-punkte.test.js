@@ -173,6 +173,21 @@ test('leeren: laufender Timer weg, Sperre zurueck, spaete Antwort verworfen', as
   assert.strictEqual(z.abfragen.length, 4);
 });
 
+test('leeren: Antwort des alten Kontos fuer denselben Kanal wird verworfen', async () => {
+  const z = baue();
+  z.api.vorne('kanal_a');
+  z.feuere();                         // Abfrage 0 (altes Konto) laeuft
+  z.api.leeren();                     // Konto-Wechsel
+  z.api.vorne('kanal_a');             // gleicher Kanal sofort wieder vorne
+  z.abfragen[0].resolve({ ok: true, balance: 999 });
+  await tick();
+  assert.strictEqual(z.cbs.length, 0, 'alte Generation darf nicht durchrutschen');
+  z.feuere();
+  z.abfragen[1].resolve({ ok: true, balance: 5 });
+  await tick();
+  assert.deepStrictEqual(z.cbs.map((c) => c.stand.balance), [5]);
+});
+
 test('anderer Fehler -> kein cb, keine Sperre', async () => {
   const z = baue();
   z.api.vorne('kanal_a');

@@ -23,13 +23,16 @@
     let timer = null;
     let gesperrt = false;
     let cb = null;
+    // Generation: leeren() erhoeht sie; Antworten aus einer frueheren
+    // Generation (altes Konto) werden verworfen, auch fuer denselben Kanal.
+    let generation = 0;
 
     function melde(login, stand) {
       if (cb) cb(login, { balance: stand.balance, iconUrl: stand.iconUrl });
     }
 
-    function antwort(login, r) {
-      if (login !== aktuell || !r) return; // veraltet
+    function antwort(login, r, gen) {
+      if (gen !== generation || login !== aktuell || !r) return; // veraltet
       if (r.ok && r.balance !== null && r.balance !== undefined) {
         const stand = { balance: r.balance, iconUrl: r.iconUrl, zeit: jetzt() };
         speicher.set(login, stand);
@@ -45,7 +48,8 @@
       if (gesperrt || login !== aktuell || !darf()) return;
       let p;
       try { p = abfrage(login); } catch (e) { return; }
-      Promise.resolve(p).then((r) => antwort(login, r), () => {});
+      const gen = generation;
+      Promise.resolve(p).then((r) => antwort(login, r, gen), () => {});
     }
 
     function vorne(login) {
@@ -75,6 +79,7 @@
       speicher.clear();
       aktuell = null;
       gesperrt = false;
+      generation += 1;
     }
 
     return { vorne, oeffnen, beiStand, leeren };
