@@ -303,5 +303,49 @@ window.HomeBuehneDom = (function () {
   }
   function cdWechselLaeuft() { return reinTimer !== null; }
 
-  return { zeichneBuehne, zeichneNachbarn, zeichneRegal, cdWechsel, cdWechselLaeuft };
+  // --- Riesen-Namen hinter der Buehne --------------------------------------
+  // #home-namen hat 6 Zeilen; Zeile 3 ist die Mittelzeile (Name der CD vorne).
+  // Die Zeilen entstehen beim ersten Zugriff, damit zeichneMitte auch vor dem
+  // ersten zeichneNamen funktioniert.
+  const MITTE = 3;
+  function namenZeilen() {
+    const box = document.getElementById('home-namen');
+    if (box.children.length !== 6) {
+      box.replaceChildren();
+      for (let z = 1; z <= 6; z++) {
+        box.appendChild(el('div', 'namen-zeile' + (z === MITTE ? ' namen-mitte' : '')));
+      }
+    }
+    return box.children;
+  }
+
+  // Laufzeilen 1,2,4,5,6 neu bauen: Inhalt zweimal hintereinander, das Band
+  // laeuft um -50% und setzt so nahtlos wieder an. Neubau startet die Baender
+  // neu, daher nur einmal je Oeffnen aufrufen.
+  function zeichneNamen(auswahl) {
+    const zeilen = namenZeilen();
+    for (let z = 1; z <= 6; z++) {
+      if (z === MITTE) continue;
+      const band = el('div', 'namen-band');
+      const inhalt = HomeBuehne.zeilenInhalt(auswahl || [], z);
+      for (let mal = 0; mal < 2; mal++) {
+        inhalt.forEach((n) => band.appendChild(el('span', n.live ? 'live' : 'offline', n.name)));
+      }
+      zeilen[z - 1].replaceChildren(band);
+    }
+  }
+
+  // Mittelzeile: gleicher Name -> nichts tun (Drift und Schein laufen weiter),
+  // sonst neuer Text, der einblendet. null -> leer.
+  let mitteName;
+  function zeichneMitte(neu) {
+    const n = neu || null;
+    if (n === mitteName) return;
+    mitteName = n;
+    const zeile = namenZeilen()[MITTE - 1];
+    zeile.replaceChildren();
+    if (n) zeile.appendChild(el('span', 'namen-mitte-text', n));
+  }
+
+  return { zeichneBuehne, zeichneNachbarn, zeichneRegal, cdWechsel, cdWechselLaeuft, zeichneNamen, zeichneMitte };
 })();

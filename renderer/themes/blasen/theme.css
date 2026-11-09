@@ -50,3 +50,6 @@
 }
 :root[data-theme="blasen"] #points-chip { border-radius: 999px; }
 :root[data-theme="blasen"] #user-card { border-radius: 18px; }
+
+/* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
+:root[data-theme="blasen"] .cd-aufdruck { -webkit-mask-image: url(cd-motiv.svg); mask-image: url(cd-motiv.svg); }

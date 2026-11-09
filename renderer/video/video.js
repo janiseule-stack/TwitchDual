@@ -339,6 +339,8 @@ function sendeBalken() {
 }
 function applyTheme(prefs) {
   themeRuntime.anwenden(prefs);
+  // Home-Buehne: "aus" -> Namen stehen, CD dreht nicht (home.css).
+  document.documentElement.dataset.effekte = ThemeKatalog.cleanThemePrefs(prefs).effekte;
   balkenFarbe = ThemeKatalog.balkenFarbe(ThemeKatalog.cleanThemePrefs(prefs));
   sendeBalken();
 }

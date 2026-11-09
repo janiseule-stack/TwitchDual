@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Wald: Blaetter mit Mittelrippe im Ring, Mitte frei (r < 60) -->
+  <defs>
+    <path id="l" fill-rule="evenodd" d="M0-14C8-8 8 6 0 14C-8 6-8-8 0-14ZM-0.7 11L0-10L0.7 11Z"/>
+  </defs>
+  <g fill="#000">
+    <use href="#l" transform="translate(180 100) rotate(110) scale(1.1)"/>
+    <use href="#l" transform="translate(149.26 163.04) rotate(150) scale(0.9)"/>
+    <use href="#l" transform="translate(79.3 177.27) rotate(205) scale(1.15)"/>
+    <use href="#l" transform="translate(24.82 127.36) rotate(240) scale(0.95)"/>
+    <use href="#l" transform="translate(30.72 60) rotate(310) scale(1.1)"/>
+    <use href="#l" transform="translate(88.86 20.78) rotate(345) scale(0.9)"/>
+    <use href="#l" transform="translate(156.57 43.43) rotate(40) scale(1.15)"/>
+  </g>
+</svg>

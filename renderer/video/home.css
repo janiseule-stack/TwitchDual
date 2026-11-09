@@ -124,8 +124,52 @@
 }
 .vod .vmeta { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-/* --- Namen-Ebene (hinter dem Inhalt; Riesen-Namen folgen in Task 8) ------- */
+/* --- Namen-Ebene: Riesen-Namen hinter dem Inhalt -------------------------- */
 #home-namen { display: flex; flex-direction: column; justify-content: center; }
+.namen-zeile {
+  flex: none; display: flex; white-space: nowrap; overflow: visible;
+  font-size: 13cqh; line-height: 1.05; font-weight: 800; text-transform: uppercase;
+  font-family: var(--schrift-titel, inherit); letter-spacing: .02em;
+}
+/* Laufzeilen: Inhalt doppelt, Band laeuft um die Haelfte -> nahtlos */
+.namen-band {
+  flex: none; display: flex;
+  animation: namen-lauf 60s linear infinite; will-change: transform;
+}
+/* Abstand je Name statt gap, damit beide Haelften exakt gleich breit sind */
+.namen-band > span { padding-right: .6em; }
+.namen-band > .live { color: color-mix(in srgb, var(--text) 10%, transparent); }
+.namen-band > .offline {
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--text) 14%, transparent);
+}
+.namen-zeile:nth-child(1) .namen-band { animation-duration: 60s; animation-direction: reverse; }
+.namen-zeile:nth-child(2) .namen-band { animation-duration: 75s; }
+.namen-zeile:nth-child(4) .namen-band { animation-duration: 90s; }
+.namen-zeile:nth-child(5) .namen-band { animation-duration: 70s; animation-direction: reverse; }
+.namen-zeile:nth-child(6) .namen-band { animation-duration: 85s; }
+@keyframes namen-lauf { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Mittelzeile: Name der CD vorne, leuchtend, driftet langsam hin und her */
+.namen-mitte {
+  justify-content: center;
+  color: var(--accent-title); opacity: .9;
+  text-shadow: 0 0 .18em color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 .5em color-mix(in srgb, var(--accent) 30%, transparent);
+  animation: namen-drift 120s ease-in-out infinite;
+}
+@keyframes namen-drift {
+  0%, 100% { transform: translateX(-4cqw); }
+  50% { transform: translateX(4cqw); }
+}
+/* Namenswechsel: neuer Text blendet ein */
+.namen-mitte-text { animation: namen-ein 300ms ease-out; }
+@keyframes namen-ein { from { opacity: 0; } to { opacity: 1; } }
+
+/* Effekte aus: Namen stehen, CD dreht nicht */
+:root[data-effekte="aus"] .namen-band,
+:root[data-effekte="aus"] .namen-mitte,
+:root[data-effekte="aus"] .cd-scheibe { animation: none; }
 
 /* --- Buehne: Huelle links, Info rechts (schmal: darunter) ----------------- */
 #home-buehne {
@@ -164,13 +208,39 @@
     repeating-radial-gradient(circle, #e6e8ee 0 2px, #dadde5 2px 3px);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 22%, transparent),
     0 4px 18px color-mix(in srgb, var(--bg) 60%, transparent);
+  animation: cd-dreh 6s linear infinite;
 }
-.cd-aufdruck { position: absolute; inset: 20%; border-radius: 50%; }
+@keyframes cd-dreh { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* Regenbogen-Schimmer auf dem Silber (feste Pastelltoene, ohne Blend-Modus):
+   zwei helle Glanz-Keile ueber einem Pastell-Kreis; dreht mit der Scheibe.
+   Die Mitte (Loch + Nabe) bleibt per Maske frei. */
+.cd-schimmer {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background:
+    conic-gradient(from 0deg,
+      transparent 0 28deg, rgba(255, 255, 255, .75) 40deg, transparent 52deg 208deg,
+      rgba(255, 255, 255, .6) 220deg, transparent 232deg 360deg),
+    conic-gradient(#c9d6ff, #ffd6f0, #d6fff4, #fff3c9, #e2d6ff, #c9d6ff);
+  -webkit-mask: radial-gradient(circle, transparent 0 16.5%, #000 17.5%);
+  mask: radial-gradient(circle, transparent 0 16.5%, #000 17.5%);
+  opacity: .55;
+  transition: opacity 200ms ease;
+}
+#cd-huelle.offline .cd-schimmer { opacity: 0; }
+/* Theme-Motiv als Maske: Farbe aus dem Theme, Form aus dem SVG. Grundmotiv
+   (Neon Dual); die Themes tauschen nur das Bild (theme.css). */
+.cd-aufdruck {
+  position: absolute; inset: 20%; border-radius: 50%;
+  background-color: color-mix(in srgb, var(--accent) 70%, var(--text));
+  -webkit-mask: url(../themes/neon-dual/cd-motiv.svg) center/contain no-repeat;
+  mask: url(../themes/neon-dual/cd-motiv.svg) center/contain no-repeat;
+}
 /* CD-Wechsel (Bedienung, immer animiert): rein in die Huelle, Inhalt
    tauschen, wieder raus. Nur der Schlitten bewegt sich, die Scheibe dreht weiter. */
 .cd-schlitten.rein { transform: translateX(0); transition: transform 180ms ease-in, opacity 200ms ease; }
 .cd-schlitten.raus { transform: translateX(50%); transition: transform 220ms ease-out, opacity 200ms ease; }
-#cd-huelle.steht .cd-scheibe { animation: none; }
+#cd-huelle.steht .cd-scheibe,
+#cd-huelle.offline .cd-scheibe { animation: none; }
 #cd-huelle.gedreht .cd-schlitten { opacity: 0; }
 
 /* Vorderseite: Cover hinter Glas */
@@ -338,6 +408,7 @@
 
 @container (max-height: 520px) {
   #home-regal { height: 68px; }
+  .namen-zeile:nth-child(1), .namen-zeile:nth-child(5), .namen-zeile:nth-child(6) { display: none; }
   #cd-info .cd-titel, #cd-info .cd-nachbarn { display: none; }
 }
 @container (max-width: 900px) {

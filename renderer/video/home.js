@@ -118,8 +118,14 @@ async function ladeKanaele() {
   // Laufende Suche gilt auch fuer die frische Reihe: nach dem Oeffnen vorne
   // der beste Treffer, beim Aktualisieren ohne Sprung.
   const frisch = oeffnenAusstehend;
-  if (frisch) { buehne.oeffnen(reihe()); oeffnenAusstehend = false; }
-  else buehne.aktualisieren(reihe());
+  if (frisch) {
+    const live = reihe();
+    buehne.oeffnen(live);
+    // Riesen-Namen nur einmal je Oeffnen (Neubau startet die Laufbaender neu).
+    const offlineFavs = abschnittKanaele(HomeListe.abschnitte({ kanaele, nadel: '' }), 'offline').filter((k) => k.favorit);
+    HomeBuehneDom.zeichneNamen(HomeBuehne.namenAuswahl(live, offlineFavs));
+    oeffnenAusstehend = false;
+  } else buehne.aktualisieren(reihe());
   wendeSucheAn(frisch);
   renderHome();
 }
@@ -258,6 +264,8 @@ function zeichneHuelle() {
     leerText: g.kanal ? null : huellenText(),
     ladend: !geladen,
   }, buehnenHandler);
+  // Gleicher Name -> zeichneMitte tut nichts; leere Huelle -> leer.
+  HomeBuehneDom.zeichneMitte(g.kanal ? (g.kanal.displayName || g.kanal.login) : null);
 }
 
 // Vorschaubilder der Nachbar-CDs in den Cache holen (Blaettern ohne Warten).
@@ -288,7 +296,8 @@ function renderHome() {
       HomeBuehneDom.cdWechsel(zeichneHuelle);
     }
     punkteAbruf.vorne(g.kanal && g.modus === 'live' ? g.kanal.login : null);
-    // Task 8: Mittelzeile der Riesen-Namen hier nachziehen (zeichneMitte).
+    // Mittelzeile der Riesen-Namen: zeichnet zeichneHuelle, also beim
+    // CD-Wechsel erst im Tausch - Name und Cover wechseln zusammen.
   }
   // Waehrend der Schlitten in der Huelle ist, tauscht cdWechsel den Inhalt.
   if (!HomeBuehneDom.cdWechselLaeuft()) zeichneHuelle();

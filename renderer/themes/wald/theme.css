@@ -271,6 +271,9 @@
 :root[data-theme="wald"] #points-chip, :root[data-theme="wald"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: var(--karte-rand); }
 
+/* Home-CD: Motiv auf der Scheibe (Maske, Farbe aus dem Theme). */
+:root[data-theme="wald"] .cd-aufdruck { -webkit-mask-image: url(cd-motiv.svg); mask-image: url(cd-motiv.svg); }
+
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
 :root[data-theme="wald"][data-variante="pixel"] .vod,
 :root[data-theme="wald"][data-variante="pixel"] #settings-pop, :root[data-theme="wald"][data-variante="pixel"] #user-card { box-shadow: 4px 4px 0 #0a1020; }

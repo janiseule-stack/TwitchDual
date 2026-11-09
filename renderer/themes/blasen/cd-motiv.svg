@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Blasen: Kreise im Ring, Mitte frei (r < 60) -->
+  <g fill="none" stroke="#000" stroke-width="3">
+    <circle cx="180" cy="100" r="12"/>
+    <circle cx="168.81" cy="148.18" r="6"/>
+    <circle cx="93.03" cy="179.7" r="11"/>
+    <circle cx="44.72" cy="165.88" r="5"/>
+    <circle cx="20.3" cy="93.02" r="13"/>
+    <circle cx="37.19" cy="47.29" r="7"/>
+    <circle cx="107.15" cy="18.31" r="10"/>
+    <circle cx="150.14" cy="40.25" r="8"/>
+  </g>
+  <g fill="#000">
+    <circle cx="137" cy="164.08" r="5"/>
+    <circle cx="37.65" cy="136" r="4"/>
+    <circle cx="70.42" cy="36.56" r="4"/>
+    <circle cx="179.75" cy="62.81" r="4"/>
+    <circle cx="176" cy="96" r="3"/>
+    <circle cx="88" cy="175" r="2.5"/>
+    <circle cx="15" cy="88" r="3"/>
+  </g>
+</svg>
