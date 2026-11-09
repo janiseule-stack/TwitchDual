@@ -42,6 +42,16 @@ test('mapLiveUser: offline (stream null)', () => {
   assert.equal(r.thumb, null);
 });
 
+test('mapLiveUser: start aus stream.createdAt', () => {
+  const r = m.mapLiveUser({ login: 'kanal_a', stream: { createdAt: '2026-11-09T10:00:00Z' } });
+  assert.equal(r.start, '2026-11-09T10:00:00Z');
+});
+
+test('mapLiveUser: start null offline oder ohne Feld', () => {
+  assert.equal(m.mapLiveUser({ login: 'kanal_a', stream: null }).start, null);
+  assert.equal(m.mapLiveUser({ login: 'kanal_a', stream: { title: 't' } }).start, null);
+});
+
 test('mapLiveUser: null node -> null', () => {
   assert.equal(m.mapLiveUser(null), null);
 });

@@ -46,7 +46,9 @@ function mapLiveUser(node) {
     game: stream && stream.game ? (stream.game.displayName || '') : '',
     viewers: stream ? (stream.viewersCount || 0) : 0,
     viewersLabel: stream ? formatViewers(stream.viewersCount || 0) : '',
-    thumb: stream ? (stream.previewImageURL || null) : null
+    thumb: stream ? (stream.previewImageURL || null) : null,
+    // Startzeit des Streams (ISO) oder null
+    start: stream ? (stream.createdAt || null) : null
   };
 }
 

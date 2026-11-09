@@ -12,6 +12,18 @@ test('findChannel: existierender Kanal -> Modell (auch offline)', async () => {
   assert.equal(k.avatar, 'a.png');
 });
 
+test('findChannel und getLiveStatus fragen createdAt ab', async () => {
+  const bodies = [];
+  const fetchImpl = async (_url, init) => {
+    bodies.push(init.body);
+    return { ok: true, status: 200, async json() { return { data: { user: null, users: [] } }; } };
+  };
+  await browse.findChannel('kanal_a', { fetchImpl, retries: 0 });
+  await browse.getLiveStatus(['kanal_a'], { fetchImpl, retries: 0 });
+  assert.equal(bodies.length, 2);
+  for (const b of bodies) assert.match(JSON.parse(b).query, /createdAt/);
+});
+
 test('findChannel: unbekannter Kanal -> null statt Platzhalter', async () => {
   assert.equal(await browse.findChannel('gibtsnichtxyz', { fetchImpl: antwort({ data: { user: null } }) }), null);
 });

@@ -7,12 +7,12 @@ const { gql } = require('./twitch-gql');
 
 const LIVE_QUERY =
   `query($login:String!){ user(login:$login){ id login displayName ` +
-  `profileImageURL(width:70) stream{ id title type viewersCount ` +
+  `profileImageURL(width:70) stream{ id title type viewersCount createdAt ` +
   `game{ displayName } previewImageURL(width:320,height:180) } } }`;
 
 const LIVE_BATCH_QUERY =
   `query($logins:[String!]){ users(logins:$logins){ id login displayName ` +
-  `profileImageURL(width:70) stream{ id title type viewersCount ` +
+  `profileImageURL(width:70) stream{ id title type viewersCount createdAt ` +
   `game{ displayName } previewImageURL(width:320,height:180) } } }`;
 const LIVE_BLOCK = 100; // gemessen 09.10.2026: 100 Logins pro Abfrage ok
 
