@@ -68,7 +68,16 @@
       cb = fn;
     }
 
-    return { vorne, oeffnen, beiStand };
+    // Abmelden / Konto-Wechsel: alter Stand gehoert zum alten Konto.
+    // Spaete Antworten verwirft antwort(), weil aktuell danach null ist.
+    function leeren() {
+      if (timer !== null) { loescheTimer(timer); timer = null; }
+      speicher.clear();
+      aktuell = null;
+      gesperrt = false;
+    }
+
+    return { vorne, oeffnen, beiStand, leeren };
   }
 
   return { createPunkteAbruf };

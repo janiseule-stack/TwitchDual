@@ -212,6 +212,7 @@ function startTimeBroadcast() {
 // (nur ausserhalb von Eingabefeldern; greift nicht, wenn das Player-iframe
 // selbst den Fokus hat - dann uebernimmt der Twitch-Player).
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return; // schon behandelt (z. B. Regal-Ruecken auf Home)
   if (e.ctrlKey && e.key.toLowerCase() === 'l') {
     e.preventDefault();
     if (window.homeMitSuche) window.homeMitSuche();
@@ -220,6 +221,10 @@ document.addEventListener('keydown', (e) => {
   const t = e.target;
   const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (inField) return;
+  // Knopf auf Home (Huelle, Regal): Leertaste loest den Knopf aus, pausiert nicht.
+  const homeKnopf = t && t.closest && t.closest('#home') &&
+    (t.tagName === 'BUTTON' || t.getAttribute('role') === 'button');
+  if (homeKnopf) return;
   if (e.key === ' ' && player) {
     e.preventDefault();
     meldeNutzerEingabe(); // Pause ist gewollt -> Pause-Waechter im Player haelt still
@@ -343,6 +348,8 @@ function applyTheme(prefs) {
   document.documentElement.dataset.effekte = ThemeKatalog.cleanThemePrefs(prefs).effekte;
   balkenFarbe = ThemeKatalog.balkenFarbe(ThemeKatalog.cleanThemePrefs(prefs));
   sendeBalken();
+  // Riesen-Namen neu messen, sobald die neue Theme-Schrift gilt (nur bei offenem Home).
+  requestAnimationFrame(() => { if (window.homeNamenNeu) window.homeNamenNeu(); });
 }
 
 // Ambient nur bei offenem Home und nie im Nur-Video-Modus.

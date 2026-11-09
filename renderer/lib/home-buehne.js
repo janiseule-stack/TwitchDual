@@ -71,6 +71,12 @@
       }
       reihe = naechste;
       aufraeumen();
+      // Leere Buehne (nichts live / markierte weggeblaettert): erste
+      // sichtbare neue CD wird aktuell.
+      if (aktuellLogin === null) {
+        const s = sichtbar();
+        if (s.length) aktuellLogin = s[0].login;
+      }
     }
 
     function setzeAktuell(login) {

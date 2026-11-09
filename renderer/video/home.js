@@ -34,6 +34,7 @@ let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;       // submitLoad aus Home laeuft
 let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
 let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
+let namenAuswahl = null;       // Riesen-Namen dieses Oeffnens (Neubau nach Theme-Wechsel)
 const rad = HomeBuehne.createRad();
 const punkteAbruf = HomePunkte.createPunkteAbruf({
   abfrage: (login) => window.twitchDual.homePunkte(login),
@@ -79,6 +80,7 @@ function openHome() {
   angezeigt = null;   // erste Zeichnung gilt als Wechsel -> Punkte neu fragen
   stickerStand = null;
   punkteAbruf.oeffnen();
+  renderHome(); // alten Stand (Rueckseite, Offline-Ansicht) sofort weg, nicht erst nach dem Laden
   ladeKanaele();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
@@ -123,7 +125,8 @@ async function ladeKanaele() {
     buehne.oeffnen(live);
     // Riesen-Namen nur einmal je Oeffnen (Neubau startet die Laufbaender neu).
     const offlineFavs = abschnittKanaele(HomeListe.abschnitte({ kanaele, nadel: '' }), 'offline').filter((k) => k.favorit);
-    HomeBuehneDom.zeichneNamen(HomeBuehne.namenAuswahl(live, offlineFavs));
+    namenAuswahl = HomeBuehne.namenAuswahl(live, offlineFavs);
+    HomeBuehneDom.zeichneNamen(namenAuswahl);
     oeffnenAusstehend = false;
   } else buehne.aktualisieren(reihe());
   wendeSucheAn(frisch);
@@ -214,12 +217,16 @@ function gezeigt() {
   return { kanal: null, modus: 'live' };
 }
 function schluesselVon(g) { return g.kanal ? g.modus + '|' + g.kanal.login : null; }
+// Login-Teil eines Schluessels (modus|login); null bleibt null.
+function loginVon(schluessel) { return schluessel ? schluessel.slice(schluessel.indexOf('|') + 1) : null; }
 
 // VOD-Rueckseite fuer die CD vorne laden (9 holen, 8 zeigen, Rest -> "Mehr").
+// schluessel der Rueckseite = Login: geht die CD vorne offline (live ->
+// markiert), bleibt die Rueckseite offen.
 function zeigeRueckseite(k) {
   const g = gezeigt();
   if (!g.kanal || g.kanal.login !== k.login) return;
-  const schluessel = schluesselVon(g);
+  const schluessel = g.kanal.login;
   const r = { status: 'laden', schluessel };
   rueckseite = r;
   renderHome();
@@ -227,7 +234,7 @@ function zeigeRueckseite(k) {
     .then(() => window.twitchDual.channelVods(k.login, 9))
     .catch((e) => ({ ok: false, error: e && e.message }))
     .then((res) => {
-      if (rueckseite !== r || angezeigt !== schluessel) return; // CD gewechselt / zugedreht
+      if (rueckseite !== r || loginVon(angezeigt) !== schluessel) return; // CD gewechselt / zugedreht
       const vods = (res && res.ok && res.vods) || [];
       rueckseite = res && res.ok
         ? { status: vods.length ? 'ok' : 'leer', vods: vods.slice(0, 8), mehr: vods.length > 8, schluessel }
@@ -289,10 +296,11 @@ function renderHome() {
     // und zeichnet dabei neu.
     const vorher = angezeigt;
     angezeigt = schluessel;
-    if (rueckseite && rueckseite.schluessel !== schluessel) rueckseite = null;
-    stickerStand = null;
+    // Nur ein echter Kanalwechsel dreht die Rueckseite zu (nicht live -> markiert).
+    if (rueckseite && rueckseite.schluessel !== loginVon(schluessel)) rueckseite = null;
+    stickerStand = null; // auch bei live -> markiert: markierte CD hat keinen Sticker
     // Andere CD: Schlitten faehrt rein, Inhalt tauscht, faehrt wieder raus.
-    if (vorher && schluessel && vorher.slice(vorher.indexOf('|') + 1) !== g.kanal.login) {
+    if (vorher && schluessel && loginVon(vorher) !== g.kanal.login) {
       HomeBuehneDom.cdWechsel(zeichneHuelle);
     }
     punkteAbruf.vorne(g.kanal && g.modus === 'live' ? g.kanal.login : null);
@@ -369,6 +377,9 @@ function wendeSucheAn(springen) {
   if (!n) { buehne.filter(null); return; }
   const r = HomeListe.abschnitte({ kanaele, nadel: n });
   const logins = [...abschnittKanaele(r, 'favoriten'), ...abschnittKanaele(r, 'live')].map((k) => k.login);
+  // Gerade offline gegangene CD vorne bleibt markiert stehen, bis man weiterblaettert.
+  const vorne = buehne.aktuelle();
+  if (vorne && vorne.offline && !logins.includes(vorne.login)) logins.push(vorne.login);
   buehne.filter(logins);
   if (springen) {
     const ziel = HomeListe.besterTreffer(buehne.sichtbar(), n);
@@ -502,6 +513,13 @@ window.homeMitSuche = () => {
   $suche.select();
 };
 
+// Nach einem Theme-Wechsel (video.js applyTheme): Schrift der Riesen-Namen
+// kann anders breit sein -> Baender mit derselben Auswahl neu bauen.
+window.homeNamenNeu = () => {
+  if ($home.classList.contains('hidden') || !namenAuswahl) return;
+  HomeBuehneDom.zeichneNamen(namenAuswahl);
+};
+
 // Tasten auf Home: ↑/↓ blaettern wie das Rad (nicht in der alten VOD-Ansicht),
 // Esc geht schrittweise zurueck: VOD-Ansicht > Offline-Ansicht > Rueckseite > schliessen.
 document.addEventListener('keydown', (e) => {
@@ -551,6 +569,16 @@ function renderAuth(st) {
   // Anmelden/Abmelden aendert die gefolgten Kanaele -> neu laden, falls offen.
   const wechsel = authBekannt && vorher !== loggedIn;
   authBekannt = true;
+  if (wechsel) {
+    // Wie Neu-Oeffnen: Reihe neu bauen (sonst stuende ein nur gefolgter
+    // Kanal nach dem Abmelden als "gerade offline gegangen" vorne) und
+    // Punkte-Stand des alten Kontos vergessen; die naechste Zeichnung gilt
+    // als Wechsel und fragt die Punkte neu.
+    oeffnenAusstehend = true;
+    punkteAbruf.leeren();
+    angezeigt = null;
+    stickerStand = null;
+  }
   if (wechsel && !$home.classList.contains('hidden')) ladeKanaele();
   else if (geladen) renderHinweis();
 }
@@ -565,6 +593,7 @@ function setzePunkteLogin(s) {
   zeigeAnmeldung();
   if (punkteLogin === vorher) return;
   if (!punkteLogin) {
+    punkteAbruf.leeren(); // Speicher gehoert zum abgemeldeten Konto
     if (stickerStand) { stickerStand = null; if (!$home.classList.contains('hidden')) renderHome(); }
     return;
   }

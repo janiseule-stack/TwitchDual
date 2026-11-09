@@ -132,6 +132,47 @@ test('balance null -> kein cb', async () => {
   assert.strictEqual(z.cbs.length, 0);
 });
 
+test('leeren: Speicher weg, vorne fragt neu', async () => {
+  const z = baue();
+  z.api.vorne('kanal_a');
+  z.feuere();
+  z.abfragen[0].resolve({ ok: true, balance: 7, iconUrl: 'u' });
+  await tick();
+  z.cbs.length = 0;
+  z.api.leeren();
+  z.api.vorne('kanal_a');
+  assert.strictEqual(z.cbs.length, 0);
+  assert.strictEqual(z.timer.length, 1);
+  z.feuere();
+  assert.strictEqual(z.abfragen.length, 2);
+});
+
+test('leeren: laufender Timer weg, Sperre zurueck, spaete Antwort verworfen', async () => {
+  const z = baue();
+  z.api.vorne('kanal_a');
+  z.feuere();
+  z.abfragen[0].resolve({ ok: false, gesperrt: true });
+  await tick();
+  z.api.oeffnen();
+  z.api.vorne('kanal_b');
+  z.feuere();
+  z.api.vorne('kanal_c');           // Timer laeuft
+  z.api.leeren();
+  assert.strictEqual(z.timer.length, 0);
+  z.abfragen[1].resolve({ ok: true, balance: 3 }); // kanal_b, nach leeren
+  await tick();
+  assert.strictEqual(z.cbs.length, 0);
+  // Sperre zurueck: wieder gesperrt setzen, leeren hebt sie auf
+  z.api.vorne('kanal_d');
+  z.feuere();
+  z.abfragen[2].resolve({ ok: false, abgelaufen: true });
+  await tick();
+  z.api.leeren();
+  z.api.vorne('kanal_d');
+  z.feuere();
+  assert.strictEqual(z.abfragen.length, 4);
+});
+
 test('anderer Fehler -> kein cb, keine Sperre', async () => {
   const z = baue();
   z.api.vorne('kanal_a');

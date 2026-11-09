@@ -173,24 +173,40 @@ window.HomeBuehneDom = (function () {
     }
   }
 
+  // Rueckseite nur neu bauen, wenn sich Kanal, Status oder VOD-Liste
+  // aendern; Knoepfe lesen Handler und Kanal aus rueck (bleiben frisch).
+  // Nach einem Neubau Fokus per data-id wiederherstellen.
   function zeichneRueck(rueck, stand, h) {
     const k = stand.kanal;
     const r = stand.rueckseite;
+    rueck._h = h;
+    rueck._k = k;
+    const schluessel = k && r
+      ? [k.login, name(k), r.status, r.mehr ? 1 : 0, (r.vods || []).map((v) => v.id).join(',')].join('|')
+      : null;
+    if (rueck._schluessel === schluessel) return;
+    rueck._schluessel = schluessel;
+    const fokus = merkeFokus(rueck, 'id');
+    rueck.replaceChildren();
     if (!k || !r) return;
     const kopf = el('div', 'cd-rueck-kopf');
     kopf.appendChild(el('span', 'cd-rueck-name', name(k)));
-    kopf.appendChild(knopf('cd-zu', '↩', 'Zurueckdrehen', () => ruf(h, 'rueckseiteZu')));
+    const zu = knopf('cd-zu', '↩', 'Zurueckdrehen', () => ruf(rueck._h, 'rueckseiteZu'));
+    zu.dataset.id = 'zu';
+    kopf.appendChild(zu);
     rueck.appendChild(kopf);
 
     const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[r.status];
     if (status) {
       rueck.appendChild(el('div', 'cd-rueck-status', status));
+      stelleFokusHer(rueck, 'id', fokus);
       return;
     }
     const liste = el('ol', 'cd-tracks');
     (r.vods || []).forEach((v, i) => {
       const li = el('li');
-      const b = knopf('cd-track', null, v.title, () => ruf(h, 'vod', v.id));
+      const b = knopf('cd-track', null, v.title, () => ruf(rueck._h, 'vod', v.id));
+      b.dataset.id = 'vod-' + v.id;
       b.append(
         el('span', 'nr', String(i + 1)),
         el('span', 'titel', v.title || ''),
@@ -200,7 +216,12 @@ window.HomeBuehneDom = (function () {
       liste.appendChild(li);
     });
     rueck.appendChild(liste);
-    if (r.mehr) rueck.appendChild(knopf('cd-mehr', 'Mehr', 'Alle VODs', () => ruf(h, 'mehr', k)));
+    if (r.mehr) {
+      const mehr = knopf('cd-mehr', 'Mehr', 'Alle VODs', () => ruf(rueck._h, 'mehr', rueck._k));
+      mehr.dataset.id = 'mehr';
+      rueck.appendChild(mehr);
+    }
+    stelleFokusHer(rueck, 'id', fokus);
   }
 
   function zeichneInfo(stand) {
@@ -233,7 +254,6 @@ window.HomeBuehneDom = (function () {
     huelle.classList.toggle('steht', !!k && s.modus === 'markiert');
     huelle.classList.toggle('offline', !!k && s.modus === 'offline');
     huelle.classList.toggle('gedreht', !!k && !!s.rueckseite);
-    rueck.replaceChildren();
     zeichneFront(front, s, h);
     zeichneRueck(rueck, s, h);
     zeichneInfo(s);
@@ -250,30 +270,63 @@ window.HomeBuehneDom = (function () {
     });
   }
 
+  // Fokus vor einem Neubau merken: Wert von data-<feld> am fokussierten
+  // Element (oder seinem Vorfahren in box) und ob es der Knopf darin war.
+  function merkeFokus(box, feld) {
+    const a = document.activeElement;
+    if (!a || !box.contains(a)) return null;
+    const traeger = a.closest('[data-' + feld + ']');
+    if (!traeger || !box.contains(traeger)) return null;
+    return { wert: traeger.dataset[feld], selbst: traeger === a };
+  }
+  function stelleFokusHer(box, feld, f) {
+    if (!f) return;
+    const t = box.querySelector('[data-' + feld + '="' + CSS.escape(f.wert) + '"]');
+    if (!t) return;
+    const ziel = f.selbst ? t : (t.querySelector('button') || t);
+    ziel.focus({ preventScroll: true });
+  }
+
+  // Nur neu bauen, wenn sich der Inhalt aendert (sonst geht der
+  // Tastatur-Fokus bei jedem renderHome verloren).
   function zeichneRegal(eintraege, h) {
     const regal = document.getElementById('home-regal');
+    const liste = eintraege || [];
+    // Klicks lesen Handler und Kanal-Stand von hier (bleiben bei behaltenen Knoten frisch).
+    regal._h = h;
+    regal._kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
+    const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal),
+      e.kanal.favorit ? 1 : 0, e.kanal.verifiziert ? 1 : 0, e.kanal.live ? 1 : 0].join('|')).join('\n');
+    if (regal._schluessel === schluessel) return;
+    regal._schluessel = schluessel;
+    const fokus = merkeFokus(regal, 'login');
     regal.replaceChildren();
-    (eintraege || []).forEach((e) => {
+    liste.forEach((e) => {
       const k = e.kanal;
+      const jetzt = () => regal._kanal.get(e.art + '|' + k.login) || k;
+      const hJetzt = { stern: () => ruf(regal._h, 'stern', jetzt()) };
       const r = el('div', 'ruecken');
       r.tabIndex = 0;
       r.setAttribute('role', 'button');
       r.title = name(k);
       r.dataset.art = e.art;
+      r.dataset.login = k.login;
       const oeffnen = () => {
-        if (e.art === 'twitch' && k.live) ruf(h, 'laden', k.login);
-        else ruf(h, 'oeffne', k);
+        if (e.art === 'twitch' && k.live) ruf(regal._h, 'laden', k.login);
+        else ruf(regal._h, 'oeffne', jetzt());
       };
       r.addEventListener('click', oeffnen);
       r.addEventListener('keydown', (ev) => {
         if (ev.target !== r || (ev.key !== 'Enter' && ev.key !== ' ')) return;
         ev.preventDefault();
+        ev.stopPropagation(); // Leertaste nicht als Play/Pause im Video-Fenster
         oeffnen();
       });
-      r.appendChild(sternKnopf(k, 'ruecken-stern', h));
+      r.appendChild(sternKnopf(k, 'ruecken-stern', hJetzt));
       r.appendChild(nameMitHaken(k, 'ruecken-name'));
       regal.appendChild(r);
     });
+    stelleFokusHer(regal, 'login', fokus);
   }
 
   // CD-Wechsel: Schlitten faehrt in 180 ms in die Huelle (.rein), dann
@@ -322,9 +375,9 @@ window.HomeBuehneDom = (function () {
   // Laufzeilen 1,2,4,5,6 neu bauen: zwei gleiche Haelften, das Band laeuft
   // um -50% und setzt so nahtlos wieder an. Jede Haelfte wiederholt den
   // Zeileninhalt so oft, bis sie mindestens so breit ist wie #home-namen
-  // (sonst liefe bei wenigen Namen eine Luecke mit). Einmal messen beim
+  // bzw. wie der Bildschirm (sonst liefe bei wenigen Namen eine Luecke mit). Einmal messen beim
   // Bauen, nie pro Bild. Neubau startet die Baender neu, daher nur einmal
-  // je Oeffnen aufrufen.
+  // je Oeffnen und nach einem Theme-Wechsel aufrufen.
   const MAX_WIEDERHOLUNG = 50;
   function haelfte(inhalt, mal) {
     const h = el('div', 'namen-haelfte');
@@ -335,7 +388,9 @@ window.HomeBuehneDom = (function () {
   }
   function zeichneNamen(auswahl) {
     const zeilen = namenZeilen();
-    const breite = document.getElementById('home-namen').clientWidth;
+    // Bildschirmbreite deckt jedes Fenster auf diesem Bildschirm (auch nach
+    // dem Vergroessern ohne Neubau).
+    const breite = Math.max(document.getElementById('home-namen').clientWidth, screen.availWidth || 0);
     for (let z = 1; z <= 6; z++) {
       if (z === MITTE) continue;
       const band = el('div', 'namen-band');

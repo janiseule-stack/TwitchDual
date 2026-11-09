@@ -146,6 +146,26 @@ test('zeilenInhalt rotiert um zeile*4', () => {
   assert.deepEqual(zeilenInhalt([], 2), []);
 });
 
+test('leere Buehne: erster neuer Live-Kanal wird aktuell', () => {
+  const b = createBuehne();
+  b.oeffnen([]);
+  b.aktualisieren([k('a'), k('b')]);
+  assert.equal(b.aktuelle().login, 'a');
+  assert.equal(b.blaettern(1), true);
+  assert.equal(b.aktuelle().login, 'b');
+});
+
+test('markierte CD weggeblaettert bis leer, dann neuer Live-Kanal -> aktuell', () => {
+  const b = buehne('a');
+  b.aktualisieren([]);
+  assert.equal(b.aktuelle().offline, true);
+  assert.equal(b.blaettern(1), true);
+  assert.equal(b.aktuelle(), null);
+  b.aktualisieren([k('c')]);
+  assert.equal(b.aktuelle().login, 'c');
+  assert.equal(b.index(), 0);
+});
+
 test('vorschauUrl', () => {
   assert.ok(vorschauUrl('kanal_a', 120000).endsWith('kanal_a-640x360.jpg?t=2'));
 });
