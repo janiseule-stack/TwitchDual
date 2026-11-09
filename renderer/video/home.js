@@ -1,6 +1,7 @@
-// Home-Overlay: eine Ansicht mit Suche, ★-Favoriten, gefolgten Kanaelen
-// (Live/Offline) und Twitch-Treffern beim Suchen + VOD-Browser.
-// Spec: docs/superpowers/specs/2026-10-09-home-ein-tab-design.md
+// Home-Overlay: CD-Buehne mit den Live-Kanaelen (★-Favoriten zuerst), Regal
+// mit den Offline-Favoriten, Suche + VOD-Browser. Steuerung und Zustand hier,
+// Darstellung in home-buehne-dom.js, Reihenfolge/Blaettern in home-buehne.js.
+// Plan: docs/superpowers/plans/2026-11-09-home-cd.md
 // Auswahl ruft window.twitchDual.submitLoad(...) auf -> laedt beide Fenster.
 
 const $home = document.getElementById('home');
@@ -14,15 +15,14 @@ const $vodList = document.getElementById('vod-list');
 const $suche = document.getElementById('home-suche');
 const $refreshBtn = document.getElementById('refresh-btn');
 const $hinweis = document.getElementById('home-hinweis');
-const $liste = document.getElementById('home-liste');
-
-// Welche Abschnitte zu sind, gemerkt.
-let abschnitteZu = { ...HomeAbschnitte.STANDARD };
-try { abschnitteZu = HomeAbschnitte.lies(localStorage.getItem('homeAbschnitteZu')); } catch { /* egal */ }
 
 let kanaele = [];          // aus home-kanaele: Kanal + {favorit, gefolgt}
 let gefolgtFehler = null;
-let geladen = false;       // erster Stand da? (sonst Platzhalter)
+let geladen = false;       // erster Stand da? (sonst pulsiert die Huelle)
+const buehne = HomeBuehne.createBuehne();
+let oeffnenAusstehend = false; // naechster Erfolg baut die Reihe neu (statt aktualisieren)
+let offlineAnsicht = null;     // per Regal-Ruecken gezeigter Offline-Kanal
+let rueckseite = null;         // VOD-Rueckseite der Huelle (Task 7)
 let twitch = { nadel: null, channels: [], exakt: null }; // letzte Twitch-Treffer + ihr Suchtext
 let sterneWaehrendLaden = []; // Stern-Klicks, die eine laufende Ladung noch nicht kennt
 let suchNr = 0;            // verwirft verspaetete Suchantworten
@@ -54,6 +54,9 @@ function openHome() {
   document.body.classList.add('home-offen'); // Leiste oben: nur "Ads blocked"
   showKanaeleView();
   $suche.focus(); // direkt lostippen
+  oeffnenAusstehend = true; // vorne die erste CD der frischen Reihe
+  offlineAnsicht = null;
+  rueckseite = null;
   ladeKanaele();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
@@ -77,84 +80,115 @@ function closeHomeResume() {
 
 // --- Laden / Zeichnen -------------------------------------------------------
 async function ladeKanaele() {
-  if (!geladen) zeichnePlatzhalter();
+  if (!geladen) renderHome(); // Huelle pulsiert bis zum ersten Stand
   const nr = ladeLauf.start();
   sterneWaehrendLaden = []; // diese Ladung liest die aktuellen Favoriten
   let res;
   try { res = await window.twitchDual.homeKanaele(); } catch (e) { res = { ok: false, error: e.message || String(e) }; }
   if (!ladeLauf.aktuell(nr)) return; // neuere Ladung kam dazwischen
-  if (!res.ok) { gefolgtFehler = res.error || 'unbekannt'; geladen = true; renderHome(); return; }
+  // Fehler: oeffnenAusstehend bleibt, der naechste Erfolg baut die Reihe neu.
+  if (!res.ok) { gefolgtFehler = res.error || 'unbekannt'; renderHome(); return; }
   kanaele = HomeListe.sterneNachholen(res.kanaele, sterneWaehrendLaden);
   sterneWaehrendLaden = [];
   gefolgtFehler = res.gefolgtFehler;
   geladen = true;
+  if (oeffnenAusstehend) { buehne.oeffnen(reihe()); oeffnenAusstehend = false; }
+  else buehne.aktualisieren(reihe());
   renderHome();
 }
 
-// Nur beim allerersten Laden schimmernde Platzhalter.
-function zeichnePlatzhalter() {
-  $liste.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.id = 'live-grid';
-  for (let i = 0; i < 3; i++) {
-    const sk = document.createElement('div');
-    sk.className = 'live-card skeleton';
-    sk.innerHTML = '<div class="lc-thumbwrap"></div><div class="lc-body">' +
-      '<div class="sk-line w60"></div></div>'; // statisches Markup, keine Fremddaten
-    grid.appendChild(sk);
+function abschnittKanaele(r, art) {
+  const a = r.abschnitte.find((x) => x.art === art);
+  return a ? a.kanaele : [];
+}
+
+// Live-CDs der Buehne: ★-Favoriten zuerst, dann gefolgte - immer ungefiltert.
+function reihe() {
+  const r = HomeListe.abschnitte({ kanaele, nadel: '' });
+  return [...abschnittKanaele(r, 'favoriten'), ...abschnittKanaele(r, 'live')];
+}
+
+// Stern-Klick ruft kein aktualisieren -> Stern-Stand der gezeigten CD aus kanaele.
+function mitStern(k) {
+  const f = kanaele.find((x) => x.login === k.login);
+  return { ...k, favorit: f ? f.favorit : false };
+}
+
+// Text in der leeren Huelle (erste zutreffende Bedingung).
+function huellenText() {
+  if (!geladen) return null; // pulsiert stattdessen
+  const n = nadel();
+  if (n) {
+    const r = HomeListe.abschnitte({ kanaele, nadel: n });
+    if (r.keineEigenen) return 'Keine eigenen Kanäle passen';
+    const live = abschnittKanaele(r, 'favoriten').length + abschnittKanaele(r, 'live').length;
+    if (!live && abschnittKanaele(r, 'offline').length) return 'Kein Live-Treffer – unten im Regal';
   }
-  $liste.appendChild(grid);
+  if (!kanaele.length) return 'Noch keine Kanäle – oben suchen und mit ☆ merken';
+  return 'Gerade spielt niemand';
+}
+
+function ladeStream(wert) {
+  window.twitchDual.submitLoad(wert);
+  closeHome();
+}
+
+// Handler fuer HomeBuehneDom. Rueckseite/Tracklist steuert Task 7; bis dahin
+// fuehren VODs in die bisherige VOD-Ansicht.
+const buehnenHandler = {
+  laden: (login) => ladeStream(login),
+  // Offline-Marke der Buehne nicht in kanaele uebernehmen
+  stern: ({ offline, ...k }) => sternUmschalten(k),
+  vods: (k) => openVods(k.login, k.displayName),
+  rueckseiteZu: () => { rueckseite = null; renderHome(); },
+  vod: (id) => ladeStream(id),
+  mehr: (k) => openVods(k.login, k.displayName),
+};
+const regalHandler = {
+  oeffne: (k) => { offlineAnsicht = k; rueckseite = null; renderHome(); },
+  laden: (login) => ladeStream(login),
+  stern: (k) => sternUmschalten(k),
+};
+function nachbarKlick(login) {
+  buehne.springeZu(login);
+  offlineAnsicht = null;
+  rueckseite = null;
+  renderHome();
 }
 
 function renderHome() {
-  const r = HomeListe.abschnitte({ kanaele, nadel: nadel(), twitch: twitch.channels, exakt: twitch.exakt, twitchFuer: twitch.nadel, zu: abschnitteZu });
-  $liste.innerHTML = '';
-  if (r.keineEigenen) $liste.appendChild(emptyMsg('Keine eigenen Kanäle passen.'));
-  for (const a of r.abschnitte) $liste.appendChild(abschnittBox(a));
+  let kanal = null;
+  let modus = 'live';
+  if (offlineAnsicht) {
+    kanal = mitStern(offlineAnsicht);
+    modus = 'offline';
+  } else {
+    const a = buehne.aktuelle();
+    if (a) { kanal = mitStern(a); modus = a.offline ? 'markiert' : 'live'; }
+  }
+  HomeBuehneDom.zeichneBuehne({
+    kanal, modus,
+    rueckseite: kanal ? rueckseite : null,
+    punkte: null,
+    leerText: kanal ? null : huellenText(),
+    ladend: !geladen,
+  }, buehnenHandler);
+  const s = buehne.sichtbar();
+  const i = buehne.index();
+  HomeBuehneDom.zeichneNachbarn(i >= 0 ? s.slice(i + 1, i + 4) : [], nachbarKlick);
+  const r = HomeListe.abschnitte({ kanaele, nadel: '' });
+  const offlineFav = abschnittKanaele(r, 'offline').filter((k) => k.favorit);
+  HomeBuehneDom.zeichneRegal(offlineFav.map((k) => ({ kanal: k, art: 'offline' })), regalHandler);
   renderHinweis();
 }
 
+// „Noch keine Kanäle …“ steht in der Huelle (huellenText), nicht hier.
 function renderHinweis() {
   let text = '';
   if (gefolgtFehler) text = 'Gefolgte Kanäle nicht abrufbar: ' + gefolgtFehler;
   else if (geladen && !loggedIn) text = 'Mit Twitch anmelden, um deine gefolgten Kanäle zu sehen.';
-  else if (geladen && !kanaele.length) text = 'Noch keine Kanäle – oben suchen und mit ☆ merken.';
   $hinweis.textContent = text;
   $hinweis.classList.toggle('hidden', !text);
-}
-
-// Kopf + Inhalt eines Abschnitts. Live-Kanaele (ausser bei „Auf Twitch“)
-// als Vorschau-Karten im Grid, der Rest kompakt.
-function abschnittBox(a) {
-  const box = document.createElement('div');
-  box.className = 'home-abschnitt' + (a.offen ? '' : ' zu');
-  box.dataset.art = a.art;
-  const kopf = document.createElement('button');
-  kopf.type = 'button';
-  kopf.className = 'abschnitt-kopf';
-  const pfeil = document.createElement('span'); pfeil.className = 'abschnitt-pfeil'; pfeil.textContent = '▾';
-  const titel = document.createElement('span'); titel.textContent = a.titel;
-  const anzahl = document.createElement('span'); anzahl.className = 'abschnitt-anzahl'; anzahl.textContent = a.kanaele.length;
-  kopf.append(pfeil, titel, anzahl);
-  const inhalt = document.createElement('div');
-  inhalt.className = 'abschnitt-inhalt';
-  const gross = a.art !== 'twitch';
-  const live = gross ? a.kanaele.filter((ch) => ch.live) : [];
-  if (live.length) {
-    const grid = document.createElement('div');
-    grid.id = 'live-grid';
-    for (const ch of live) grid.appendChild(buildLiveCard(ch));
-    inhalt.appendChild(grid);
-  }
-  for (const ch of a.kanaele) if (!live.includes(ch)) inhalt.appendChild(buildFavCard(ch));
-  // Umschalten toggelt nur die Klasse (Live-Vorschauen bleiben stehen).
-  kopf.addEventListener('click', () => {
-    abschnitteZu = HomeAbschnitte.umschalten(abschnitteZu, a.art);
-    try { localStorage.setItem('homeAbschnitteZu', JSON.stringify(abschnitteZu)); } catch { /* egal */ }
-    box.classList.toggle('zu', !(nadel() || !abschnitteZu[a.art]));
-  });
-  box.append(kopf, inhalt);
-  return box;
 }
 
 // --- Suche -------------------------------------------------------------------
@@ -175,19 +209,6 @@ function sucheGetippt() {
 }
 
 // --- Stern ---------------------------------------------------------------------
-function sternKnopf(ch) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'stern' + (ch.favorit ? ' an' : '');
-  b.textContent = ch.favorit ? '★' : '☆';
-  b.title = ch.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten';
-  b.addEventListener('click', (e) => {
-    e.stopPropagation(); // nicht den Karten-Klick (Stream laden) ausloesen
-    sternUmschalten(ch);
-  });
-  return b;
-}
-
 // Ohne Netzabfrage: Flags lokal anpassen und neu zeichnen.
 async function sternUmschalten(ch) {
   const r = ch.favorit
@@ -197,150 +218,6 @@ async function sternUmschalten(ch) {
   sterneWaehrendLaden.push({ ch, favoriten: r.favorites }); // laufende Ladung holt ihn nach
   kanaele = HomeListe.sternAnwenden(kanaele, ch, r.favorites);
   renderHome();
-}
-
-// --- Karten ----------------------------------------------------------------------
-function nameMitHaken(ch) {
-  const s = document.createElement('span');
-  s.textContent = ch.displayName || ch.login;
-  if (ch.verifiziert) {
-    const h = document.createElement('span');
-    h.className = 'haken';
-    h.textContent = '✓';
-    h.title = 'Verifiziert';
-    s.appendChild(h);
-  }
-  return s;
-}
-
-function buildFavCard(ch) {
-  const card = document.createElement('div');
-  card.className = 'fav';
-
-  const avatar = document.createElement('img');
-  avatar.className = 'avatar' + (ch.live ? ' live' : '');
-  if (ch.avatar) avatar.src = ch.avatar;
-  avatar.alt = '';
-  avatar.onerror = () => { avatar.style.visibility = 'hidden'; };
-  card.appendChild(avatar);
-
-  const info = document.createElement('div');
-  info.className = 'info';
-  const name = document.createElement('div');
-  name.className = 'name';
-  name.appendChild(nameMitHaken(ch));
-  const badge = document.createElement('span');
-  badge.className = 'badge' + (ch.live ? '' : ' off');
-  badge.textContent = ch.live ? 'live' : 'offline';
-  name.appendChild(badge);
-  info.appendChild(name);
-
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  if (ch.live) {
-    const parts = [];
-    if (ch.viewersLabel) parts.push(ch.viewersLabel + ' Zuschauer');
-    if (ch.game) parts.push(ch.game);
-    meta.textContent = parts.join(' · ') + (ch.title ? ' — ' + ch.title : '');
-  } else {
-    meta.textContent = ch.error ? 'Status nicht abrufbar' : 'offline';
-  }
-  info.appendChild(meta);
-  card.appendChild(info);
-
-  const actions = document.createElement('div');
-  actions.className = 'actions';
-  const watch = document.createElement('button');
-  watch.className = 'watch';
-  watch.textContent = '▶ Live';
-  watch.disabled = !ch.live;
-  watch.addEventListener('click', () => {
-    window.twitchDual.submitLoad(ch.login);
-    closeHome();
-  });
-  actions.appendChild(watch);
-  const vods = document.createElement('button');
-  vods.className = 'vods';
-  vods.textContent = 'VODs';
-  vods.addEventListener('click', () => openVods(ch.login, ch.displayName));
-  actions.appendChild(vods);
-  actions.appendChild(sternKnopf(ch));
-  card.appendChild(actions);
-  return card;
-}
-
-// Stream-Vorschau ohne API: Twitch liefert Live-Thumbnails ueber eine
-// vorhersagbare CDN-URL. Cache-Buster wechselt mit dem 60-s-Refresh.
-function previewUrl(login) {
-  const bust = Math.floor(Date.now() / 60000);
-  return `https://static-cdn.jtvnw.net/previews-ttv/live_user_${encodeURIComponent(login)}-440x248.jpg?t=${bust}`;
-}
-
-function buildLiveCard(ch) {
-  const card = document.createElement('div');
-  card.className = 'live-card';
-  card.title = 'Klick: Stream laden';
-  card.addEventListener('click', () => {
-    window.twitchDual.submitLoad(ch.login);
-    closeHome();
-  });
-
-  const wrap = document.createElement('div');
-  wrap.className = 'lc-thumbwrap';
-  const thumb = document.createElement('img');
-  thumb.className = 'lc-thumb';
-  thumb.src = previewUrl(ch.login);
-  thumb.alt = '';
-  thumb.loading = 'lazy';
-  thumb.onerror = () => { thumb.style.visibility = 'hidden'; };
-  wrap.appendChild(thumb);
-  const liveTag = document.createElement('span');
-  liveTag.className = 'lc-live';
-  liveTag.textContent = 'LIVE';
-  wrap.appendChild(liveTag);
-  if (ch.viewersLabel) {
-    const v = document.createElement('span');
-    v.className = 'lc-viewers';
-    v.textContent = ch.viewersLabel + ' Zuschauer';
-    wrap.appendChild(v);
-  }
-  card.appendChild(wrap);
-
-  const body = document.createElement('div');
-  body.className = 'lc-body';
-  const avatar = document.createElement('img');
-  avatar.className = 'avatar';
-  if (ch.avatar) avatar.src = ch.avatar;
-  avatar.alt = '';
-  avatar.onerror = () => { avatar.style.visibility = 'hidden'; };
-  body.appendChild(avatar);
-  const info = document.createElement('div');
-  info.className = 'lc-info';
-  const name = document.createElement('div');
-  name.className = 'lc-name';
-  name.appendChild(nameMitHaken(ch));
-  info.appendChild(name);
-  const meta = document.createElement('div');
-  meta.className = 'lc-meta';
-  meta.textContent = (ch.game ? ch.game : '') + (ch.title ? (ch.game ? ' — ' : '') + ch.title : '');
-  info.appendChild(meta);
-  body.appendChild(info);
-  card.appendChild(body);
-
-  const actions = document.createElement('div');
-  actions.className = 'lc-actions';
-  const vods = document.createElement('button');
-  vods.className = 'vods';
-  vods.textContent = 'VODs';
-  vods.addEventListener('click', (e) => {
-    e.stopPropagation(); // nicht den Karten-Klick (Stream laden) ausloesen
-    openVods(ch.login, ch.displayName);
-  });
-  actions.appendChild(vods);
-  actions.appendChild(sternKnopf(ch));
-  card.appendChild(actions);
-
-  return card;
 }
 
 // --- VOD-Ansicht ----------------------------------------------------------

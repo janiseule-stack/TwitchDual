@@ -249,21 +249,17 @@
 :root[data-theme="sakura"] #bar, :root[data-theme="sakura"] #home-head, :root[data-theme="sakura"] #head {
   background: var(--balken); border-bottom: var(--karte-rand);
 }
-:root[data-theme="sakura"] #home-title, :root[data-theme="sakura"] #title,
-:root[data-theme="sakura"] .lc-name, :root[data-theme="sakura"] .fav .name { color: var(--accent-title); }
+:root[data-theme="sakura"] #home-title, :root[data-theme="sakura"] #title { color: var(--accent-title); }
 
-:root[data-theme="sakura"] .live-card, :root[data-theme="sakura"] .vod, :root[data-theme="sakura"] .fav {
+:root[data-theme="sakura"] .vod {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="sakura"] .lc-thumbwrap { margin: 6px 6px 0; border-radius: calc(var(--rund) * .7); }
-:root[data-theme="sakura"] .lc-live { background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); }
 
-:root[data-theme="sakura"] .lc-actions button, :root[data-theme="sakura"] .fav .actions button,
 :root[data-theme="sakura"] #home-head button, :root[data-theme="sakura"] #auth-bar button,
 :root[data-theme="sakura"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="sakura"] #load, :root[data-theme="sakura"] .fav .watch,
+:root[data-theme="sakura"] #load,
 :root[data-theme="sakura"] #home-head button.active, :root[data-theme="sakura"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
@@ -274,12 +270,7 @@
 :root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card,
 :root[data-theme="sakura"] #points-chip, :root[data-theme="sakura"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="sakura"] #settings-pop, :root[data-theme="sakura"] #user-card { border: var(--karte-rand); }
-/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf der Welt lesbar sind. */
-:root[data-theme="sakura"] .abschnitt-kopf {
-  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
-  padding: 6px 10px; width: auto; display: inline-flex;
-}
 
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
-:root[data-theme="sakura"][data-variante="pixel"] .live-card, :root[data-theme="sakura"][data-variante="pixel"] .vod, :root[data-theme="sakura"][data-variante="pixel"] .fav,
+:root[data-theme="sakura"][data-variante="pixel"] .vod,
 :root[data-theme="sakura"][data-variante="pixel"] #settings-pop, :root[data-theme="sakura"][data-variante="pixel"] #user-card { box-shadow: 4px 4px 0 #120c1e; }

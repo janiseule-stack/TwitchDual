@@ -165,21 +165,17 @@
 :root[data-theme="koi"] #bar, :root[data-theme="koi"] #home-head, :root[data-theme="koi"] #head {
   background: var(--balken); border-bottom: var(--karte-rand);
 }
-:root[data-theme="koi"] #home-title, :root[data-theme="koi"] #title,
-:root[data-theme="koi"] .lc-name, :root[data-theme="koi"] .fav .name { color: var(--accent-title); }
+:root[data-theme="koi"] #home-title, :root[data-theme="koi"] #title { color: var(--accent-title); }
 
-:root[data-theme="koi"] .live-card, :root[data-theme="koi"] .vod, :root[data-theme="koi"] .fav {
+:root[data-theme="koi"] .vod {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="koi"] .lc-thumbwrap { margin: 6px 6px 0; border-radius: calc(var(--rund) * .7); }
-:root[data-theme="koi"] .lc-live { background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); }
 
-:root[data-theme="koi"] .lc-actions button, :root[data-theme="koi"] .fav .actions button,
 :root[data-theme="koi"] #home-head button, :root[data-theme="koi"] #auth-bar button,
 :root[data-theme="koi"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="koi"] #load, :root[data-theme="koi"] .fav .watch,
+:root[data-theme="koi"] #load,
 :root[data-theme="koi"] #home-head button.active, :root[data-theme="koi"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
@@ -190,8 +186,3 @@
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card,
 :root[data-theme="koi"] #points-chip, :root[data-theme="koi"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="koi"] #settings-pop, :root[data-theme="koi"] #user-card { border: var(--karte-rand); }
-/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf dem Teich lesbar sind. */
-:root[data-theme="koi"] .abschnitt-kopf {
-  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
-  padding: 6px 10px; width: auto; display: inline-flex;
-}

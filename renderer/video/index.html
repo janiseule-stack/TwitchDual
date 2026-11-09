@@ -182,9 +182,10 @@
     #fx-gast { position: fixed; inset: 0; z-index: 30; display: none; }
     #fx-gast.aktiv { display: block; }
     #home > #fx-hinten { position: absolute; inset: 0; z-index: 0; }
-    #home > :not(#fx-hinten):not(.theme-deko):not(#home-version) { position: relative; z-index: 1; }
+    #home > :not(#fx-hinten):not(.theme-deko):not(#home-version):not(#home-namen) { position: relative; z-index: 1; }
+    #home > #home-namen { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     #home > .theme-deko { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    #home-title, .lc-name, .fav .name { font-family: var(--schrift-titel, inherit); }
+    #home-title, #cd-info .cd-name, #home-namen { font-family: var(--schrift-titel, inherit); }
     body.video-only #fx-gast { display: none; }
     /* Updater in der Leiste: Fortschritt, dann "Neu starten" als Knopf */
     #update-chip {
@@ -253,6 +254,7 @@
   <div id="home" class="hidden">
     <div id="fx-hinten" class="fx-ebene"></div>
     <div class="theme-deko" aria-hidden="true"></div>
+    <div id="home-namen" aria-hidden="true"></div>
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
       <span id="home-title">Home</span>
@@ -271,7 +273,15 @@
         <button id="refresh-btn" title="Aktualisieren">⟳</button>
       </div>
       <div id="home-hinweis" class="empty hidden"></div>
-      <div id="home-liste"></div>
+      <div id="home-buehne">
+        <div id="cd-huelle" tabindex="0">
+          <div class="cd-schlitten"><div class="cd-scheibe"><div class="cd-aufdruck"></div></div></div>
+          <div class="cd-front"></div>
+          <div class="cd-rueck"></div>
+        </div>
+        <div id="cd-info"></div>
+      </div>
+      <div id="home-regal"></div>
     </div>
 
     <div id="home-vod-view" class="hidden">
@@ -290,10 +300,13 @@
   <script src="../lib/themes.js"></script>
   <script src="../lib/fx-engine.js"></script>
   <script src="../lib/theme-runtime.js"></script>
-  <script src="../lib/home-abschnitte.js"></script>
   <script src="../lib/home-liste.js"></script>
   <script src="../lib/anmeldung.js"></script>
+  <script src="../lib/points-icon.js"></script>
+  <script src="../lib/home-buehne.js"></script>
+  <script src="../lib/home-punkte.js"></script>
   <script src="video.js"></script>
+  <script src="home-buehne-dom.js"></script>
   <script src="home.js"></script>
 </body>
 </html>

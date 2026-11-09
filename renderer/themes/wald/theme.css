@@ -249,21 +249,17 @@
 :root[data-theme="wald"] #bar, :root[data-theme="wald"] #home-head, :root[data-theme="wald"] #head {
   background: var(--balken); border-bottom: var(--karte-rand);
 }
-:root[data-theme="wald"] #home-title, :root[data-theme="wald"] #title,
-:root[data-theme="wald"] .lc-name, :root[data-theme="wald"] .fav .name { color: var(--accent-title); }
+:root[data-theme="wald"] #home-title, :root[data-theme="wald"] #title { color: var(--accent-title); }
 
-:root[data-theme="wald"] .live-card, :root[data-theme="wald"] .vod, :root[data-theme="wald"] .fav {
+:root[data-theme="wald"] .vod {
   background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="wald"] .lc-thumbwrap { margin: 6px 6px 0; border-radius: calc(var(--rund) * .7); }
-:root[data-theme="wald"] .lc-live { background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); }
 
-:root[data-theme="wald"] .lc-actions button, :root[data-theme="wald"] .fav .actions button,
 :root[data-theme="wald"] #home-head button, :root[data-theme="wald"] #auth-bar button,
 :root[data-theme="wald"] #home-btn {
   background: var(--knopf); color: var(--accent-title); border: var(--karte-rand); border-radius: var(--rund);
 }
-:root[data-theme="wald"] #load, :root[data-theme="wald"] .fav .watch,
+:root[data-theme="wald"] #load,
 :root[data-theme="wald"] #home-head button.active, :root[data-theme="wald"] #fav-tools-toggle.active {
   background: var(--accent); color: var(--accent-contrast); border-radius: var(--rund); font-weight: 700;
 }
@@ -274,12 +270,7 @@
 :root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card,
 :root[data-theme="wald"] #points-chip, :root[data-theme="wald"] .galerie-karte { border-radius: var(--rund); }
 :root[data-theme="wald"] #settings-pop, :root[data-theme="wald"] #user-card { border: var(--karte-rand); }
-/* Abschnitts-Koepfe im Home: kleine Kaertchen, damit sie auf der Welt lesbar sind. */
-:root[data-theme="wald"] .abschnitt-kopf {
-  background: var(--karte); border: var(--karte-rand); border-radius: var(--rund);
-  padding: 6px 10px; width: auto; display: inline-flex;
-}
 
 /* Pixel: harte Kanten, Block-Schatten wie im Spielmenue. */
-:root[data-theme="wald"][data-variante="pixel"] .live-card, :root[data-theme="wald"][data-variante="pixel"] .vod, :root[data-theme="wald"][data-variante="pixel"] .fav,
+:root[data-theme="wald"][data-variante="pixel"] .vod,
 :root[data-theme="wald"][data-variante="pixel"] #settings-pop, :root[data-theme="wald"][data-variante="pixel"] #user-card { box-shadow: 4px 4px 0 #0a1020; }
