@@ -276,5 +276,29 @@ window.HomeBuehneDom = (function () {
     });
   }
 
-  return { zeichneBuehne, zeichneNachbarn, zeichneRegal };
+  // CD-Wechsel: Schlitten faehrt in 180 ms in die Huelle (.rein), dann
+  // tauscht tausche() den Inhalt, und er faehrt in 220 ms wieder heraus
+  // (.raus). Die Scheibe dreht dabei unabhaengig weiter. Kommt waehrend
+  // .rein ein weiterer Wechsel, zeichnet das eine tausche() den letzten Stand.
+  let reinTimer = null;
+  let rausTimer = null;
+  function cdWechsel(tausche) {
+    if (reinTimer !== null) return;
+    const s = document.querySelector('#cd-huelle .cd-schlitten');
+    clearTimeout(rausTimer);
+    rausTimer = null;
+    s.classList.remove('raus');
+    s.classList.add('rein');
+    reinTimer = setTimeout(() => {
+      reinTimer = null;
+      try { tausche(); } finally {
+        s.classList.remove('rein');
+        s.classList.add('raus');
+        rausTimer = setTimeout(() => { rausTimer = null; s.classList.remove('raus'); }, 220);
+      }
+    }, 180);
+  }
+  function cdWechselLaeuft() { return reinTimer !== null; }
+
+  return { zeichneBuehne, zeichneNachbarn, zeichneRegal, cdWechsel, cdWechselLaeuft };
 })();

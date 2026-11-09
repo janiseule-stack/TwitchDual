@@ -166,6 +166,10 @@
     0 4px 18px color-mix(in srgb, var(--bg) 60%, transparent);
 }
 .cd-aufdruck { position: absolute; inset: 20%; border-radius: 50%; }
+/* CD-Wechsel (Bedienung, immer animiert): rein in die Huelle, Inhalt
+   tauschen, wieder raus. Nur der Schlitten bewegt sich, die Scheibe dreht weiter. */
+.cd-schlitten.rein { transform: translateX(0); transition: transform 180ms ease-in, opacity 200ms ease; }
+.cd-schlitten.raus { transform: translateX(50%); transition: transform 220ms ease-out, opacity 200ms ease; }
 #cd-huelle.steht .cd-scheibe { animation: none; }
 #cd-huelle.gedreht .cd-schlitten { opacity: 0; }
 

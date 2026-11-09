@@ -15,6 +15,8 @@ const $vodList = document.getElementById('vod-list');
 const $suche = document.getElementById('home-suche');
 const $refreshBtn = document.getElementById('refresh-btn');
 const $hinweis = document.getElementById('home-hinweis');
+const $buehneFlaeche = document.getElementById('home-buehne');
+const $regal = document.getElementById('home-regal');
 
 let kanaele = [];          // aus home-kanaele: Kanal + {favorit, gefolgt}
 let gefolgtFehler = null;
@@ -22,7 +24,22 @@ let geladen = false;       // erster Stand da? (sonst pulsiert die Huelle)
 const buehne = HomeBuehne.createBuehne();
 let oeffnenAusstehend = false; // naechster Erfolg baut die Reihe neu (statt aktualisieren)
 let offlineAnsicht = null;     // per Regal-Ruecken gezeigter Offline-Kanal
-let rueckseite = null;         // VOD-Rueckseite der Huelle (Task 7)
+// VOD-Rueckseite der Huelle: { status, vods?, mehr?, schluessel } - schluessel
+// = CD, fuer die sie gilt (bleibt beim Wechsel nur, wenn er dazu passt).
+let rueckseite = null;
+let angezeigt = null;          // Schluessel (modus|login) der gezeichneten CD
+let stickerStand = null;       // Kanalpunkte der CD vorne: { balance, symbol }
+let laufendeSuche = null;      // { text, fertig: Promise, erledigt } der Twitch-Suche
+let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
+let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
+const rad = HomeBuehne.createRad();
+const punkteAbruf = HomePunkte.createPunkteAbruf({
+  abfrage: (login) => window.twitchDual.homePunkte(login),
+  darf: () => punkteLogin,
+  jetzt: Date.now,
+  setzeTimer: (f, ms) => setTimeout(f, ms),
+  loescheTimer: (t) => clearTimeout(t),
+});
 let twitch = { nadel: null, channels: [], exakt: null }; // letzte Twitch-Treffer + ihr Suchtext
 let sterneWaehrendLaden = []; // Stern-Klicks, die eine laufende Ladung noch nicht kennt
 let suchNr = 0;            // verwirft verspaetete Suchantworten
@@ -31,7 +48,7 @@ let refreshTimer = null;
 const ladeLauf = HomeListe.createLaufnummer(); // verwirft verspaetete home-kanaele-Antworten
 let loggedIn = false;      // aus renderAuth (Login-Teil unten)
 
-function nadel() { return $suche.value.trim().toLowerCase().replace(/^#/, ''); }
+function nadel() { return HomeListe.normalisiere($suche.value); }
 
 // --- Sichtbarkeit / Navigation --------------------------------------------
 function showKanaeleView() {
@@ -57,6 +74,9 @@ function openHome() {
   oeffnenAusstehend = true; // vorne die erste CD der frischen Reihe
   offlineAnsicht = null;
   rueckseite = null;
+  angezeigt = null;   // erste Zeichnung gilt als Wechsel -> Punkte neu fragen
+  stickerStand = null;
+  punkteAbruf.oeffnen();
   ladeKanaele();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
@@ -68,6 +88,7 @@ function openHome() {
 function closeHome() {
   $home.classList.add('hidden');
   document.body.classList.remove('home-offen');
+  punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
 }
 
 // Home schliessen und zur bereits laufenden Quelle zurueck -> Chat wieder
@@ -94,6 +115,7 @@ async function ladeKanaele() {
   geladen = true;
   if (oeffnenAusstehend) { buehne.oeffnen(reihe()); oeffnenAusstehend = false; }
   else buehne.aktualisieren(reihe());
+  wendeSucheAn(false); // laufende Suche gilt auch fuer die frische Reihe (ohne Sprung)
   renderHome();
 }
 
@@ -128,25 +150,30 @@ function huellenText() {
   return 'Gerade spielt niemand';
 }
 
-function ladeStream(wert) {
-  window.twitchDual.submitLoad(wert);
-  closeHome();
+// Laden aus Home (▶, Cover, Track, Regal, Enter). Erfolg -> Suche leeren und
+// schliessen; Fehler -> Hinweiszeile.
+async function ladeWert(wert) {
+  let r;
+  try { r = await window.twitchDual.submitLoad(wert); } catch (e) { r = { ok: false, error: e.message || String(e) }; }
+  if (r && r.ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
+  $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
+  $hinweis.classList.remove('hidden');
 }
 
-// Handler fuer HomeBuehneDom. Rueckseite/Tracklist steuert Task 7; bis dahin
-// fuehren VODs in die bisherige VOD-Ansicht.
+// Handler fuer HomeBuehneDom.
 const buehnenHandler = {
-  laden: (login) => ladeStream(login),
+  laden: (login) => ladeWert(login),
   // Offline-Marke der Buehne nicht in kanaele uebernehmen
   stern: ({ offline, ...k }) => sternUmschalten(k),
-  vods: (k) => openVods(k.login, k.displayName),
+  vods: (k) => zeigeRueckseite(k),
   rueckseiteZu: () => { rueckseite = null; renderHome(); },
-  vod: (id) => ladeStream(id),
+  vod: (id) => ladeWert(id),
   mehr: (k) => openVods(k.login, k.displayName),
 };
 const regalHandler = {
-  oeffne: (k) => { offlineAnsicht = k; rueckseite = null; renderHome(); },
-  laden: (login) => ladeStream(login),
+  // Ruecken: Offline-Kanal vorne zeigen, gleich mit VOD-Rueckseite
+  oeffne: (k) => { offlineAnsicht = k; zeigeRueckseite(k); },
+  laden: (login) => ladeWert(login),
   stern: (k) => sternUmschalten(k),
 };
 function nachbarKlick(login) {
@@ -156,30 +183,128 @@ function nachbarKlick(login) {
   renderHome();
 }
 
-function renderHome() {
-  let kanal = null;
-  let modus = 'live';
-  if (offlineAnsicht) {
-    kanal = mitStern(offlineAnsicht);
-    modus = 'offline';
-  } else {
-    const a = buehne.aktuelle();
-    if (a) { kanal = mitStern(a); modus = a.offline ? 'markiert' : 'live'; }
+// Ein Schritt (Mausrad, ↑/↓): erst Offline-Ansicht, dann Rueckseite
+// schliessen, sonst blaettern.
+function schritt(r) {
+  if (offlineAnsicht) offlineAnsicht = null;
+  else if (rueckseite) rueckseite = null;
+  else buehne.blaettern(r);
+  renderHome();
+}
+
+// Welche CD vorne steht: Offline-Ansicht vor der Buehne.
+function gezeigt() {
+  if (offlineAnsicht) return { kanal: mitStern(offlineAnsicht), modus: 'offline' };
+  const a = buehne.aktuelle();
+  if (a) return { kanal: mitStern(a), modus: a.offline ? 'markiert' : 'live' };
+  return { kanal: null, modus: 'live' };
+}
+function schluesselVon(g) { return g.kanal ? g.modus + '|' + g.kanal.login : null; }
+
+// VOD-Rueckseite fuer die CD vorne laden (9 holen, 8 zeigen, Rest -> "Mehr").
+function zeigeRueckseite(k) {
+  const g = gezeigt();
+  if (!g.kanal || g.kanal.login !== k.login) return;
+  const schluessel = schluesselVon(g);
+  const r = { status: 'laden', schluessel };
+  rueckseite = r;
+  renderHome();
+  Promise.resolve()
+    .then(() => window.twitchDual.channelVods(k.login, 9))
+    .catch((e) => ({ ok: false, error: e && e.message }))
+    .then((res) => {
+      if (rueckseite !== r || angezeigt !== schluessel) return; // CD gewechselt / zugedreht
+      const vods = (res && res.ok && res.vods) || [];
+      rueckseite = res && res.ok
+        ? { status: vods.length ? 'ok' : 'leer', vods: vods.slice(0, 8), mehr: vods.length > 8, schluessel }
+        : { status: 'fehler', schluessel };
+      renderHome();
+    });
+}
+
+// Symbol fuer den Punkte-Sticker: Kanal-Icon > Emote zur Akzentfarbe > SVG.
+function punkteSymbolFuer(login, iconUrl) {
+  if (iconUrl) return { art: 'url', url: iconUrl };
+  const akzent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const emote = PointsIcon.waehleEmote(ThemeLib.normalizeHex(akzent, ThemeLib.DEFAULTS.videoAccent), login);
+  return emote && emote.url ? { art: 'url', url: emote.url } : { art: 'svg' };
+}
+
+// Antwort des Punkte-Abrufs; wirft nie (laeuft evtl. in einem .then).
+punkteAbruf.beiStand((login, s) => {
+  try {
+    if (angezeigt !== 'live|' + login || !punkteLogin) return;
+    stickerStand = { balance: s.balance, symbol: punkteSymbolFuer(login, s.iconUrl) };
+    renderHome();
+  } catch (e) {
+    console.warn('Home-Punkte:', e && e.message);
   }
+});
+
+function zeichneHuelle() {
+  const g = gezeigt();
   HomeBuehneDom.zeichneBuehne({
-    kanal, modus,
-    rueckseite: kanal ? rueckseite : null,
-    punkte: null,
-    leerText: kanal ? null : huellenText(),
+    kanal: g.kanal, modus: g.modus,
+    rueckseite: g.kanal ? rueckseite : null,
+    punkte: g.kanal ? stickerStand : null,
+    leerText: g.kanal ? null : huellenText(),
     ladend: !geladen,
   }, buehnenHandler);
+}
+
+// Vorschaubilder der Nachbar-CDs in den Cache holen (Blaettern ohne Warten).
+function vorladen() {
+  const s = buehne.sichtbar();
+  const i = buehne.index();
+  if (i < 0) return;
+  const jetzt = Date.now();
+  const urls = [s[i - 1], s[i + 1]].filter(Boolean).map((k) => HomeBuehne.vorschauUrl(k.login, jetzt));
+  const merk = urls.join(' ');
+  if (merk === letzteVorladung) return;
+  letzteVorladung = merk;
+  urls.forEach((u) => { new Image().src = u; });
+}
+
+function renderHome() {
+  const g = gezeigt();
+  const schluessel = schluesselVon(g);
+  if (schluessel !== angezeigt) {
+    // Merker zuerst: punkteAbruf.vorne ruft aus dem Speicher sofort zurueck
+    // und zeichnet dabei neu.
+    const vorher = angezeigt;
+    angezeigt = schluessel;
+    if (rueckseite && rueckseite.schluessel !== schluessel) rueckseite = null;
+    stickerStand = null;
+    // Andere CD: Schlitten faehrt rein, Inhalt tauscht, faehrt wieder raus.
+    if (vorher && schluessel && vorher.slice(vorher.indexOf('|') + 1) !== g.kanal.login) {
+      HomeBuehneDom.cdWechsel(zeichneHuelle);
+    }
+    punkteAbruf.vorne(g.kanal && g.modus === 'live' ? g.kanal.login : null);
+    // Task 8: Mittelzeile der Riesen-Namen hier nachziehen (zeichneMitte).
+  }
+  // Waehrend der Schlitten in der Huelle ist, tauscht cdWechsel den Inhalt.
+  if (!HomeBuehneDom.cdWechselLaeuft()) zeichneHuelle();
   const s = buehne.sichtbar();
   const i = buehne.index();
   HomeBuehneDom.zeichneNachbarn(i >= 0 ? s.slice(i + 1, i + 4) : [], nachbarKlick);
-  const r = HomeListe.abschnitte({ kanaele, nadel: '' });
-  const offlineFav = abschnittKanaele(r, 'offline').filter((k) => k.favorit);
-  HomeBuehneDom.zeichneRegal(offlineFav.map((k) => ({ kanal: k, art: 'offline' })), regalHandler);
+  HomeBuehneDom.zeichneRegal(regalEintraege(), regalHandler);
+  vorladen();
   renderHinweis();
+}
+
+// Regal: ohne Suche die Offline-Favoriten; mit Suche alle Offline-Treffer
+// (Favoriten zuerst) und dahinter die Twitch-Treffer.
+function regalEintraege() {
+  const n = nadel();
+  if (!n) {
+    const r = HomeListe.abschnitte({ kanaele, nadel: '' });
+    return abschnittKanaele(r, 'offline').filter((k) => k.favorit).map((k) => ({ kanal: k, art: 'offline' }));
+  }
+  const r = HomeListe.abschnitte({ kanaele, nadel: n, twitch: twitch.channels, exakt: twitch.exakt, twitchFuer: twitch.nadel });
+  return [
+    ...abschnittKanaele(r, 'offline').map((k) => ({ kanal: k, art: 'offline' })),
+    ...abschnittKanaele(r, 'twitch').map((k) => ({ kanal: k, art: 'twitch' })),
+  ];
 }
 
 // „Noch keine Kanäle …“ steht in der Huelle (huellenText), nicht hier.
@@ -193,19 +318,45 @@ function renderHinweis() {
 
 // --- Suche -------------------------------------------------------------------
 // Eigene Kanaele filtern sofort; Twitch-Treffer kommen entprellt nach.
+// laufendeSuche gilt schon waehrend der Entprellung, damit Enter weiss,
+// dass gleich noch ein Exakt-Treffer kommen kann.
 function sucheGetippt() {
-  renderHome();
   clearTimeout(suchTimer);
   const n = nadel();
   const nr = ++suchNr;
-  if (n.length < HomeListe.MIN_TWITCH) return;
-  suchTimer = setTimeout(async () => {
-    let res = null;
-    try { res = await window.twitchDual.kanalSuche(n); } catch { /* still */ }
-    if (nr !== suchNr || !res || !res.ok) return; // veraltet oder Fehler
-    twitch = { nadel: n, channels: res.channels || [], exakt: res.exakt || null };
-    renderHome();
-  }, 250);
+  if (laufendeSuche) laufendeSuche.beenden(); // neuer Tastendruck ersetzt sie
+  laufendeSuche = null;
+  if (n.length >= HomeListe.MIN_TWITCH) {
+    const lauf = { text: n, erledigt: false };
+    lauf.fertig = new Promise((fertig) => {
+      lauf.beenden = () => { lauf.erledigt = true; fertig(); };
+    });
+    laufendeSuche = lauf;
+    suchTimer = setTimeout(async () => {
+      let res = null;
+      try { res = await window.twitchDual.kanalSuche(n); } catch { /* still */ }
+      const gueltig = nr === suchNr && res && res.ok; // sonst veraltet oder Fehler
+      if (gueltig) twitch = { nadel: n, channels: res.channels || [], exakt: res.exakt || null };
+      lauf.beenden(); // nach twitch, damit wartendes Enter den Treffer sieht
+      if (gueltig) renderHome();
+    }, 250);
+  }
+  offlineAnsicht = null; // Suche zeigt wieder die Live-CDs
+  wendeSucheAn(true);
+  renderHome();
+}
+
+// Buehne auf die Live-Treffer begrenzen; mit springen vorne der beste Treffer.
+function wendeSucheAn(springen) {
+  const n = nadel();
+  if (!n) { buehne.filter(null); return; }
+  const r = HomeListe.abschnitte({ kanaele, nadel: n });
+  const logins = [...abschnittKanaele(r, 'favoriten'), ...abschnittKanaele(r, 'live')].map((k) => k.login);
+  buehne.filter(logins);
+  if (springen) {
+    const ziel = HomeListe.besterTreffer(buehne.sichtbar(), n);
+    if (ziel) buehne.springeZu(ziel);
+  }
 }
 
 // --- Stern ---------------------------------------------------------------------
@@ -287,17 +438,41 @@ $homeClose.addEventListener('click', closeHomeResume);
 $homeBack.addEventListener('click', showKanaeleView);
 $refreshBtn.addEventListener('click', ladeKanaele);
 $suche.addEventListener('input', sucheGetippt);
-// Enter: VOD-Link/-ID oder Kanalname direkt laden (oben gibt es kein
-// Eingabefeld mehr - Kanal wechseln nur hier).
+// Enter: Reihenfolge in HomeListe.enterZiel (VOD > eigener Kanal > Twitch-
+// Exakttreffer > vordere CD > Kanalname). Laeuft die Twitch-Suche zu genau
+// diesem Text noch, hoechstens 1500 ms auf sie warten.
 $suche.addEventListener('keydown', async (e) => {
-  if (e.key !== 'Enter') return;
-  const wert = HomeListe.enterLaden($suche.value);
-  if (!wert) return;
-  const r = await window.twitchDual.submitLoad(wert);
-  if (r && r.ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
-  $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
-  $hinweis.classList.remove('hidden');
+  if (e.key !== 'Enter' || enterLaeuft) return;
+  e.preventDefault();
+  const text = $suche.value;
+  const n = HomeListe.normalisiere(text);
+  const ziel = (sucheLaeuft) => HomeListe.enterZiel({
+    text, eigene: kanaele, exakt: twitch.exakt, exaktFuer: twitch.nadel,
+    sucheLaeuft, vordere: buehne.aktuelle(),
+  });
+  let z = ziel(!!laufendeSuche && laufendeSuche.text === n && !laufendeSuche.erledigt);
+  if (z && z.art === 'warten') {
+    enterLaeuft = true;
+    try {
+      await Promise.race([laufendeSuche.fertig, new Promise((r) => setTimeout(r, 1500))]);
+    } finally {
+      enterLaeuft = false;
+    }
+    z = ziel(false);
+  }
+  if (z && z.art === 'laden') ladeWert(z.wert);
 });
+$buehneFlaeche.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = rad.eingabe(e.deltaY, e.deltaMode, performance.now());
+  if (r) schritt(r);
+}, { passive: false });
+// Regal: senkrechtes Rad blaettert waagerecht (waagerechtes macht der Browser)
+$regal.addEventListener('wheel', (e) => {
+  if (!e.deltaY) return;
+  e.preventDefault();
+  $regal.scrollLeft += e.deltaY;
+}, { passive: false });
 // Fuer die Leiste im Video-Fenster: Klick auf die Infos / Strg+L.
 window.homeMitSuche = () => {
   if ($home.classList.contains('hidden')) openHome();
@@ -306,10 +481,21 @@ window.homeMitSuche = () => {
   $suche.select();
 };
 
-// Esc schliesst das Overlay (bzw. fuehrt aus der VOD-Ansicht zurueck).
+// Tasten auf Home: ↑/↓ blaettern wie das Rad (nicht in der alten VOD-Ansicht),
+// Esc geht schrittweise zurueck: VOD-Ansicht > Offline-Ansicht > Rueckseite > schliessen.
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape' || $home.classList.contains('hidden')) return;
-  if (!$vodView.classList.contains('hidden')) showKanaeleView();
+  if ($home.classList.contains('hidden')) return;
+  const vodAnsicht = !$vodView.classList.contains('hidden');
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (vodAnsicht || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault(); // im Suchfeld sonst Cursor an Anfang/Ende
+    schritt(e.key === 'ArrowDown' ? 1 : -1);
+    return;
+  }
+  if (e.key !== 'Escape') return;
+  if (vodAnsicht) showKanaeleView();
+  else if (offlineAnsicht) { offlineAnsicht = null; rueckseite = null; renderHome(); }
+  else if (rueckseite) { rueckseite = null; renderHome(); }
   else closeHomeResume();
 });
 
@@ -349,15 +535,32 @@ function renderAuth(st) {
 
 window.twitchDual.authStatus().then(renderAuth).catch(() => {});
 window.twitchDual.onAuthChanged(renderAuth);
-window.twitchDual.webLoginStatus().then((s) => { punkteLogin = !!(s && s.angemeldet); zeigeAnmeldung(); }).catch(() => {});
-window.twitchDual.onWebLoginGeaendert((s) => { punkteLogin = !!(s && s.angemeldet); zeigeAnmeldung(); });
+// Kanalpunkte-Anmeldung: abgemeldet -> Sticker weg (der Abruf prueft darf()
+// bei einer spaeten Antwort nicht mehr); angemeldet -> Punkte der CD vorne holen.
+function setzePunkteLogin(s) {
+  const vorher = punkteLogin;
+  punkteLogin = !!(s && s.angemeldet);
+  zeigeAnmeldung();
+  if (punkteLogin === vorher) return;
+  if (!punkteLogin) {
+    if (stickerStand) { stickerStand = null; if (!$home.classList.contains('hidden')) renderHome(); }
+    return;
+  }
+  if ($home.classList.contains('hidden')) return;
+  punkteAbruf.oeffnen();
+  const g = gezeigt();
+  punkteAbruf.vorne(g.kanal && g.modus === 'live' ? g.kanal.login : null);
+}
+
+window.twitchDual.webLoginStatus().then(setzePunkteLogin).catch(() => {});
+window.twitchDual.onWebLoginGeaendert(setzePunkteLogin);
 
 $authLogin.addEventListener('click', async () => {
   $authLogin.disabled = true;
   const r = await window.twitchDual.anmelden();
   $authLogin.disabled = false;
   if (!r.ok) $authState.textContent = r.error;
-  window.twitchDual.webLoginStatus().then((s) => { punkteLogin = !!(s && s.angemeldet); zeigeAnmeldung(); }).catch(() => {});
+  window.twitchDual.webLoginStatus().then(setzePunkteLogin).catch(() => {});
 });
 $authLogout.addEventListener('click', () => window.twitchDual.abmelden());
 
