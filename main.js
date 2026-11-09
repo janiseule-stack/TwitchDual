@@ -25,6 +25,7 @@ const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
 const { ladeHomeKanaele } = require('./src/home-kanaele');
+const { homePunkte } = require('./src/home-punkte');
 const { ChatSender } = require('./src/chat-send');
 const { safeStorage, session, screen } = require('electron');
 
@@ -1187,6 +1188,18 @@ ipcMain.handle('home-kanaele', async () => {
     });
     return { ok: true, ...r };
   } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
+// Home: Kanalpunkte-Stand fuer einen Kanal. Der Token bleibt im Main-Prozess,
+// zum Renderer geht nur Stand und Symbol.
+ipcMain.handle('home-punkte', async (_evt, login) => {
+  if (webTokenAbgelaufen) return { ok: false, error: 'Anmeldung abgelaufen', abgelaufen: true };
+  const r = await homePunkte({ login, token: webToken, api: pointsApi });
+  if (r.abgelaufen) {
+    webTokenAbgelaufen = true;
+    diagLog.melde('punkte', 'token-abgelaufen', { kanal: login });
+  }
+  return r;
 });
 
 // Kanalsuche oben: Twitchs eigene Vorschlaege + exakter Login-Treffer.

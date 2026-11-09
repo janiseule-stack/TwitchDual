@@ -83,6 +83,7 @@ if (!isTwitchFrame) {
     // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
     getFavorites: () => ipcRenderer.invoke('get-favorites'),
     homeKanaele: () => ipcRenderer.invoke('home-kanaele'),
+    homePunkte: (login) => ipcRenderer.invoke('home-punkte', login),
     addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
     removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
     channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
