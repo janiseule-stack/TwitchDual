@@ -28,3 +28,17 @@ Urteil aller drei: Tasks 1–5 umsetzungsreif, Tasks 6–9 nicht.
 | 20 | Major | Mess-Werkzeug/Kriterium Task 9 offen; Spion auf `contextBridge`-Objekt geht nicht | rAF-Messung per `cdp-eval`, Kriterium ≤ 2; Prüfung über `player.getChannel()` |
 | 21 | Major | `mapLiveUser`-Tests in falscher Datei | `test/browse-map.test.js` |
 | 22 | Nit | Version/Release unklar, Aufräumen Theme-CSS, `previewUrl`, `zu:`, Richtungen, Rad-Testzahlen, `createRad` ohne `= {}`, Motiv-Formulierung, Kanal-Objekt | alle festgelegt |
+
+## Nachprüfung (einzige erlaubte Wiederholung)
+
+Prüfer: egm-implementation-readiness (frisch). Alte Befunde 1–12, 14–22 behoben, 13 teilweise.
+Neu/offen: A Script-Bereich hätte `theme-runtime.js` gelöscht; B Drehen und Verschieben auf
+demselben Element; C Rückseite blieb beim CD-Wechsel stehen; D ↑/↓ in der Offline-Ansicht;
+E Namen-Neubau bei jedem Zeichnen; F fest weiße Farben unsichtbar in hellen Themes; dazu 9 Nits.
+Urteil: Tasks 1–5 reif, 6–8 nach A–F.
+
+Umgang: A–F und alle Nits im Plan festgelegt (Zeilen 293–297; `.cd-schlitten` + `.cd-scheibe`;
+eine Wechsel-Regel für Rückseite/Sticker/Punkte/Mittelzeile mit Merker zuerst; `schritt(r)` für
+Rad und Tasten; `zeichneNamen` nur beim Öffnen, `zeichneMitte` getrennt; alle Farben aus
+`var(--text)`, Motive als Maske; Container-Abfragen; Opacity-Puls statt `shimmer`).
+Wiederholungs-Grenze erreicht – keine weitere Prüfung; verbleibende Unschärfen trägt der Umsetzer.
