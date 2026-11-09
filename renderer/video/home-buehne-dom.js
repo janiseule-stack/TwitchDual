@@ -283,6 +283,9 @@ window.HomeBuehneDom = (function () {
   let reinTimer = null;
   let rausTimer = null;
   function cdWechsel(tausche) {
+    // Alter Punkte-Sticker sofort weg; der neue kommt erst nach dem Tausch.
+    const front = document.querySelector('#cd-huelle .cd-front');
+    if (front && front._cd && front._cd.sticker) { front._cd.sticker.remove(); front._cd.sticker = null; }
     if (reinTimer !== null) return;
     const s = document.querySelector('#cd-huelle .cd-schlitten');
     clearTimeout(rausTimer);

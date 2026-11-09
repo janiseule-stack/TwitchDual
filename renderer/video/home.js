@@ -31,6 +31,8 @@ let angezeigt = null;          // Schluessel (modus|login) der gezeichneten CD
 let stickerStand = null;       // Kanalpunkte der CD vorne: { balance, symbol }
 let laufendeSuche = null;      // { text, fertig: Promise, erledigt } der Twitch-Suche
 let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
+let ladenLaeuft = false;       // submitLoad aus Home laeuft
+let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
 let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
 const rad = HomeBuehne.createRad();
 const punkteAbruf = HomePunkte.createPunkteAbruf({
@@ -113,9 +115,12 @@ async function ladeKanaele() {
   sterneWaehrendLaden = [];
   gefolgtFehler = res.gefolgtFehler;
   geladen = true;
-  if (oeffnenAusstehend) { buehne.oeffnen(reihe()); oeffnenAusstehend = false; }
+  // Laufende Suche gilt auch fuer die frische Reihe: nach dem Oeffnen vorne
+  // der beste Treffer, beim Aktualisieren ohne Sprung.
+  const frisch = oeffnenAusstehend;
+  if (frisch) { buehne.oeffnen(reihe()); oeffnenAusstehend = false; }
   else buehne.aktualisieren(reihe());
-  wendeSucheAn(false); // laufende Suche gilt auch fuer die frische Reihe (ohne Sprung)
+  wendeSucheAn(frisch);
   renderHome();
 }
 
@@ -153,8 +158,11 @@ function huellenText() {
 // Laden aus Home (▶, Cover, Track, Regal, Enter). Erfolg -> Suche leeren und
 // schliessen; Fehler -> Hinweiszeile.
 async function ladeWert(wert) {
+  if (ladenLaeuft) return; // Doppelklick / Enter waehrend submitLoad
+  ladenLaeuft = true;
   let r;
   try { r = await window.twitchDual.submitLoad(wert); } catch (e) { r = { ok: false, error: e.message || String(e) }; }
+  finally { ladenLaeuft = false; }
   if (r && r.ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
   $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
   $hinweis.classList.remove('hidden');
@@ -448,16 +456,20 @@ $suche.addEventListener('keydown', async (e) => {
   const n = HomeListe.normalisiere(text);
   const ziel = (sucheLaeuft) => HomeListe.enterZiel({
     text, eigene: kanaele, exakt: twitch.exakt, exaktFuer: twitch.nadel,
-    sucheLaeuft, vordere: buehne.aktuelle(),
+    // Offline-Kanal vorne ist per Enter nicht ladbar (nicht die Live-CD dahinter laden)
+    sucheLaeuft, vordere: offlineAnsicht ? null : buehne.aktuelle(),
   });
   let z = ziel(!!laufendeSuche && laufendeSuche.text === n && !laufendeSuche.erledigt);
   if (z && z.art === 'warten') {
+    const esc = escZaehler;
     enterLaeuft = true;
     try {
       await Promise.race([laufendeSuche.fertig, new Promise((r) => setTimeout(r, 1500))]);
     } finally {
       enterLaeuft = false;
     }
+    // Home inzwischen zu oder Text geaendert -> nicht mehr laden
+    if ($home.classList.contains('hidden') || $suche.value !== text || escZaehler !== esc) return;
     z = ziel(false);
   }
   if (z && z.art === 'laden') ladeWert(z.wert);
@@ -493,6 +505,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key !== 'Escape') return;
+  escZaehler += 1; // bricht ein wartendes Enter ab
   if (vodAnsicht) showKanaeleView();
   else if (offlineAnsicht) { offlineAnsicht = null; rueckseite = null; renderHome(); }
   else if (rueckseite) { rueckseite = null; renderHome(); }
