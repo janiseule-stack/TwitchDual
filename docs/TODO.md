@@ -28,6 +28,10 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Home-Overlay: Favoriten-Suche (Name/Spiel/Titel), Sortierung zentral im
   Main (`sortByLive`), erklärende Leerzustände.
 - Tastenkürzel: `Ctrl+L` Eingabefeld, `Space` Play/Pause, `Esc` Overlay.
+- Home als CD-Bühne (Branch `feat/home-cd`, wartet auf Janis' Ansehen,
+  insbesondere die Mittelzeile „Namen antworten“): Live-Kanäle als CDs
+  in einer Hülle, Namenszeilen, Tracklist, Info-Block; Abnahme: `npm test`
+  681/681, 0 lange Frames bei Sakura/viel, Enter-Suche lädt den getippten Login.
 - Home als eine Ansicht (Branch `feat/kanal-suche`): Suche oben (eigene
   Kanäle sofort, „Auf Twitch“ per GQL `searchSuggestions` + exakter Login),
   ★-Favoriten ganz oben, gefolgte Live/Offline (offline alphabetisch);
