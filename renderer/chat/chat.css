@@ -1,23 +1,4 @@
-/* Neon Dual - On Air (v1.5.0): alle Akzente laufen ueber CSS-Variablen.
-   --accent* und --panel setzt chat.js aus ThemeLib.accentVars(chatAccent);
-   die Werte hier sind nur der Fallback bis zum ersten applyTheme(). */
-:root {
-  --accent: #ff4fa3;
-  --accent-title: #ff9ecc;
-  --accent-border: rgba(255, 79, 163, .4);
-  --accent-glow: rgba(255, 79, 163, .2);
-  --accent-dim: rgba(255, 79, 163, .3);
-  --panel: #1c101b;
-  --onair-from: #35e0ff;
-  --onair-to: #ff4fa3;
-  --bg: #0b0b11;
-  --line: #1c1c26;
-  --hover: #14141c;
-  --text: #ededf4;
-  --muted: #8b8b9c;
-  --ts: #565666;
-  --mono: "Cascadia Code", Consolas, monospace;
-}
+/* Alle Farben laufen ueber CSS-Variablen aus ../themes/cozy/farben.css. */
 
 * { box-sizing: border-box; }
 html, body {
