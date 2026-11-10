@@ -95,6 +95,35 @@ test('Video: leerer Player zeigt die Tapete', () => {
   assert.ok(/id="player" class="[^"]*tapete/.test(videoHtml));
 });
 
+// --- Runde 2 (Janis 10.11.2026): keine alten Emotes mehr als Symbole ---------
+test('Symbole: Pixel-Bilder liegen lokal vor', () => {
+  for (const n of ['smiley', 'truhe', 'flieger', 'muenze']) {
+    assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/symbol-' + n + '.png')), n);
+  }
+});
+test('Chat: Feld-Knoepfe zeigen Pixel-Symbole statt Emotes aus dem Netz', () => {
+  for (const [id, bild] of [['emote-btn', 'symbol-smiley.png'], ['rewards-btn', 'symbol-truhe.png'], ['chat-send', 'symbol-flieger.png']]) {
+    const start = chatHtml.indexOf('id="' + id + '"');
+    const knopf = chatHtml.slice(start, chatHtml.indexOf('</button>', start));
+    assert.ok(knopf.includes('../themes/cozy/' + bild), id);
+  }
+  assert.ok(!/cdn\.7tv\.app|betterttv/.test(chatHtml));
+});
+test('Kanalpunkte: Ersatz-Symbol ist die Pixel-Muenze, kein Emote', () => {
+  for (const datei of ['renderer/chat/chat.js', 'renderer/video/home.js']) {
+    const js = lies(datei);
+    assert.ok(!js.includes('waehleEmote'), datei);
+    assert.ok(js.includes('themes/cozy/symbol-muenze.png'), datei);
+  }
+});
+test('Video: Ads blocked ohne Emote, Lampe blinkt beim Blocken', () => {
+  assert.ok(!videoHtml.includes('ads-emote'));
+  assert.ok(!lies('renderer/video/video.js').includes('AdsEmotes'));
+  assert.ok(!fs.existsSync(path.join(wurzel, 'renderer/lib/ads-emotes.js')));
+  assert.ok(/#ads-indicator\.blocking \.lampe\s*\{[^}]*animation/.test(videoHtml));
+  assert.ok(/#ads-indicator\s*\{[^}]*var\(--schrift-pixel\)/.test(videoHtml));
+});
+
 test('beide Fenster binden raum.css direkt nach farben.css ein', () => {
   for (const datei of ['renderer/chat/index.html', 'renderer/video/index.html']) {
     const html = lies(datei);

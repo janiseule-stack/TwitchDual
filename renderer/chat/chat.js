@@ -1268,19 +1268,16 @@ let zeigtEchtenStand = false;
 // Ersatz blinkt weg und die Rueckfallkette laeuft alle 15s von vorn.
 let letzterSymbolSchluessel = null;
 
-// Ebene 1 Kanal-Icon, Ebene 2 passendes 7TV-Emote, Ebene 3 eingebautes SVG.
-// Ebene 3 ist bewusst kein Netzbild - sie muss auch dann noch da sein, wenn
-// gar nichts laedt.
+// Ebene 1 Kanal-Icon, Ebene 2 die Pixel-Muenze aus dem Raum (lokal),
+// Ebene 3 eingebautes SVG, falls selbst das Bild nicht laedt.
+const PUNKTE_MUENZE = '../themes/cozy/symbol-muenze.png';
 function setzePunkteSymbol(iconUrl, channelLogin) {
   letzterIconUrl = iconUrl || null;
   letzterKanal = channelLogin || null;
-  // Die Akzentfarbe bestimmt die Farbfamilie des Ersatz-Symbols.
-  const akzent = ThemeLib.AKZENT;
-  const schluessel = (letzterIconUrl || '') + '|' + (letzterKanal || '') + '|' + akzent;
+  const schluessel = (letzterIconUrl || '') + '|' + (letzterKanal || '');
   if (schluessel === letzterSymbolSchluessel) return;
   letzterSymbolSchluessel = schluessel;
-  const emote = PointsIcon.waehleEmote(akzent, letzterKanal);
-  const ebene2 = emote ? emote.url : null;
+  const ebene2 = PUNKTE_MUENZE;
   const zeigeSvg = () => {
     $pointsIcon.classList.add('hidden');
     $pointsSvg.classList.remove('hidden');
@@ -1291,9 +1288,9 @@ function setzePunkteSymbol(iconUrl, channelLogin) {
     $pointsIcon.onerror = weiter;
     $pointsIcon.src = url;
   };
-  if (letzterIconUrl) zeige(letzterIconUrl, () => (ebene2 ? zeige(ebene2, zeigeSvg) : zeigeSvg()));
-  else if (ebene2) zeige(ebene2, zeigeSvg);
-  else zeigeSvg();
+  $pointsIcon.classList.toggle('pixel', !letzterIconUrl);
+  if (letzterIconUrl) zeige(letzterIconUrl, () => { $pointsIcon.classList.add('pixel'); zeige(ebene2, zeigeSvg); });
+  else zeige(ebene2, zeigeSvg);
 }
 
 // Symbolfreie Zustaende (Fehler, Anmeldung, Warten). Muss den Schluessel

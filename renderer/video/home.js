@@ -301,12 +301,9 @@ function zeigeRueckseite(k) {
     });
 }
 
-// Symbol fuer den Punkte-Sticker: Kanal-Icon > Emote zur Akzentfarbe > SVG.
+// Symbol fuer den Punkte-Sticker: Kanal-Icon, sonst die Pixel-Muenze aus dem Raum.
 function punkteSymbolFuer(login, iconUrl) {
-  if (iconUrl) return { art: 'url', url: iconUrl };
-  const akzent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  const emote = PointsIcon.waehleEmote(ThemeLib.normalizeHex(akzent, ThemeLib.AKZENT), login);
-  return emote && emote.url ? { art: 'url', url: emote.url } : { art: 'svg' };
+  return { art: 'url', url: iconUrl || '../themes/cozy/symbol-muenze.png' };
 }
 
 // Antwort des Punkte-Abrufs; wirft nie (laeuft evtl. in einem .then).

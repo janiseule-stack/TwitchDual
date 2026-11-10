@@ -63,25 +63,20 @@
       align-items: center; justify-content: center; text-align: center;
       color: var(--muted); font-size: 14px; padding: 24px; pointer-events: none;
     }
-    /* Leuchtpunkt "Ads blocked" in der Leiste (wo frueher der Ads-Schalter war).
-       Adblock ist immer an -> dauerhaft sichtbar; pulsiert schneller (.blocking),
-       waehrend gerade eine Werbung geblockt wird. */
+    /* "Ads blocked" in der Leiste: gruene Lampe, Text in Pixel-Schrift, Zahl
+       als kleines eckiges Schild. Adblock ist immer an -> dauerhaft sichtbar;
+       waehrend gerade eine Werbung geblockt wird (.blocking), blinkt die Lampe. */
     #ads-indicator {
-      -webkit-app-region: no-drag;
-      display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; user-select: none; cursor: default;
-      font-size: 12px; font-weight: 700; color: var(--accent-title); text-transform: uppercase; letter-spacing: .06em;
+      -webkit-app-region: no-drag; font-family: var(--schrift-pixel);
+      display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; user-select: none; cursor: default;
+      font-size: 14px; font-weight: 700; color: var(--accent-title); text-transform: uppercase; letter-spacing: .06em;
     }
-    #ads-emote { height: 24px; width: auto; min-width: 24px; transition: opacity 250ms ease; }
-    #ads-emote.weg { opacity: 0; }
-    #ads-zahl { min-width: 16px; padding: 1px 6px; border-radius: 999px; font-size: 11px; text-align: center;
-      background: var(--accent); color: var(--accent-contrast); }
+    #ads-indicator .lampe { margin: -4px -2px -4px -4px; }
+    #ads-zahl { min-width: 18px; padding: 1px 6px; margin-left: 4px; font-size: 13px; text-align: center;
+      background: var(--panel-fest); color: var(--accent-title); border: 2px solid var(--line); }
     #ads-zahl.hidden { display: none; }
-    /* Gerade wird Werbung geblockt: Pille leuchtet und pulsiert */
-    #ads-indicator.blocking #ads-emote { animation: ads-pulse .8s ease-in-out infinite; }
-    @keyframes ads-pulse {
-      0%, 100% { transform: scale(1); filter: none; }
-      50%      { transform: scale(1.18); filter: drop-shadow(0 0 6px var(--accent)); }
-    }
+    #ads-indicator.blocking .lampe { animation: ads-blink .8s steps(1) infinite; }
+    @keyframes ads-blink { 50% { filter: brightness(.45); } }
     /* Fenster-Buttons (randloses Fenster): Pixel-Knoepfe (raum.css), ✕ warnt rot */
     #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 2px; }
     #win-controls #win-close:hover { color: #ff5a4a; }
@@ -165,7 +160,7 @@
   <div id="bar" class="rahmen-leiste-video">
     <div class="bar-left">
       <button id="home-btn" class="pixel-knopf" title="Home: Favoriten & VODs">☰</button>
-      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><img id="ads-emote" alt="" /><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
+      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
     </div>
     <div class="bar-center">
       <!-- Was laeuft gerade (statt des Eingabefelds); Klick oder Strg+L -> Eingabe -->
@@ -244,12 +239,10 @@
   <!-- Offizielle Twitch-Embed-JS-API (liefert getCurrentTime()) -->
   <script src="https://embed.twitch.tv/embed/v1.js"></script>
   <script src="../lib/stream-info.js"></script>
-  <script src="../lib/ads-emotes.js"></script>
   <script src="../lib/ad-overlay-state.js"></script>
   <script src="../lib/theme.js"></script>
   <script src="../lib/home-liste.js"></script>
   <script src="../lib/anmeldung.js"></script>
-  <script src="../lib/points-icon.js"></script>
   <script src="../lib/home-buehne.js"></script>
   <script src="../lib/home-punkte.js"></script>
   <script src="video.js"></script>

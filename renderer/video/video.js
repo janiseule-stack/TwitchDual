@@ -17,20 +17,10 @@ function renderAdOverlay() {
   $adsIndicator.classList.toggle('blocking', adState.overlayVisible);
 }
 
-// "Ads blocked"-Pille: animierte 7TV-Emotes wechseln ab und zu (alle 45 s,
-// sofort bei geblockter Werbung), Zahl = geblockte Werbungen insgesamt
+// "Ads blocked"-Schild: gruene Lampe + Zahl = geblockte Werbungen insgesamt
 // (zaehlt und speichert der Main, src/werbe-zaehler.js).
-const $adsEmote = document.getElementById('ads-emote');
 const $adsZahl = document.getElementById('ads-zahl');
-let adsEmoteNr = -1;
 let adsGeblockt = 0;
-function adsEmoteWechseln() {
-  if (!$adsEmote || !window.AdsEmotes) return;
-  adsEmoteNr = AdsEmotes.naechstes(adsEmoteNr, Math.random);
-  const e = AdsEmotes.EMOTES[adsEmoteNr];
-  $adsEmote.classList.add('weg');
-  setTimeout(() => { $adsEmote.src = AdsEmotes.url(e); $adsEmote.title = e.name; $adsEmote.classList.remove('weg'); }, 250);
-}
 function adsZahlZeigen() {
   if (!$adsZahl) return;
   $adsZahl.textContent = String(adsGeblockt);
@@ -41,9 +31,7 @@ function adsZahlZeigen() {
 function adsGesamtUebernehmen(n) {
   if (Number.isFinite(n) && n > adsGeblockt) { adsGeblockt = n; adsZahlZeigen(); }
 }
-adsEmoteWechseln();
 adsZahlZeigen();
-setInterval(adsEmoteWechseln, 45000);
 
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
 if (window.twitchDual.onAdblockState) {
@@ -53,7 +41,6 @@ if (window.twitchDual.onAdblockState) {
     if (phase === 'start') {
       if (Number.isFinite(payload.gesamt)) adsGesamtUebernehmen(payload.gesamt);
       else { adsGeblockt++; adsZahlZeigen(); }
-      adsEmoteWechseln(); // bei geblockter Werbung sofort ein neues Emote
       let muted = false;
       try { muted = !!(player && player.getMuted && player.getMuted()); } catch (e) {}
       adState.adStart(muted);
