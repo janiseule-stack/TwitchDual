@@ -82,15 +82,25 @@
     #win-controls #win-close:hover { filter: saturate(2.2) hue-rotate(-22deg) brightness(1.1); }
     /* Kein Rahmen ums Fenster (Janis 09.11.2026): angedockt lagen Video- und
        Chat-Rahmen als Doppellinie nebeneinander. */
-    /* Die fruehere On-Air-Linie ueber der Leiste entfaellt: ob etwas live
-       laeuft, zeigt die rote Lampe an den Stream-Infos. Das Element bleibt,
-       weil video.js sein Label weiter pflegt. */
-    #onair-bar { display: none; }
+    /* LIVE/VOD-Schild: sitzt ganz oben links auf der grau-schwarzen
+       Lautsprecher-Flaeche des Gehaeuses (linker Rahmen, 100 px breit), nur
+       wenn etwas laeuft. Kein display-Wechsel -> kein Layout-Sprung. */
+    #bar { position: relative; }
+    #onair-bar {
+      position: absolute; left: -92px; top: 50%; width: 80px; height: 30px;
+      margin: -16px 0 0 0;
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      background: var(--accent-contrast); border: 2px solid var(--line);
+      visibility: hidden;
+    }
+    body.onair #onair-bar { visibility: visible; }
+    #onair-bar .lampe { margin: -4px -2px -4px -8px; }
+    #oa-label {
+      font-family: var(--schrift-pixel); font-size: 14px; font-weight: 700;
+      letter-spacing: .06em; white-space: nowrap; color: var(--accent-title);
+    }
     #status, #si-oben { font-family: var(--schrift-pixel); }
     #si-oben { font-size: 15px; letter-spacing: .03em; }
-    /* Rote Lampe vor dem Profilbild, nur bei Live. */
-    #si-lampe { display: none; margin: -4px -6px -4px -4px; }
-    #stream-info.live #si-lampe { display: inline-block; }
     button:focus-visible, input:focus-visible {
       outline: 2px solid var(--accent-dim); outline-offset: 1px;
     }
@@ -145,19 +155,25 @@
     #stream-info:hover { background: var(--hover); border-color: var(--line); }
     #stream-info.hidden { display: none; }
     body.home-offen #stream-info { display: none; } /* in Home steht oben nur "Ads blocked" */
-    #si-avatar { width: 30px; height: 30px; border-radius: 50%; flex: none; background: var(--line); object-fit: cover; }
-    #stream-info.live #si-avatar { box-shadow: 0 0 0 2px #e91916; }
+    /* Profilbild grob verpixelt: das <img> laedt nur, gezeigt wird die
+       16x16-Flaeche in doppelter Groesse mit scharfen Pixeln (video.js). */
+    #si-avatar { display: none; }
+    #si-avatar-pixel {
+      width: 32px; height: 32px; flex: none; background: var(--line);
+      border: 2px solid var(--accent-contrast); image-rendering: pixelated;
+    }
     #si-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
     #si-oben { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #si-unten { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body>
-  <!-- Unsichtbar; video.js pflegt das Label weiter (Live zeigt die rote Lampe). -->
-  <div id="onair-bar">
-    <span id="oa-label"></span>
-  </div>
   <div id="bar" class="rahmen-leiste-video">
+    <!-- LIVE/VOD-Schild auf der Lautsprecher-Flaeche ganz links (body.onair). -->
+    <div id="onair-bar">
+      <span class="lampe rot"></span>
+      <span id="oa-label"></span>
+    </div>
     <div class="bar-left">
       <button id="home-btn" class="pixel-knopf k-home" title="Home: Favoriten & VODs">☰</button>
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
@@ -165,8 +181,8 @@
     <div class="bar-center">
       <!-- Was laeuft gerade (statt des Eingabefelds); Klick oder Strg+L -> Eingabe -->
       <button id="stream-info" type="button" class="hidden" title="Klicken (oder Strg+L): Home öffnen und Kanal wechseln">
-        <span id="si-lampe" class="lampe rot"></span>
         <img id="si-avatar" alt="" />
+        <canvas id="si-avatar-pixel" width="16" height="16"></canvas>
         <span id="si-text"><span id="si-oben"></span><span id="si-unten"></span></span>
       </button>
     </div>

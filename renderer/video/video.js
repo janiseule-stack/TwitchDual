@@ -372,7 +372,7 @@ function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
   document.body.classList.toggle('onair', label !== null);
   const el = document.getElementById('oa-label');
-  if (el) el.textContent = label ? ('● ' + label) : '';
+  if (el) el.textContent = label || ''; // die Lampe daneben ist der Punkt
 }
 
 
@@ -425,6 +425,7 @@ function infoZeigen(zuschauer) {
     $siUnten.textContent = '☰ Home: Kanal wählen';
     $streamInfo.classList.remove('live');
     $siAvatar.style.visibility = 'hidden';
+    $siAvatarPixel.style.visibility = 'hidden';
     return;
   }
   const z = StreamInfo.zeilen(zuschauer === undefined ? info : { ...info, zuschauer }, Date.now());
@@ -432,7 +433,19 @@ function infoZeigen(zuschauer) {
   $siUnten.textContent = z.unten;
   $streamInfo.classList.toggle('live', z.live);
   if (info.avatar) { $siAvatar.src = info.avatar; $siAvatar.style.visibility = ''; } else $siAvatar.style.visibility = 'hidden';
+  $siAvatarPixel.style.visibility = info.avatar ? '' : 'hidden';
 }
+
+// Profilbild grob verpixelt (Cozy-Raum): das geladene Bild wird klein auf
+// eine 16x16-Flaeche gezeichnet, die das Stylesheet scharfkantig vergroessert.
+// Das <img> selbst bleibt unsichtbar und dient nur als Lader.
+const $siAvatarPixel = document.getElementById('si-avatar-pixel');
+$siAvatar.addEventListener('load', () => {
+  const ctx = $siAvatarPixel.getContext('2d');
+  ctx.clearRect(0, 0, 16, 16);
+  try { ctx.drawImage($siAvatar, 0, 0, 16, 16); } catch (e) { /* kaputtes Bild: Flaeche bleibt leer */ }
+});
+$siAvatar.addEventListener('error', () => { $siAvatarPixel.getContext('2d').clearRect(0, 0, 16, 16); });
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();

@@ -31,17 +31,16 @@ test('raum.css: Knopf, Lampen, Tapete', () => {
 const chatHtml = lies('renderer/chat/index.html');
 const chatCss = lies('renderer/chat/chat.css');
 const chatJs = lies('renderer/chat/chat.js');
-test('Chat: Szenen-Streifen sitzt zwischen Kopf und Nachrichten und traegt das Schild', () => {
+test('Chat: Szenen-Streifen sitzt zwischen Kopf und Nachrichten, ohne Schild', () => {
   const kopf = chatHtml.indexOf('id="head"'), szene = chatHtml.indexOf('id="szene"'), mitte = chatHtml.indexOf('id="chat-mitte"');
   assert.ok(kopf > -1 && kopf < szene && szene < mitte);
-  const block = chatHtml.slice(szene, mitte);
-  assert.ok(block.includes('id="onair-bar"') && block.includes('id="oa-label"') && block.includes('lampe rot'));
-  assert.ok(!chatHtml.includes('class="oa-line"'));
+  // Das LIVE-Schild sitzt seit Runde 4 im Video-Fenster (Janis 10.11.2026).
+  assert.ok(!chatHtml.includes('id="onair-bar"') && !chatHtml.includes('id="oa-label"'));
+  assert.ok(!chatCss.includes('#onair-bar') && !chatCss.includes('#oa-label'));
   assert.ok(chatHtml.includes('lib/szene.js'));
 });
-test('Chat: Schild haengt weiter an body.onair und #oa-label', () => {
-  assert.ok(/body\.onair #onair-bar/.test(chatCss));
-  assert.ok(chatJs.includes("getElementById('oa-label')") && chatJs.includes("classList.toggle('onair'"));
+test('Chat: body.onair wird weiter gepflegt, Streifen bekommt seine Masse', () => {
+  assert.ok(chatJs.includes("classList.toggle('onair'"));
   assert.ok(chatJs.includes('Szene.masse') && chatJs.includes('--szene-f'));
 });
 test('Chat: Rahmen-Klassen an Kopf und Feld, Knoepfe als Pixel-Knopf', () => {
@@ -80,8 +79,20 @@ test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
   const start = videoHtml.indexOf('id="ads-indicator"');
   const ads = videoHtml.slice(start, videoHtml.indexOf('</span></span>', start));
   assert.ok(ads.includes('lampe gruen'));
-  assert.ok(/id="si-lampe" class="lampe rot"/.test(videoHtml));
-  assert.ok(/#stream-info\.live #si-lampe/.test(videoHtml));
+  // Runde 4: die rote Lampe sitzt im LIVE-Schild auf der Lautsprecher-Flaeche
+  // ganz links in der Leiste, nicht mehr bei den Stream-Infos.
+  assert.ok(!videoHtml.includes('si-lampe'));
+  const bar = videoHtml.slice(videoHtml.indexOf('id="bar"'), videoHtml.indexOf('class="bar-left"'));
+  assert.ok(bar.includes('id="onair-bar"') && bar.includes('lampe rot') && bar.includes('id="oa-label"'));
+  assert.ok(/body\.onair #onair-bar\s*\{[^}]*visibility:\s*visible/.test(videoHtml));
+});
+test('Video: Profilbild in der Leiste ist grob verpixelt und eckig', () => {
+  assert.ok(/<canvas id="si-avatar-pixel" width="16" height="16"/.test(videoHtml));
+  const js = lies('renderer/video/video.js');
+  assert.ok(js.includes("getElementById('si-avatar-pixel')") && js.includes('drawImage'));
+  const regel = videoHtml.slice(videoHtml.indexOf('#si-avatar-pixel {'), videoHtml.indexOf('}', videoHtml.indexOf('#si-avatar-pixel {')));
+  assert.ok(regel.includes('image-rendering: pixelated') && !regel.includes('border-radius: 50%'));
+  assert.ok(/#si-avatar\s*\{[^}]*display:\s*none/.test(videoHtml));
 });
 test('Video: keine On-Air-Linie mehr, Nur-Video blendet die Leiste weiter aus', () => {
   assert.ok(!videoHtml.includes('class="oa-line"'));

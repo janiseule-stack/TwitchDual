@@ -301,20 +301,6 @@ button { transition: background-color 120ms ease, color 120ms ease; }
   border-bottom: 2px solid var(--line);
 }
 
-/* Schild im Streifen: Lampe + LIVE/VOD, nur wenn etwas laeuft. Kein
-   display-Wechsel -> kein Layout-Sprung. */
-#onair-bar {
-  position: absolute; left: 8px; top: 8px;
-  display: flex; align-items: center; gap: 2px; padding: 0 10px 0 2px; height: 36px;
-  background: var(--panel-fest); border: 2px solid var(--line);
-  box-shadow: 2px 2px 0 rgba(0,0,0,.5);
-  visibility: hidden;
-}
-body.onair #onair-bar { visibility: visible; }
-#oa-label {
-  font-family: var(--schrift-pixel); font-size: 15px; font-weight: 700;
-  letter-spacing: .1em; white-space: nowrap; color: var(--accent-title);
-}
 
 /* Monospace fuer den technischen Puls: Zeitstempel, Status, msg/min. */
 .msg .ts, #footer, #mode { font-family: var(--mono); }

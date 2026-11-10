@@ -812,9 +812,8 @@ let onAirPlayerState = null; // letzter player-state nach dem Load
 
 function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
+  // Das LIVE-Schild selbst sitzt im Video-Fenster; hier bleibt nur die Klasse.
   document.body.classList.toggle('onair', label !== null);
-  const el = document.getElementById('oa-label');
-  if (el) el.textContent = label || ''; // die Lampe daneben ist der Punkt
 }
 
 // Szenen-Streifen: ganzzahliger Faktor aus der Fenstergroesse (Szene-Lib),
