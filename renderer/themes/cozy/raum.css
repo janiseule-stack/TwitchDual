@@ -1,0 +1,65 @@
+/* Cozy-Raum: gemeinsame Bausteine beider Fenster (Etappe 1b).
+   Pixel-Schrift, Rahmen aus den Pixel-Bildern (9-Slice, immer ganzzahlig
+   vergroessert), Knopf, Lampen, Tapete. Farben stehen in farben.css.
+   test/cozy-raum.test.js prueft den Vertrag. */
+
+/* Pixelify Sans, SIL Open Font License 1.1 (schrift/OFL.txt). Liegt lokal,
+   es wird nichts aus dem Netz geladen. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('schrift/PixelifySans.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: block;
+}
+:root {
+  /* nur fuer Leisten, Schilder und Ueberschriften; Chat-Text bleibt wie er ist */
+  --schrift-pixel: 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
+}
+
+/* --- Rahmen ------------------------------------------------------------------
+   Schnittmasse in Bildpixeln, am Bild gemessen (10.11.2026); die Rahmenbreite
+   ist das Doppelte (Faktor 2). Die Mitte wird gestreckt und fuellt die Flaeche. */
+
+/* leiste-chat.png 334x42: Holz mit Creme-Linie, Rand 7 px ringsum */
+.rahmen-leiste-chat {
+  border-style: solid; border-color: transparent; border-width: 14px;
+  border-image: url('leiste-chat.png') 7 fill / 14px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* leiste-video-links.png 334x39 (gespiegelt): Gehaeuse, links der Lautsprecher
+   (bis Bildpixel 50, samt Schrauben), rechts 14, oben 7, unten 9 */
+.rahmen-leiste-video {
+  border-style: solid; border-color: transparent; border-width: 14px 28px 18px 100px;
+  border-image: url('leiste-video-links.png') 7 14 9 50 fill / 14px 28px 18px 100px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* feld.png 334x39: dunkles Feld mit Bernstein-Linie, Rand 9 px ringsum */
+.rahmen-feld {
+  border-style: solid; border-color: transparent; border-width: 18px;
+  border-image: url('feld.png') 9 fill / 18px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* --- Knopf, Lampen, Tapete --------------------------------------------------- */
+.pixel-knopf {
+  width: 32px; height: 32px; flex: none; padding: 0; border: none; border-radius: 0;
+  background: url('knopf.png') center / 32px 32px no-repeat;
+  image-rendering: pixelated;
+  color: var(--text); font-size: 13px; line-height: 32px; text-align: center; cursor: pointer;
+}
+.pixel-knopf:hover { filter: brightness(1.25); }
+.pixel-knopf:active { transform: translateY(1px); }
+
+.lampe {
+  display: inline-block; width: 32px; height: 32px; flex: none;
+  background: center / 32px 32px no-repeat; image-rendering: pixelated;
+}
+.lampe.rot { background-image: url('lampe-rot.png'); }
+.lampe.gruen { background-image: url('lampe-gruen.png'); }
+
+.tapete {
+  background: url('tapete.png') 0 0 / 60px 60px repeat;
+  image-rendering: pixelated;
+}
