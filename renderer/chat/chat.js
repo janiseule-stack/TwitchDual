@@ -814,8 +814,19 @@ function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
   document.body.classList.toggle('onair', label !== null);
   const el = document.getElementById('oa-label');
-  if (el) el.textContent = label ? ('● ' + label) : '';
+  if (el) el.textContent = label || ''; // die Lampe daneben ist der Punkt
 }
+
+// Szenen-Streifen: ganzzahliger Faktor aus der Fenstergroesse (Szene-Lib),
+// als CSS-Variablen fuer chat.css.
+const $szene = document.getElementById('szene');
+function setzeSzene() {
+  const m = Szene.masse(window.innerWidth, window.innerHeight);
+  $szene.style.setProperty('--szene-f', String(m.faktor));
+  $szene.style.setProperty('--szene-h', m.hoehe + 'px');
+}
+setzeSzene();
+window.addEventListener('resize', setzeSzene);
 
 // ---------------------------------------------------------------------------
 // Senden (v1.8.0): Eingabefeld ist nur eingeloggt + im Live-Modus aktiv.
