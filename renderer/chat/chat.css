@@ -176,7 +176,7 @@ body { display: flex; flex-direction: column; }
 
 /* Fenster-Buttons (randloses Fenster): Pixel-Knoepfe, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
-#win-controls #win-close:hover { color: #ff5a4a; }
+#win-controls #win-close:hover { filter: saturate(2.2) hue-rotate(-22deg) brightness(1.1); }
 
 #settings-pop {
   position: absolute; top: 52px; right: 8px; z-index: 10;
@@ -289,15 +289,14 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 #title { color: var(--accent-title); }
 
 /* Szenen-Streifen: Pixel-Bild aus dem Raum, ganzzahlig vergroessert (Faktor
-   und Hoehe setzt chat.js aus der Szene-Lib). Ist das Fenster breiter als
-   das Bild, laeuft links und rechts die Holzwand weiter; ist es schmaler,
-   wird mittig beschnitten. Immer deckend, auch bei reduzierter Deckkraft. */
+   und Hoehe setzt chat.js aus der Szene-Lib). Das Bild fuellt immer die
+   ganze Breite; ist es dabei hoeher als der Streifen, wird oben beschnitten
+   (Fensterbank und Katze bleiben). Die Wandfarbe dahinter greift nur bei
+   extrem breiten Fenstern. Immer deckend, auch bei reduzierter Deckkraft. */
 #szene {
   position: relative; z-index: 1; flex-shrink: 0; overflow: hidden;
   height: var(--szene-h, 72px);
-  background:
-    url('../themes/cozy/streifen.png') center top / calc(344px * var(--szene-f, 1)) calc(72px * var(--szene-f, 1)) no-repeat,
-    url('../themes/cozy/tapete.png') center top / calc(30px * var(--szene-f, 1)) calc(30px * var(--szene-f, 1)) repeat;
+  background: #2e1612 url('../themes/cozy/streifen.png') center bottom / calc(344px * var(--szene-f, 1)) calc(72px * var(--szene-f, 1)) no-repeat;
   image-rendering: pixelated;
   border-bottom: 2px solid var(--line);
 }

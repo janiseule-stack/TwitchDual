@@ -47,12 +47,22 @@
 .rahmen-leiste-chat > *, .rahmen-leiste-video > *, .rahmen-feld > *, .tapete > * { image-rendering: auto; }
 
 /* --- Knopf, Lampen, Tapete --------------------------------------------------- */
+/* Das Zeichen steckt im Bild (tools/knopf-bilder.py baut die Bilder), damit
+   es pixelgenau mittig sitzt; das Schriftzeichen im Knopf bleibt nur fuer
+   Vorleseprogramme und ist unsichtbar (font-size 0). */
 .pixel-knopf {
   width: 32px; height: 32px; flex: none; padding: 0; border: none; border-radius: 0;
   background: url('knopf.png') center / 32px 32px no-repeat;
   image-rendering: pixelated;
-  color: var(--text); font-size: 13px; line-height: 32px; text-align: center; cursor: pointer;
+  color: transparent; font-size: 0; cursor: pointer;
 }
+.pixel-knopf.k-min { background-image: url('knopf-min.png'); }
+.pixel-knopf.k-max { background-image: url('knopf-max.png'); }
+.pixel-knopf.k-zu { background-image: url('knopf-zu.png'); }
+.pixel-knopf.k-zahnrad { background-image: url('knopf-zahnrad.png'); }
+.pixel-knopf.k-home { background-image: url('knopf-home.png'); }
+.pixel-knopf.k-teilen { background-image: url('knopf-teilen.png'); }
+.pixel-knopf.k-vollbild { background-image: url('knopf-vollbild.png'); }
 .pixel-knopf:hover { filter: brightness(1.25); }
 .pixel-knopf:active { transform: translateY(1px); }
 

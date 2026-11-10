@@ -79,7 +79,7 @@
     @keyframes ads-blink { 50% { filter: brightness(.45); } }
     /* Fenster-Buttons (randloses Fenster): Pixel-Knoepfe (raum.css), ✕ warnt rot */
     #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 2px; }
-    #win-controls #win-close:hover { color: #ff5a4a; }
+    #win-controls #win-close:hover { filter: saturate(2.2) hue-rotate(-22deg) brightness(1.1); }
     /* Kein Rahmen ums Fenster (Janis 09.11.2026): angedockt lagen Video- und
        Chat-Rahmen als Doppellinie nebeneinander. */
     /* Die fruehere On-Air-Linie ueber der Leiste entfaellt: ob etwas live
@@ -96,7 +96,7 @@
     }
     /* Nur-Video-Modus: Umschalt-Button in der Leiste. */
     #vollbild-btn, #video-only-btn { -webkit-app-region: no-drag; }
-    #vollbild-btn.an, #video-only-btn.an { color: var(--accent); outline: 2px solid var(--accent); outline-offset: -3px; }
+    #vollbild-btn.an, #video-only-btn.an { outline: 2px solid var(--accent); outline-offset: -3px; }
     /* Im Modus: alles ausser dem Player ausblenden. */
     body.video-only #bar,
     body.video-only #onair-bar { display: none; }
@@ -159,7 +159,7 @@
   </div>
   <div id="bar" class="rahmen-leiste-video">
     <div class="bar-left">
-      <button id="home-btn" class="pixel-knopf" title="Home: Favoriten & VODs">☰</button>
+      <button id="home-btn" class="pixel-knopf k-home" title="Home: Favoriten & VODs">☰</button>
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
     </div>
     <div class="bar-center">
@@ -173,12 +173,12 @@
     <div class="bar-right">
       <button id="update-chip" class="hidden" type="button"></button>
       <span id="status">bereit</span>
-      <button id="vollbild-btn" class="pixel-knopf" title="Video + Chat bildschirmfüllend (nochmal klicken: zurück)">◫</button>
-      <button id="video-only-btn" class="pixel-knopf" title="Nur Video (Fenster füllen)">⛶</button>
+      <button id="vollbild-btn" class="pixel-knopf k-teilen" title="Video + Chat bildschirmfüllend (nochmal klicken: zurück)">◫</button>
+      <button id="video-only-btn" class="pixel-knopf k-vollbild" title="Nur Video (Fenster füllen)">⛶</button>
       <div id="win-controls">
-        <button id="win-min" class="pixel-knopf" title="Minimieren">─</button>
-        <button id="win-max" class="pixel-knopf" title="Maximieren/Wiederherstellen">▢</button>
-        <button id="win-close" class="pixel-knopf" title="Schließen">✕</button>
+        <button id="win-min" class="pixel-knopf k-min" title="Minimieren">─</button>
+        <button id="win-max" class="pixel-knopf k-max" title="Maximieren/Wiederherstellen">▢</button>
+        <button id="win-close" class="pixel-knopf k-zu" title="Schließen">✕</button>
       </div>
     </div>
   </div>

@@ -124,6 +124,28 @@ test('Video: Ads blocked ohne Emote, Lampe blinkt beim Blocken', () => {
   assert.ok(/#ads-indicator\s*\{[^}]*var\(--schrift-pixel\)/.test(videoHtml));
 });
 
+// --- Runde 3 (Janis 10.11.2026): Streifen fuellt die Breite, Knoepfe mit Bild-Zeichen
+test('Chat: Streifen fuellt die Breite, daneben keine Tapete', () => {
+  const regel = chatCss.slice(chatCss.indexOf('#szene {'), chatCss.indexOf('}', chatCss.indexOf('#szene {')));
+  assert.ok(regel.includes('streifen.png'));
+  assert.ok(!regel.includes('tapete.png'));
+  assert.ok(/center bottom/.test(regel));
+});
+test('Knoepfe: jedes Zeichen ist ein eigenes Bild, kein Schriftzeichen', () => {
+  const belegung = { 'win-min': 'min', 'win-max': 'max', 'win-close': 'zu', 'settings-btn': 'zahnrad',
+    'home-btn': 'home', 'vollbild-btn': 'teilen', 'video-only-btn': 'vollbild' };
+  for (const [id, name] of Object.entries(belegung)) {
+    assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/knopf-' + name + '.png')), name);
+    assert.ok(raum.includes('.pixel-knopf.k-' + name) && raum.includes('knopf-' + name + '.png'), name);
+    for (const html of [chatHtml, videoHtml]) {
+      if (!html.includes('id="' + id + '"')) continue;
+      assert.ok(new RegExp('id="' + id + '" class="pixel-knopf k-' + name + '"').test(html), id);
+    }
+  }
+  const knopf = raum.slice(raum.indexOf('.pixel-knopf {'), raum.indexOf('}', raum.indexOf('.pixel-knopf {')));
+  assert.ok(/font-size:\s*0/.test(knopf));
+});
+
 test('beide Fenster binden raum.css direkt nach farben.css ein', () => {
   for (const datei of ['renderer/chat/index.html', 'renderer/video/index.html']) {
     const html = lies(datei);

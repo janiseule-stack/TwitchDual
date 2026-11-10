@@ -1,27 +1,31 @@
 // Szenen-Streifen im Chat-Kopf (Cozy-Raum): wie stark das Pixel-Bild
-// vergroessert wird. Immer ganzzahlig, damit die Pixel scharf bleiben; der
-// Streifen soll hoechstens ein Fuenftel der Fensterhoehe einnehmen.
+// vergroessert wird. Immer ganzzahlig, damit die Pixel scharf bleiben, und
+// so gross, dass das Bild die ganze Fensterbreite fuellt (Janis 10.11.2026:
+// keine Holzwand daneben). Der Streifen nimmt hoechstens ein Fuenftel der
+// Fensterhoehe ein; was darueber hinausgeht, schneidet chat.css oben ab.
 // UMD wie teiler.js: laeuft im Browser und unter Node (Tests).
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.Szene = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
   const BILD = Object.freeze({ breite: 344, hoehe: 72 });
-  const HOECHSTENS = 6;
+  const HOECHSTENS = 8;
   const ANTEIL_HOEHE = 0.2;
+  const MINDEST_HOEHE = 48;
 
-  // Kaputte Masse (0, NaN, negativ, keine Zahl) -> 1: schmale Fenster zeigen
-  // den Streifen mittig beschnitten statt gestaucht.
-  function faktor(fensterBreite, fensterHoehe) {
-    const b = typeof fensterBreite === 'number' && Number.isFinite(fensterBreite) ? fensterBreite : 0;
-    const h = typeof fensterHoehe === 'number' && Number.isFinite(fensterHoehe) ? fensterHoehe : 0;
-    const f = Math.min(Math.floor(b / BILD.breite), Math.floor((h * ANTEIL_HOEHE) / BILD.hoehe));
-    return Math.max(1, Math.min(HOECHSTENS, f));
+  const zahl = (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
+
+  // Kaputte Masse (0, NaN, negativ, keine Zahl) -> 1.
+  function faktor(fensterBreite) {
+    return Math.max(1, Math.min(HOECHSTENS, Math.ceil(zahl(fensterBreite) / BILD.breite)));
   }
 
   function masse(fensterBreite, fensterHoehe) {
-    const f = faktor(fensterBreite, fensterHoehe);
-    return { faktor: f, breite: BILD.breite * f, hoehe: BILD.hoehe * f };
+    const f = faktor(fensterBreite);
+    const voll = BILD.hoehe * f;
+    const h = zahl(fensterHoehe);
+    const hoehe = h ? Math.min(voll, Math.max(MINDEST_HOEHE, Math.round(h * ANTEIL_HOEHE))) : voll;
+    return { faktor: f, breite: BILD.breite * f, hoehe };
   }
 
   return { BILD, faktor, masse };
