@@ -186,7 +186,7 @@ function huellenText() {
 // an: Laufwerk-Ablauf (Schublade, Terminal) parallel zum Laden; Home schliesst,
 // wenn beides fertig ist. Erfolg -> Suche leeren und schliessen; Fehler ->
 // Laufwerk weg, Hinweiszeile.
-function effekteAus() { return document.documentElement.dataset.effekte === 'aus'; }
+function effekteAus() { return document.documentElement.dataset.animationen === 'aus'; }
 async function ladeWert(wert, kanal) {
   if (ladenLaeuft || laufwerk.laeuft) return; // Doppelklick / Enter waehrend des Ladens
   ladenLaeuft = true;
@@ -307,7 +307,7 @@ function zeigeRueckseite(k) {
 function punkteSymbolFuer(login, iconUrl) {
   if (iconUrl) return { art: 'url', url: iconUrl };
   const akzent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  const emote = PointsIcon.waehleEmote(ThemeLib.normalizeHex(akzent, ThemeLib.DEFAULTS.videoAccent), login);
+  const emote = PointsIcon.waehleEmote(ThemeLib.normalizeHex(akzent, ThemeLib.AKZENT), login);
   return emote && emote.url ? { art: 'url', url: emote.url } : { art: 'svg' };
 }
 

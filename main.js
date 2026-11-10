@@ -105,7 +105,7 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#0b0b11', // Video-Fenster bleibt opak (Player deckt eh alles)
+    backgroundColor: '#120505', // = ThemeLib.BALKEN; Video-Fenster bleibt opak (Player deckt eh alles)
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -487,7 +487,7 @@ ipcMain.handle('get-ui-prefs', () => ({
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
 // Effekte testen (⚙ im Chat): nur bekannte Arten, an beide Fenster.
-const FX_TEST_ARTEN = ['kiste', 'punkte', 'gast', 'raid', 'abo'];
+const FX_TEST_ARTEN = ['kiste', 'punkte', 'raid', 'abo'];
 ipcMain.on('fx-test', (_evt, art) => {
   if (FX_TEST_ARTEN.includes(art)) broadcast('fx-test', art);
 });

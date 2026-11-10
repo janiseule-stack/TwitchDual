@@ -30,3 +30,21 @@ test('Chat: laedt keine Theme-Bausteine mehr', () => {
     assert.ok(!chatJs.includes(wort), wort);
   }
 });
+
+const videoHtml = lies('renderer/video/index.html');
+const videoJs = lies('renderer/video/video.js');
+test('Video: keine Theme-Ebenen und Theme-Bausteine mehr', () => {
+  for (const s of ['id="fx-gast"', 'id="fx-hinten"', 'class="theme-deko"', 'lib/themes.js', 'lib/fx-engine.js', 'lib/theme-runtime.js']) {
+    assert.ok(!videoHtml.includes(s), s);
+  }
+  assert.ok(videoHtml.includes('lib/theme.js'));
+  for (const wort of ['ThemeRuntime', 'ThemeKatalog', 'themeRuntime', 'onFxTest', 'gastJetzt']) assert.ok(!videoJs.includes(wort), wort);
+  assert.ok(videoJs.includes('ThemeLib.BALKEN'));
+});
+test('Home liest data-animationen statt data-effekte', () => {
+  assert.ok(!lies('renderer/video/home.css').includes('data-effekte'));
+  assert.ok(!lies('renderer/video/home.js').includes('dataset.effekte'));
+});
+test('Effekte testen kennt keinen Gast mehr', () => {
+  assert.ok(!/FX_TEST_ARTEN = \[[^\]]*'gast'/.test(lies('main.js')));
+});

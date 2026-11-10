@@ -135,7 +135,7 @@ function mountPlayer(options) {
   player = new Twitch.Player($player, { ...base, ...options });
 
   player.addEventListener(Twitch.Player.READY, () => {
-    sendeBalken(); // neues iframe -> Theme-Balkenfarbe nachreichen
+    sendeBalken(); // neues iframe -> Balkenfarbe nachreichen
     setStatus(''); // "live: X"/"VOD: X" war redundant (Kanal steht im Feld + On-Air-Label)
     // Gemerkte Lautstaerke/Qualitaet wieder anwenden.
     try {
@@ -313,22 +313,12 @@ document.getElementById('player').addEventListener('dblclick', () => {
 document.addEventListener('mousemove', showControlsBriefly);
 
 // ---------------------------------------------------------------------------
-// Neon Dual - On Air (v1.5.0): Fensterfarbe (Video = videoAccent) als CSS-
-// Variablen; On-Air-Leiste haengt an load-Modus + eigenem Player-Zustand.
+// Fenster-Einstellungen (Animationen) und Balkenfarbe; die On-Air-Leiste
+// haengt an load-Modus + eigenem Player-Zustand.
 // ---------------------------------------------------------------------------
-// Farben, data-theme, Theme-CSS und Welt setzt die Runtime (Spec Lebendige
-// Themes). Im Video-Fenster lebt die Welt nur im Home-Overlay; uebers Video
-// fliegen nur Gastauftritte.
-const themeRuntime = ThemeRuntime.createRuntime({
-  fenster: 'video',
-  doc: document,
-  win: window,
-  ebenen: { hinten: document.getElementById('fx-hinten'), gast: document.getElementById('fx-gast') },
-  melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
-});
-// Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.): die Farbe
-// geht per postMessage ins Twitch-iframe, der Preload dort setzt sie.
-let balkenFarbe = null;
+// Balken ueber/unter dem Video in der festen Raum-Farbe: sie geht per
+// postMessage ins Twitch-iframe, der Preload dort setzt sie.
+const balkenFarbe = ThemeLib.BALKEN;
 // Dem Pause-Waechter im Player-iframe sagen: diese Pause kommt vom Nutzer.
 function meldeNutzerEingabe() {
   const f = $player.querySelector('iframe');
@@ -342,24 +332,11 @@ function sendeBalken() {
     try { f.contentWindow.postMessage({ source: 'twitchdual-theme', balken: balkenFarbe }, '*'); } catch (e) { /* egal */ }
   }
 }
+// Home-Buehne: Animationen "aus" -> Namen stehen, CD dreht nicht (home.css).
 function applyTheme(prefs) {
-  themeRuntime.anwenden(prefs);
-  // Home-Buehne: "aus" -> Namen stehen, CD dreht nicht (home.css).
-  document.documentElement.dataset.effekte = ThemeKatalog.cleanThemePrefs(prefs).effekte;
-  balkenFarbe = ThemeKatalog.balkenFarbe(ThemeKatalog.cleanThemePrefs(prefs));
+  document.documentElement.dataset.animationen = ThemeLib.cleanThemePrefs(prefs).animationen ? 'an' : 'aus';
   sendeBalken();
-  // Riesen-Namen neu messen, sobald die neue Theme-Schrift gilt (nur bei offenem Home).
-  requestAnimationFrame(() => { if (window.homeNamenNeu) window.homeNamenNeu(); });
 }
-
-// Ambient nur bei offenem Home und nie im Nur-Video-Modus.
-const $homeFx = document.getElementById('home');
-function aktualisiereFxPause() {
-  themeRuntime.pausieren($homeFx.classList.contains('hidden') || document.body.classList.contains('video-only'));
-}
-new MutationObserver(aktualisiereFxPause).observe($homeFx, { attributes: true, attributeFilter: ['class'] });
-new MutationObserver(aktualisiereFxPause).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-aktualisiereFxPause();
 
 // Updater-Anzeige: laedt -> Prozent, bereit -> Knopf "Neu starten", Fehler
 // -> Hinweis (Grund im Tooltip). Sonst unsichtbar.
@@ -391,26 +368,6 @@ $updateChip.addEventListener('click', () => {
 });
 window.twitchDual.getUpdateZustand().then(zeigeUpdate).catch(() => {});
 window.twitchDual.onUpdateZustand(zeigeUpdate);
-
-// Effekte testen (⚙ im Chat): Gast sofort, Raid/Abo auch im Home-Teich.
-window.twitchDual.onFxTest((art) => {
-  if (art === 'gast') themeRuntime.gastErzwingen();
-  else if (art === 'raid') themeRuntime.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
-  else if (art === 'abo') {
-    themeRuntime.ereignis('abo', { name: 'TestZuschauer', monate: 12,
-      ursprung: { x: window.innerWidth / 2, y: window.innerHeight * 0.45 } });
-  }
-});
-
-// Gastauftritte nur bei laufendem Player und nicht im Nur-Video-Modus.
-themeRuntime.setzeGastBedingung(() =>
-  letzterGesendeterPlayerZustand === 'playing' && !document.body.classList.contains('video-only'));
-// Kiste eingesammelt -> sofort ein Gast (die Punkte-Anzeige selbst lebt im Chat).
-window.twitchDual.onPointsUpdate((p) => {
-  if (p && Array.isArray(p.zuwaechse) && p.zuwaechse.some((z) => z && z.quelle === 'kiste')) {
-    themeRuntime.gastJetzt();
-  }
-});
 
 window.twitchDual.getUiPrefs()
   .then((prefs) => {

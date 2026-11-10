@@ -170,13 +170,13 @@
 .namen-mitte-text { animation: namen-ein 300ms ease-out; }
 @keyframes namen-ein { from { opacity: 0; } to { opacity: 1; } }
 
-/* Effekte aus: Namen stehen, CD dreht nicht */
-:root[data-effekte="aus"] .namen-band,
-:root[data-effekte="aus"] .namen-mitte,
-:root[data-effekte="aus"] .cd-label-bild,
-:root[data-effekte="aus"] .cd-regenbogen,
-:root[data-effekte="aus"] .cd-flip.flippt { animation: none; }
-:root[data-effekte="aus"] .namen-mitte { transform: translateY(-50%); }
+/* Animationen aus: Namen stehen, CD dreht nicht */
+:root[data-animationen="aus"] .namen-band,
+:root[data-animationen="aus"] .namen-mitte,
+:root[data-animationen="aus"] .cd-label-bild,
+:root[data-animationen="aus"] .cd-regenbogen,
+:root[data-animationen="aus"] .cd-flip.flippt { animation: none; }
+:root[data-animationen="aus"] .namen-mitte { transform: translateY(-50%); }
 
 /* --- Buehne: Huelle links, Info rechts (schmal: darunter) ----------------- */
 /* Die Buehne ist selbst Groessen-Container: cqh/cqw darin beziehen sich auf

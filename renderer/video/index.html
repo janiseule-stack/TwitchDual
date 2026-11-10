@@ -156,20 +156,10 @@
       padding: 6px 10px; font-size: 12px; cursor: pointer;
     }
     #video-exit:hover { background: rgba(0, 0, 0, .85); }
-    /* Lebendige Themes: Home-Ebene liegt unter dem Home-Inhalt, Gast-Ebene
-       ueber dem Player. Beide fangen nie einen Klick ab. */
-    .fx-ebene { pointer-events: none; overflow: hidden; }
-    /* NUR waehrend eines Auftritts sichtbar: liegt sie dauerhaft ueber dem
-       Player, gilt er fuer Twitch als verdeckt und startet nicht von selbst
-       (Play-Knopf bleibt stehen; 2026-10-07 gemessen). */
-    #fx-gast { position: fixed; inset: 0; z-index: 30; display: none; }
-    #fx-gast.aktiv { display: block; }
-    #home > #fx-hinten { position: absolute; inset: 0; z-index: 0; }
-    #home > :not(#fx-hinten):not(.theme-deko):not(#home-version):not(#home-namen) { position: relative; z-index: 1; }
+    /* Home: die Riesen-Namen liegen unter dem Home-Inhalt. */
+    #home > :not(#home-version):not(#home-namen) { position: relative; z-index: 1; }
     #home > #home-namen { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    #home > .theme-deko { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     #home-title, #cd-info .cd-name, #home-namen { font-family: var(--schrift-titel, inherit); }
-    body.video-only #fx-gast { display: none; }
     /* Updater in der Leiste: Fortschritt, dann "Neu starten" als Knopf */
     #update-chip {
       padding: 3px 9px; margin-right: 6px; border-radius: 999px; font: inherit; font-size: 11px;
@@ -196,7 +186,6 @@
 </head>
 <body>
   <!-- Gastauftritte: einzelne Partikel quer uebers Video, nie klickbar. -->
-  <div id="fx-gast" class="fx-ebene"></div>
   <div id="onair-bar">
     <span class="oa-line"></span>
     <span id="oa-label">● ON AIR</span>
@@ -235,8 +224,6 @@
 
   <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
   <div id="home" class="hidden">
-    <div id="fx-hinten" class="fx-ebene"></div>
-    <div class="theme-deko" aria-hidden="true"></div>
     <div id="home-namen" aria-hidden="true"></div>
     <div id="home-head">
       <button id="home-back" class="hidden">← Zurück</button>
@@ -287,9 +274,6 @@
   <script src="../lib/ads-emotes.js"></script>
   <script src="../lib/ad-overlay-state.js"></script>
   <script src="../lib/theme.js"></script>
-  <script src="../lib/themes.js"></script>
-  <script src="../lib/fx-engine.js"></script>
-  <script src="../lib/theme-runtime.js"></script>
   <script src="../lib/home-liste.js"></script>
   <script src="../lib/anmeldung.js"></script>
   <script src="../lib/points-icon.js"></script>
