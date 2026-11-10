@@ -20,7 +20,6 @@ const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
 const { cachedLoader } = require('./src/session-cache');
 const ThemeLib = require('./renderer/lib/theme');
-const ThemeKatalog = require('./renderer/lib/themes');
 const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
@@ -38,7 +37,7 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal' },
+    themePrefs: { ...ThemeLib.STANDARD_PREFS },
     diagEnabled: false   // Diagnose-Protokoll: Standard aus = nichts auf der Platte
   }
 });
@@ -470,9 +469,9 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 });
 
-// Saeuberung lebt in renderer/lib/themes.js (getestet, auch fuer theme/effekte).
+// Saeuberung lebt in renderer/lib/theme.js (getestet).
 function cleanThemePrefs(prefs) {
-  return ThemeKatalog.cleanThemePrefs(prefs);
+  return ThemeLib.cleanThemePrefs(prefs);
 }
 
 // UI-Voreinstellungen fuers Video-Fenster (Verlauf, Prefill, Player-Prefs).
@@ -525,12 +524,12 @@ ipcMain.on('save-chat-prefs', (_evt, prefs) => {
 // Teil-Updates (nur Farben, nur Theme, nur Stufe) mit dem Gespeicherten
 // mischen - sonst setzt z.B. ein Preset-Klick Theme und Effekte zurueck.
 ipcMain.on('save-theme-prefs', (_evt, prefs) => {
-  const clean = ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs);
+  const clean = ThemeLib.mergeThemePrefs(store.get('themePrefs'), prefs);
   store.set('themePrefs', clean);
   broadcast('theme-changed', clean);
 });
 ipcMain.on('preview-theme-prefs', (_evt, prefs) => {
-  broadcast('theme-changed', ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs));
+  broadcast('theme-changed', ThemeLib.mergeThemePrefs(store.get('themePrefs'), prefs));
 });
 
 // vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)

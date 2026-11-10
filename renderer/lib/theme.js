@@ -180,5 +180,36 @@
     };
   }
 
-  return { DEFAULTS, PRESETS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel, activePreset, istHell, flaechenVars };
+  // --- Cozy-Raum: feste Werte und geschrumpfte Einstellungen --------------
+  const STANDARD_PREFS = Object.freeze({ chatAlpha: 100, animationen: true });
+  const AKZENT = '#f9a650';   // = --accent in renderer/themes/cozy/farben.css
+  const BALKEN = '#120505';   // = --bg; Flaeche ueber/unter dem Video
+  // Zeichengleiche Kopie steht in preload.js (Sandbox: kein require);
+  // test/balken-farbe.test.js haelt beide gleich.
+  const SICHERE_FARBE = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i;
+
+  // Store-Inhalt kann alt oder kaputt sein: nur die zwei bekannten Felder
+  // bleiben. Umzug: wer frueher effekte 'aus' hatte, behaelt Animationen aus,
+  // solange kein echtes animationen-Feld gespeichert ist.
+  function cleanThemePrefs(roh) {
+    const p = roh && typeof roh === 'object' && !Array.isArray(roh) ? roh : {};
+    const animationen = typeof p.animationen === 'boolean' ? p.animationen : p.effekte !== 'aus';
+    return { chatAlpha: clampAlpha(p.chatAlpha), animationen };
+  }
+
+  // Teil-Updates (nur Deckkraft, nur Animationen) lassen das andere Feld stehen.
+  function mergeThemePrefs(gespeichert, update) {
+    const basis = cleanThemePrefs(gespeichert);
+    const u = update && typeof update === 'object' && !Array.isArray(update) ? update : {};
+    const neu = { ...basis };
+    if ('chatAlpha' in u) neu.chatAlpha = u.chatAlpha;
+    if ('animationen' in u) neu.animationen = u.animationen;
+    const sauber = cleanThemePrefs(neu);
+    // ein kaputtes animationen im Update darf das Gespeicherte nicht umwerfen
+    if (typeof neu.animationen !== 'boolean') sauber.animationen = basis.animationen;
+    return sauber;
+  }
+
+  return { STANDARD_PREFS, AKZENT, BALKEN, SICHERE_FARBE, cleanThemePrefs, mergeThemePrefs,
+    DEFAULTS, PRESETS, normalizeHex, accentVars, accentContrast, clampAlpha, onAirState, onAirLabel, activePreset, istHell, flaechenVars };
 });

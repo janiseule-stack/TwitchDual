@@ -4,10 +4,10 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const K = require('../renderer/lib/themes');
+const K = require('../renderer/lib/theme');
 const preload = fs.readFileSync(path.join(__dirname, '..', 'preload.js'), 'utf8');
 
-test('preload nutzt denselben Farbfilter wie themes.js', () => {
+test('preload nutzt denselben Farbfilter wie theme.js', () => {
   assert.ok(preload.includes(K.SICHERE_FARBE.source), 'Regex-Kopie fehlt oder weicht ab');
 });
 

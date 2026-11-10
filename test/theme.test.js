@@ -217,3 +217,46 @@ test('flaechenVars: Alpha nur auf Flaechen, Panel weicht vom Grund ab', () => {
   assert.notEqual(v['--panel'], v['--bg']);
   assert.match(v['--line'], /^#[0-9a-f]{6}$/);
 });
+
+// --- Cozy-Raum: feste Werte und geschrumpfte Einstellungen -------------------
+const T = ThemeLib;
+test('cleanThemePrefs: leer/Muell -> Standard', () => {
+  for (const roh of [null, undefined, 'x', 7, [], {}]) {
+    assert.deepStrictEqual(T.cleanThemePrefs(roh), { chatAlpha: 100, animationen: true });
+  }
+});
+test('cleanThemePrefs: alte Felder verschwinden, chatAlpha bleibt', () => {
+  const alt = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'koi', effekte: 'normal',
+    anpassungen: { 'koi:tusche': { akzent: '#112233' } }, variante: { koi: 'tusche' }, saat: { koi: 5 },
+    gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' };
+  assert.deepStrictEqual(T.cleanThemePrefs(alt), { chatAlpha: 60, animationen: true });
+});
+test('cleanThemePrefs: Umzug effekte aus -> animationen false', () => {
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus' }).animationen, false);
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'wenig' }).animationen, true);
+  // ein echtes animationen-Feld schlaegt das alte effekte-Feld
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus', animationen: true }).animationen, true);
+  // nur echte Booleans zaehlen
+  assert.strictEqual(T.cleanThemePrefs({ animationen: 'aus' }).animationen, true);
+  assert.strictEqual(T.cleanThemePrefs({ animationen: false }).animationen, false);
+});
+test('cleanThemePrefs: kaputte Deckkraft -> 100', () => {
+  assert.strictEqual(T.cleanThemePrefs({ chatAlpha: 'viel' }).chatAlpha, 100);
+  assert.strictEqual(T.cleanThemePrefs({ chatAlpha: -5 }).chatAlpha, 0);
+});
+test('mergeThemePrefs: Teil-Update laesst das andere Feld stehen', () => {
+  const g = { chatAlpha: 60, animationen: false };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { chatAlpha: 60, animationen: true });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, null), g);
+  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { chatAlpha: 100, animationen: true });
+});
+test('mergeThemePrefs: alter Store mit effekte aus + Update ohne animationen bleibt aus', () => {
+  assert.strictEqual(T.mergeThemePrefs({ effekte: 'aus', chatAlpha: 100 }, { chatAlpha: 90 }).animationen, false);
+});
+test('feste Werte: Akzent, Balken, Farbfilter', () => {
+  assert.strictEqual(T.AKZENT, '#f9a650');
+  assert.strictEqual(T.BALKEN, '#120505');
+  assert.ok(T.SICHERE_FARBE.test(T.BALKEN));
+  assert.ok(!T.SICHERE_FARBE.test('red; } body { display: none'));
+});
