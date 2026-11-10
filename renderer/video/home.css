@@ -1,11 +1,6 @@
 /* Home-Overlay: CD-Buehne (gewaehlte CD), CD-Staender (alle Live + Offline-Favoriten), Laufwerk + VOD-Browser */
 
-#home-btn {
-  padding: 8px 12px; border: none; border-radius: 6px;
-  background: var(--hover); color: var(--text); cursor: pointer; font-size: 16px;
-  line-height: 1;
-}
-#home-btn:hover { background: var(--line); }
+/* #home-btn (☰ in der Leiste) ist ein Pixel-Knopf: Aussehen in ../themes/cozy/raum.css. */
 
 .hidden { display: none !important; }
 

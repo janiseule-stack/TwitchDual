@@ -69,6 +69,32 @@ test('Chat: harte Kanten an Tafeln, Feldern und Nachrichten', () => {
   assert.ok(/border-radius:\s*0/.test(block));
 });
 
+const videoHtml = lies('renderer/video/index.html');
+test('Video: Leiste ist das TV-Gehaeuse, Knoepfe sind Pixel-Knoepfe', () => {
+  assert.ok(/id="bar" class="[^"]*rahmen-leiste-video/.test(videoHtml));
+  for (const id of ['home-btn', 'vollbild-btn', 'video-only-btn', 'win-min', 'win-max', 'win-close']) {
+    assert.ok(new RegExp('id="' + id + '" class="[^"]*pixel-knopf').test(videoHtml), id);
+  }
+});
+test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
+  const start = videoHtml.indexOf('id="ads-indicator"');
+  const ads = videoHtml.slice(start, videoHtml.indexOf('</span></span>', start));
+  assert.ok(ads.includes('lampe gruen'));
+  assert.ok(/id="si-lampe" class="lampe rot"/.test(videoHtml));
+  assert.ok(/#stream-info\.live #si-lampe/.test(videoHtml));
+});
+test('Video: keine On-Air-Linie mehr, Nur-Video blendet die Leiste weiter aus', () => {
+  assert.ok(!videoHtml.includes('class="oa-line"'));
+  assert.ok(videoHtml.includes('id="oa-label"'));
+  // vorhandener Selektor: "body.video-only #bar, body.video-only #onair-bar { display: none; }"
+  assert.ok(/body\.video-only #bar,?[^{]*\{[^}]*display:\s*none/.test(videoHtml));
+  const stil = videoHtml.slice(videoHtml.indexOf('<style>'), videoHtml.indexOf('</style>'));
+  assert.ok(!/#onair-bar[^{]*\{[^}]*gradient/.test(stil) && !/#oa-label\s*\{[^}]*gradient/.test(stil));
+});
+test('Video: leerer Player zeigt die Tapete', () => {
+  assert.ok(/id="player" class="[^"]*tapete/.test(videoHtml));
+});
+
 test('beide Fenster binden raum.css direkt nach farben.css ein', () => {
   for (const datei of ['renderer/chat/index.html', 'renderer/video/index.html']) {
     const html = lies(datei);

@@ -18,9 +18,21 @@ Entwurf: `docs/superpowers/specs/2026-11-10-cozy-raum-design.md`.
 - Abo/Raid nur als Zeile; Vorhersage-Start und „Tipp verloren“ ohne Effekt
   bis Etappe 3.
 - Der Schalter „Animationen“ wirkt bis Etappe 3 nur auf die Home-Bühne.
-- Bilder für Etappe 1b liegen in `renderer/themes/cozy/` (Streifen, Leisten,
-  Feld, Lampen, Knopf, Tapete), noch nicht eingebaut.
-- **Nächster Schritt:** Etappe 1b (Bilder einbauen + Optik-Runde).
+
+### Etappe 1b (eingebaut, wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-10-cozy-raum-etappe-1b.md`. Alle
+Optik-Festlegungen sind Claudes Vorschlag.
+
+- Gemeinsame Bausteine in `renderer/themes/cozy/raum.css`: Pixel-Schrift
+  (Pixelify Sans, OFL, lokal), Rahmen aus den Pixel-Bildern (9-Slice,
+  Faktor 2), Pixel-Knopf, Lampen, Tapete.
+- Chat: Holzleiste als Kopf, darunter der Szenen-Streifen (Faktor aus
+  `renderer/lib/szene.js`, höchstens ein Fünftel der Fensterhöhe) mit
+  LIVE/VOD-Schild, Eingabefeld als Pixel-Rahmen, harte Kanten, keine Verläufe.
+- Video: Leiste als TV-Gehäuse (Lautsprecher links), grüne Lampe bei „Ads
+  blocked“, rote Lampe bei Live, leerer Player zeigt die Holzwand.
+- **Nächster Schritt:** Janis' Korrekturen, dann Etappe 2 (Raum als Home).
 
 ## Erledigt
 

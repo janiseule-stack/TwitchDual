@@ -42,6 +42,10 @@
   image-rendering: pixelated; border-radius: 0; background: none;
 }
 
+/* image-rendering vererbt sich: Bilder IN den Rahmen (Emotes, Profilbild)
+   sollen weich bleiben. Knopf und Lampen setzen es unten wieder selbst. */
+.rahmen-leiste-chat > *, .rahmen-leiste-video > *, .rahmen-feld > *, .tapete > * { image-rendering: auto; }
+
 /* --- Knopf, Lampen, Tapete --------------------------------------------------- */
 .pixel-knopf {
   width: 32px; height: 32px; flex: none; padding: 0; border: none; border-radius: 0;
