@@ -53,6 +53,21 @@ test('Flaechen tragen --chat-alpha, Schrift und Akzent nicht', () => {
   for (const k of ['--bg', '--panel', '--hover']) assert.ok(vars[k].includes('var(--chat-alpha)'));
   for (const k of ['--text', '--muted', '--accent', '--line']) assert.ok(!vars[k].includes('--chat-alpha'));
 });
+test('Emote-Auswahl, ihr Suchfeld und die Vorschlagsleiste bleiben bei jeder Deckkraft opak', () => {
+  for (const k of ['--panel-fest', '--hover-fest']) {
+    assert.strictEqual(anzahl[k], 1, k);
+    assert.ok(!vars[k].includes('--chat-alpha'), k);
+  }
+  assert.strictEqual(rgbZuHex(vars['--panel-fest']), rgbZuHex(vars['--panel']));
+  assert.strictEqual(rgbZuHex(vars['--hover-fest']), rgbZuHex(vars['--hover']));
+  const chatCss = lies('renderer/chat/chat.css');
+  for (const [sel, variable] of [['#emote-panel {', '--panel-fest'], ['#ep-suche {', '--hover-fest'], ['#ac-bar {', '--panel-fest']]) {
+    const start = chatCss.indexOf(sel);
+    assert.ok(start > -1, sel);
+    const regel = chatCss.slice(start, chatCss.indexOf('}', start));
+    assert.ok(regel.includes('background: var(' + variable + ')'), sel + ' ' + regel);
+  }
+});
 test('--accent entspricht ThemeLib.AKZENT, --bg entspricht ThemeLib.BALKEN', () => {
   assert.strictEqual(vars['--accent'], T.AKZENT);
   assert.strictEqual(rgbZuHex(vars['--bg']), T.BALKEN);   // rgb(18 5 5 / …) -> #120505

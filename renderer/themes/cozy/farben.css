@@ -13,6 +13,9 @@
   --bg: rgb(18 5 5 / var(--chat-alpha));
   --panel: rgb(46 22 18 / var(--chat-alpha));
   --hover: rgb(70 32 25 / var(--chat-alpha));
+  /* wie Panel/Hover, aber immer opak: Flaechen, die ueber dem Chat schweben */
+  --panel-fest: rgb(46 22 18);
+  --hover-fest: rgb(70 32 25);
   --line: #552719;
   --text: #f4e4c9;
   --muted: #cc915a;
