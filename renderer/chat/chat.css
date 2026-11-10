@@ -70,7 +70,7 @@ body { display: flex; flex-direction: column; }
      hoch diese durch Inline-Emotes/mehrzeilige Eingabe gerade ist. */
   position: absolute; bottom: 100%; margin-bottom: 6px; left: 50%; transform: translateX(-50%);
   z-index: 5;
-  background: var(--accent); color: #fff; border: none; border-radius: 14px;
+  background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 14px;
   padding: 5px 14px; font-size: 12px; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.5);
 }
@@ -164,19 +164,15 @@ body { display: flex; flex-direction: column; }
 @keyframes msg-in { from { opacity: 0; } }
 #messages.no-anim .msg { animation: none; }
 
-/* 🎨 + ⚙: Kopfzeile ist drag-Region -> Buttons explizit klickbar machen. */
-#welt-wuerfel, #theme-btn, #settings-btn {
+/* ⚙: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
+#settings-btn {
   -webkit-app-region: no-drag;
   background: none; border: none; color: var(--muted);
   font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
 }
-/* 🎲 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links. 🎲 gibt es
-   nur bei gezeichneten Welten; ist er versteckt, schiebt 🎨 nach rechts. */
-#welt-wuerfel, #theme-btn { margin-left: auto; }
-#welt-wuerfel:not(.hidden) + #theme-btn { margin-left: 8px; }
-#welt-wuerfel.hidden { display: none; }
-#settings-btn { margin-left: 8px; }
-#welt-wuerfel:hover, #theme-btn:hover, #settings-btn:hover { color: var(--text); }
+/* ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links. */
+#settings-btn { margin-left: auto; }
+#settings-btn:hover { color: var(--text); }
 
 /* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
@@ -195,8 +191,8 @@ body { display: flex; flex-direction: column; }
   display: flex; flex-direction: column;
   box-shadow: 0 10px 28px rgba(0,0,0,.6), inset 0 0 30px -16px var(--accent-glow);
 }
-#settings-pop input[type="checkbox"], #theme-galerie input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
-#settings-pop input[type="range"], #theme-galerie input[type="range"] { accent-color: var(--accent); }
+#settings-pop input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+#settings-pop input[type="range"] { accent-color: var(--accent); }
 #settings-pop.hidden { display: none; }
 /* Abschnitte mit dezenter Ueberschrift und Trennlinie dazwischen. */
 .opt-group { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px; }
@@ -220,10 +216,6 @@ body { display: flex; flex-direction: column; }
 /* Name + graue Erklaerung darunter */
 .opt-text { display: flex; flex-direction: column; line-height: 1.25; }
 .opt-text small { font-size: 10px; color: var(--muted); font-weight: 400; }
-/* Beschriftung oben, Knopfreihe darunter ueber die ganze Breite */
-.opt-row.opt-stapel { flex-direction: column; align-items: stretch; gap: 5px; cursor: default; }
-.opt-stapel .opt-segment { margin-left: 0; display: flex; }
-.opt-stapel .opt-segment button { flex: 1; white-space: nowrap; padding: 4px 6px; }
 .opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; }
 #opt-font { flex: 1; min-width: 90px; }
 #opt-font-val { color: var(--muted); min-width: 38px; text-align: right; }
@@ -294,7 +286,7 @@ button { transition: background-color 120ms ease, color 120ms ease; }
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
 }
 
-/* --- Neon Dual - On Air (v1.5.0) ------------------------------------------ */
+/* --- On-Air-Leiste ---------------------------------------------------------- */
 
 /* Kein 1-px-Rahmen mehr (Janis 09.11.2026): angedockt lagen Video- und
    Chat-Rahmen als Doppellinie nebeneinander. Das weiche Leuchten bleibt. */
@@ -355,36 +347,14 @@ body.onair #oa-label { opacity: 1; }
 button:focus-visible, input:focus-visible {
   outline: 2px solid var(--accent-dim); outline-offset: 1px;
 }
-#new-msgs { color: #fff; }
+#new-msgs { color: var(--accent-contrast); }
 
-/* ⚙-Popup: Preset-Chips (kuratierte Video/Chat-Kombis). Zwei-Ton diagonal:
-   --pv (Video) oben-links, --pc (Chat) unten-rechts; aktiver Chip glueht. */
-.opt-presets-label { font-size: 11px; color: var(--muted); margin: -2px 0 -2px; }
-.opt-presets { display: flex; flex-wrap: wrap; gap: 9px; padding: 2px 0 2px; }
-.preset-chip {
-  width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--line);
-  background: linear-gradient(135deg, var(--pv) 0 50%, var(--pc) 50% 100%);
-  box-shadow: 0 0 6px -1px var(--pv);
-  transition: transform 100ms ease, box-shadow 120ms ease;
-}
-.preset-chip:hover { transform: scale(1.12); }
-.preset-chip.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent), 0 0 10px 1px var(--accent-glow);
-}
-
-/* ⚙-Popup: Farbwaehler (Neon Dual). */
-.opt-color-row input[type="color"] {
-  width: 44px; height: 24px; padding: 0; border: 1px solid var(--line);
-  border-radius: 4px; background: none; cursor: pointer;
-}
-#opt-color-reset, #opt-tf-reset, #opt-diag-open {
+#opt-diag-open {
   margin: 6px 6px 4px; align-self: stretch; text-align: center;
   background: var(--hover); border: 1px solid var(--accent-border); border-radius: 6px;
   color: var(--accent-title); font-size: 12px; padding: 6px 8px; cursor: pointer;
 }
-#opt-color-reset:hover, #opt-tf-reset:hover, #opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
+#opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
 
 /* ⚙-Popup: Deckkraft-Slider (Glass-Transparenz). */
 .opt-alpha-row { display: flex; align-items: center; gap: 8px; }
@@ -457,11 +427,11 @@ button:focus-visible, input:focus-visible {
 /* Picker rechts angedockt statt volle Breite (Nutzerwunsch). */
 #emote-panel { position: absolute; bottom: 100%; right: 6px; left: auto; margin-bottom: 6px;
   width: 300px; max-width: calc(100% - 12px);
-  max-height: 260px; overflow-y: auto; background: #14141c; border: 1px solid var(--accent-border, #333);
+  max-height: 260px; overflow-y: auto; background: var(--panel); border: 1px solid var(--accent-border, #333);
   border-radius: 8px; padding: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
 #ep-suche { position: sticky; top: -6px; z-index: 1; display: block; box-sizing: border-box;
   width: 100%; margin: -6px 0 4px; padding: 6px 8px; font: inherit; font-size: 12px;
-  color: inherit; background: #14141c; border: none; border-bottom: 1px solid var(--accent-border, #333);
+  color: inherit; background: var(--hover); border: none; border-bottom: 1px solid var(--accent-border, #333);
   border-radius: 8px 8px 0 0; outline: none; }
 #ep-suche:focus { border-bottom-color: var(--accent, #9146ff); }
 .ep-emote[hidden] { display: none; }
@@ -486,7 +456,7 @@ button:focus-visible, input:focus-visible {
    der aktuelle ist hervorgehoben. */
 #ac-bar { position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 6px;
   display: flex; gap: 4px; overflow-x: auto; padding: 6px; z-index: 6;
-  background: #14141c; border: 1px solid var(--accent-border, #333); border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--accent-border, #333); border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,.4); }
 #ac-bar.hidden { display: none; }
 .ac-item { display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -497,62 +467,11 @@ button:focus-visible, input:focus-visible {
 .ac-item.active { background: var(--accent-dim, #333); }
 .ac-item.active .ac-name { color: var(--text); }
 
-/* --- Lebendige Themes: Effekt-Ebenen --------------------------------------
-   fx-hinten liegt UNTER Kopf/Nachrichten/Composer/Footer (die bekommen eine
-   eigene Ebene 1), fx-vorn ueber allem fuer kurze Ereignis-Effekte. Beide
-   fangen nie einen Klick ab. */
-.fx-ebene { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
-#fx-hinten { z-index: 0; opacity: .55; }
-#fx-vorn { z-index: 40; }
 #head, #messages, #composer, #footer { position: relative; z-index: 1; }
 
-/* Namensfarbe als Variable: helle Themes koennen sie per color-mix
-   abdunkeln, ohne dass alte Nachrichten neu gerendert werden muessen. */
+/* Namensfarbe als Variable (setzt chat.js je Nachricht). */
 .msg .user, #uc-name { color: var(--name, #bf94ff); }
 
-/* --- 🎨: Effekte-Regler ------------------------------------------------------- */
-.opt-segment { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.opt-segment button {
-  padding: 3px 7px; border: none; background: transparent; color: var(--muted);
-  font: inherit; font-size: 11px; cursor: pointer;
-}
-.opt-segment button + button { border-left: 1px solid var(--line); }
-.opt-segment button.aktiv { background: var(--accent); color: var(--accent-contrast); }
-#opt-neon-farben { display: flex; flex-direction: column; gap: 8px; }
-#opt-neon-farben.hidden { display: none; }
-
-/* --- Theme-Galerie ------------------------------------------------------------ */
-#theme-galerie {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  background: var(--panel); backdrop-filter: blur(8px);
-  display: flex; flex-direction: column; animation: pop-in 120ms ease-out;
-}
-#theme-galerie.hidden { display: none; }
-.galerie-kopf {
-  display: flex; align-items: center; padding: 8px 12px; font-weight: 700; color: var(--accent-title);
-  border-bottom: 1px solid var(--line);
-}
-.galerie-kopf button {
-  margin-left: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px;
-}
-/* 🎨-Fenster: Reiter oben, darunter scrollt die aktive Seite. */
-#theme-reiter { margin: 6px 8px 0; }
-#theme-seiten { flex: 1; overflow-y: auto; font-size: 12px; padding: 0 6px 8px; }
-#theme-seiten .opt-seite[data-seite="farben"], #theme-seiten .opt-seite[data-seite="effekte"] { max-width: 420px; }
-#galerie-liste { padding: 10px 4px; display: flex; flex-direction: column; gap: 10px; }
-.galerie-karte {
-  display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 8px;
-  overflow: hidden; background: var(--hover); color: var(--text); cursor: pointer; text-align: left;
-  font: inherit; transition: transform 120ms ease, border-color 120ms ease;
-  flex-shrink: 0; /* sonst staucht die scrollende Liste die Karten */
-}
-.galerie-karte:hover { transform: translateY(-1px); border-color: var(--accent-border); }
-.galerie-karte.aktiv { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-.galerie-bild { height: 70px; position: relative; overflow: hidden; }
-.galerie-name { padding: 6px 10px; font-size: 12px; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
-.galerie-info { margin-left: auto; font-size: 10px; font-weight: 400; color: var(--muted); }
-.galerie-check { display: none; color: var(--accent); }
-.galerie-karte.aktiv .galerie-check { display: inline; }
 /* ⚙ Effekte testen */
 .opt-fx-test { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .opt-fx-test button {
@@ -561,29 +480,12 @@ button:focus-visible, input:focus-visible {
 }
 .opt-fx-test button:hover { filter: brightness(1.2); }
 .opt-hinweis { margin-top: 5px; font-size: 10px; color: var(--muted); }
-/* Varianten eines gezeichneten Themes: Reihe unter der Karte */
-.galerie-varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-top: -4px; flex-shrink: 0; }
-.galerie-variante {
-  padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer;
-  background: var(--hover); color: var(--text); font: inherit; font-size: 10px; text-align: center;
-  transition: transform 120ms ease, border-color 120ms ease;
-}
-.galerie-variante:hover { transform: translateY(-1px); border-color: var(--accent-border); }
-.galerie-variante.aktiv { border: 2px solid var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-.galerie-variante-bild { height: 54px; position: relative; overflow: hidden; }
-.galerie-variante span { display: block; padding: 3px 2px; }
 
-/* --- Welle 1b: Deko + Titel-Schrift + Namens-Abdunklung ------------------- */
-.theme-deko { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-#title, .galerie-kopf, .opt-group-title { font-family: var(--schrift-titel, inherit); }
-/* Heller (auch selbst gewaehlter) Grund: helle Twitch-Namen abdunkeln. */
-:root[data-hell="1"] .msg .user,
-:root[data-hell="1"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 45%, #000); }
-#opt-theme-farben { display: flex; flex-direction: column; gap: 8px; }
-#opt-theme-farben.hidden { display: none; }
+/* --- Titel-Schrift ---------------------------------------------------------- */
+#title, .opt-group-title { font-family: var(--schrift-titel, inherit); }
 
 /* --- Kanalpunkte-Effekte in der Leiste (renderer/lib/kiste.js) --------------
-   Fuer alle Themes gleich gezeichnet, Farben aus den Theme-Variablen. */
+   Farben aus den Farb-Variablen. */
 #points-wrap { overflow: visible; }
 .kfx-kiste {
   position: absolute; left: 100%; bottom: -3px; margin-left: 6px;
@@ -728,7 +630,7 @@ button:focus-visible, input:focus-visible {
 .ke-feld.falsch { border-color: #ff5a5a; }
 .ke-los, .ke-anmelden {
   align-self: stretch; padding: 5px; border-radius: 6px; border: 0; cursor: pointer; font-weight: 600;
-  background: var(--accent); color: #0b0b11; animation: ke-puls 1.6s ease-in-out infinite;
+  background: var(--accent); color: var(--accent-contrast); animation: ke-puls 1.6s ease-in-out infinite;
 }
 @keyframes ke-puls { 50% { box-shadow: 0 0 14px var(--accent-glow); } }
 .ke-meldung { font-size: .85em; color: var(--accent-title); }

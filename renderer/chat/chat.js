@@ -155,20 +155,11 @@ function appendEreignis(text, nachricht) {
   trimMessages();
 }
 
-// Echte und Test-Ereignisse laufen hier durch: Zeile immer, Theme-Effekt
-// nur wenn der Filter ihn durchlaesst (kein Effekt-Gewitter bei Abo-Regen).
-const ereignisFilter = ChatEreignisse.createEreignisFilter({ abstandMs: 4000 });
+// Echte und Test-Ereignisse laufen hier durch: bis Etappe 3 nur als Zeile.
 function zeigeChatEreignis(ev) {
   if (!ev) return;
   appendEreignis(ChatEreignisse.zeile(ev), ev.nachricht);
-  const fx = ereignisFilter.effekt(ev, Date.now());
-  // Abo-Bluete oben rechts unter der Kopfleiste, damit sie keine Nachrichten verdeckt.
-  if (fx && fx.art === 'abo') {
-    const kopf = document.getElementById('head').getBoundingClientRect();
-    fx.daten.ursprung = { x: window.innerWidth - 90, y: kopf.bottom + 38 };
-  }
-  if (fx) themeRuntime.ereignis(fx.art, fx.daten);
-  window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt: !!fx });
+  window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt: false });
 }
 
 function appendSystem(text) {
@@ -677,8 +668,7 @@ function formatTime(s) {
 // ---------------------------------------------------------------------------
 // ⚙ Chat-Einstellungen: wirken als CSS-Klassen sofort, ueberleben per Store.
 // ---------------------------------------------------------------------------
-let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT, kisteStil: KistenFx.STANDARD_STIL };
-const $optKiste = document.getElementById('opt-kiste');
+let chatPrefs = { showTimestamps: true, showBadges: true, fontSize: ChatUi.FONT_DEFAULT };
 
 function applyChatPrefs() {
   $messages.classList.toggle('hide-ts', !chatPrefs.showTimestamps);
@@ -690,18 +680,6 @@ function applyChatPrefs() {
   $messages.style.setProperty('--chat-font-size', px + 'px');
   $optFont.value = String(px);
   $optFontVal.textContent = px + ' px';
-  const kisteStil = KistenFx.cleanStil(chatPrefs.kisteStil);
-  for (const b of $optKiste.children) b.classList.toggle('aktiv', b.dataset.stil === kisteStil);
-}
-
-// Kisten-Stil: Klick waehlt, speichert und zeigt die Kiste gleich zur Probe.
-for (const b of $optKiste.children) {
-  b.addEventListener('click', () => {
-    chatPrefs.kisteStil = KistenFx.cleanStil(b.dataset.stil);
-    applyChatPrefs();
-    window.twitchDual.saveChatPrefs(chatPrefs);
-    zeigeZuwachs({ quelle: 'kiste', betrag: 50 });
-  });
 }
 
 window.twitchDual.getUiPrefs().then((prefs) => {
@@ -712,11 +690,10 @@ window.twitchDual.getUiPrefs().then((prefs) => {
 
 $settingsBtn.addEventListener('click', () => {
   if (!$settingsPop.classList.contains('hidden')) { $settingsPop.classList.add('hidden'); return; }
-  schliesseGalerie();
   $settingsPop.classList.remove('hidden');
 });
 
-// Reiter (⚙ und 🎨): zuletzt offener wird gemerkt (nur Komfort, darf fehlen).
+// Reiter im ⚙: zuletzt offener wird gemerkt (nur Komfort, darf fehlen).
 // beimWechsel(name) laeuft nach jedem Umschalten.
 function reiterLeiste(leiste, seiten, speicher, standard, beimWechsel) {
   let aktuell = standard;
@@ -790,273 +767,42 @@ document.getElementById('head').addEventListener('dblclick', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Neon Dual - On Air (v1.5.0): Fensterfarbe (Chat = chatAccent) als CSS-
-// Variablen; On-Air-Leiste haengt an load-Modus + player-state.
+// Fenster-Einstellungen (Deckkraft, Animationen): gelten fuer beide Fenster,
+// main.js mischt Teil-Updates. Die On-Air-Leiste haengt an load-Modus +
+// player-state.
 // ---------------------------------------------------------------------------
-const $colorVideo = document.getElementById('opt-color-video');
-const $colorChat = document.getElementById('opt-color-chat');
-const $colorReset = document.getElementById('opt-color-reset');
 const $alphaChat = document.getElementById('opt-alpha-chat');
 const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
-const $presets = document.getElementById('opt-presets');
+const $optAnimationen = document.getElementById('opt-animationen');
 
-let themePrefs = ThemeKatalog.cleanThemePrefs(null);
-
-// Effekte + Farben dieses Fensters (Spec Lebendige Themes).
-const themeRuntime = ThemeRuntime.createRuntime({
-  fenster: 'chat',
-  doc: document,
-  win: window,
-  ebenen: { hinten: document.getElementById('fx-hinten'), vorn: document.getElementById('fx-vorn') },
-  melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
-});
-
-// Preset-Chips (Zwei-Ton: Video-Farbe ↖ / Chat-Farbe ↘) einmalig rendern.
-// Klick uebernimmt beide Akzente wie der Reset-Button; Deckkraft bleibt.
-if ($presets) {
-  for (const p of ThemeLib.PRESETS) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'preset-chip';
-    chip.dataset.id = p.id;
-    chip.title = p.name;
-    chip.setAttribute('aria-label', p.name);
-    chip.style.setProperty('--pv', p.videoAccent);
-    chip.style.setProperty('--pc', p.chatAccent);
-    chip.addEventListener('click', () => {
-      window.twitchDual.saveThemePrefs({
-        videoAccent: p.videoAccent,
-        chatAccent: p.chatAccent,
-        chatAlpha: ThemeLib.clampAlpha(themePrefs.chatAlpha)
-      });
-    });
-    $presets.appendChild(chip);
-  }
-}
+let themePrefs = ThemeLib.cleanThemePrefs(null);
 
 function applyTheme(prefs) {
-  themePrefs = ThemeKatalog.cleanThemePrefs(prefs);
-  // Farben, data-theme, Theme-CSS und Welt setzt die Runtime.
-  themeRuntime.anwenden(themePrefs);
-  // Farbwaehler im ⚙-Popup spiegeln den aktiven Zustand.
-  if ($colorVideo) $colorVideo.value = ThemeLib.normalizeHex(themePrefs.videoAccent, ThemeLib.DEFAULTS.videoAccent);
-  if ($colorChat) $colorChat.value = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
-  // Deckkraft-Slider + %-Anzeige spiegeln den aktiven Zustand (nur Chat).
-  const ca = ThemeLib.clampAlpha(themePrefs.chatAlpha);
-  if ($alphaChat) $alphaChat.value = ca;
-  if ($alphaChatVal) $alphaChatVal.textContent = ca + '%';
-  // Aktiven Preset-Chip markieren (oder keinen, wenn Farben von Hand geaendert).
-  if ($presets) {
-    const active = ThemeLib.activePreset(themePrefs);
-    for (const chip of $presets.children) {
-      chip.classList.toggle('active', !!active && chip.dataset.id === active.id);
-    }
-  }
-  // Akzentfarbe bestimmt die Farbfamilie des Ersatz-Symbols - ohne das
-  // haengt nach einem Farbwechsel bis zu 15 s das alte Emote da. Der Merker
-  // zeigtEchtenStand statt reiner Textlaenge: Fehler-, Warte- und Anmeldetext
-  // sind auch Text, sollen aber symbolfrei bleiben.
-  if (zeigtEchtenStand) setzePunkteSymbol(letzterIconUrl, letzterKanal);
-  if (typeof spiegleThemeUi === 'function') spiegleThemeUi();
+  themePrefs = ThemeLib.cleanThemePrefs(prefs);
+  const r = document.documentElement;
+  r.style.setProperty('--chat-alpha', String(themePrefs.chatAlpha / 100));
+  r.dataset.animationen = themePrefs.animationen ? 'an' : 'aus';
+  $alphaChat.value = themePrefs.chatAlpha;
+  $alphaChatVal.textContent = themePrefs.chatAlpha + '%';
+  $optAnimationen.checked = themePrefs.animationen;
 }
 
 window.twitchDual.getUiPrefs()
   .then((prefs) => applyTheme(prefs && prefs.themePrefs))
-  .catch(() => applyTheme(null)); // Defaults, App startet nie ohne Farben
+  .catch(() => applyTheme(null)); // Standard, App startet nie ohne Werte
 window.twitchDual.onThemeChanged(applyTheme);
 
-// ---------------------------------------------------------------------------
-// Lebendige Themes: Theme-Zeile, Effekte-Regler, Galerie (Spec Abschnitt 3).
-// Gespeichert wird immer nur das geaenderte Feld - main.js mischt.
-// ---------------------------------------------------------------------------
-const $themeBtn = document.getElementById('theme-btn');
-const $themeName = document.getElementById('opt-theme-name');
-const $effekte = document.getElementById('opt-effekte');
-const $neonFarben = document.getElementById('opt-neon-farben');
-// Welle 1b: eigene Farben fuer die neuen Themes (Neon behaelt seine Waehler).
-const $themeFarben = document.getElementById('opt-theme-farben');
-const TF = {
-  akzent: document.getElementById('opt-tf-akzent'),
-  hintergrund: document.getElementById('opt-tf-hintergrund'),
-  partikel: document.getElementById('opt-tf-partikel')
-};
-// Alle drei Werte gehen zusammen raus (main mischt pro Theme).
-function themeFarbenAusWaehlern() {
-  return { anpassungen: { [ThemeKatalog.anpassungsSchluesselFuer(themePrefs)]: {
-    akzent: TF.akzent.value, hintergrund: TF.hintergrund.value, partikel: TF.partikel.value
-  } } };
-}
-for (const el of Object.values(TF)) {
-  el.addEventListener('input', () => window.twitchDual.previewThemePrefs(themeFarbenAusWaehlern()));
-  el.addEventListener('change', () => window.twitchDual.saveThemePrefs(themeFarbenAusWaehlern()));
-}
-document.getElementById('opt-tf-reset').addEventListener('click', () => {
-  window.twitchDual.saveThemePrefs({ anpassungen: { [ThemeKatalog.anpassungsSchluesselFuer(themePrefs)]: {} } });
-});
-const $galerie = document.getElementById('theme-galerie');
-const $galerieListe = document.getElementById('galerie-liste');
-const $head = document.getElementById('head');
-const STUFEN_TEXT = { aus: 'Aus', wenig: 'Wenig', normal: 'Normal', viel: 'Viel' };
-// Gast im Video: Werte liegen in themePrefs (das Video-Fenster plant die Gaeste).
-const $gastOft = document.getElementById('opt-gast-oft');
-const $gastViele = document.getElementById('opt-gast-viele');
-for (const b of $gastOft.children) {
-  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ gastHaeufigkeit: b.dataset.wert }));
-}
-for (const b of $gastViele.children) {
-  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ gastAnzahl: b.dataset.wert }));
-}
-let vorschauStopps = [];
-
-for (const stufe of ThemeKatalog.EFFEKT_STUFEN) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.dataset.stufe = stufe;
-  b.textContent = STUFEN_TEXT[stufe];
-  b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ effekte: stufe }));
-  $effekte.appendChild(b);
-}
-
-// Spiegelt themePrefs in Popup + offene Galerie (aus applyTheme aufgerufen).
-function spiegleThemeUi() {
-  const t = ThemeKatalog.themeById(themePrefs.theme);
-  // Bei Themes mit Varianten gleich mitsagen, welche gerade aktiv ist.
-  const tv = ThemeKatalog.varianteFuer(themePrefs);
-  $themeName.textContent = tv ? t.name + ' · ' + tv.name : t.name;
-  // 🎲 nur bei Themes mit gezeichneter Welt (Neon Dual hat kein Layout).
-  document.getElementById('welt-wuerfel').classList.toggle('hidden', !!t.farbenFrei);
-  for (const b of $effekte.children) b.classList.toggle('aktiv', b.dataset.stufe === themePrefs.effekte);
-  for (const b of $gastOft.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastHaeufigkeit);
-  for (const b of $gastViele.children) b.classList.toggle('aktiv', b.dataset.wert === themePrefs.gastAnzahl);
-  $neonFarben.classList.toggle('hidden', !t.farbenFrei);
-  $themeFarben.classList.toggle('hidden', t.farbenFrei);
-  if (!t.farbenFrei) {
-    const f = ThemeKatalog.effektiveFarben(themePrefs);
-    for (const k of Object.keys(TF)) TF[k].value = f[k];
-  }
-  for (const k of $galerieListe.children) {
-    if (k.dataset.id) k.classList.toggle('aktiv', k.dataset.id === themePrefs.theme);
-  }
-  // Varianten-Knoepfe: aktiv = gewaehlte Variante des aktiven Themes.
-  const v = ThemeKatalog.varianteFuer(themePrefs);
-  for (const b of $galerieListe.querySelectorAll('.galerie-variante')) {
-    b.classList.toggle('aktiv', b.dataset.theme === themePrefs.theme && !!v && b.dataset.variante === v.id);
-  }
-}
-
-// Gezeichnete Themes: Reihe mit einem Knopf pro Variante (eigene Mini-Vorschau).
-// Steht NEBEN der Karte, nicht darin - Knopf in Knopf ist kein gueltiges HTML.
-function baueVariantenReihe(t) {
-  const reihe = document.createElement('div');
-  reihe.className = 'galerie-varianten';
-  const aktiv = ThemeKatalog.varianteFuer({ ...themePrefs, theme: t.id });
-  for (const v of t.varianten) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'galerie-variante' + (t.id === themePrefs.theme && aktiv && aktiv.id === v.id ? ' aktiv' : '');
-    b.dataset.theme = t.id;
-    b.dataset.variante = v.id;
-    b.title = v.name + (v.hell ? ' (hell)' : ' (dunkel)');
-    const mini = document.createElement('div');
-    mini.className = 'galerie-variante-bild';
-    mini.style.background = v.farben.hintergrund;
-    const name = document.createElement('span');
-    name.textContent = v.name;
-    b.append(mini, name);
-    b.addEventListener('click', () => window.twitchDual.saveThemePrefs({ theme: t.id, variante: { [t.id]: v.id } }));
-    reihe.appendChild(b);
-    themeRuntime.starteVorschau(mini, t.id, v.id).then((stopp) => {
-      if ($galerie.classList.contains('hidden')) stopp(); else vorschauStopps.push(stopp);
-    }).catch(() => {});
-  }
-  return reihe;
-}
-
-function baueGalerie() {
-  $galerieListe.innerHTML = '';
-  for (const t of ThemeKatalog.sichtbareThemes()) {
-    const karte = document.createElement('button');
-    karte.type = 'button';
-    karte.className = 'galerie-karte' + (t.id === themePrefs.theme ? ' aktiv' : '');
-    karte.dataset.id = t.id;
-    const bild = document.createElement('div');
-    bild.className = 'galerie-bild';
-    bild.style.background = t.vorschau;
-    const name = document.createElement('div');
-    name.className = 'galerie-name';
-    const n = document.createElement('span'); n.textContent = t.name;
-    const check = document.createElement('span'); check.className = 'galerie-check'; check.textContent = '✓';
-    const info = document.createElement('span'); info.className = 'galerie-info';
-    const tv = ThemeKatalog.varianteFuer({ ...themePrefs, theme: t.id });
-    info.textContent = (tv ? tv.name + ' · ' : '') + ((tv ? tv.hell : t.hell) ? 'hell' : 'dunkel') + ' · ' + t.info;
-    name.append(n, check, info);
-    karte.append(bild, name);
-    karte.addEventListener('click', () => window.twitchDual.saveThemePrefs({ theme: t.id }));
-    $galerieListe.appendChild(karte);
-    if (t.varianten) $galerieListe.appendChild(baueVariantenReihe(t));
-    themeRuntime.starteVorschau(bild, t.id).then((stopp) => {
-      if ($galerie.classList.contains('hidden')) stopp(); else vorschauStopps.push(stopp);
-    }).catch(() => {});
-  }
-}
-
-// Vorschauen laufen nur, solange der Reiter "Themes" offen ist.
-function stoppeVorschauen() {
-  for (const stopp of vorschauStopps) stopp();
-  vorschauStopps = [];
-  $galerieListe.innerHTML = '';
-}
-const themeReiter = reiterLeiste(document.getElementById('theme-reiter'), document.getElementById('theme-seiten'), 'themeReiter', 'themes',
-  (name) => {
-    if ($galerie.classList.contains('hidden')) return;
-    if (name === 'themes') { if (!$galerieListe.children.length) baueGalerie(); } else stoppeVorschauen();
-  });
-function oeffneGalerie() {
-  $settingsPop.classList.add('hidden');
-  $galerie.style.top = $head.getBoundingClientRect().bottom + 'px';
-  $galerie.classList.remove('hidden');
-  themeReiter.zeige(themeReiter.aktuell);
-}
-function schliesseGalerie() {
-  $galerie.classList.add('hidden');
-  stoppeVorschauen();
-}
-$themeBtn.addEventListener('click', () => {
-  if ($galerie.classList.contains('hidden')) oeffneGalerie(); else schliesseGalerie();
-});
-themeReiter.zeige(themeReiter.start);
-document.getElementById('galerie-zu').addEventListener('click', schliesseGalerie);
-// 🎲: neuer Startwert fuer die Welt des aktiven Themes -> beide Fenster bauen neu.
-document.getElementById('welt-wuerfel').addEventListener('click', () => {
-  const neu = Math.floor(Math.random() * 4294967295) + 1;
-  window.twitchDual.saveThemePrefs({ saat: { [themePrefs.theme]: neu } });
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !$galerie.classList.contains('hidden')) schliesseGalerie();
-});
-spiegleThemeUi();
-
-// input = Live-Vorschau in BEIDEN Fenstern (Broadcast ohne Store-Write),
-// change = speichern. Muster wie beim Schriftgroessen-Slider.
-function currentPickerPrefs() {
-  return {
-    videoAccent: $colorVideo.value,
-    chatAccent: $colorChat.value,
-    chatAlpha: ThemeLib.clampAlpha($alphaChat ? $alphaChat.value : themePrefs.chatAlpha)
-  };
-}
-for (const el of [$colorVideo, $colorChat]) {
-  el.addEventListener('input', () => window.twitchDual.previewThemePrefs(currentPickerPrefs()));
-  el.addEventListener('change', () => window.twitchDual.saveThemePrefs(currentPickerPrefs()));
-}
+// input = Live-Vorschau (Broadcast ohne Store-Write), change = speichern.
 $alphaChat.addEventListener('input', () => {
-  // %-Anzeige sofort, Live-Vorschau ins Chat-Fenster (kein Store-Write).
-  $alphaChatVal.textContent = ThemeLib.clampAlpha($alphaChat.value) + '%';
-  window.twitchDual.previewThemePrefs(currentPickerPrefs());
+  const chatAlpha = ThemeLib.clampAlpha($alphaChat.value);
+  $alphaChatVal.textContent = chatAlpha + '%';
+  window.twitchDual.previewThemePrefs({ chatAlpha });
 });
-$alphaChat.addEventListener('change', () => window.twitchDual.saveThemePrefs(currentPickerPrefs()));
-$colorReset.addEventListener('click', () => {
-  window.twitchDual.saveThemePrefs({ ...ThemeLib.DEFAULTS });
+$alphaChat.addEventListener('change', () => {
+  window.twitchDual.saveThemePrefs({ chatAlpha: ThemeLib.clampAlpha($alphaChat.value) });
+});
+$optAnimationen.addEventListener('change', () => {
+  window.twitchDual.saveThemePrefs({ animationen: $optAnimationen.checked });
 });
 
 // On Air: live + spielt. Bis zum ersten 'playing' nach einem Load gilt
@@ -1517,9 +1263,8 @@ let letzterSymbolSchluessel = null;
 function setzePunkteSymbol(iconUrl, channelLogin) {
   letzterIconUrl = iconUrl || null;
   letzterKanal = channelLogin || null;
-  // Die Akzentfarbe gehoert in den Schluessel, sonst bliebe das Symbol beim
-  // Farbwechsel stehen - genau dafuer ruft applyTheme hier noch einmal.
-  const akzent = ThemeLib.normalizeHex(themePrefs.chatAccent, ThemeLib.DEFAULTS.chatAccent);
+  // Die Akzentfarbe bestimmt die Farbfamilie des Ersatz-Symbols.
+  const akzent = ThemeLib.AKZENT;
   const schluessel = (letzterIconUrl || '') + '|' + (letzterKanal || '') + '|' + akzent;
   if (schluessel === letzterSymbolSchluessel) return;
   letzterSymbolSchluessel = schluessel;
@@ -1589,18 +1334,9 @@ function spieleZuwaechse(liste) {
 
 // --- Effekte testen (⚙) ------------------------------------------------------
 // Beispieldaten wie von Twitch; Kiste/Punkte am Punkte-Chip, sonst (Chip
-// unsichtbar) unten rechts. Der Gast laeuft im Video-Fenster.
+// unsichtbar) unten rechts.
 for (const b of document.querySelectorAll('#opt-fx-test button')) {
   b.addEventListener('click', () => window.twitchDual.fxTest(b.dataset.art));
-}
-// Mitte des Punkte-Chips; ohne sichtbaren Chip die Stelle in der Leiste,
-// an der er saesse (#points-wrap bleibt im Layout).
-function punkteUrsprung(extra) {
-  for (const el of [extra, $pointsChip, document.getElementById('points-wrap')]) {
-    const r = el ? el.getBoundingClientRect() : null;
-    if (r && (r.width > 0 || r.left > 0)) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  }
-  return { x: window.innerWidth - 70, y: window.innerHeight - 12 };
 }
 window.twitchDual.onFxTest((art) => {
   // Kiste/Punkte laufen ueber denselben Weg wie echte Zugewinne.
@@ -1615,15 +1351,12 @@ window.twitchDual.onFxTest((art) => {
 function zeigeZuwachs(z) {
   if (!$pointsGain) return;
   const kiste = z.quelle === 'kiste';
-  // Leiste: Schatzkiste bzw. Chip-Puls (alle Themes gleich), dazu reagiert
-  // die Welt des Themes an derselben Stelle.
+  // Leiste: Schatzkiste bzw. Chip-Puls.
   const $wrap = document.getElementById('points-wrap');
-  let $kiste = null;
   if ($wrap) {
-    if (kiste) $kiste = KistenFx.spieleKiste({ doc: document, wirt: $wrap, stil: chatPrefs.kisteStil });
+    if (kiste) KistenFx.spieleKiste({ doc: document, wirt: $wrap, stil: 'pixel' });
     else KistenFx.spielePunkte({ doc: document, wirt: $wrap, chip: $pointsChip });
   }
-  themeRuntime.ereignis(kiste ? 'kiste' : 'punkte', { betrag: z.betrag, ursprung: punkteUrsprung($kiste) });
   $pointsGain.textContent = '+' + z.betrag.toLocaleString('de-DE');
   // Klasse weg -> Reflow erzwingen -> Klasse wieder dran. Ohne das Auslesen
   // von offsetWidth fasst der Browser beide Aenderungen zusammen und die
@@ -1785,10 +1518,7 @@ const ereignisKarten = EreignisKarten.create({
   setzen: (outcomeID, points) => window.twitchDual.vorhersageSetzen(outcomeID, points),
   linkOeffnen: (url) => window.twitchDual.linkOeffnen(url),
   anmelden: () => window.twitchDual.anmelden(),
-  effekt: (s) => {
-    // Gewinn: grosser Effekt + "+X" am Chip ueber denselben Weg wie die Kiste.
-    if (s.art === 'tipp-gewonnen') zeigeZuwachs({ quelle: 'kiste', betrag: s.betrag });
-    else themeRuntime.ereignis(s.art, { ursprung: punkteUrsprung() });
-  }
+  // Gewinn: "+X" am Chip ueber denselben Weg wie die Kiste.
+  effekt: (s) => { if (s.art === 'tipp-gewonnen') zeigeZuwachs({ quelle: 'kiste', betrag: s.betrag }); }
 });
 window.twitchDual.onKanalEreignisse((p) => ereignisKarten.zeige(p));
