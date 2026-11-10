@@ -37,8 +37,7 @@ let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;       // submitLoad aus Home laeuft
 let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
 let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
-let namenAuswahl = null;       // Riesen-Namen dieses Oeffnens (Neubau nach Theme-Wechsel)
-let namenTheme = null;         // Theme, fuer das die Baender gebaut sind
+let namenAuswahl = null;       // Riesen-Namen dieses Oeffnens
 const rad = HomeBuehne.createRad();
 // Laufwerk beim Abspielen: Animation (mind. 1,5 s) und Laden laufen parallel.
 const laufwerk = HomeBuehne.createLaufwerk({
@@ -143,7 +142,6 @@ async function ladeKanaele() {
     // Riesen-Namen nur einmal je Oeffnen (Neubau startet die Laufbaender neu).
     const offlineFavs = abschnittKanaele(HomeListe.abschnitte({ kanaele, nadel: '' }), 'offline').filter((k) => k.favorit);
     namenAuswahl = HomeBuehne.namenAuswahl(live, offlineFavs);
-    namenTheme = namenSchluessel();
     HomeBuehneDom.zeichneNamen(namenAuswahl);
     oeffnenAusstehend = false;
   } else buehne.aktualisieren(reihe());
@@ -600,23 +598,6 @@ window.homeMitSuche = () => {
   else showKanaeleView();
   $suche.focus();
   $suche.select();
-};
-
-// Nach einem Theme-Wechsel (video.js applyTheme): Schrift der Riesen-Namen
-// kann anders breit sein -> Baender mit derselben Auswahl neu bauen. Nur bei
-// echtem Theme-Wechsel; Farb-/Deckkraft-Vorschauen (Schieberegler) lassen die
-// Baender laufen, statt sie bei jedem Schritt neu zu starten.
-// Schluessel: Theme + Titelschrift (Varianten von Koi/Sakura wechseln die Schrift).
-function namenSchluessel() {
-  const r = document.documentElement;
-  return (r.dataset.theme || '') + '|' + getComputedStyle(r).getPropertyValue('--schrift-titel').trim();
-}
-window.homeNamenNeu = () => {
-  if ($home.classList.contains('hidden') || !namenAuswahl) return;
-  const schluessel = namenSchluessel();
-  if (schluessel === namenTheme) return;
-  namenTheme = schluessel;
-  HomeBuehneDom.zeichneNamen(namenAuswahl);
 };
 
 // Tasten auf Home: ↑/↓ blaettern wie das Rad (nicht in der alten VOD-Ansicht),

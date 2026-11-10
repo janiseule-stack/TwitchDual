@@ -165,9 +165,9 @@ if (!isTwitchFrame) {
       } catch (e) {}
     })();`).catch(() => {});
 
-    // Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.). Das
-    // <video> fuellt das iframe; sein Hintergrund ist genau die Balkenflaeche.
-    // Farbfilter = Kopie von ThemeKatalog.SICHERE_FARBE (Sandbox: kein require;
+    // Balken ueber/unter dem Video in der Raum-Farbe. Das <video> fuellt das
+    // iframe; sein Hintergrund ist genau die Balkenflaeche.
+    // Farbfilter = Kopie von ThemeLib.SICHERE_FARBE (Sandbox: kein require;
     // test/balken-farbe.test.js haelt beide gleich).
     const SICHERE_FARBE = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i;
     window.addEventListener('message', (e) => {

@@ -3,6 +3,25 @@
 Stand 2026-07-02: **Alle Punkte der ursprünglichen Roadmap sind umgesetzt** —
 Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 
+## Cozy-Raum Etappe 1a (ungemergt, Branch feat/cozy-raum)
+
+Entwurf: `docs/superpowers/specs/2026-11-10-cozy-raum-design.md`.
+
+- Alte Themes entfernt (Sakura, Koi, Wald, Blasen, Neon Dual) samt Galerie,
+  Farbwählern, 🎲, Runtime und Effekt-Engine.
+- Feste Palette: `renderer/themes/cozy/farben.css` (beide Fenster binden sie
+  zuerst ein).
+- `themePrefs` = `{ chatAlpha, animationen }` (gesäubert in `renderer/lib/theme.js`).
+- ⚙ enthält zusätzlich Deckkraft, Animationen und „Ausprobieren“.
+- Kiste fest im Stil `pixel` (der Geschenk-Stil bleibt als ungenutzter Rest
+  in `kiste.js` bis Etappe 3).
+- Abo/Raid nur als Zeile; Vorhersage-Start und „Tipp verloren“ ohne Effekt
+  bis Etappe 3.
+- Der Schalter „Animationen“ wirkt bis Etappe 3 nur auf die Home-Bühne.
+- Bilder für Etappe 1b liegen in `renderer/themes/cozy/` (Streifen, Leisten,
+  Feld, Lampen, Knopf, Tapete), noch nicht eingebaut.
+- **Nächster Schritt:** Etappe 1b (Bilder einbauen + Optik-Runde).
+
 ## Erledigt
 
 **Robustheit / Testbarkeit**

@@ -48,3 +48,27 @@ test('Home liest data-animationen statt data-effekte', () => {
 test('Effekte testen kennt keinen Gast mehr', () => {
   assert.ok(!/FX_TEST_ARTEN = \[[^\]]*'gast'/.test(lies('main.js')));
 });
+
+test('alte Themes und ihre Bausteine sind geloescht', () => {
+  for (const p of ['renderer/themes/sakura', 'renderer/themes/koi', 'renderer/themes/wald', 'renderer/themes/blasen',
+    'renderer/themes/neon-dual', 'renderer/lib/themes.js', 'renderer/lib/theme-runtime.js', 'renderer/lib/fx-engine.js']) {
+    assert.ok(!fs.existsSync(path.join(wurzel, p)), p);
+  }
+  assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/raum.png')));
+});
+test('ThemeLib exportiert nur noch den Rest', () => {
+  assert.deepStrictEqual(Object.keys(require('../renderer/lib/theme')).sort(),
+    ['AKZENT', 'BALKEN', 'SICHERE_FARBE', 'STANDARD_PREFS', 'clampAlpha', 'cleanThemePrefs', 'mergeThemePrefs',
+      'normalizeHex', 'onAirLabel', 'onAirState'].sort());
+});
+test('kein Quelltext nennt die alten Themes', () => {
+  const dateien = fs.readdirSync(path.join(wurzel, 'renderer'), { recursive: true })
+    .map((p) => 'renderer/' + String(p).split(path.sep).join('/'))
+    .filter((p) => /\.(js|css|html)$/.test(p));
+  dateien.push('main.js', 'preload.js');
+  for (const t of fs.readdirSync(path.join(wurzel, 'tools'))) if (t.endsWith('.js')) dateien.push('tools/' + t);
+  assert.ok(dateien.length > 20, 'Dateiliste zu kurz: ' + dateien.length);
+  for (const datei of dateien) {
+    assert.ok(!/sakura|\bkoi\b|neon.dual|TwitchDualWelten|accentVars|flaechenVars/i.test(lies(datei)), datei);
+  }
+});
