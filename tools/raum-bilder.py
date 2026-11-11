@@ -22,8 +22,14 @@ TV_AUSSCHNITT = (156, 8)
 # Profilbild-Fenster der Huelle (Variante A: Profilbild fuellt das Cover)
 HUELLE_FENSTER = (2, 2, 36, 36)
 # Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4); Task 2 uebertraegt sie in Raum.HOVER
+def lade_regal_json():
+    with open(os.path.join(QUELLEN, "regal.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+REGAL = lade_regal_json()
 HOVER = {
-    "regal": (96, 10),
+    "regal": (REGAL["hover"]["x"], REGAL["hover"]["y"]),
     "lampe": (161, 2),
     "fernseher": (194, 34),
     "plattenspieler": (258, 82),
@@ -140,31 +146,6 @@ def huelle_gross(ordner):
             rp[x, y] = (0, 0, 0, 0)
     rueck.save(os.path.join(ordner, "huelle-gross-rueck.png"))
     return fenster
-
-
-def lampe_klein(ordner):
-    # Aus dem 16x16-Rohbild nur die zusammenhaengende deckende Flaeche (4er-Nachbarschaft)
-    # behalten, die den hellsten Pixel (groesstes R+G) enthaelt; auf ihre Bounding-Box zuschneiden.
-    roh = quelle("lampe-klein-roh.png")
-    w, h = roh.size
-    p = roh.load()
-    deckend = [(x, y) for y in range(h) for x in range(w) if p[x, y][3] > 0]
-    start = max(deckend, key=lambda q: p[q][0] + p[q][1])
-    flaeche = {start}
-    stapel = [start]
-    while stapel:
-        x, y = stapel.pop()
-        for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-            if n not in flaeche and 0 <= n[0] < w and 0 <= n[1] < h and p[n][3] > 0:
-                flaeche.add(n)
-                stapel.append(n)
-    aus = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    ap = aus.load()
-    for q in flaeche:
-        ap[q] = p[q]
-    xs = [q[0] for q in flaeche]
-    ys = [q[1] for q in flaeche]
-    aus.crop((min(xs), min(ys), max(xs) + 1, max(ys) + 1)).save(os.path.join(ordner, "lampe-klein.png"))
 
 
 def platten(ordner):
@@ -424,6 +405,61 @@ def wand_bild(ordner):
     wand.save(os.path.join(ordner, "raum-wand.png"))
 
 
+def einfaerben(bild, farbe):
+    """Rueckenfarbe (regal.json): L = round(0.299r+0.587g+0.114b), Kanal = round(L*farbe/255),
+    Alpha bleibt. Gerundet wird halb nach oben (wie Math.round im Test)."""
+    aus = bild.copy()
+    ap = aus.load()
+    for y in range(aus.size[1]):
+        for x in range(aus.size[0]):
+            r, g, b, a = ap[x, y]
+            if a == 0:
+                continue
+            l = int(0.299 * r + 0.587 * g + 0.114 * b + 0.5)
+            ap[x, y] = tuple(int(l * farbe[k] / 255 + 0.5) for k in range(3)) + (a,)
+    return aus
+
+
+def regal_bilder(ordner):
+    """Regal neu (Janis' Wahl 11.11./12.11.2026, tools/raum-quellen/regal.json).
+    regal.png = regal-basis.png mit der PixelLab-Mitte regal-neu.png bei (80, 0).
+    regal-wand.png = Holzwand wie wand_bild (rechts bei x 248, links bis x 251), innen
+    (x 80..423) ganz durchsichtig, weil das Regal darueber liegt. Ruecken je Art aus
+    ruecken.png eingefaerbt, Karte und Rueckseite unveraendert kopiert."""
+    j = REGAL
+    regal = quelle("regal-basis.png")
+    regal.paste(quelle("regal-neu.png"), (80, 0))
+    regal.save(os.path.join(ordner, "regal.png"))
+
+    w, h = 504, 192
+    wand = Image.new("RGBA", (w, h), DURCHSICHTIG)
+    wand.paste(quelle("regal-wand-rechts.png"), (w - 256, 0))
+    wand.paste(quelle("regal-wand-links.png").crop((0, 0, 252, h)), (0, 0))
+    wp = wand.load()
+    for y in range(h):
+        for x in range(w):
+            if 80 <= x < 80 + 344:
+                wp[x, y] = DURCHSICHTIG
+            else:
+                p = wp[x, y]
+                wp[x, y] = (p[0], p[1], p[2], 255)
+    wand.save(os.path.join(ordner, "regal-wand.png"))
+
+    r = j["ruecken"]
+    b = r["bild"]
+    roh = quelle("ruecken.png").crop((b["x"], b["y"], b["x"] + b["b"], b["y"] + b["h"]))
+    if roh.size != (r["b"], r["h"]):
+        raise SystemExit("ruecken.png: Ausschnitt %s statt %dx%d" % (roh.size, r["b"], r["h"]))
+    for art, farbe in j["rueckenFarben"].items():
+        einfaerben(roh, farbe).save(os.path.join(ordner, "ruecken-%s.png" % art))
+
+    shutil.copyfile(os.path.join(QUELLEN, j["karte"]["datei"]), os.path.join(ordner, "karte.png"))
+    shutil.copyfile(os.path.join(QUELLEN, j["rueckseite"]["datei"]), os.path.join(ordner, "karte-rueck.png"))
+    hv = j["hover"]
+    if quelle("hover-regal.png").size != (hv["b"], hv["h"]):
+        raise SystemExit("hover-regal.png: Groesse passt nicht zu regal.json.hover")
+
+
 def main():
     if len(sys.argv) != 2:
         raise SystemExit("Aufruf: raum-bilder.py <ordner>")
@@ -431,10 +467,10 @@ def main():
     ecken = tv_bilder(ordner)
     leben_bilder(ordner)
     wand_bild(ordner)
+    regal_bilder(ordner)
     hover_und_platte(ordner)
     huelle_bilder(ordner)
     gross = huelle_gross(ordner)
-    lampe_klein(ordner)
     platten(ordner)
     zettel_schild(ordner)
     onair_schilder(ordner)

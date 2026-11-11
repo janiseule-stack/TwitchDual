@@ -7,19 +7,29 @@ const zlib = require('node:zlib');
 
 const DIR = path.join(__dirname, '..', 'renderer', 'themes', 'cozy');
 
+const REGAL_JSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', 'regal.json'), 'utf8'));
+const RUECKEN = REGAL_JSON.ruecken;
+const HOV = REGAL_JSON.hover;
+
 const MASSE = {
   'raum.png': [344, 192],
   'regal.png': [344, 192],
+  'regal-wand.png': [504, 192],
+  'ruecken-live.png': [RUECKEN.b, RUECKEN.h],
+  'ruecken-favorit.png': [RUECKEN.b, RUECKEN.h],
+  'ruecken-offline.png': [RUECKEN.b, RUECKEN.h],
+  'ruecken-twitch.png': [RUECKEN.b, RUECKEN.h],
+  'karte.png': [96, 96],
+  'karte-rueck.png': [96, 96],
   'raum-tv-aus.png': [344, 192],
   'raum-tv-maske.png': [344, 192],
   'huelle.png': [40, 40],
   'huelle-rueck.png': [40, 40],
-  'lampe-klein.png': [11, 8],
   'platte-klein.png': [12, 12],
   'platte-vorn.png': [36, 36],
   'zettel.png': [129, 96],
   'schild.png': [131, 41],
-  'hover-regal.png': [72, 124],
+  'hover-regal.png': [HOV.b, HOV.h],
   'hover-lampe.png': [39, 112],
   'hover-fernseher.png': [78, 78],
   'hover-plattenspieler.png': [54, 50],
@@ -37,7 +47,7 @@ const MASSE = {
 
 // Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4)
 const HOVER_URSPRUNG = {
-  regal: [96, 10],
+  regal: [HOV.x, HOV.y],
   lampe: [161, 2],
   fernseher: [194, 34],
   plattenspieler: [258, 82],
@@ -594,6 +604,86 @@ test('raum-wand.png: PixelLab-Holzwand (links/rechts), deckt nur den dunklen Aus
     }
   }
   assert.ok(gedeckt > 5000, 'schwarzer Aussenbereich gedeckt: ' + gedeckt);
+});
+
+// --- Regal neu, Task 7 ----------------------------------------------------------------
+const pxAt = (b, x, y) => { const i = (y * b.w + x) * 4; return [b.px[i], b.px[i + 1], b.px[i + 2], b.px[i + 3]]; };
+const quelleDatei = (name) => dekodiere(fs.readFileSync(path.join(QUELLEN, name)));
+
+test('regal-wand.png: aussen (x < 80, x >= 424) deckend = PixelLab-Quelle, innen (x 80..423) ganz durchsichtig', () => {
+  const w = dekodiere(lade('regal-wand.png'));
+  const l = quelleDatei('regal-wand-links.png');
+  const r = quelleDatei('regal-wand-rechts.png');
+  let aussen = 0;
+  for (let y = 0; y < 192; y++) {
+    for (let x = 0; x < 504; x++) {
+      const p = pxAt(w, x, y);
+      if (x >= 80 && x < 424) { assert.strictEqual(p[3], 0, `innen ${x},${y} nicht durchsichtig`); continue; }
+      const q = x < 252 ? pxAt(l, x, y) : pxAt(r, x - 248, y);
+      assert.strictEqual(p[3], 255, `aussen ${x},${y} nicht deckend`);
+      assert.deepStrictEqual(p.slice(0, 3), q.slice(0, 3), `aussen ${x},${y} weicht von der Quelle ab`);
+      aussen++;
+    }
+  }
+  assert.strictEqual(aussen, 160 * 192);
+});
+
+test('regal.png = regal-basis.png mit regal-neu.png bei (80, 0) eingefuegt, pixelgleich', () => {
+  const a = dekodiere(lade('regal.png'));
+  const basis = quelleDatei('regal-basis.png');
+  const neu = quelleDatei('regal-neu.png');
+  assert.strictEqual(a.w, 344);
+  assert.strictEqual(a.h, 192);
+  for (let y = 0; y < 192; y++) {
+    for (let x = 0; x < 344; x++) {
+      const soll = x >= 80 && x < 80 + neu.w ? pxAt(neu, x - 80, y) : pxAt(basis, x, y);
+      assert.deepStrictEqual(pxAt(a, x, y), soll, `${x},${y}`);
+    }
+  }
+});
+
+for (const art of Object.keys(REGAL_JSON.rueckenFarben)) {
+  test(`ruecken-${art}.png: Alpha-Maske der Quelle, Farbe = round(L * farbe / 255), L = round(0.299r+0.587g+0.114b) (+-1)`, () => {
+    const a = dekodiere(lade(`ruecken-${art}.png`));
+    const q = quelleDatei('ruecken.png');
+    const b = RUECKEN.bild;
+    const farbe = REGAL_JSON.rueckenFarben[art];
+    assert.strictEqual(a.w, RUECKEN.b);
+    assert.strictEqual(a.h, RUECKEN.h);
+    let deckend = 0;
+    for (let y = 0; y < a.h; y++) {
+      for (let x = 0; x < a.w; x++) {
+        const s = pxAt(q, b.x + x, b.y + y);
+        const p = pxAt(a, x, y);
+        assert.strictEqual(p[3], s[3], `Alpha ${x},${y}`);
+        if (s[3] === 0) continue;
+        deckend++;
+        const l = Math.round(0.299 * s[0] + 0.587 * s[1] + 0.114 * s[2]);
+        for (let k = 0; k < 3; k++) {
+          const soll = Math.round((l * farbe[k]) / 255);
+          assert.ok(Math.abs(p[k] - soll) <= 1, `Kanal ${k} bei ${x},${y}: ${p[k]} statt ${soll}`);
+        }
+      }
+    }
+    assert.ok(deckend > 50, 'Ruecken fast leer');
+  });
+}
+
+for (const [name, quelle] of [['karte.png', 'karte.png'], ['karte-rueck.png', 'karte-rueck.png']]) {
+  test(`${name} = PixelLab-Quelle unveraendert`, () => {
+    assert.ok(dekodiere(lade(name)).px.equals(quelleDatei(quelle).px));
+  });
+}
+
+test('hover-regal.png: Quelle hover-regal.png unveraendert, Ursprung und Groesse aus regal.json', () => {
+  const a = dekodiere(lade('hover-regal.png'));
+  const q = quelleDatei('hover-regal.png');
+  assert.deepStrictEqual([a.w, a.h], [HOV.b, HOV.h]);
+  assert.ok(a.px.equals(q.px));
+});
+
+test('live-zeichen.png gibt es nicht (der Live-Punkt ist CSS)', () => {
+  assert.ok(!fs.existsSync(path.join(DIR, 'live-zeichen.png')));
 });
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {

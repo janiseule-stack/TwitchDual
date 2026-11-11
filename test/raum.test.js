@@ -116,7 +116,7 @@ test('REGAL_RAHMEN: eingefroren, x -80, b 504, ganz', () => {
   assert.strictEqual(R.REGAL_RAHMEN.x, -80);
   assert.strictEqual(R.REGAL_RAHMEN.b, 504);
   assert.strictEqual(R.REGAL_RAHMEN.ganz, true);
-  assert.deepStrictEqual([R.REGAL_RAHMEN.von, R.REGAL_RAHMEN.bis, R.REGAL_RAHMEN.mitte], [100, 314, 207]);
+  assert.deepStrictEqual([R.REGAL_RAHMEN.von, R.REGAL_RAHMEN.bis, R.REGAL_RAHMEN.mitte], [100, 300, 200]);
   assert.strictEqual(R.RAUM_RAHMEN.ganz, undefined);
 });
 
@@ -196,7 +196,8 @@ test('passtAlsRaum: Fenster mindestens 688x384', () => {
 
 test('HOVER und PLATTENSPIELER_RECHTECK', () => {
   assert.deepStrictEqual(R.PLATTENSPIELER_RECHTECK, { x: 262, y: 86, b: 46, h: 42 });
-  assert.deepStrictEqual(R.HOVER.regal, { x: 96, y: 10, b: 72, h: 124 });
+  assert.deepStrictEqual(R.HOVER.regal, { x: 86, y: 9, b: 77, h: 121 });
+  assert.deepStrictEqual(R.FLAECHEN.find((f) => f.id === 'regal'), { id: 'regal', name: 'Platten', x: 90, y: 13, b: 69, h: 113 });
   assert.deepStrictEqual(R.HOVER.lampe, { x: 161, y: 2, b: 39, h: 112 });
   assert.deepStrictEqual(R.HOVER.fernseher, { x: 194, y: 34, b: 78, h: 78 });
   assert.deepStrictEqual(R.HOVER.plattenspieler, { x: 258, y: 82, b: 54, h: 50 });
@@ -205,6 +206,68 @@ test('HOVER und PLATTENSPIELER_RECHTECK', () => {
     assert.strictEqual(R.HOVER[f.id].x, f.x - 4, f.id);
     assert.strictEqual(R.HOVER[f.id].y, f.y - 4, f.id);
   }
+});
+
+// --- Regal neu, Task 7 ----------------------------------------------------------------
+const fs = require('node:fs');
+const path = require('node:path');
+const REGAL_JSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', 'regal.json'), 'utf8'));
+
+test('REGAL gleich regal.json (Abbildung aus dem Plan, eingefroren)', () => {
+  const j = REGAL_JSON;
+  const soll = {
+    brett: j.brett,
+    faecher: j.faecher,
+    such: j.such,
+    ruecken: { b: j.ruecken.b, h: j.ruecken.h, abstand: j.ruecken.abstand, fenster: j.ruecken.fenster, name: j.ruecken.name },
+    livePunkt: j.livePunkt,
+    karteRand: j.karte.rand,
+    rueckRand: j.rueckseite.rand,
+  };
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(R.REGAL)), soll);
+  assert.ok(Object.isFrozen(R.REGAL));
+  assert.ok(Object.isFrozen(R.REGAL.brett) && Object.isFrozen(R.REGAL.faecher.live) && Object.isFrozen(R.REGAL.ruecken.fenster));
+  assert.ok(Object.isFrozen(R.REGAL.livePunkt.cover) && Object.isFrozen(R.REGAL.karteRand));
+});
+
+test('REGAL_RAHMEN von/bis/mitte aus regal.json.bereich', () => {
+  const b = REGAL_JSON.bereich;
+  assert.deepStrictEqual([R.REGAL_RAHMEN.von, R.REGAL_RAHMEN.bis, R.REGAL_RAHMEN.mitte], [b.von, b.bis, b.mitte]);
+  assert.ok(Object.isFrozen(R.REGAL_RAHMEN));
+});
+
+test('HOVER.regal aus regal.json.hover, FLAECHEN.regal 4 px nach innen; Hover endet vor der Lampe', () => {
+  const h = REGAL_JSON.hover;
+  assert.deepStrictEqual(R.HOVER.regal, { x: h.x, y: h.y, b: h.b, h: h.h });
+  const f = R.FLAECHEN.find((q) => q.id === 'regal');
+  assert.deepStrictEqual([f.x, f.y, f.b, f.h], [h.x + 4, h.y + 4, h.b - 8, h.h - 8]);
+  assert.ok(R.HOVER.regal.x + R.HOVER.regal.b <= 168);
+});
+
+test('REGAL: alle Rechtecke in 344x192, Brett fasst mindestens 3 Cover und ist mindestens 44 hoch', () => {
+  const alle = [R.REGAL.brett, R.REGAL.faecher.live, R.REGAL.faecher.unten, R.REGAL.such];
+  for (const r of alle) {
+    assert.ok(r.x >= 0 && r.y >= 0 && r.x + r.b <= 344 && r.y + r.h <= 192, JSON.stringify(r));
+  }
+  assert.ok(R.fachFenster(10, -1, R.REGAL.brett.b, 0).sichtbar >= 3);
+  assert.ok(R.REGAL.brett.h >= 44);
+});
+
+test('REGAL auf der Groessenliste ganz sichtbar (Bildschirm-Pixel)', () => {
+  const alle = [R.REGAL.brett, R.REGAL.faecher.live, R.REGAL.faecher.unten, R.REGAL.such];
+  for (const [b, h] of GROESSEN) {
+    const s = R.skalierung(b, h, R.REGAL_RAHMEN);
+    for (const r of alle) {
+      const x0 = s.links + r.x * s.faktor, x1 = s.links + (r.x + r.b) * s.faktor;
+      const y0 = s.oben + r.y * s.faktor, y1 = s.oben + (r.y + r.h) * s.faktor;
+      assert.ok(x0 >= -1e-6 && x1 <= b + 1e-6 && y0 >= -1e-6 && y1 <= h + 1e-6, `${b}x${h}: ${JSON.stringify(r)}`);
+    }
+  }
+});
+
+test('fachFenster mit teil: Kante und Abstand aus dem Teil', () => {
+  assert.strictEqual(R.fachFenster(30, 0, 100, 0, { kante: 8, abstand: 1 }).sichtbar, 11);
+  assert.deepStrictEqual(R.fachFenster(30, 0, 175, 0), { start: 0, sichtbar: 4 });
 });
 
 test('zuBild und treffer mit nicht ganzzahligem Faktor', () => {

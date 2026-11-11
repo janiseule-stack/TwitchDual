@@ -13,7 +13,7 @@
     Object.freeze({ id: 'fernseher', name: 'Fernseher', x: 198, y: 38, b: 70, h: 70 }),
     Object.freeze({ id: 'bild', name: 'Konto', x: 282, y: 36, b: 32, h: 54 }),
     Object.freeze({ id: 'lampe', name: 'Licht', x: 165, y: 6, b: 31, h: 104 }),
-    Object.freeze({ id: 'regal', name: 'Platten', x: 100, y: 14, b: 64, h: 116 }),
+    Object.freeze({ id: 'regal', name: 'Platten', x: 90, y: 13, b: 69, h: 113 }),
   ]);
 
   const FACH = Object.freeze({
@@ -41,7 +41,7 @@
 
   // Hover-Bilder: Ursprung (Klickflaeche - 4) und Groesse in Bildpixeln.
   const HOVER = Object.freeze({
-    regal: Object.freeze({ x: 96, y: 10, b: 72, h: 124 }),
+    regal: Object.freeze({ x: 86, y: 9, b: 77, h: 121 }), // = tools/raum-quellen/regal.json hover
     lampe: Object.freeze({ x: 161, y: 2, b: 39, h: 112 }),
     fernseher: Object.freeze({ x: 194, y: 34, b: 78, h: 78 }),
     plattenspieler: Object.freeze({ x: 258, y: 82, b: 54, h: 50 }),
@@ -61,8 +61,25 @@
   const RAUM_RAHMEN = Object.freeze({ x: -80, b: 504 });
 
   // Regal-Ansicht: Regal vor der PixelLab-Holzwand regal-wand.png (504 breit, Regal bei
-  // x=80). von/bis/mitte vorlaeufig; Task 7 ersetzt sie durch die Messung aus regal.json.
-  const REGAL_RAHMEN = Object.freeze({ x: -80, b: 504, von: 100, bis: 314, mitte: 207, ganz: true });
+  // x=80). von/bis/mitte = regal.json bereich.
+  const REGAL_RAHMEN = Object.freeze({ x: -80, b: 504, von: 100, bis: 300, mitte: 200, ganz: true });
+
+  // Regal neu (Bildpixel des 344x192-Bilds regal.png), 1:1 aus tools/raum-quellen/regal.json
+  // (Test: REGAL gleich regal.json). Schluessel mit _ in der Datei sind Kommentare.
+  const rechteck = (x, y, b, h) => Object.freeze({ x, y, b, h });
+  const rand = (o, r, u, l) => Object.freeze({ oben: o, rechts: r, unten: u, links: l });
+  const REGAL = Object.freeze({
+    brett: rechteck(144, 14, 130, 47),
+    faecher: Object.freeze({ live: rechteck(115, 76, 172, 44), unten: rechteck(115, 133, 172, 47) }),
+    such: rechteck(140, 0, 120, 18),
+    ruecken: Object.freeze({ b: 6, h: 40, abstand: 0, fenster: rechteck(0, 2, 5, 5), name: rechteck(0, 8, 5, 26) }),
+    livePunkt: Object.freeze({
+      cover: Object.freeze({ x: 33, y: 3, d: 4 }),
+      ruecken: Object.freeze({ x: 1, y: 35, d: 3 }),
+    }),
+    karteRand: rand(10, 10, 10, 10),
+    rueckRand: rand(10, 10, 10, 10),
+  });
 
   const MIN_BREITE = 688;
   const MIN_HOEHE = 384;
@@ -147,9 +164,10 @@
   }
 
   // Wie viele Huellen passen ins Fach, und kleinster Verschub von start, der die gewaehlte zeigt.
-  function fachFenster(anzahl, gewaehltIndex, fachBreite, start) {
+  // teil = { kante, abstand } eines Teils im Fach (Standard: Huelle).
+  function fachFenster(anzahl, gewaehltIndex, fachBreite, start, teil = HUELLE) {
     const n = Math.max(0, Math.floor(zahl(anzahl)));
-    const sichtbar = Math.max(1, Math.floor((zahl(fachBreite) + HUELLE.abstand) / (HUELLE.kante + HUELLE.abstand)));
+    const sichtbar = Math.max(1, Math.floor((zahl(fachBreite) + teil.abstand) / (teil.kante + teil.abstand)));
     const grenze = Math.max(0, n - sichtbar);
     let s = Math.floor(zahl(start));
     if (typeof gewaehltIndex === 'number' && gewaehltIndex >= 0 && n > 0) {
@@ -210,5 +228,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
 });
