@@ -315,6 +315,53 @@ window.HomeRaumDom = (function () {
   }
   function grossOffen() { return !!wirt && !t.gross.classList.contains('raum-aus'); }
 
+  // Karte (Regal neu): grosse Platte, doppelt so breit wie hoch. Vorn links die
+  // Huelle mit Profilbild, rechts die Infotafel (9-Slice karte.png); hinten
+  // (karte-rueck.png) die scrollbare VOD-Liste, die am Ende nachlaedt. Eigener
+  // Baustein neben baueGross; die Handler kommen mit zeichneKarte (t.karteH usw.).
+  // Das Aussehen liegt in home-raum.css (Abschnitt Karte).
+  function baueKarte() {
+    t.karteWurzel = el('div', 'karte-platz raum-aus');
+    t.karteWurzel.addEventListener('click', (e) => {
+      if (e.detail > 1) return; // Doppelklick: der zweite Klick trifft die eben geoeffnete Karte
+      if (e.target === t.karteWurzel && t.karteZu) t.karteZu();
+    });
+    t.karte = el('div', 'karte');
+    t.karteKarte = el('div', 'karte-karte');
+    // Vorderseite: Huelle links, Infotafel rechts
+    const vorn = el('div', 'karte-seite karte-vorn');
+    t.karteHuelle = el('div', 'karte-huelle');
+    t.karteFenster = textLage(el('div', 'karte-teil karte-fenster'), GROSS_FENSTER);
+    t.karteHuelle.append(t.karteFenster, bildEl('../themes/cozy/huelle-gross-vorn.png', 'karte-bild'));
+    // Doppelklick auf die Huelle legt auf (wie der Knopf "Auflegen")
+    t.karteHuelle.addEventListener('dblclick', () => {
+      const s = t.karteStand;
+      if (s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
+    });
+    t.karteInfo = el('div', 'karte-info');
+    vorn.append(t.karteHuelle, t.karteInfo);
+    // Rueckseite: Kopf und Liste auf karte-rueck.png (9-Slice in CSS)
+    const rueck = el('div', 'karte-seite karte-rueck');
+    t.karteKopf = el('div', 'karte-kopf');
+    t.karteVods = el('div', 'karte-vods');
+    t.karteVods.tabIndex = -1;
+    t.karteVods.addEventListener('scroll', karteNachladen);
+    t.karteFuss = el('div', 'karte-vods-fuss');
+    rueck.append(t.karteKopf, t.karteVods);
+    t.karteRueck = rueck;
+    t.karteKarte.append(vorn, rueck);
+    const zu = knopf('pixel-knopf k-zu karte-zu', '✕', 'Zurücklegen', () => { if (t.karteZu) t.karteZu(); });
+    zu.dataset.id = 'zu';
+    t.karte.append(t.karteKarte, zu);
+    t.karteWurzel.appendChild(t.karte);
+    t.karteKv = null;
+    return t.karteWurzel;
+  }
+  function karteOffen() {
+    return !!wirt && !!t.karteWurzel && !t.karteWurzel.classList.contains('raum-aus')
+      && t.karteKarte.classList.contains('gedreht');
+  }
+
   function baueTafel() {
     t.tafel = el('div', 'raum-aus');
     t.tafel.id = 'home-tafel';
@@ -369,6 +416,7 @@ window.HomeRaumDom = (function () {
     wirt = opt.wirt || document.getElementById('home');
     wirt.classList.add('raum-home');
     wirt.prepend(baueRaum(), baueRegal(), baueKnoepfe(), baueTafel(), baueAblauf());
+    t.regal.e.appendChild(baueKarte());
     aus(t.dreht, !spielt);
     zeigeAnsicht('raum');
   }
@@ -402,6 +450,17 @@ window.HomeRaumDom = (function () {
     wirt.style.setProperty('--vod-k', Math.max(1, Math.floor(n / 2)));
     t.grossHuelle.style.left = Math.round((wirt.clientWidth - kante) / 2) + 'px';
     t.grossHuelle.style.top = Math.round((wirt.clientHeight - kante) / 2) + 'px';
+    // Karte: doppelt so breit wie hoch, ganzzahlig (--karte-n), eigene Schriftgroessen
+    // und Vorschau-Faktor; mittig auf ganzen Pixeln.
+    const km = Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight);
+    wirt.style.setProperty('--karte-b', km.breite + 'px');
+    wirt.style.setProperty('--karte-h', km.hoehe + 'px');
+    wirt.style.setProperty('--karte-n', km.n);
+    wirt.style.setProperty('--karte-schrift', km.schrift.gross + 'px');
+    wirt.style.setProperty('--karte-schrift-klein', km.schrift.klein + 'px');
+    wirt.style.setProperty('--karte-vod-k', km.vodK);
+    t.karte.style.left = km.links + 'px';
+    t.karte.style.top = km.oben + 'px';
     // Der Zettel zeigt je nach Hoehe mehr oder weniger Zeilen.
     if (t.vornStand && zettelPlatz().platz !== t.zettelPlatz) zeichneZettel(t.vornStand, t.buehneH);
     // Im Ablauf bleibt die Raum-Ebene auf dem Kamera-Ziel (auch bei Groessenaenderung).
@@ -578,7 +637,7 @@ window.HomeRaumDom = (function () {
     img.addEventListener('load', () => {
       // mittig auf 32:9 zuschneiden, in Canvas-Groesse zeichnen (CSS vergroessert scharfkantig)
       const w = img.naturalWidth;
-      const hoch = Math.min(img.naturalHeight, w * 9 / 32);
+      const hoch = Math.min(img.naturalHeight, w * c.height / c.width); // Form der Canvas (64x18 oder 64x36)
       const g = c.getContext('2d');
       g.imageSmoothingEnabled = true;
       g.drawImage(img, 0, (img.naturalHeight - hoch) / 2, w, hoch, 0, 0, c.width, c.height);
@@ -657,6 +716,170 @@ window.HomeRaumDom = (function () {
     if (!grossOffen()) return false;
     const eine = t.grossListe.querySelector('.gross-vod');
     t.grossListe.scrollBy({ top: (richtung > 0 ? 1 : -1) * (eine ? eine.offsetHeight : 24) });
+    return true;
+  }
+
+  // --- Regal: Karte zeichnen ----------------------------------------------------
+  // stand = { kanal, modus, seite: 'vorn'|'rueck', vods: { status, liste, weitere,
+  // laedtNach, laufend }|null, punkte }|null; null legt die Karte weg.
+  function zeichneKarte(stand, h) {
+    if (!wirt) return;
+    const k = stand && stand.kanal ? stand.kanal : null;
+    t.karteStand = k ? stand : null;
+    if (!k) {
+      aus(t.karteWurzel, true);
+      t.karteKarte.classList.remove('gedreht');
+      t.karteLogin = null;
+      t.karteKv = null;
+      t.karteInfo.replaceChildren();
+      t.karteKopf.replaceChildren();
+      t.karteVods.replaceChildren();
+      return;
+    }
+    t.karteH = h;
+    t.karteZu = () => ruf(h, 'zuruecklegen');
+    t.karteLaden = (login) => ruf(h, 'laden', login);
+    t.karteVodKlick = (id) => ruf(h, 'vod', id);
+    t.karteMehr = () => ruf(h, 'mehrVods');
+    const rueck = stand.seite === 'rueck';
+    if (t.karteLogin !== k.login) {
+      // neu herausgenommen; steht sie schon auf der Rueckseite, ohne Drehen einblenden
+      t.karteLogin = k.login;
+      t.karteKv = null;
+      t.karteFenster.replaceChildren();
+      profilbild(k, t.karteFenster, GROSS_FENSTER);
+      t.karteKarte.classList.add('ohne-drehen');
+      t.karteKarte.classList.toggle('gedreht', rueck);
+      aus(t.karteWurzel, false);
+      void t.karteKarte.offsetWidth; // Stand festschreiben, sonst dreht sie doch
+      t.karteKarte.classList.remove('ohne-drehen');
+    } else {
+      t.karteKarte.classList.toggle('gedreht', rueck);
+    }
+    zeichneKarteVorn(stand, k, h);
+    // Rueckseite: Kopf (Titel, Stern, bei Live-Platten "Vorderseite") und Liste
+    const fokus = merkeFokus(t.karteRueck, 'id');
+    t.karteKopf.replaceChildren();
+    t.karteKopf.appendChild(el('div', 'karte-kopf-titel', 'VODs · ' + name(k)));
+    const stern = knopf('karte-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
+      k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
+    stern.dataset.id = 'stern-rueck';
+    t.karteKopf.appendChild(stern);
+    if (stand.modus === 'live') {
+      const vorn = knopf('karte-knopf', 'Vorderseite', 'Karte umdrehen', () => ruf(h, 'umdrehen'));
+      vorn.dataset.id = 'vorderseite';
+      t.karteKopf.appendChild(vorn);
+    }
+    stelleFokusHer(t.karteRueck, 'id', fokus);
+    zeichneKarteVods(stand.vods, k.login);
+  }
+
+  // Vorderseite: Status, Name, Titel, Spiel, Zuschauer, Laufzeit und Kanalpunkte, Knoepfe.
+  function zeichneKarteVorn(s, k, h) {
+    const z = t.karteInfo;
+    const fokus = merkeFokus(z, 'id');
+    z.replaceChildren();
+    const an = s.modus !== 'offline';
+    let lauf = '';
+    let status;
+    if (s.modus === 'live') {
+      status = '● LIVE';
+      lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
+    } else if (s.modus === 'markiert') status = 'gerade offline gegangen';
+    else status = k.error ? 'Status nicht abrufbar' : 'offline';
+    z.appendChild(el('div', 'karte-status', status));
+    const kanal = el('div', 'karte-name', name(k));
+    if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
+    z.appendChild(kanal);
+    if (an && k.title) z.appendChild(el('div', 'karte-titel', k.title));
+    if (an && k.game) z.appendChild(el('div', 'karte-spiel', k.game));
+    if (s.modus === 'live' && k.viewersLabel) z.appendChild(el('div', 'karte-zuschauer', k.viewersLabel + ' Zuschauer'));
+    const punkte = an && s.punkte ? Number(s.punkte.balance || 0).toLocaleString('de-DE') + ' Punkte' : '';
+    const klein = [lauf, punkte].filter(Boolean).join(' · ');
+    if (klein) z.appendChild(el('div', 'karte-klein', klein));
+    const knoepfe = el('div', 'karte-knoepfe');
+    const stern = knopf('karte-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
+      k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
+    stern.dataset.id = 'stern';
+    knoepfe.appendChild(stern);
+    if (s.modus === 'live') {
+      const auf = knopf('karte-knopf', 'Auflegen', 'Stream laden', () => ruf(h, 'laden', k.login));
+      auf.dataset.id = 'laden';
+      knoepfe.appendChild(auf);
+    }
+    const vods = knopf('karte-knopf', 'VODs ↻', 'VODs ansehen', () => ruf(h, 'umdrehen'));
+    vods.dataset.id = 'umdrehen';
+    knoepfe.appendChild(vods);
+    z.appendChild(knoepfe);
+    stelleFokusHer(z, 'id', fokus);
+  }
+
+  // Eine VOD-Zeile: Vorschau links (Canvas 64x36, 16:9), Titel, darunter Spiel · wann · Laenge.
+  // Einziger Weg, Zeilen zu bauen: neu bauen und Anhaengen haben dieselbe Vorschau.
+  // Fehlt thumb, bleibt die Canvas eine ruhige Flaeche (CSS) und haelt den Platz.
+  function karteVodZeile(v, laufend) {
+    const b = el('button', 'karte-vod' + (laufend ? ' laeuft' : ''));
+    b.type = 'button';
+    b.addEventListener('click', (e) => { e.stopPropagation(); if (t.karteVodKlick) t.karteVodKlick(v.id); });
+    b.title = [v.title, v.game, v.lengthLabel, v.publishedLabel, v.viewsLabel ? v.viewsLabel + ' Aufrufe' : ''].filter(Boolean).join(' · ');
+    b.dataset.id = 'vod-' + v.id;
+    const c = document.createElement('canvas');
+    c.width = 64;
+    c.height = 36;
+    vodBild(v.thumb, c);
+    const text = el('span', 'karte-vod-text');
+    const info = [laufend ? '● läuft' : '', v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
+    text.append(el('span', 'karte-vod-titel', v.title || 'VOD'), el('span', 'karte-vod-info', info));
+    b.append(c, text);
+    return b;
+  }
+
+  // Liste: gleicher Kanal und dieselben Zeilen vorn -> nur neue Zeilen anhaengen
+  // (Scrollstand bleibt), sonst neu bauen und nach oben.
+  function zeichneKarteVods(vods, login) {
+    const liste = t.karteVods;
+    const alle = vods && vods.liste ? vods.liste : [];
+    const laufend = vods ? vods.laufend : null;
+    const kv = t.karteKv || { login: null, ids: [] };
+    const anhaengen = kv.login === login && kv.ids.length > 0 && kv.ids.every((id, i) => alle[i] && alle[i].id === id);
+    if (anhaengen) {
+      for (let i = kv.ids.length; i < alle.length; i++) {
+        liste.insertBefore(karteVodZeile(alle[i], alle[i].id === laufend), t.karteFuss);
+      }
+    } else {
+      const fokus = merkeFokus(t.karteRueck, 'id');
+      liste.replaceChildren();
+      liste.scrollTop = 0;
+      if (!alle.length) {
+        const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[vods ? vods.status : 'laden'];
+        liste.appendChild(el('div', 'karte-status-leer', status || 'lade VODs …'));
+      }
+      for (const v of alle) liste.appendChild(karteVodZeile(v, v.id === laufend));
+      liste.appendChild(t.karteFuss);
+      stelleFokusHer(t.karteRueck, 'id', fokus);
+    }
+    t.karteKv = { login, ids: alle.map((v) => v.id) };
+    t.karteFuss.textContent = vods && vods.laedtNach ? 'lade weitere …' : '';
+    aus(t.karteFuss, !(vods && vods.laedtNach));
+    // Ohne Scrollleiste (kurze Liste) kommt nie ein scroll-Ereignis: nach dem Zeichnen pruefen
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(karteNachladen);
+  }
+
+  // Am Ende der Liste (2 Zeilenhoehen davor) weitere VODs anfordern.
+  function karteNachladen() {
+    const v = t.karteStand ? t.karteStand.vods : null;
+    const liste = t.karteVods;
+    if (!v || !v.weitere || v.laedtNach || !t.karteMehr || !liste || !liste.clientHeight) return;
+    const eine = liste.querySelector('.karte-vod');
+    const zeile = eine ? eine.offsetHeight : 36;
+    if (liste.scrollTop + liste.clientHeight >= liste.scrollHeight - 2 * zeile) t.karteMehr();
+  }
+
+  // ↑/↓ bei offener Rueckseite: Liste scrollen statt zuruecklegen (home.js).
+  function kartenScrollen(richtung) {
+    if (!karteOffen()) return false;
+    const eine = t.karteVods.querySelector('.karte-vod');
+    t.karteVods.scrollBy({ top: (richtung > 0 ? 1 : -1) * (eine ? eine.offsetHeight : 36) });
     return true;
   }
 
@@ -847,6 +1070,6 @@ window.HomeRaumDom = (function () {
   return {
     init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
-    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, leben, plattenspielerLaeuft,
+    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
   };
 })();

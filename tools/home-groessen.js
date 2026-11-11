@@ -9,7 +9,30 @@ const path = require('path');
 
 const GROESSEN = [[2960, 1390], [2040, 952], [1920, 1030], [1536, 1030], [1280, 670], [900, 700]];
 const [,, ziel, ansicht = 'raum'] = process.argv;
-if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [raum|regal]'); process.exit(1); }
+if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [raum|regal|karte|rueckseite]'); process.exit(1); }
+
+// Beispiel-Stand fuer zeichneKarte (laeuft im Video-Fenster, daher ohne Verweise nach aussen):
+// neutraler Kanal, 30 Beispiel-VODs mit Spiel; ohne Vorschaubilder (kein Netz).
+function beispielStand(seite) {
+  const liste = [];
+  for (let i = 1; i <= 30; i++) {
+    liste.push({
+      id: 'v' + i, title: 'Beispiel-VOD ' + i + ' mit einem ziemlich langen Titel fuer den Zeilenumbruch',
+      published: new Date(Date.now() - i * 86400000).toISOString(), publishedLabel: 'vor ' + i + ' T',
+      length: 3600 + i * 60, lengthLabel: '1:' + String(10 + (i % 50)).padStart(2, '0') + ':00',
+      thumb: null, game: i % 3 ? 'Beispiel-Spiel ' + (i % 4) : '',
+    });
+  }
+  return {
+    kanal: {
+      login: 'beispiel', displayName: 'beispiel', live: true, favorit: false, verifiziert: true, avatar: null,
+      title: 'Ein langer Beispiel-Titel, der sicher ueber zwei Zeilen geht und danach abgeschnitten wird',
+      game: 'Beispiel-Spiel', viewersLabel: '12,3K', start: new Date(Date.now() - 5400000).toISOString(),
+    },
+    modus: 'live', seite: seite === 'rueckseite' ? 'rueck' : 'vorn', punkte: { balance: 12345 },
+    vods: { status: 'ok', liste, weitere: true, laedtNach: false, laufend: 'v1' },
+  };
+}
 
 (async () => {
   const list = await (await fetch('http://127.0.0.1:9333/json/list')).json();
@@ -31,13 +54,16 @@ if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [ra
   fs.mkdirSync(ziel, { recursive: true });
   for (const [b, h] of GROESSEN) {
     if (b > fenster[0] || h + 50 > fenster[1]) { console.log('zu gross fuer das Fenster, uebersprungen:', b + 'x' + h); continue; }
-    const oben = await werte("(function(){ var h=document.getElementById('home'); h.style.right='auto'; h.style.bottom='auto'; h.style.width='" + b + "px'; h.style.height='" + h + "px'; HomeRaumDom.zeigeAnsicht('" + ansicht + "'); return new Promise(function(r){ setTimeout(function(){ r(h.getBoundingClientRect().top); }, 400); }); })()");
+    // karte/rueckseite: Regal-Ansicht, darueber die Karte mit Beispieldaten (kein Klick, kein Netz)
+    const karte = ansicht === 'karte' || ansicht === 'rueckseite';
+    const zeichne = karte ? "HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneKarte((" + beispielStand.toString() + ")('" + ansicht + "'), {});" : '';
+    const oben = await werte("(function(){ var h=document.getElementById('home'); h.style.right='auto'; h.style.bottom='auto'; h.style.width='" + b + "px'; h.style.height='" + h + "px'; HomeRaumDom.zeigeAnsicht('" + (karte ? 'regal' : ansicht) + "'); " + zeichne + " return new Promise(function(r){ setTimeout(function(){ r(h.getBoundingClientRect().top); }, 400); }); })()");
     const s = await cdp('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: oben, width: b, height: h, scale: 1 } });
     const datei = path.join(ziel, ansicht + '-' + b + 'x' + h + '.png');
     fs.writeFileSync(datei, Buffer.from(s.result.data, 'base64'));
     console.log(datei);
   }
   await cdp('Emulation.clearDeviceMetricsOverride', {});
-  await werte("(function(){ var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
+  await werte("(function(){ var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
   process.exit(0);
 })().catch((e) => { console.error(e.message); process.exit(1); });

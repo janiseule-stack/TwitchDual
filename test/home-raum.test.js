@@ -690,3 +690,125 @@ test('index.html laedt raum-leben-dom.js nach raum-leben.js und vor home-raum-do
   const b = html.indexOf('../lib/raum-leben-dom.js');
   assert.ok(a > -1 && b > a && b < html.indexOf('src="home-raum-dom.js"'));
 });
+
+// --- Regal neu, Task 8: Karte (grosse Platte vorn, Rueckseite mit nachladender VOD-Liste) ---
+test('Karte: zeichneKarte, kartenScrollen, karteOffen stehen in der Schnittstelle', () => {
+  const r = schnittstelle();
+  for (const n of ['zeichneKarte', 'kartenScrollen', 'karteOffen']) assert.ok(new RegExp('\\b' + n + '\\b').test(r), n);
+});
+
+test('Karte: baueKarte nutzt huelle-gross-vorn, karte.png und karte-rueck.png; init ruft baueKarte; ein .karte-platz', () => {
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(b.length > 0);
+  assert.ok(b.includes("'../themes/cozy/huelle-gross-vorn.png'"));
+  assert.ok(js.includes('karte.png') || css.includes('karte.png'));
+  assert.ok(js.includes('karte-rueck.png') || css.includes('karte-rueck.png'));
+  assert.ok(rumpf(js, 'function init(').includes('baueKarte('));
+  assert.strictEqual((js.match(/'karte-platz[ ']/g) || []).length, 1);
+});
+
+test('Karte: neuAusrichten setzt die Kartenmasse, die alten Zeilen bleiben', () => {
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight)'));
+  for (const v of ['--karte-b', '--karte-h', '--karte-n', '--karte-schrift', '--karte-schrift-klein', '--karte-vod-k']) {
+    assert.ok(n.includes("'" + v + "'"), v);
+  }
+  assert.ok(n.includes('Raum.grossKante('));
+});
+
+test('Karte: zeichneKarte kennt alle Handler (laden, stern, umdrehen, zuruecklegen, vod, mehrVods)', () => {
+  const z = rumpf(js, 'function zeichneKarte(');
+  assert.ok(z.length > 0);
+  for (const h of ['laden', 'stern', 'umdrehen', 'zuruecklegen', 'vod', 'mehrVods']) assert.ok(z.includes("'" + h + "'"), h);
+  assert.ok(/stand\.seite === 'rueck'/.test(z));
+});
+
+test('Karte: Vorschau-Canvas 64x36 links in jeder Zeile, Zeilen nur ueber eine Funktion (auch beim Anhaengen)', () => {
+  const v = rumpf(js, 'function zeichneKarteVods(');
+  assert.ok(v.includes('const anhaengen ='));
+  assert.ok(v.includes('laufend'));
+  const z = rumpf(js, 'function karteVodZeile(');
+  assert.ok(/c\.width = 64;/.test(z) && /c\.height = 36;/.test(z));
+  assert.ok(z.includes('v.game') && z.includes('vodBild(v.thumb, c)'));
+  assert.ok(z.indexOf('b.append(c, ') > -1, 'Vorschau vor dem Text');
+  // beide Wege (neu bauen, anhaengen) bauen Zeilen nur mit karteVodZeile
+  assert.ok((v.match(/karteVodZeile\(/g) || []).length >= 2);
+  assert.ok(!/createElement\('canvas'\)/.test(v));
+  const a = v.indexOf('if (anhaengen)');
+  const e = v.indexOf('} else {', a);
+  assert.ok(a > -1 && e > a);
+  const teil = v.slice(a, e);
+  assert.ok(!teil.includes('replaceChildren') && !teil.includes('scrollTop = 0'), 'anhaengen baut nicht neu');
+  assert.ok(v.slice(e).includes('replaceChildren') && v.slice(e).includes('scrollTop = 0'), 'neu bauen');
+  // Zuschnitt 16:9 aus der Canvas-Form, nicht fest 32:9
+  assert.ok(rumpf(js, 'function vodBild(').includes('c.height / c.width'));
+});
+
+test('Karte: Nachladen per scroll an .karte-vods (weitere, laedtNach, 2 Zeilenhoehen vor dem Ende)', () => {
+  const s = rumpf(js, 'function karteNachladen(');
+  assert.ok(s.includes('scrollHeight') && s.includes('scrollTop') && s.includes('clientHeight'));
+  assert.ok(s.includes('weitere') && s.includes('laedtNach') && s.includes('2 *') && s.includes("'mehrVods'") === false);
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(/t\.karteVods\.addEventListener\('scroll', karteNachladen\)/.test(b));
+  // kurze Liste ohne Scrollleiste laedt trotzdem weiter
+  assert.ok(rumpf(js, 'function zeichneKarteVods(').includes('karteNachladen'));
+  const k = rumpf(js, 'function kartenScrollen(');
+  assert.ok(k.includes('karteOffen()') && k.includes('t.karteVods.scrollBy('));
+  assert.ok(rumpf(js, 'function karteOffen(').includes("classList.contains('raum-aus')"));
+  assert.ok(rumpf(js, 'function karteOffen(').includes('gedreht'), 'nur die Rueckseite');
+});
+
+test('Karte: Klick daneben und ✕ legen zurueck (Doppelklick ignoriert), Doppelklick auf die Huelle legt auf', () => {
+  const b = rumpf(js, 'function baueKarte(');
+  const k = b.indexOf("addEventListener('click'");
+  assert.ok(k > -1 && b.indexOf('e.detail > 1', k) > k && b.indexOf('e.detail > 1', k) < b.indexOf('t.karteZu', k));
+  assert.ok(/e\.target === t\.karteWurzel/.test(b));
+  assert.ok(/knopf\('pixel-knopf k-zu karte-zu', '✕'/.test(b));
+  const d = b.indexOf("addEventListener('dblclick'");
+  assert.ok(d > -1 && b.indexOf("s.modus === 'live'", d) > d && b.indexOf('t.karteLaden(', d) > d);
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes("t.karteLaden = (login) => ruf(h, 'laden', login)"));
+});
+
+test('Karte: 9-Slice-Literalwerte im CSS gleich regal.json, border-width mit --karte-n', () => {
+  const q = path.join(wurzel, 'tools/raum-quellen/regal.json');
+  assert.ok(fs.existsSync(q));
+  const regal = JSON.parse(fs.readFileSync(q, 'utf8'));
+  const slice = (r) => [r.oben, r.rechts, r.unten, r.links].join(' ');
+  const regel = (sel) => {
+    const m = new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.') + '\\s*\\{([^}]*)\\}').exec(css);
+    return m ? m[2] : '';
+  };
+  const info = regel('.karte-info');
+  const rueck = regel('.karte-rueck');
+  assert.ok(info.includes("border-image: url('../themes/cozy/karte.png')"), 'Info-Bild');
+  assert.ok(rueck.includes("border-image: url('../themes/cozy/karte-rueck.png')"), 'Rueck-Bild');
+  assert.ok(info.includes('border-image-slice: ' + slice(regal.karte.rand) + ' fill'), 'Slice Info');
+  assert.ok(rueck.includes('border-image-slice: ' + slice(regal.rueckseite.rand) + ' fill'), 'Slice Rueck');
+  for (const r of [info, rueck]) {
+    assert.ok(r.includes('border-width: calc(10px * var(--karte-n))'));
+    assert.ok(/image-rendering:\s*pixelated/.test(r));
+  }
+  const bild = (r) => /border-image:[^;]*\bfill\b/.test(r) || /border-image-slice:[^;]*\bfill\b/.test(r);
+  assert.ok(bild(info) && bild(rueck));
+});
+
+test('Karte: CSS (Platz verborgen im Ablauf, Drehen, Liste scrollt, Hover nur Aufhellen/Anheben)', () => {
+  assert.ok(/#home\.im-ablauf \.karte-platz\s*\{\s*display:\s*none;?\s*\}/.test(css));
+  assert.ok(/\.karte-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+  assert.ok(/\.karte-karte\s*\{[^}]*transition:\s*transform 400ms/.test(css));
+  assert.ok(/\.karte-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
+  assert.ok(/\.karte-vods\s*\{[^}]*overflow-y:\s*auto/.test(css));
+  assert.ok(/\.karte-vod canvas\s*\{[^}]*calc\(64px \* var\(--karte-vod-k, 1\)\)[^}]*calc\(36px \* var\(--karte-vod-k, 1\)\)/.test(css));
+  assert.ok(/\.karte-vod:hover[^{]*\{[^}]*brightness/.test(css) && /\.karte-vod:hover[^{]*\{[^}]*translateY/.test(css));
+  const k = css.slice(css.indexOf('/* --- Karte'));
+  assert.ok(k.length > 10);
+  assert.ok(!/box-shadow|outline:\s*\d|border-color:\s*var\(--accent|background:\s*var\(--accent/.test(k));
+  assert.ok(!/:hover[^{]*\{[^}]*color:/.test(k), 'Hover nicht per Farbe');
+});
+
+test('tools/home-groessen.js: Ansichten karte und rueckseite mit Beispieldaten, am Ende zeichneKarte(null)', () => {
+  const g = lies('tools/home-groessen.js');
+  assert.ok(g.includes('zeichneKarte(') && g.includes("'karte'") && g.includes("'rueckseite'"));
+  assert.ok(g.includes('zeichneKarte(null, {})'));
+  assert.ok(g.includes('beispiel'));
+});
