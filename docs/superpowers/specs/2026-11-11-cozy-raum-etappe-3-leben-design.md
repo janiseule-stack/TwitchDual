@@ -27,6 +27,11 @@ was“.
 | Ereignis-Effekte | **nur im Chat-Streifen**, nicht in Home (Home sieht man während eines Streams nicht) |
 | Streifen-Bild | „im Streifen ist nicht alles drin, vielleicht muss man den neu zeichnen“ – gemeint: **je nach Chat-Größe sieht man nicht alles** (Teile werden abgeschnitten). Der Streifen muss Fenster, Katze und Lampe bei jeder Chat-Größe zeigen; dafür darf er neu aus PixelLab entstehen (Wahl durch Janis) |
 
+**Nachtrag 11.11. (Janis nach der Plan-Prüfung):** 1A – der Streifen wird so hoch, dass das Fenster ganz
+sichtbar ist (höchstens 30 % der Chat-Höhe), das heutige `streifen.png` bleibt; 2A – die Regal-Ansicht in Home
+bleibt still; 3A – beim Raid gehen Leute mit Schirm (PixelLab-Gehzyklus), ihr Vorrücken im Code passt zum
+Gehtakt.
+
 ## Ziele
 
 1. **Home-Raum lebt:** Regen am Fenster, Katze (schläft auf dem Kissen, bewegt ab und zu Schwanz/Ohr/atmet),
