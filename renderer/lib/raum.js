@@ -60,6 +60,10 @@
   // Raum bei x=80), damit auch breite Fenster die ganze Hoehe zeigen (Janis 11.11.: C).
   const RAUM_RAHMEN = Object.freeze({ x: -80, b: 504 });
 
+  // Regal-Ansicht: Regal vor der PixelLab-Holzwand regal-wand.png (504 breit, Regal bei
+  // x=80). von/bis/mitte vorlaeufig; Task 7 ersetzt sie durch die Messung aus regal.json.
+  const REGAL_RAHMEN = Object.freeze({ x: -80, b: 504, von: 100, bis: 314, mitte: 207, ganz: true });
+
   const MIN_BREITE = 688;
   const MIN_HOEHE = 384;
 
@@ -79,12 +83,28 @@
     const h = zahl(fensterHoehe);
     if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
     const rah = rahmen || RAHMEN;
-    const faktor = Math.max(b / rah.b, h / BILD.hoehe);
-    const sichtbar = b / faktor; // Bildpixel waagerecht, hoechstens rah.b
+    const von = rah.von ?? GEGENSTAENDE.von;
+    const bis = rah.bis ?? GEGENSTAENDE.bis;
+    const mitte = rah.mitte ?? MITTE_X;
+    let faktor = Math.max(b / rah.b, h / BILD.hoehe);
+    let sichtbar = b / faktor; // Bildpixel waagerecht, hoechstens rah.b
     const raumRechts = rah.x + rah.b;
     let l = rah.x + rah.b / 2 - sichtbar / 2;
-    if (sichtbar >= GEGENSTAENDE.bis - GEGENSTAENDE.von) l = zwischen(l, GEGENSTAENDE.bis - sichtbar, GEGENSTAENDE.von);
-    else l = MITTE_X - sichtbar / 2;
+    if (sichtbar >= bis - von) l = zwischen(l, bis - sichtbar, von);
+    else l = mitte - sichtbar / 2;
+    if (rah.ganz === true && sichtbar < bis - von) {
+      // Zu schmal: verkleinern, bis von..bis ganz passt; Bild senkrecht mittig (oben darf > 0 sein).
+      faktor = b / (bis - von);
+      sichtbar = bis - von;
+      l = von;
+      const min = Math.ceil(b - raumRechts * faktor - 1e-9);
+      const max = Math.floor(-rah.x * faktor + 1e-9);
+      return {
+        faktor,
+        links: Math.min(max, Math.max(min, Math.round(-l * faktor))) + 0,
+        oben: Math.round((h - BILD.hoehe * faktor) / 2) + 0,
+      };
+    }
     // In ganzen Bildschirm-Pixeln innerhalb des Rahmens (bei genau passender Breite
     // gewinnt der linke Rand: hoechstens ein Bildschirm-Pixel Umriss rechts).
     const min = Math.ceil(b - raumRechts * faktor - 1e-9);
@@ -170,5 +190,25 @@
     return 128 * Math.max(1, n);
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
+  // Maße der vergrößerten Plattenkarte (zwei Hüllen breit): n = Vielfaches von 128 Bildpixeln.
+  function kartenMasse(fensterBreite, fensterHoehe) {
+    const b = zahl(fensterBreite);
+    const h = zahl(fensterHoehe);
+    const n = Math.max(1, Math.min(Math.floor((0.7 * h) / 128), Math.floor((b - 96) / 256)));
+    const kante = 128 * n;
+    const breite = 2 * kante;
+    const clamp = (w, lo, hi) => Math.min(hi, Math.max(lo, w));
+    return {
+      n,
+      kante,
+      breite,
+      hoehe: kante,
+      links: Math.round((b - breite) / 2),
+      oben: Math.round((h - kante) / 2),
+      schrift: { gross: 12 * clamp(Math.floor(kante / 192), 1, 4), klein: 12 * clamp(Math.floor(kante / 384), 1, 2) },
+      vodK: Math.max(1, Math.floor(kante / 192)),
+    };
+  }
+
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
 });

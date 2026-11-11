@@ -111,6 +111,73 @@ test('skalierung mit RAUM_RAHMEN: feste Groessen zeigen die ganze Hoehe (Kaffee,
   assert.deepStrictEqual(R.skalierung(2960, 1390, R.RAUM_RAHMEN), { faktor: 1390 / 192, links: 235, oben: 0 });
 });
 
+test('REGAL_RAHMEN: eingefroren, x -80, b 504, ganz', () => {
+  assert.ok(Object.isFrozen(R.REGAL_RAHMEN));
+  assert.strictEqual(R.REGAL_RAHMEN.x, -80);
+  assert.strictEqual(R.REGAL_RAHMEN.b, 504);
+  assert.strictEqual(R.REGAL_RAHMEN.ganz, true);
+  assert.deepStrictEqual([R.REGAL_RAHMEN.von, R.REGAL_RAHMEN.bis, R.REGAL_RAHMEN.mitte], [100, 314, 207]);
+  assert.strictEqual(R.RAUM_RAHMEN.ganz, undefined);
+});
+
+test('skalierung mit REGAL_RAHMEN: feste Groessen zeigen die ganze Hoehe und von..bis', () => {
+  const rr = R.REGAL_RAHMEN;
+  for (const [b, h] of GROESSEN) {
+    const s = R.skalierung(b, h, rr);
+    assert.ok(Math.abs(s.faktor - h / 192) < 1e-9, b + 'x' + h + ': ganze Hoehe');
+    assert.strictEqual(s.oben, 0, b + 'x' + h);
+    const l = -s.links / s.faktor;
+    const r = l + b / s.faktor;
+    const eps = 1 / s.faktor;
+    assert.ok(l <= rr.von + eps && r >= rr.bis - eps, b + 'x' + h + ': von..bis sichtbar');
+    assert.ok(l >= -80 - eps && r <= 424 + eps, b + 'x' + h + ': innerhalb -80..424');
+  }
+});
+
+test('skalierung mit REGAL_RAHMEN: hochkant 700x900 und 500x1000 -> von..bis ganz sichtbar, oben > 0, ganzzahlig', () => {
+  const rr = R.REGAL_RAHMEN;
+  for (const [b, h] of [[700, 900], [500, 1000]]) {
+    const s = R.skalierung(b, h, rr);
+    assert.ok(s.oben > 0, b + 'x' + h + ': oben > 0');
+    assert.ok(Number.isInteger(s.oben) && Number.isInteger(s.links), b + 'x' + h + ': ganzzahlig');
+    assert.ok(s.faktor <= b / (rr.bis - rr.von) + 1e-9, b + 'x' + h + ': Breite bestimmt den Faktor');
+    const l = -s.links / s.faktor;
+    const r = l + b / s.faktor;
+    const eps = 1 / s.faktor;
+    assert.ok(l <= rr.von + eps && r >= rr.bis - eps, b + 'x' + h + ': von..bis sichtbar');
+    assert.ok(s.oben + 192 * s.faktor <= h + 1, b + 'x' + h + ': Bild passt in die Hoehe');
+  }
+});
+
+test('kartenMasse auf der Groessenliste', () => {
+  for (const [b, h] of GROESSEN) {
+    const k = R.kartenMasse(b, h);
+    const id = b + 'x' + h;
+    assert.ok(Number.isInteger(k.n) && k.n >= 1, id);
+    assert.strictEqual(k.kante, 128 * k.n, id);
+    assert.strictEqual(k.breite, 2 * k.kante, id);
+    assert.strictEqual(k.hoehe, k.kante, id);
+    assert.ok(k.breite + 96 <= b, id + ': Platz fuer Knoepfe');
+    assert.ok(k.kante <= 0.7 * h || k.n === 1, id + ': hoechstens 70 % Hoehe');
+    assert.ok(k.links >= 0 && k.oben >= 0, id);
+    assert.ok(k.links + k.breite <= b, id);
+    assert.ok(k.oben + k.hoehe <= h - 44, id + ': Hinweiszeile');
+  }
+  assert.deepStrictEqual(R.kartenMasse(1280, 670).schrift, { gross: 24, klein: 12 });
+  const a = R.kartenMasse(1280, 670);
+  assert.strictEqual(a.n, 3); assert.strictEqual(a.kante, 384); assert.strictEqual(a.vodK, 2);
+  const c = R.kartenMasse(2960, 1390);
+  assert.strictEqual(c.n, 7); assert.strictEqual(c.kante, 896); assert.strictEqual(c.vodK, 4);
+  assert.deepStrictEqual(c.schrift, { gross: 48, klein: 24 });
+  assert.strictEqual(R.kartenMasse(900, 700).n, 3);
+});
+
+test('kartenMasse: Muell -> n 1', () => {
+  for (const [b, h] of [[NaN, NaN], [undefined, undefined], [-5, 'x'], [0, 0], [100, 100]]) {
+    assert.strictEqual(R.kartenMasse(b, h).n, 1);
+  }
+});
+
 test('skalierung ohne Rahmen-Angabe bleibt beim Raum ohne Wand (Regal-Ansicht)', () => {
   assert.deepStrictEqual(R.skalierung(1536, 1030), R.skalierung(1536, 1030, R.RAHMEN));
 });
