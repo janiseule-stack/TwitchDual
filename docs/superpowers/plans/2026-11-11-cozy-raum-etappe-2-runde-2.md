@@ -15,7 +15,9 @@
 | Profilbilder | „leicht“ verpixelt (doppelt so fein wie bisher) |
 | Hover | **A**: Gegenstand leuchtet in seiner Form auf (PixelLab-Ausschnitt), Name klein unten; Ecken und Holzschilder weg |
 | Auflegen | Kamera fährt zum Plattenspieler, Platte dreht sich (PixelLab-Animation **b**), dann Schwenk + Zoom in den Fernseher; Fernseher-Bild bleibt wie es ist |
-| Abgeschnitten | Text auf dem Zettel, Platten im Fach |
+| Abgeschnitten | Text auf dem Zettel (oberste Zeile ragt oben heraus) – Janis bestätigt per Screenshot |
+| VODs | „Die Platte wird groß, man kann sie wie rausnehmen und dann hinten drauf VODs scrollen“ |
+| LIVE-Schild | **C**: echtes kleines Schild aus PixelLab statt leuchtendem Lämpchen (Variante wählt Janis) |
 
 ## Global Constraints
 
@@ -67,8 +69,27 @@
 - [ ] **Hover:** Ecken (`.hover-winkel`) und Holzschild (`schild.png`) im Raum entfernen. Beim Überfahren: `hover-<id>.png` an `Raum.HOVER[id]` in der skalierten Ebene einblenden, mit `filter: brightness(1.3)` (kurzer Übergang 120 ms, bei „Animationen aus“ ohne Übergang). Der Name steht klein unten mittig im Raum (Text-Ebene, neue Schrift, Farbe `--text`, dunkler Schatten per `text-shadow` für Lesbarkeit). `zeigeSchild(text)` (Hinweise wie „Nichts geladen“) nutzt denselben Platz unten statt des Holzschilds.
 - [ ] **Profilbilder:** Canvas = volle Fenstergröße der Hülle (`HUELLE_FENSTER.b × .h` = 36×36) statt der halben; gilt für Fach-Hüllen und die vordere Hülle. VOD-Vorschauen ebenso doppelt so fein (64×18 Canvas statt 32×9).
 - [ ] **Zettel:** alle Zeilen passen senkrecht in den Zettel (Zeilenhöhe × Zeilen ≤ Innenhöhe bei jedem Faktor ≥ 2); Titel und Spiel einzeilig mit „…“; reicht die Höhe nicht, entfallen zuerst Laufzeit, dann Kanalpunkte (statischer + kleiner Rechen-Test einer reinen Hilfsfunktion `zettelZeilen(innenHoehe, zeilenHoehe)`).
+- [ ] **Doppelklick legt auf** (Janis 11.11.: „nervt immer unten auf Auflegen zu drücken“): Doppelklick auf eine Hülle im Fach wählt sie und legt sie sofort auf – derselbe Weg wie der Knopf „Auflegen“ (Handler `waehle` dann `laden`, keine zweite Lade-Logik). Ebenso Doppelklick auf die vordere Hülle. Der Einfachklick bleibt „wählen“. Statischer Test.
+- [ ] **Zettel oben:** die erste Zeile (Status · Zuschauer · Laufzeit) beginnt innerhalb des Zettels (Innenabstand oben ≥ Rahmenbreite), nichts ragt über den Rand.
 - [ ] **Fach:** vollständig sichtbare Hüllen; eine angeschnittene Hülle am Fachrand darf nicht entstehen (Fachbreite 175 → genau 4 Hüllen; `translateX` nur in ganzen Hüllen-Schritten; die gewählte Hülle ragt mit `translateY(-3px)` nicht oben aus dem Fach – Fach-Innenhöhe prüfen, sonst Anhebung auf 2 px oder in die Hülle verlegen). **Janis' Screenshot der abgeschnittenen Stelle wird vor dem Bau nachgereicht und im Brief ergänzt.**
 - [ ] Commit `feat: neue Schrift, Hover in Form, feinere Profilbilder, nichts abgeschnitten`.
+
+### Task 3b: Platte rausnehmen und VODs auf der Rückseite
+
+**Files:** `renderer/video/home-raum-dom.js`, `renderer/video/home-raum.css`, `test/home-raum.test.js`, Bilder aus `tools/raum-quellen/` (große Hülle vorn/hinten aus PixelLab, Wahl durch Janis, 128×128)
+
+- [ ] Klick auf „VODs“ (Handler `vods` wie bisher): die gewählte Platte wird „herausgenommen“ – die große Hülle (vorn: großes Profilbild im Fenster, kaum verpixelt) erscheint mittig über dem Regal in ganzzahliger Vergrößerung der 128er-Bilder, dreht sich um (CSS `rotateY` mit Vorder- und Rückseite, 400 ms, bei „Animationen aus“ sofort).
+- [ ] Auf der Rückseite: senkrecht **scrollbare** Liste aller geladenen VODs (Vorschaubild klein, Titel, Datum, Länge in der neuen Schrift); Klick → `vod`, Mausrad/↑↓ scrollen, „Alle VODs“ (`mehr`) bleibt als Knopf ab 24. Die Seiten-Logik (4 je Seite, ‹ ›) entfällt in dieser Ansicht; nachladen wie heute über `mehr`.
+- [ ] Esc, Klick daneben oder ✕ legt die Platte zurück (Handler `rueckseiteZu`).
+- [ ] Die gekachelte alte Rückseite im Bücherfach entfällt samt CSS.
+- [ ] Commit `feat: Platte rausnehmen, VODs auf der Rueckseite scrollen`.
+
+### Task 3c: LIVE-Schild
+
+**Files:** `renderer/video/index.html`, `renderer/themes/cozy/` (gewähltes PixelLab-Schild), Test
+
+- [ ] `#onair-bar` zeigt das gewählte PixelLab-Schild (ganzzahlig vergrößert) statt Kasten + `lampe-rot.png`; kein Leuchten. Für VODs: Variante nach Janis' Wahl (eigenes Schild oder Text).
+- [ ] Commit `feat: LIVE-Schild aus PixelLab`.
 
 ### Task 4: Neues Auflegen
 
