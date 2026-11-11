@@ -26,16 +26,86 @@ test('TV_RECHTECK: Fernseher-Bildschirm, eingefroren', () => {
   assert.ok(Object.isFrozen(R.TV_RECHTECK));
 });
 
-test('skalierung: groesster ganzer Faktor, zentriert', () => {
-  assert.deepStrictEqual(R.skalierung(1400, 800), { faktor: 4, links: 12, oben: 16 });
-  assert.deepStrictEqual(R.skalierung(700, 400), { faktor: 2, links: 6, oben: 8 });
-  assert.strictEqual(R.skalierung(300, 150).faktor, 1);
-  for (const [b, h] of [[0, 0], [NaN, 5], [-1, -1], ['x', {}]]) assert.strictEqual(R.skalierung(b, h).faktor, 1);
+test('skalierung: deckt das Fenster, Ausschnitt auf Gegenstaende zentriert und geklemmt', () => {
+  // 1400x800: Hoehe deckt (800/192), Breite 1433,3 -> links auf -33 geklemmt (Mitte waere -162,5)
+  const a = R.skalierung(1400, 800);
+  assert.ok(Math.abs(a.faktor - 25 / 6) < 1e-12);
+  assert.strictEqual(a.links, -33);
+  assert.strictEqual(a.oben, 0);
+  // 1397x1332: Hoehe deckt (6,9375), Mitte x=207 -> -737,56 -> -738
+  assert.deepStrictEqual(R.skalierung(1397, 1332), { faktor: 6.9375, links: -738, oben: 0 });
+  // 700x400: 2,0833, Mitte -81,25 -> auf -16 geklemmt
+  const c = R.skalierung(700, 400);
+  assert.ok(Math.abs(c.faktor - 25 / 12) < 1e-12);
+  assert.strictEqual(c.links, -16);
+  assert.strictEqual(c.oben, 0);
+  // Breite deckt: 688x384 -> Faktor 2, passt exakt
+  assert.deepStrictEqual(R.skalierung(688, 384), { faktor: 2, links: 0, oben: 0 });
+  // sehr breit: Breite deckt, senkrecht auf Bildmitte geklemmt
+  const d = R.skalierung(2000, 600);
+  assert.ok(Math.abs(d.faktor - 2000 / 344) < 1e-12);
+  assert.strictEqual(d.links, 0);
+  assert.strictEqual(d.oben, -258);
+  for (const [b, h] of [[0, 0], [NaN, 5], [-1, -1], ['x', {}]]) assert.deepStrictEqual(R.skalierung(b, h), { faktor: 1, links: 0, oben: 0 });
 });
 
-test('passtAlsRaum: erst ab Faktor 2', () => {
+test('skalierung: nie ein Rand, 20 zufaellige Groessen', () => {
+  let seed = 12345;
+  const zufall = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let i = 0; i < 20; i++) {
+    const b = Math.round(300 + zufall() * 2200);
+    const h = Math.round(200 + zufall() * 1500);
+    const s = R.skalierung(b, h);
+    assert.ok(s.links <= 0 && s.oben <= 0, b + 'x' + h);
+    assert.ok(s.links + 344 * s.faktor >= b - 1e-6, 'rechts ' + b + 'x' + h);
+    assert.ok(s.oben + 192 * s.faktor >= h - 1e-6, 'unten ' + b + 'x' + h);
+    assert.ok(Number.isInteger(s.links) && Number.isInteger(s.oben));
+  }
+});
+
+test('skalierung: Gegenstaende x 100-314 sichtbar, solange Breite/Hoehe >= 214/192 (ca. 1,115)', () => {
+  const sichtbar = (b, h) => {
+    const s = R.skalierung(b, h);
+    const l = R.zuBild(0, 0, s).x;
+    const r = R.zuBild(b - 1, 0, s).x;
+    return l <= 100 && r >= 313;
+  };
+  assert.ok(sichtbar(1024, 768));   // 4:3
+  assert.ok(sichtbar(1120, 1000));  // 1,12: sichtbare Breite 215 Bildpixel
+  assert.ok(!sichtbar(1100, 1000)); // 1,10: nur 211 Bildpixel, Raender der Gegenstaende abgeschnitten
+  assert.ok(!sichtbar(1397, 1332)); // 201 Bildpixel
+  assert.ok(!sichtbar(1000, 1000)); // 1:1
+});
+
+test('passtAlsRaum: Fenster mindestens 688x384', () => {
   assert.strictEqual(R.passtAlsRaum(688, 384), true);
   assert.strictEqual(R.passtAlsRaum(687, 384), false);
+  assert.strictEqual(R.passtAlsRaum(688, 383), false);
+  assert.strictEqual(R.passtAlsRaum(NaN, 400), false);
+});
+
+test('HOVER und PLATTENSPIELER_RECHTECK', () => {
+  assert.deepStrictEqual(R.PLATTENSPIELER_RECHTECK, { x: 262, y: 86, b: 46, h: 42 });
+  assert.deepStrictEqual(R.HOVER.regal, { x: 96, y: 10, b: 72, h: 124 });
+  assert.deepStrictEqual(R.HOVER.lampe, { x: 161, y: 2, b: 39, h: 112 });
+  assert.deepStrictEqual(R.HOVER.fernseher, { x: 194, y: 34, b: 78, h: 78 });
+  assert.deepStrictEqual(R.HOVER.plattenspieler, { x: 258, y: 82, b: 54, h: 50 });
+  assert.deepStrictEqual(R.HOVER.bild, { x: 278, y: 32, b: 40, h: 62 });
+  for (const f of R.FLAECHEN) {
+    assert.strictEqual(R.HOVER[f.id].x, f.x - 4, f.id);
+    assert.strictEqual(R.HOVER[f.id].y, f.y - 4, f.id);
+  }
+});
+
+test('zuBild und treffer mit nicht ganzzahligem Faktor', () => {
+  const s = R.skalierung(1400, 800);
+  const mitte = R.FLAECHEN.find((f) => f.id === 'fernseher');
+  const fx = s.links + (mitte.x + mitte.b / 2) * s.faktor;
+  const fy = s.oben + (mitte.y + mitte.h / 2) * s.faktor;
+  const p = R.zuBild(fx, fy, s);
+  assert.deepStrictEqual(p, { x: mitte.x + 35, y: mitte.y + 35 });
+  assert.strictEqual(R.treffer(p.x, p.y), 'fernseher');
+  assert.deepStrictEqual(R.zuBild(s.links, s.oben, s), { x: 0, y: 0 });
 });
 
 test('treffer: jede Flaeche in ihrer Mitte, Ueberlappung nach Reihenfolge, daneben null', () => {

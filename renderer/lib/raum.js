@@ -39,20 +39,44 @@
 
   const zahl = (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
 
-  // Groesster ganzer Faktor >= 1, bei dem das Bild ins Fenster passt.
+  // Hover-Bilder: Ursprung (Klickflaeche - 4) und Groesse in Bildpixeln.
+  const HOVER = Object.freeze({
+    regal: Object.freeze({ x: 96, y: 10, b: 72, h: 124 }),
+    lampe: Object.freeze({ x: 161, y: 2, b: 39, h: 112 }),
+    fernseher: Object.freeze({ x: 194, y: 34, b: 78, h: 78 }),
+    plattenspieler: Object.freeze({ x: 258, y: 82, b: 54, h: 50 }),
+    bild: Object.freeze({ x: 278, y: 32, b: 40, h: 62 }),
+  });
+
+  const PLATTENSPIELER_RECHTECK = Object.freeze({ x: 262, y: 86, b: 46, h: 42 });
+
+  // Mitte der Gegenstaende (x 100-314): darauf wird waagerecht zentriert.
+  const MITTE_X = 207;
+
+  const MIN_BREITE = 688;
+  const MIN_HOEHE = 384;
+
+  // Klemmt so, dass kein Rand entsteht: bild*faktor deckt das Fenster, Wert in [fenster - gesamt, 0].
+  function klemme(ideal, fenster, gesamt) {
+    const untergrenze = Math.ceil(fenster - gesamt - 1e-9);
+    return Math.min(0, Math.max(untergrenze, Math.round(ideal))) + 0;
+  }
+
+  // Deckender Faktor (nicht ganzzahlig): Bild fuellt das Fenster, Ueberstand wird abgeschnitten.
   function skalierung(fensterBreite, fensterHoehe) {
     const b = zahl(fensterBreite);
     const h = zahl(fensterHoehe);
-    const faktor = b && h ? Math.max(1, Math.floor(Math.min(b / BILD.breite, h / BILD.hoehe))) : 1;
+    if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
+    const faktor = Math.max(b / BILD.breite, h / BILD.hoehe);
     return {
       faktor,
-      links: Math.floor((b - BILD.breite * faktor) / 2),
-      oben: Math.floor((h - BILD.hoehe * faktor) / 2),
+      links: klemme(b / 2 - MITTE_X * faktor, b, BILD.breite * faktor),
+      oben: klemme(h / 2 - (BILD.hoehe / 2) * faktor, h, BILD.hoehe * faktor),
     };
   }
 
   function passtAlsRaum(fensterBreite, fensterHoehe) {
-    return skalierung(fensterBreite, fensterHoehe).faktor >= 2;
+    return zahl(fensterBreite) >= MIN_BREITE && zahl(fensterHoehe) >= MIN_HOEHE;
   }
 
   // Halboffen: [x, x+b) mal [y, y+h).
@@ -94,5 +118,5 @@
     return { start: Math.min(grenze, Math.max(0, s)), sichtbar };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster };
 });
