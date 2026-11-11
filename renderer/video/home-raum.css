@@ -1,12 +1,16 @@
 /* Home als Cozy-Raum (Etappe 2): Raum- und Regal-Ansicht (home-raum-dom.js).
-   Die Bildebenen sind 344x192 Bildpixel und werden per transform ganzzahlig
-   vergroessert; --f (Faktor) setzt home-raum-dom.js an #home. Text sitzt in
-   einer unskalierten Schicht darueber, Lage = Bildpixel x --f.
+   Die Bildebenen sind 344x192 Bildpixel und werden per transform deckend
+   vergroessert (Faktor nicht ganzzahlig); --f (Faktor), --raum-schrift und
+   --raum-schrift-gross (Vielfache von 12 px) und --rand (ganze Pixel) setzt
+   home-raum-dom.js an #home. Text sitzt in einer unskalierten Schicht
+   darueber, Lage = Bildpixel x --f.
    Keine Verlaeufe, kein Blur, harte Kanten. */
 
 #home.raum-home {
   --zettel-tinte: #3b2416;
-  --raum-schrift: max(10px, calc(var(--f, 2) * 4px));
+  --raum-schrift: 12px;
+  --raum-schrift-gross: 24px;
+  --rand: 12px;
 }
 .raum-aus { display: none !important; }
 
@@ -29,31 +33,25 @@
   position: absolute; box-sizing: border-box;
   left: calc(var(--x) * var(--f) * 1px); top: calc(var(--y) * var(--f) * 1px);
   width: calc(var(--b) * var(--f) * 1px); height: calc(var(--h) * var(--f) * 1px);
-  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1.15;
+  /* Raum Klar: 1 em = 12 Schriftpixel, Zeilenhoehe 1 = Schriftgroesse */
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
 }
 
-/* --- Raum: Hover-Winkel und Schild ----------------------------------------- */
-/* je drei helle Pixel: Kaestchen 2x2 mit zwei Kanten zu 1 Bildpixel */
-.raum-winkel {
-  position: absolute; width: 2px; height: 2px; box-sizing: border-box;
-  border: 0 solid var(--text); pointer-events: none;
+/* --- Raum: Hover und Name unten ---------------------------------------------- */
+/* PixelLab-Ausschnitt des Gegenstands (hover-<id>.png an Raum.HOVER), aufgehellt */
+.raum-hover {
+  position: absolute; pointer-events: none; opacity: 0;
+  filter: brightness(1.3); transition: opacity 120ms linear;
 }
-.raum-winkel.ol { border-top-width: 1px; border-left-width: 1px; }
-.raum-winkel.or { border-top-width: 1px; border-right-width: 1px; }
-.raum-winkel.ul { border-bottom-width: 1px; border-left-width: 1px; }
-.raum-winkel.ur { border-bottom-width: 1px; border-right-width: 1px; }
-
-.raum-schild {
-  position: absolute; pointer-events: none !important;
-  left: calc(var(--x) * var(--f) * 1px); top: calc(var(--y) * var(--f) * 1px);
-  transform: translate(-50%, -100%);
-  border-style: solid; border-color: transparent; border-width: calc(6px * var(--f));
-  border-image: url('../themes/cozy/schild.png') 6 fill / calc(6px * var(--f)) / 0 stretch;
-  image-rendering: pixelated;
-  font-family: var(--schrift-pixel); font-size: max(11px, calc(var(--f) * 4px)); line-height: 1;
-  color: var(--text); white-space: nowrap;
+.raum-hover.an { opacity: 1; }
+/* unten mittig, ueber der Hinweiszeile #home-hinweis (bottom 8px, ca. 36px hoch) */
+.raum-name {
+  position: absolute; left: 50%; bottom: 56px; z-index: 3; transform: translateX(-50%);
+  pointer-events: none; white-space: nowrap;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+  color: var(--text); text-shadow: 2px 2px 0 rgb(18 5 5), -1px -1px 0 rgb(18 5 5);
 }
-.raum-schild.unten, .raum-schild.raum-hinweis { transform: translate(-50%, 0); }
+#home.im-ablauf .raum-name { display: none; }
 
 /* --- Regal: Faecher mit Huellen --------------------------------------------- */
 .fach { position: absolute; overflow: hidden; }
@@ -88,20 +86,27 @@
   border-image: url('../themes/cozy/zettel.png') 6 fill / 6px / 0 stretch;
   image-rendering: pixelated;
 }
+/* zettel.png ist oben 9 Bildpixel leer (Kante bei 9-10, Papier ab 12): oben 12
+   schneiden, damit die Kante fest sitzt und der Text darunter beginnt
+   (home-raum-dom.js ZETTEL_RAND_OBEN). */
+.zettel.vorn-zettel {
+  border-width: 12px 6px 6px;
+  border-image: url('../themes/cozy/zettel.png') 12 6 6 fill / 12px 6px 6px / 0 stretch;
+}
 .vorn-rueck { background: url('../themes/cozy/huelle-rueck.png') 0 0 / 40px 40px repeat; }
 .rueck-vod { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; outline: none; }
 .rueck-vod canvas { display: block; width: 100%; height: 100%; }
 .rueck-vod:hover, .rueck-vod:focus-visible { outline: 1px solid var(--text); outline-offset: 0; }
 
+/* je Zeile genau eine Zeilenhoehe (Raum.zettelZeilen zaehlt so), einzeilig mit "…" */
 .zettel-text {
-  display: flex; flex-direction: column; gap: 1px; overflow: hidden; color: var(--zettel-tinte);
+  display: flex; flex-direction: column; gap: 0; overflow: hidden; color: var(--zettel-tinte);
 }
-.zettel-text > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.zettel-name { font-weight: 700; }
+.zettel-text > div {
+  flex: none; height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .zettel-name .haken { margin-left: .3em; }
-.zettel-zeile { display: flex; gap: .6em; }
-.zettel-spiel { overflow: hidden; text-overflow: ellipsis; }
-.zettel-punkte { display: inline-flex; align-items: center; gap: .25em; }
+.zettel-punkte { display: flex; align-items: center; gap: .25em; }
 .zettel-punkte-symbol { width: 1em; height: 1em; image-rendering: pixelated; }
 .zettel-knoepfe { display: flex; gap: .7em; margin-top: auto; }
 .zettel-knopf, .rueck-knopf {
@@ -112,7 +117,7 @@
 .stern.an { color: var(--accent); }
 .zettel-knopf:hover, .rueck-knopf:hover { color: var(--accent); }
 .zettel-knopf:focus-visible, .rueck-knopf:focus-visible { outline: 1px dashed currentColor; }
-.zettel-leer { white-space: normal !important; }
+.zettel-text > .zettel-leer { white-space: normal; height: auto; flex: 1 1 auto; }
 
 /* liegt ueber den VOD-Bildern: nur die eigenen Knoepfe fangen Klicks */
 .rueck-text { color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5); pointer-events: none !important; }
@@ -155,13 +160,13 @@
 #home-tafel .tafel-rahmen {
   position: relative; box-sizing: border-box; display: flex; flex-direction: column;
   width: min(90%, 760px); max-height: 85%;
-  border-style: solid; border-color: transparent; border-width: calc(6px * var(--f));
-  border-image: url('../themes/cozy/zettel.png') 6 fill / calc(6px * var(--f)) / 0 stretch;
+  border-style: solid; border-color: transparent; border-width: var(--rand);
+  border-image: url('../themes/cozy/zettel.png') 6 fill / var(--rand) / 0 stretch;
   image-rendering: pixelated; color: var(--zettel-tinte);
 }
 .tafel-kopf {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  font-family: var(--schrift-pixel); font-size: max(14px, calc(var(--f) * 5px));
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
 }
 .tafel-inhalt { overflow: auto; min-height: 0; }
 
@@ -173,9 +178,9 @@
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
   padding-bottom: 16px; box-sizing: border-box;
   color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
-  font-family: var(--schrift-pixel); font-size: max(14px, calc(var(--f, 2) * 5px));
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
 }
-.ablauf-tipp { color: var(--muted); font-size: .7em; }
+.ablauf-tipp { color: var(--muted); font-size: var(--raum-schrift); }
 
 #home.im-ablauf #raum-ebene { z-index: 2; opacity: 0; transition: opacity 500ms linear; }
 #home.im-ablauf #raum-ebene .raum-textschicht { visibility: hidden; }

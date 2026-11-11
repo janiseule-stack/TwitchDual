@@ -6,8 +6,9 @@
 // translate+scale (Bildkoordinaten), Text darueber unskaliert, damit er lesbar
 // bleibt (Lage = Bildkoordinaten x Faktor ueber CSS-Variablen).
 // IIFE: setzt nur window.HomeRaumDom. Plan: docs/superpowers/plans/2026-11-10-cozy-raum-etappe-2.md
-// Es werden keine Grafiken gezeichnet, nur vorhandene Bilder platziert
-// (Ausnahme: Hover-Winkel und Text).
+// und 2026-11-11-cozy-raum-etappe-2-runde-2.md.
+// Es werden keine Grafiken gezeichnet, nur vorhandene PixelLab-Bilder platziert,
+// ausgestanzt, skaliert oder aufgehellt (Ausnahme: Text).
 
 window.HomeRaumDom = (function () {
   // Lage des Profilbild-Fensters in huelle.png (einzige Stelle; das Bild kann
@@ -19,7 +20,10 @@ window.HomeRaumDom = (function () {
   const VORN_ZETTEL = { x: 178, y: 140, b: 111, h: 48 };
   // Such-Zettel oben am Regal, ueber dem obersten Brett.
   const SUCH_ZETTEL = { x: 140, y: 0, b: 120, h: 18 };
-  const ZETTEL_RAND = 6; // 9-Slice-Rand von zettel.png/schild.png in Bildpixeln
+  const ZETTEL_RAND = 6; // 9-Slice-Rand von zettel.png in Bildpixeln
+  // zettel.png ist oben 9 Bildpixel durchsichtig, die Kante liegt bei 9-10, das
+  // Papier beginnt bei 12: der vordere Zettel schneidet oben 12 (home-raum.css).
+  const ZETTEL_RAND_OBEN = 12;
   // VOD-Rueckseite: 2x2 Bilder je 64x18 im Buecherfach.
   const JE_SEITE = 4;
   const VOD_PLAETZE = [{ x: 20, y: 6 }, { x: 90, y: 6 }, { x: 20, y: 28 }, { x: 90, y: 28 }];
@@ -92,8 +96,9 @@ window.HomeRaumDom = (function () {
     if (r.h !== undefined) e.style.setProperty('--h', r.h);
     return e;
   }
-  function innen(r) {
-    return { x: r.x + ZETTEL_RAND, y: r.y + ZETTEL_RAND, b: r.b - 2 * ZETTEL_RAND, h: r.h - 2 * ZETTEL_RAND };
+  function innen(r, oben) {
+    const o = oben || ZETTEL_RAND;
+    return { x: r.x + ZETTEL_RAND, y: r.y + o, b: r.b - 2 * ZETTEL_RAND, h: r.h - o - ZETTEL_RAND };
   }
 
   // Fokus ueber einen Neubau retten (wie in der alten Buehne).
@@ -112,12 +117,13 @@ window.HomeRaumDom = (function () {
   }
 
   // --- Huelle mit verpixeltem Profilbild ------------------------------------------
-  // Canvas in halber Fenstergroesse, scharfkantig hochskaliert (CSS). Kein Bild
-  // oder Ladefehler: leeres Fenster mit dem Anfangsbuchstaben.
-  function profilbild(k, fenster) {
+  // Canvas in voller Fenstergroesse (Bildpixel), scharfkantig hochskaliert (CSS).
+  // Kein Bild oder Ladefehler: leeres Fenster mit dem Anfangsbuchstaben.
+  function profilbild(k, fenster, masse) {
+    const m = masse || HUELLE_FENSTER;
     const c = document.createElement('canvas');
-    c.width = HUELLE_FENSTER.b / 2;
-    c.height = HUELLE_FENSTER.h / 2;
+    c.width = m.b;
+    c.height = m.h;
     fenster.appendChild(c);
     const anfangsbuchstabe = () => {
       c.remove();
@@ -162,6 +168,14 @@ window.HomeRaumDom = (function () {
     t.tv.width = Raum.BILD.breite;
     t.tv.height = Raum.BILD.hoehe;
     r.bild.appendChild(t.tv);
+    // Hover: PixelLab-Ausschnitt des Gegenstands in Form, aufgehellt (home-raum.css).
+    t.hover = {};
+    for (const f of Raum.FLAECHEN) {
+      const h = Raum.HOVER[f.id];
+      if (!h) continue;
+      t.hover[f.id] = lage(bildEl('../themes/cozy/hover-' + f.id + '.png', 'raum-hover'), h);
+      r.bild.appendChild(t.hover[f.id]);
+    }
     tvMaske = new Image();
     tvMaske.src = '../themes/cozy/raum-tv-maske.png';
     // Fliegende Platte: von der Mitte des Regals zum Plattenteller (CSS-Uebergang).
@@ -172,15 +186,9 @@ window.HomeRaumDom = (function () {
     t.flug.style.setProperty('--dx', (Raum.TELLER.x - von.x) + 'px');
     t.flug.style.setProperty('--dy', (Raum.TELLER.y - von.y) + 'px');
     r.bild.appendChild(t.flug);
-    t.winkel = ['ol', 'or', 'ul', 'ur'].map((ecke) => {
-      const w = el('div', 'raum-winkel raum-aus ' + ecke);
-      r.bild.appendChild(w);
-      return w;
-    });
-    t.schild = el('div', 'raum-schild raum-aus');
-    t.hinweis = el('div', 'raum-schild raum-hinweis raum-aus');
-    textLage(t.hinweis, { x: Raum.BILD.breite / 2, y: 2 });
-    r.text.append(t.schild, t.hinweis);
+    // Name des Gegenstands bzw. Hinweis (zeigeSchild): klein unten mittig, unskaliert.
+    t.name = el('div', 'raum-name raum-aus');
+    r.e.appendChild(t.name);
 
     const bildPunkt = (e) => {
       const box = wirt.getBoundingClientRect();
@@ -196,22 +204,24 @@ window.HomeRaumDom = (function () {
     return r.e;
   }
 
-  // Hover: vier helle Winkel an den Ecken der Flaeche, Holzschild mit Namen.
+  // Hover: Ausschnitt des Gegenstands hell einblenden, Name unten mittig.
   let hoverId = null;
+  let hoverName = '';
+  let hinweisText = '';
   function zeigeHover(id) {
     if (id === hoverId) return;
     hoverId = id;
     const f = id ? Raum.FLAECHEN.find((x) => x.id === id) : null;
     t.raum.e.style.cursor = f ? 'pointer' : '';
-    t.winkel.forEach((w) => aus(w, !f));
-    aus(t.schild, !f);
-    if (!f) return;
-    const ecken = [[f.x - 1, f.y - 1], [f.x + f.b - 1, f.y - 1], [f.x - 1, f.y + f.h - 1], [f.x + f.b - 1, f.y + f.h - 1]];
-    t.winkel.forEach((w, i) => lage(w, { x: ecken[i][0], y: ecken[i][1] }));
-    t.schild.textContent = f.name;
-    const oben = f.y >= 16; // sonst unter die Flaeche
-    t.schild.classList.toggle('unten', !oben);
-    textLage(t.schild, { x: f.x + f.b / 2, y: oben ? f.y - 2 : f.y + f.h + 2 });
+    for (const k of Object.keys(t.hover)) t.hover[k].classList.toggle('an', !!f && k === f.id);
+    hoverName = f ? f.name : '';
+    zeigeUnten();
+  }
+  // Ein Platz unten mittig: ein Hinweis (zeigeSchild) geht dem Hover-Namen vor.
+  function zeigeUnten() {
+    const text = hinweisText || hoverName;
+    t.name.textContent = text;
+    aus(t.name, !text);
   }
 
   function baueRegal() {
@@ -252,7 +262,12 @@ window.HomeRaumDom = (function () {
     t.vorn.append(t.vornPlatte, t.vornHuelle, t.vornZettel, t.rueck);
     r.bild.appendChild(t.vorn);
     r.bild.appendChild(lage(el('div', 'zettel such-zettel'), SUCH_ZETTEL));
-    t.zettelText = textLage(el('div', 'text-teil zettel-text'), innen(VORN_ZETTEL));
+    // Doppelklick auf die vordere Huelle legt auf (wie der Knopf "Auflegen").
+    t.vornHuelle.addEventListener('dblclick', () => {
+      const s = t.vornStand;
+      if (s && s.kanal && s.modus === 'live') ruf(t.buehneH, 'laden', s.kanal.login);
+    });
+    t.zettelText = textLage(el('div', 'text-teil zettel-text'), innen(VORN_ZETTEL, ZETTEL_RAND_OBEN));
     t.rueckText = textLage(el('div', 'text-teil rueck-text'), Raum.FACH.vorn);
     t.suchPlatz = textLage(el('div', 'text-teil such-platz'), innen(SUCH_ZETTEL));
     r.text.append(t.zettelText, t.rueckText, t.suchPlatz);
@@ -333,6 +348,12 @@ window.HomeRaumDom = (function () {
     skal = Raum.skalierung(wirt.clientWidth, wirt.clientHeight);
     const f = skal.faktor;
     wirt.style.setProperty('--f', f);
+    // Pixel-Schrift in Vielfachen von 12 px, Rahmen in ganzen Bildschirm-Pixeln.
+    wirt.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
+    wirt.style.setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px');
+    wirt.style.setProperty('--rand', Raum.randPx(f, ZETTEL_RAND) + 'px');
+    // Der Zettel zeigt je nach Hoehe mehr oder weniger Zeilen.
+    if (t.vornStand && zettelPlatz().platz !== t.zettelPlatz) zeichneZettel(t.vornStand, t.buehneH);
     // Waehrend des Zooms bleibt die Raum-Ebene auf dem Kamera-Ziel.
     const kamera = wirt.classList.contains('ablauf-zoom') ? kameraZiel() : null;
     for (const r of [t.raum, t.regal]) {
@@ -368,6 +389,16 @@ window.HomeRaumDom = (function () {
     p.dataset.art = e.art;
     const waehle = () => ruf(fach.h, 'waehle', jetzt(), e.art);
     p.addEventListener('click', waehle);
+    // Doppelklick: waehlen und sofort auflegen, derselbe Weg wie der Knopf
+    // "Auflegen" (Handler laden). Nur Live-Platten im Live-Fach; ein Twitch-
+    // Treffer laedt schon beim Waehlen, eine Offline-Platte hat kein Auflegen.
+    p.addEventListener('dblclick', (ev) => {
+      if (ev.target.closest('.huelle-stern')) return;
+      const kj = jetzt();
+      if (e.art !== 'live' || !kj.live) return;
+      waehle();
+      ruf(t.buehneH, 'laden', kj.login);
+    });
     p.addEventListener('keydown', (ev) => {
       if (ev.target !== p || (ev.key !== 'Enter' && ev.key !== ' ')) return;
       ev.preventDefault();
@@ -436,29 +467,41 @@ window.HomeRaumDom = (function () {
     return z;
   }
 
+  // Zeilen, die in den vorderen Zettel passen (Raum.zettelZeilen, Bildschirm-Pixel).
+  function zettelPlatz() {
+    return Raum.zettelZeilen((VORN_ZETTEL.h - ZETTEL_RAND_OBEN - ZETTEL_RAND) * skal.faktor,
+      Raum.schriftPx(skal.faktor));
+  }
+
+  // Zeilen: Status · Zuschauer, Name, Titel, Spiel, Laufzeit, Kanalpunkte, Knoepfe
+  // (je eine Zeile, einzeilig mit "…"); fehlt Hoehe, entfallen zuerst Laufzeit,
+  // dann Kanalpunkte (zettelPlatz).
   function zeichneZettel(s, h) {
     const z = t.zettelText;
     const k = s.kanal;
     const fokus = merkeFokus(z, 'id');
+    const platz = zettelPlatz();
+    t.zettelPlatz = platz.platz;
     z.replaceChildren();
     if (!k) {
       if (s.leerText) z.appendChild(el('div', 'zettel-leer', s.leerText));
       return;
     }
     const status = el('div', 'zettel-status');
+    let lauf = '';
     if (s.modus === 'live') {
-      const lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
-      status.textContent = ['● LIVE', k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', lauf].filter(Boolean).join(' · ');
+      lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
+      status.textContent = ['● LIVE', k.viewersLabel ? k.viewersLabel + ' Zuschauer' : ''].filter(Boolean).join(' · ');
     } else if (s.modus === 'markiert') status.textContent = 'gerade offline gegangen';
     else status.textContent = k.error ? 'Status nicht abrufbar' : 'offline';
     const kanal = el('div', 'zettel-name', name(k));
     if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
     z.append(status, kanal);
-    if (s.modus !== 'offline' && k.title) z.appendChild(el('div', 'zettel-titel', k.title));
-    const zeile = el('div', 'zettel-zeile');
-    if (s.modus !== 'offline' && k.game) zeile.appendChild(el('span', 'zettel-spiel', k.game));
-    if (s.punkte && s.modus !== 'offline') zeile.appendChild(punkteZeile(s.punkte));
-    if (zeile.children.length) z.appendChild(zeile);
+    const an = s.modus !== 'offline';
+    if (an && k.title && platz.titel) z.appendChild(el('div', 'zettel-titel', k.title));
+    if (an && k.game && platz.spiel) z.appendChild(el('div', 'zettel-spiel', k.game));
+    if (lauf && platz.laufzeit) z.appendChild(el('div', 'zettel-laufzeit', lauf));
+    if (an && s.punkte && platz.punkte) z.appendChild(punkteZeile(s.punkte));
     const knoepfe = el('div', 'zettel-knoepfe');
     const stern = knopf('zettel-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
@@ -482,7 +525,7 @@ window.HomeRaumDom = (function () {
     const img = new Image();
     img.decoding = 'async';
     img.addEventListener('load', () => {
-      // mittig auf 32:9 zuschneiden, verkleinert zeichnen (CSS vergroessert scharfkantig)
+      // mittig auf 32:9 zuschneiden, in Canvas-Groesse zeichnen (CSS vergroessert scharfkantig)
       const w = img.naturalWidth;
       const hoch = Math.min(img.naturalHeight, w * 9 / 32);
       const g = c.getContext('2d');
@@ -523,8 +566,8 @@ window.HomeRaumDom = (function () {
       b.dataset.id = 'vod-' + v.id;
       lage(b, { x: VOD_PLAETZE[i].x, y: VOD_PLAETZE[i].y, b: 64, h: 18 });
       const c = document.createElement('canvas');
-      c.width = 32;
-      c.height = 9;
+      c.width = 64;
+      c.height = 18;
       b.appendChild(c);
       vodBild(v.thumb, c);
       t.rueck.appendChild(b);
@@ -553,6 +596,8 @@ window.HomeRaumDom = (function () {
     if (!wirt) return;
     const s = stand || {};
     const k = s.kanal || null;
+    t.vornStand = s;
+    t.buehneH = h;
     const gedreht = !!k && !!s.rueckseite;
     t.vorn.classList.toggle('ladend', !!s.ladend);
     t.vorn.classList.toggle('offline', !!k && s.modus === 'offline');
@@ -642,10 +687,10 @@ window.HomeRaumDom = (function () {
 
   function zeigeSchild(text) {
     if (!wirt) return;
-    t.hinweis.textContent = text;
-    aus(t.hinweis, false);
+    hinweisText = String(text || '');
+    zeigeUnten();
     clearTimeout(schildTimer);
-    schildTimer = setTimeout(() => aus(t.hinweis, true), SCHILD_MS);
+    schildTimer = setTimeout(() => { hinweisText = ''; zeigeUnten(); }, SCHILD_MS);
   }
 
   // Fernseher: Vorschau des Live-Streams verpixelt in die schraege

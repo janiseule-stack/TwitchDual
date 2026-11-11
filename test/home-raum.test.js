@@ -41,20 +41,25 @@ test('home-raum-dom.js: nutzt die Raum-Geometrie', () => {
 test('home-raum-dom.js: eigene Bilder nur aus ../themes/cozy/', () => {
   const bilder = js.match(/['"][^'"\s]*\.(png|jpe?g|gif|webp|svg)['"]/g) || [];
   assert.ok(bilder.length > 0);
-  for (const b of bilder) assert.ok(/^['"]\.\.\/themes\/cozy\/[a-z0-9-]+\.png['"]$/.test(b), b);
-  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-rueck.png', 'platte-vorn.png', 'zettel.png', 'schild.png', 'lampe-klein.png']) {
+  // '.png' allein: Endung der zusammengesetzten Hover-Namen (unten geprueft)
+  for (const b of bilder) assert.ok(/^['"]\.\.\/themes\/cozy\/[a-z0-9-]+\.png['"]$/.test(b) || b === "'.png'", b);
+  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-rueck.png', 'platte-vorn.png', 'zettel.png', 'lampe-klein.png']) {
     assert.ok(js.includes(n) || css.includes(n), n);
   }
+  assert.ok(js.includes("'../themes/cozy/hover-' + f.id + '.png'"), 'Hover-Bilder');
   assert.ok(!js.includes('lampe-rot.png'));
   assert.ok(/\.huelle-lampe\s*\{[^}]*width:\s*11px;[^}]*height:\s*8px/.test(css), 'Lampe 11x8 in Bildkoordinaten');
   assert.ok(!/https?:/.test(js));
 });
 
-test('home-raum-dom.js: Huellen-Fenster als eine Konstante, Profilbild-Canvas halbe Fenstergroesse', () => {
+test('home-raum-dom.js: Huellen-Fenster als eine Konstante, Profilbild-Canvas volle Fenstergroesse', () => {
   assert.ok(/HUELLE_FENSTER\s*=\s*\{\s*x:\s*2,\s*y:\s*2,\s*b:\s*36,\s*h:\s*36\s*\}/.test(js));
   assert.strictEqual((js.match(/HUELLE_FENSTER\s*=/g) || []).length, 1);
-  // 18x18, aus der Konstante abgeleitet
-  assert.ok(/width\s*=\s*HUELLE_FENSTER\.b\s*\/\s*2/.test(js) && /height\s*=\s*HUELLE_FENSTER\.h\s*\/\s*2/.test(js));
+  // 36x36 (Fach und vordere Huelle), aus der Konstante abgeleitet, nicht mehr halbiert
+  const r = rumpf(js, 'function profilbild(');
+  assert.ok(/const m = masse \|\| HUELLE_FENSTER;/.test(r));
+  assert.ok(/c\.width = m\.b;/.test(r) && /c\.height = m\.h;/.test(r));
+  assert.ok(!/HUELLE_FENSTER\.[bh]\s*\/\s*2/.test(js));
   assert.ok(js.includes('drawImage'));
 });
 
@@ -65,8 +70,94 @@ test('home-raum-dom.js: Profilbild mit error-Zweig und Anfangsbuchstabe', () => 
   assert.ok(/charAt\(0\)|\[0\]/.test(js) && js.includes('toUpperCase'));
 });
 
-test('home-raum-dom.js: VOD-Vorschau als Canvas 32x9', () => {
-  assert.ok(/width\s*=\s*32/.test(js) && /height\s*=\s*9/.test(js));
+test('home-raum-dom.js: VOD-Vorschau als Canvas 64x18 (doppelt so fein)', () => {
+  assert.ok(/width\s*=\s*64;/.test(js) && /height\s*=\s*18;/.test(js));
+  assert.ok(!/width\s*=\s*32;/.test(js) && !/height\s*=\s*9;/.test(js));
+});
+
+// --- Runde 2, Task 3: Schrift, Hover, Zettel, Doppelklick --------------------
+test('Schrift: Vielfache von 12 px aus neuAusrichten, Text-Ebenen nutzen die Variable', () => {
+  const r = rumpf(js, 'function neuAusrichten(');
+  assert.ok(r.includes("setProperty('--raum-schrift', Raum.schriftPx(f) + 'px')"));
+  assert.ok(r.includes("setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px')"));
+  assert.ok(r.includes("setProperty('--rand', Raum.randPx(f, ZETTEL_RAND) + 'px')"));
+  // keine Schriftgroessen oder Rahmen mehr aus dem (gebrochenen) Faktor
+  assert.ok(!/calc\(var\(--f[^)]*\)\s*\*\s*[45]px\)/.test(css), 'Schrift f*4px/f*5px');
+  assert.ok(!/calc\(6px \* var\(--f\)\)/.test(css), 'Rand 6px*f');
+  assert.ok(/\.text-teil\s*\{[^}]*font-size:\s*var\(--raum-schrift\);[^}]*line-height:\s*1;/.test(css));
+  assert.ok(/\.tafel-kopf\s*\{[^}]*font-size:\s*var\(--raum-schrift-gross\)/.test(css));
+  assert.ok(/#home-ablauf\s*\{[^}]*font-size:\s*var\(--raum-schrift-gross\)/.test(css));
+  assert.ok(/\.tafel-rahmen\s*\{[^}]*border-width:\s*var\(--rand\)/.test(css));
+});
+
+test('Hover: keine Winkel, kein Holzschild; hover-<id>.png an Raum.HOVER, aufgehellt, 120 ms', () => {
+  for (const alt of ['raum-winkel', 'raum-schild', 'schild.png']) {
+    assert.ok(!js.includes(alt) && !css.includes(alt), alt);
+  }
+  const r = rumpf(js, 'function baueRaum(');
+  assert.ok(r.includes('Raum.HOVER[f.id]'));
+  assert.ok(/lage\(bildEl\('\.\.\/themes\/cozy\/hover-' \+ f\.id \+ '\.png', 'raum-hover'\), h\)/.test(r));
+  assert.ok(r.indexOf('raum-hover') > r.indexOf('t.tv'), 'ueber der TV-Canvas');
+  assert.ok(/\.raum-hover\s*\{[^}]*filter:\s*brightness\(1\.3\);[^}]*transition:\s*opacity 120ms/.test(css));
+  assert.ok(/\.raum-hover\.an\s*\{[^}]*opacity:\s*1/.test(css));
+});
+
+test('Name unten mittig: unskaliert, Schatten, ueber der Hinweiszeile; zeigeSchild nutzt den Platz', () => {
+  assert.ok(/t\.name = el\('div', 'raum-name raum-aus'\);\s*r\.e\.appendChild\(t\.name\)/.test(js), 'in der unskalierten Ebene');
+  const regel = css.slice(css.indexOf('.raum-name {'), css.indexOf('}', css.indexOf('.raum-name {')));
+  assert.ok(/left:\s*50%/.test(regel) && /translateX\(-50%\)/.test(regel));
+  const unten = Number((/bottom:\s*(\d+)px/.exec(regel) || [])[1]);
+  assert.ok(unten >= 12 + 36, 'Abstand >= 12 px und ueber #home-hinweis');
+  assert.ok(/color:\s*var\(--text\)/.test(regel) && /text-shadow:/.test(regel));
+  assert.ok(regel.includes('font-size: var(--raum-schrift)'));
+  assert.ok(/#home\.im-ablauf \.raum-name\s*\{[^}]*display:\s*none/.test(css));
+  const s = rumpf(js, 'function zeigeSchild(');
+  assert.ok(s.includes('hinweisText') && s.includes('zeigeUnten()'));
+  assert.ok(rumpf(js, 'function zeigeUnten(').includes('hinweisText || hoverName'));
+});
+
+test('Text-Ebene des Raums ist waehrend des Ablaufs ausgeblendet', () => {
+  assert.ok(/#home\.im-ablauf #raum-ebene \.raum-textschicht\s*\{[^}]*visibility:\s*hidden/.test(css));
+});
+
+test('Zettel: oben 12 geschnitten, Text beginnt unter der Kante, Zeilen nach Raum.zettelZeilen', () => {
+  assert.ok(/ZETTEL_RAND_OBEN\s*=\s*12;/.test(js));
+  assert.ok(js.includes('innen(VORN_ZETTEL, ZETTEL_RAND_OBEN)'));
+  assert.ok(/\.zettel\.vorn-zettel\s*\{[^}]*border-width:\s*12px 6px 6px;[^}]*zettel\.png'\)\s*12 6 6 fill \/ 12px 6px 6px/.test(css));
+  const p = rumpf(js, 'function zettelPlatz(');
+  assert.ok(p.includes('Raum.zettelZeilen((VORN_ZETTEL.h - ZETTEL_RAND_OBEN - ZETTEL_RAND) * skal.faktor'));
+  assert.ok(p.includes('Raum.schriftPx(skal.faktor)'));
+  const z = rumpf(js, 'function zeichneZettel(');
+  for (const b of ['platz.titel', 'platz.spiel', 'platz.laufzeit', 'platz.punkte']) assert.ok(z.includes(b), b);
+  assert.ok(/\.zettel-text > div\s*\{[^}]*height:\s*1em;[^}]*white-space:\s*nowrap;[^}]*text-overflow:\s*ellipsis/.test(css));
+  // Groesse aendert sich -> Zeilen neu
+  assert.ok(rumpf(js, 'function neuAusrichten(').includes('zeichneZettel(t.vornStand, t.buehneH)'));
+});
+
+test('Doppelklick legt auf: Fach-Huelle (waehle, dann laden) und vordere Huelle', () => {
+  const f = rumpf(js, 'function baueFachPlatte(');
+  const d = f.indexOf("addEventListener('dblclick'");
+  assert.ok(d > -1);
+  const teil = f.slice(d);
+  assert.ok(teil.indexOf('waehle()') > -1 && teil.indexOf("ruf(t.buehneH, 'laden'") > teil.indexOf('waehle()'), 'waehle dann laden');
+  assert.ok(/e\.art !== 'live' \|\| !kj\.live/.test(teil), 'nur Live-Platten');
+  assert.ok(f.includes("p.addEventListener('click', waehle)"), 'Einfachklick bleibt waehlen');
+  const r = rumpf(js, 'function baueRegal(');
+  assert.ok(/t\.vornHuelle\.addEventListener\('dblclick'[\s\S]*?s\.modus === 'live'[\s\S]*?ruf\(t\.buehneH, 'laden', s\.kanal\.login\)/.test(r));
+  // keine zweite Lade-Logik
+  assert.ok(!js.includes('submitLoad') && !js.includes('ladeWert'));
+});
+
+test('Fach: genau 4 ganze Huellen, Blaettern in ganzen Schritten, Anhebung bleibt im Fach', () => {
+  // Fachbreite 175: 4 * 40 + 3 * 4 = 172 <= 175 < 5 * 44 - 4
+  const R = require('../renderer/lib/raum.js');
+  for (const art of ['live', 'offline']) {
+    assert.strictEqual(R.fachFenster(10, 0, R.FACH[art].b, 0).sichtbar, 4, art);
+    // Huelle steht unten im Fach (y = h - 40); -3 px Anhebung darf nicht ueber 0
+    assert.ok(R.FACH[art].h - R.HUELLE.kante - 3 >= 0, art);
+  }
+  assert.ok(/translateX\(' \+ \(-f\.start \* \(Raum\.HUELLE\.kante \+ Raum\.HUELLE\.abstand\)\)/.test(js));
+  assert.ok(/\.fach \.huelle\.gewaehlt\s*\{\s*transform:\s*translateY\(-3px\)/.test(css));
 });
 
 test('home-raum-dom.js: Handler-Namen der alten Buehne bleiben', () => {
@@ -112,9 +203,8 @@ test('home-raum.css: keine Verlaeufe, kein Blur, Ebenen pixelgenau', () => {
   assert.ok(css.includes('var(--schrift-pixel)'));
 });
 
-test('home-raum.css: Zettel und Schild als 9-Slice mit Rand 6', () => {
+test('home-raum.css: Zettel als 9-Slice mit Rand 6', () => {
   assert.ok(/border-image:\s*url\('\.\.\/themes\/cozy\/zettel\.png'\)\s*6 fill/.test(css));
-  assert.ok(/border-image:\s*url\('\.\.\/themes\/cozy\/schild\.png'\)\s*6 fill/.test(css));
 });
 
 // --- Task 4: Home ist der Raum (home.js haengt an HomeRaumDom) ---------------

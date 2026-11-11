@@ -11,9 +11,17 @@
   font-weight: 400 700;
   font-display: block;
 }
+/* Raum Klar (PixelLab, tools/raum-quellen/schrift-klar.ttf): Raster 12 px
+   (1 em = 12 Schriftpixel), scharf nur in Vielfachen von 12 px. Fehlende
+   Zeichen (ae oe ue ss u. a.) kommen aus Pixelify Sans. */
+@font-face {
+  font-family: 'Raum Klar';
+  src: url('schrift/RaumKlar.ttf') format('truetype');
+  font-display: block;
+}
 :root {
   /* nur fuer Leisten, Schilder und Ueberschriften; Chat-Text bleibt wie er ist */
-  --schrift-pixel: 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
+  --schrift-pixel: 'Raum Klar', 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
 }
 
 /* --- Rahmen ------------------------------------------------------------------

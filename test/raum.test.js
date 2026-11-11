@@ -143,3 +143,44 @@ test('fachFenster: gewaehlte Huelle ist immer sichtbar', () => {
   assert.deepStrictEqual(R.fachFenster(0, -1, 175, 3), { start: 0, sichtbar: 4 });
   assert.deepStrictEqual(R.fachFenster(5, 9, 175, 0), { start: 1, sichtbar: 4 });
 });
+
+test('schriftPx: Vielfache von 12 (12 x round(f / 3), mindestens 12)', () => {
+  assert.strictEqual(R.schriftPx(2), 12);
+  assert.strictEqual(R.schriftPx(25 / 6), 12);
+  assert.strictEqual(R.schriftPx(4.5), 24);
+  assert.strictEqual(R.schriftPx(6.9375), 24);
+  assert.strictEqual(R.schriftPx(7.5), 36);
+  assert.strictEqual(R.schriftPx(0.5), 12);
+  assert.strictEqual(R.schriftPx(NaN), 12);
+  assert.strictEqual(R.schriftPx(25 / 6, 5), 24); // round(1,74)
+  assert.strictEqual(R.schriftPx(2, 5), 12);
+  for (let f = 0.5; f < 12; f += 0.0625) assert.strictEqual(R.schriftPx(f) % 12, 0, 'f ' + f);
+});
+
+test('randPx: ganze Bildschirm-Pixel, mindestens 1', () => {
+  assert.strictEqual(R.randPx(25 / 6, 6), 25);
+  assert.strictEqual(R.randPx(2, 6), 12);
+  assert.strictEqual(R.randPx(0, 6), 1);
+  assert.ok(Number.isInteger(R.randPx(6.9375, 6)));
+});
+
+test('zettelZeilen: zuerst entfaellt die Laufzeit, dann die Kanalpunkte', () => {
+  assert.deepStrictEqual(R.zettelZeilen(84, 12), { platz: 7, titel: true, spiel: true, punkte: true, laufzeit: true });
+  assert.deepStrictEqual(R.zettelZeilen(72, 12), { platz: 6, titel: true, spiel: true, punkte: true, laufzeit: false });
+  assert.deepStrictEqual(R.zettelZeilen(60, 12), { platz: 5, titel: true, spiel: true, punkte: false, laufzeit: false });
+  assert.deepStrictEqual(R.zettelZeilen(59, 12), { platz: 4, titel: true, spiel: false, punkte: false, laufzeit: false });
+  assert.strictEqual(R.zettelZeilen(100, 0).platz, 0);
+});
+
+test('zettelZeilen: vorderer Zettel (Innenhoehe 48 - 12 - 6 = 30 Bildpixel) zeigt bei jedem Faktor >= 2 die Pflichtzeilen', () => {
+  for (let f = 2; f <= 12; f += 1 / 16) {
+    const zeile = R.schriftPx(f);
+    const innen = 30 * f;
+    const z = R.zettelZeilen(innen, zeile);
+    // Status, Name, Titel, Spiel, Knoepfe
+    assert.ok(z.platz >= 5 && z.titel && z.spiel, 'f ' + f);
+    // was gezeigt wird, passt senkrecht: Zeilenhoehe x Zeilen <= Innenhoehe
+    const zeilen = 5 + (z.punkte ? 1 : 0) + (z.laufzeit ? 1 : 0);
+    assert.ok(zeilen * zeile <= innen + 1e-9, 'f ' + f);
+  }
+});

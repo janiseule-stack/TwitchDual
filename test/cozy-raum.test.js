@@ -13,7 +13,9 @@ test('raum.css: Pixel-Schrift lokal, keine Netz-Adresse', () => {
   assert.ok(!/https?:/.test(raum));
   assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/schrift/PixelifySans.ttf')));
   assert.ok(lies('renderer/themes/cozy/schrift/OFL.txt').includes('SIL Open Font License'));
-  assert.ok(/--schrift-pixel\s*:\s*'Pixelify Sans'/.test(raum));
+  // Runde 2: Raum Klar zuerst, Pixelify Sans nur als Ersatz fuer fehlende Zeichen
+  assert.ok(/@font-face[^}]*'Raum Klar'[^}]*schrift\/RaumKlar\.ttf/s.test(raum));
+  assert.ok(/--schrift-pixel\s*:\s*'Raum Klar',\s*'Pixelify Sans'/.test(raum));
 });
 test('raum.css: Rahmen-Klassen nutzen die Bilder, pixelgenau und eckig', () => {
   for (const [klasse, bild] of [['.rahmen-leiste-chat', 'leiste-chat.png'], ['.rahmen-leiste-video', 'leiste-video-links.png'], ['.rahmen-feld', 'feld.png']]) {

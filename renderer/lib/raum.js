@@ -118,5 +118,26 @@
     return { start: Math.min(grenze, Math.max(0, s)), sichtbar };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster };
+  // Pixel-Schrift (Raum Klar, Raster 12 px): Groesse immer ein Vielfaches von 12,
+  // passend zum Faktor (basis 4: 12 x round(f / 3), mindestens 12).
+  function schriftPx(faktor, basis) {
+    const b = zahl(basis) || 4;
+    return 12 * Math.max(1, Math.round((zahl(faktor) * b) / 12));
+  }
+
+  // Rahmenbreite in ganzen Bildschirm-Pixeln (Bildpixel x Faktor, mindestens 1).
+  function randPx(faktor, bildPixel) {
+    return Math.max(1, Math.round(zahl(faktor) * zahl(bildPixel)));
+  }
+
+  // Zettel: welche Zeilen passen in die Innenhoehe (beides in Bildschirm-Pixeln)?
+  // Reihenfolge: Status, Name, Titel, Spiel, Laufzeit, Kanalpunkte, Knoepfe.
+  // Fehlt Platz, entfallen zuerst Laufzeit, dann Kanalpunkte, dann Spiel, dann Titel.
+  function zettelZeilen(innenHoehe, zeilenHoehe) {
+    const z = zahl(zeilenHoehe);
+    const platz = z ? Math.floor(zahl(innenHoehe) / z + 1e-9) : 0;
+    return { platz, titel: platz >= 4, spiel: platz >= 5, punkte: platz >= 6, laufzeit: platz >= 7 };
+  }
+
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen };
 });
