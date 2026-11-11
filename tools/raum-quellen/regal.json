@@ -8,7 +8,7 @@
   "such": { "x": 140, "y": 0, "b": 120, "h": 18 },
   "bereich": { "von": 100, "bis": 300, "mitte": 200 },
   "hover": { "x": 86, "y": 9, "b": 77, "h": 121 },
-  "_ruecken": "ruecken.png = 6x40-Ausschnitt aus PixelLab-Fachfuellung (Janis 12.11.: Form Variante 2), inkl. 1 px Trennlinie rechts; Farben Satz A. Einfaerben: L = round(0.299r+0.587g+0.114b), Kanal = round(L*farbe/255), Alpha bleibt.",
+  "_ruecken": "ruecken.png = 6x40-Ausschnitt aus PixelLab-Fachfuellung (Janis 12.11.: Form Variante 2), inkl. 1 px Trennlinie rechts; Farben Satz C (Janis 12.11., statt zuerst A). Einfaerben: L = round(0.299r+0.587g+0.114b), Kanal = round(L*farbe/255), Alpha bleibt.",
   "ruecken": {
     "b": 6, "h": 40, "abstand": 0,
     "bild": { "x": 0, "y": 0, "b": 6, "h": 40 },
@@ -16,9 +16,9 @@
     "name": { "x": 0, "y": 8, "b": 5, "h": 30 }
   },
   "rueckenFarben": {
-    "live": [150, 140, 88],
-    "favorit": [240, 170, 110],
-    "offline": [110, 74, 58],
+    "live": [240, 170, 110],
+    "favorit": [150, 140, 88],
+    "offline": [70, 64, 52],
     "twitch": [70, 66, 104]
   }
 }
