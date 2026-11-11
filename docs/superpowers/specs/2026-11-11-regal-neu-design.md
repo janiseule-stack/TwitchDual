@@ -42,7 +42,7 @@ VODs anderer Kanäle und fremde Kanäle findet Janis über das **Suchfeld oben**
 - **Bilder nur aus PixelLab.** Code darf zuschneiden, ausstanzen, skalieren, einfärben und Bildstreifen abspielen, nie selbst Grafik zeichnen. Für jedes neue sichtbare Teil (Brett, Rücken, Live-Zeichen, große Platte, Rückseite, ggf. Regal-Hintergrund) legt der Bauende Janis **2–3 PixelLab-Varianten** vor; Janis wählt. Kosten vorher nennen (Inpainting 10 Generationen, Bilder ab 1). Stand 11.11.: ~1220 Generationen bis 10.12.2026.
 - **Bestehendes bleibt:** Suche mit Enter-Reihenfolge, Esc schrittweise zurück, Tastatur ↑/↓ blättern, Stern-Favoriten, Auflegen-Ablauf (wird separat neu entworfen, siehe unten), Home schließt ohne Quelle nicht.
 - Daten kommen wie heute aus `HomeListe.abschnitte` (Favoriten live / Live / Offline / Auf Twitch). „Andere Live-Kanäle“ = Abschnitt Live (gefolgt, nicht Favorit).
-- `preload.js`/`main.js` nur ändern, wenn für „von vorne schauen“ nötig (siehe offen).
+- `preload.js`/`main.js` bleiben unverändert.
 - Tests mit `npm test` grün; Layout zusätzlich mit `tools/home-groessen.js ... regal` über die feste Größenliste prüfen und Bilder selbst ansehen, bevor Janis sie sieht.
 - Animationen-aus (`data-animationen="aus"`) gilt auch hier.
 
