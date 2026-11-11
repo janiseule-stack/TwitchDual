@@ -150,6 +150,7 @@ function closeHome() {
   HomeRaumDom.leben(false);
   $home.classList.add('hidden');
   document.body.classList.remove('home-offen');
+  getSelection().removeAllRanges(); // keine Markierung ueber dem Stream liegen lassen
   punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
 }
 

@@ -504,6 +504,13 @@ test('Ohne Stream/VOD bleibt Home offen: kein ☰ und kein ✕, Esc schliesst ni
   assert.ok(/twitchDual\.onLoad\(\(\) => \{[^}]*zeigeSchliessKnoepfe\(\)/.test(homeJs), 'nach dem Laden erscheinen sie');
 });
 
+test('Doppelklick markiert nichts: Video-Fenster ohne Textauswahl, Home raeumt Auswahl weg (Janis 11.11.)', () => {
+  const html = lies('renderer/video/index.html');
+  assert.ok(/body\s*\{[^}]*user-select:\s*none/.test(html), 'body user-select: none');
+  const homeJs = lies('renderer/video/home.js');
+  assert.ok(rumpfOben(homeJs, 'function closeHome(').includes('getSelection().removeAllRanges()'));
+});
+
 test('Home liegt direkt unter der Leiste (kein Holzstreifen dazwischen, Janis 11.11.)', () => {
   const homeCss = lies('renderer/video/home.css');
   assert.ok(!homeCss.includes('top: 63px'), 'keine feste alte Hoehe');

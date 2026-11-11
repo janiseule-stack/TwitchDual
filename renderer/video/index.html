@@ -15,7 +15,9 @@
       font-family: var(--schrift, 'Inter', 'Segoe UI', Roboto, sans-serif);
       overflow: hidden;
     }
-    body { display: flex; flex-direction: column; }
+    /* Nichts markierbar (Eingabefelder bleiben es): ein Doppelklick auf die Platte
+       markierte sonst alles, die Markierung blieb blau ueber dem Stream liegen. */
+    body { display: flex; flex-direction: column; user-select: none; }
     /* Leiste = TV-Gehaeuse (Rahmen aus raum.css, Klasse rahmen-leiste-video;
        links sitzt der Lautsprecher). Der Inhalt ragt etwas in den Rahmen. */
     #bar {
