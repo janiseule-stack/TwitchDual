@@ -24,9 +24,12 @@ window.HomeRaumDom = (function () {
   // zettel.png ist oben 9 Bildpixel durchsichtig, die Kante liegt bei 9-10, das
   // Papier beginnt bei 12: der vordere Zettel schneidet oben 12 (home-raum.css).
   const ZETTEL_RAND_OBEN = 12;
-  // VOD-Rueckseite: 2x2 Bilder je 64x18 im Buecherfach.
-  const JE_SEITE = 4;
-  const VOD_PLAETZE = [{ x: 20, y: 6 }, { x: 90, y: 6 }, { x: 20, y: 28 }, { x: 90, y: 28 }];
+  // Grosse Huelle (VODs, 128x128 Bildpixel, huelle-gross-vorn/-rueck.png):
+  // Fenster fuers Profilbild (in tools/raum-bilder.py ausgestanzt, per Farbe
+  // gemessen) und Platz der VOD-Liste innerhalb des Rahmens der Rueckseite.
+  const GROSS_KANTE = 128;
+  const GROSS_FENSTER = { x: 32, y: 32, b: 65, h: 65 };
+  const GROSS_LISTE = { x: 21, y: 31, b: 86, h: 68 };
   const SCHILD_MS = 2000;
   const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht', vods: 'Alle VODs' };
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
@@ -88,7 +91,8 @@ window.HomeRaumDom = (function () {
     if (r.h !== undefined) e.style.height = r.h + 'px';
     return e;
   }
-  // Textschicht: Lage aus Bildpixeln, CSS rechnet mal --f.
+  // Textschicht: Lage aus Bildpixeln, CSS rechnet mal --f (in der grossen
+  // Huelle mal --n, ganzzahlig).
   function textLage(e, r) {
     e.style.setProperty('--x', r.x);
     e.style.setProperty('--y', r.y);
@@ -258,8 +262,7 @@ window.HomeRaumDom = (function () {
     t.vornPlatte = lage(bildEl('../themes/cozy/platte-vorn.png', 'vorn-platte'), VORN_PLATTE);
     t.vornHuelle = lage(el('div', 'vorn-huelle'), VORN_HUELLE);
     t.vornZettel = lage(el('div', 'zettel vorn-zettel'), VORN_ZETTEL);
-    t.rueck = lage(el('div', 'vorn-rueck'), Raum.FACH.vorn);
-    t.vorn.append(t.vornPlatte, t.vornHuelle, t.vornZettel, t.rueck);
+    t.vorn.append(t.vornPlatte, t.vornHuelle, t.vornZettel);
     r.bild.appendChild(t.vorn);
     r.bild.appendChild(lage(el('div', 'zettel such-zettel'), SUCH_ZETTEL));
     // Doppelklick auf die vordere Huelle legt auf (wie der Knopf "Auflegen").
@@ -268,13 +271,40 @@ window.HomeRaumDom = (function () {
       if (s && s.kanal && s.modus === 'live') ruf(t.buehneH, 'laden', s.kanal.login);
     });
     t.zettelText = textLage(el('div', 'text-teil zettel-text'), innen(VORN_ZETTEL, ZETTEL_RAND_OBEN));
-    t.rueckText = textLage(el('div', 'text-teil rueck-text'), Raum.FACH.vorn);
     t.suchPlatz = textLage(el('div', 'text-teil such-platz'), innen(SUCH_ZETTEL));
-    r.text.append(t.zettelText, t.rueckText, t.suchPlatz);
+    r.text.append(t.zettelText, t.suchPlatz);
     const such = document.getElementById('home-such-zeile');
     if (such) t.suchPlatz.appendChild(such);
+    r.e.appendChild(baueGross());
     return r.e;
   }
+
+  // VODs: die gewaehlte Platte wird herausgenommen - grosse Huelle mittig ueber
+  // dem Regal (ganzzahlig vergroessert, --n), dreht sich um (CSS rotateY,
+  // 400 ms); auf der Rueckseite eine scrollbare Liste aller geladenen VODs.
+  // Klick daneben oder ✕ legt sie zurueck (Esc: home.js).
+  function baueGross() {
+    t.gross = el('div', 'gross-platz raum-aus');
+    t.gross.addEventListener('click', (e) => {
+      if (e.target === t.gross) ruf(t.grossH, 'rueckseiteZu');
+    });
+    t.grossHuelle = el('div', 'gross');
+    t.grossKarte = el('div', 'gross-karte');
+    const vorn = el('div', 'gross-seite gross-vorn');
+    t.grossFenster = textLage(el('div', 'gross-teil gross-fenster'), GROSS_FENSTER);
+    vorn.append(t.grossFenster, bildEl('../themes/cozy/huelle-gross-vorn.png', 'gross-bild'));
+    const rueck = el('div', 'gross-seite gross-rueck');
+    t.grossListe = textLage(el('div', 'gross-teil gross-liste'), GROSS_LISTE);
+    t.grossListe.tabIndex = -1;
+    rueck.append(bildEl('../themes/cozy/huelle-gross-rueck.png', 'gross-bild'), t.grossListe);
+    t.grossKarte.append(vorn, rueck);
+    const zu = knopf('pixel-knopf k-zu gross-zu', '✕', 'Zurücklegen', () => ruf(t.grossH, 'rueckseiteZu'));
+    zu.dataset.id = 'zu';
+    t.grossHuelle.append(t.grossKarte, zu);
+    t.gross.appendChild(t.grossHuelle);
+    return t.gross;
+  }
+  function grossOffen() { return !!wirt && !t.gross.classList.contains('raum-aus'); }
 
   function baueTafel() {
     t.tafel = el('div', 'raum-aus');
@@ -352,6 +382,14 @@ window.HomeRaumDom = (function () {
     wirt.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
     wirt.style.setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px');
     wirt.style.setProperty('--rand', Raum.randPx(f, ZETTEL_RAND) + 'px');
+    // Grosse Huelle: ganzzahlig vergroessert (--n), mittig auf ganzen Pixeln;
+    // VOD-Vorschau 64x18 ebenfalls ganzzahlig (--vod-k).
+    const kante = Raum.grossKante(wirt.clientHeight, wirt.clientWidth);
+    const n = kante / GROSS_KANTE;
+    wirt.style.setProperty('--n', n);
+    wirt.style.setProperty('--vod-k', Math.max(1, Math.floor(n / 2)));
+    t.grossHuelle.style.left = Math.round((wirt.clientWidth - kante) / 2) + 'px';
+    t.grossHuelle.style.top = Math.round((wirt.clientHeight - kante) / 2) + 'px';
     // Der Zettel zeigt je nach Hoehe mehr oder weniger Zeilen.
     if (t.vornStand && zettelPlatz().platz !== t.zettelPlatz) zeichneZettel(t.vornStand, t.buehneH);
     // Waehrend des Zooms bleibt die Raum-Ebene auf dem Kamera-Ziel.
@@ -519,7 +557,7 @@ window.HomeRaumDom = (function () {
     stelleFokusHer(z, 'id', fokus);
   }
 
-  // --- Regal: VOD-Rueckseite (2x2 je Seite) -------------------------------------
+  // --- Regal: grosse Huelle mit VODs auf der Rueckseite -------------------------
   function vodBild(url, c) {
     if (!url) return;
     const img = new Image();
@@ -535,61 +573,78 @@ window.HomeRaumDom = (function () {
     img.src = url;
   }
 
-  function zeichneRueck(s, h) {
+  // Grosse Huelle: herausnehmen und umdrehen (neuer Kanal), sonst nur die Liste
+  // neu, wenn sich ihr Inhalt aendert (Scrollstand bleibt sonst stehen).
+  function zeichneGross(s, h) {
     const k = s.kanal;
     const r = k ? s.rueckseite : null;
-    t.rueck._h = h;
-    t.rueck._k = k;
-    const seite = r && r.seite ? r.seite : 0;
-    const schluessel = k && r ? [k.login, r.status, seite, (r.vods || []).map((v) => v.id).join(','), r.mehr ? 1 : 0].join('|') : null;
-    if (t.rueck._schluessel === schluessel) return;
-    t.rueck._schluessel = schluessel;
-    const fokus = merkeFokus(t.regal.e, 'id');
-    t.rueck.replaceChildren();
-    t.rueckText.replaceChildren();
-    if (!r) return;
-    const zu = knopf('rueck-knopf rueck-zu', '↩', 'Zurückdrehen', () => ruf(t.rueck._h, 'rueckseiteZu'));
-    zu.dataset.id = 'zu';
-    t.rueckText.appendChild(zu);
-    const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[r.status];
-    if (status) {
-      t.rueckText.appendChild(el('div', 'rueck-status', status));
-      stelleFokusHer(t.regal.e, 'id', fokus);
+    t.grossH = h;
+    t.grossK = k;
+    if (!r) {
+      aus(t.gross, true);
+      t.grossKarte.classList.remove('gedreht');
+      t.grossLogin = null;
+      t.grossSchluessel = null;
+      t.grossListe.replaceChildren();
       return;
     }
-    const alle = r.vods || [];
-    const seiten = Math.max(1, Math.ceil(alle.length / JE_SEITE));
-    const sNr = Math.min(seite, seiten - 1);
-    alle.slice(sNr * JE_SEITE, sNr * JE_SEITE + JE_SEITE).forEach((v, i) => {
-      const b = knopf('rueck-vod', null, null, () => ruf(t.rueck._h, 'vod', v.id));
+    if (t.grossLogin !== k.login) {
+      t.grossLogin = k.login;
+      t.grossFenster.replaceChildren();
+      profilbild(k, t.grossFenster, GROSS_FENSTER);
+      t.grossKarte.classList.remove('gedreht');
+      aus(t.gross, false);
+      void t.grossKarte.offsetWidth; // Vorderseite festschreiben, sonst kein Umdrehen
+      t.grossKarte.classList.add('gedreht');
+    }
+    zeichneVodListe(r);
+  }
+
+  // Rueckseite: alle geladenen VODs untereinander, senkrecht scrollbar
+  // (Mausrad nativ, ↑/↓ ueber vodsScrollen); "Alle VODs" (mehr) am Ende ab 24.
+  function zeichneVodListe(r) {
+    const k = t.grossK;
+    const schluessel = [k.login, r.status, (r.vods || []).map((v) => v.id).join(','), r.mehr ? 1 : 0].join('|');
+    if (t.grossSchluessel === schluessel) return;
+    t.grossSchluessel = schluessel;
+    const fokus = merkeFokus(t.gross, 'id');
+    const liste = t.grossListe;
+    liste.replaceChildren();
+    liste.scrollTop = 0;
+    const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[r.status];
+    if (status) {
+      liste.appendChild(el('div', 'gross-status', status));
+      stelleFokusHer(t.gross, 'id', fokus);
+      return;
+    }
+    for (const v of r.vods || []) {
+      const b = knopf('gross-vod', null, null, () => ruf(t.grossH, 'vod', v.id));
       b.title = [v.title, v.lengthLabel, v.publishedLabel, v.viewsLabel ? v.viewsLabel + ' Aufrufe' : ''].filter(Boolean).join(' · ');
       b.dataset.id = 'vod-' + v.id;
-      lage(b, { x: VOD_PLAETZE[i].x, y: VOD_PLAETZE[i].y, b: 64, h: 18 });
       const c = document.createElement('canvas');
       c.width = 64;
       c.height = 18;
-      b.appendChild(c);
       vodBild(v.thumb, c);
-      t.rueck.appendChild(b);
-    });
-    if (seiten > 1) {
-      const links = knopf('rueck-knopf rueck-links', '‹', 'Neuere', () => ruf(t.rueck._h, 'vodSeite', -1));
-      links.dataset.id = 'zurueck';
-      links.disabled = sNr === 0;
-      const rechts = knopf('rueck-knopf rueck-rechts', '›', 'Ältere', () => ruf(t.rueck._h, 'vodSeite', 1));
-      rechts.dataset.id = 'vor';
-      rechts.disabled = sNr >= seiten - 1;
-      t.rueckText.append(links, rechts);
+      const text = el('span', 'gross-vod-text');
+      text.append(el('span', 'gross-vod-titel', v.title || 'VOD'),
+        el('span', 'gross-vod-info', [v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ')));
+      b.append(c, text);
+      liste.appendChild(b);
     }
-    const fuss = el('div', 'rueck-fuss');
-    if (seiten > 1) fuss.appendChild(el('span', 'rueck-seite', (sNr + 1) + ' / ' + seiten));
     if (r.mehr) {
-      const mehr = knopf('rueck-knopf', 'Alle VODs', 'Alle VODs in der Liste', () => ruf(t.rueck._h, 'mehr', t.rueck._k));
+      const mehr = knopf('gross-mehr', 'Alle VODs', 'Alle VODs in der Liste', () => ruf(t.grossH, 'mehr', t.grossK));
       mehr.dataset.id = 'mehr';
-      fuss.appendChild(mehr);
+      liste.appendChild(mehr);
     }
-    if (fuss.children.length) t.rueckText.appendChild(fuss);
-    stelleFokusHer(t.regal.e, 'id', fokus);
+    stelleFokusHer(t.gross, 'id', fokus);
+  }
+
+  // ↑/↓ bei herausgenommener Platte: Liste scrollen statt zuruecklegen (home.js).
+  function vodsScrollen(richtung) {
+    if (!grossOffen()) return false;
+    const eine = t.grossListe.querySelector('.gross-vod');
+    t.grossListe.scrollBy({ top: (richtung > 0 ? 1 : -1) * (eine ? eine.offsetHeight : 24) });
+    return true;
   }
 
   function zeichneBuehne(stand, h) {
@@ -601,15 +656,12 @@ window.HomeRaumDom = (function () {
     const gedreht = !!k && !!s.rueckseite;
     t.vorn.classList.toggle('ladend', !!s.ladend);
     t.vorn.classList.toggle('offline', !!k && s.modus === 'offline');
+    // herausgenommen: Huelle und Platte fehlen im Fach, der Zettel bleibt
     aus(t.vornHuelle, !k || gedreht);
     aus(t.vornPlatte, !k || gedreht);
-    aus(t.vornZettel, gedreht);
-    aus(t.zettelText, gedreht);
-    aus(t.rueck, !gedreht);
-    aus(t.rueckText, !gedreht);
     zeichneVornHuelle(k);
     zeichneZettel(s, h);
-    zeichneRueck(s, h);
+    zeichneGross(s, h);
   }
 
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
@@ -754,6 +806,6 @@ window.HomeRaumDom = (function () {
   return {
     init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
-    zeigeSchild, setzeTv, neuAusrichten,
+    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen,
   };
 })();

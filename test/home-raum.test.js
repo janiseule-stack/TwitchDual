@@ -43,7 +43,7 @@ test('home-raum-dom.js: eigene Bilder nur aus ../themes/cozy/', () => {
   assert.ok(bilder.length > 0);
   // '.png' allein: Endung der zusammengesetzten Hover-Namen (unten geprueft)
   for (const b of bilder) assert.ok(/^['"]\.\.\/themes\/cozy\/[a-z0-9-]+\.png['"]$/.test(b) || b === "'.png'", b);
-  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-rueck.png', 'platte-vorn.png', 'zettel.png', 'lampe-klein.png']) {
+  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-gross-vorn.png', 'huelle-gross-rueck.png', 'platte-vorn.png', 'zettel.png', 'lampe-klein.png']) {
     assert.ok(js.includes(n) || css.includes(n), n);
   }
   assert.ok(js.includes("'../themes/cozy/hover-' + f.id + '.png'"), 'Hover-Bilder');
@@ -160,10 +160,81 @@ test('Fach: genau 4 ganze Huellen, Blaettern in ganzen Schritten, Anhebung bleib
   assert.ok(/\.fach \.huelle\.gewaehlt\s*\{\s*transform:\s*translateY\(-3px\)/.test(css));
 });
 
+// --- Runde 2, Task 3b: Platte rausnehmen, VODs auf der Rueckseite -------------
+test('Grosse Huelle: PixelLab-Bilder vorn/hinten, Fenster und Liste aus Konstanten, ganzzahlig', () => {
+  assert.ok(/GROSS_FENSTER\s*=\s*\{\s*x:\s*32,\s*y:\s*32,\s*b:\s*65,\s*h:\s*65\s*\}/.test(js));
+  assert.ok(/GROSS_LISTE\s*=\s*\{\s*x:\s*21,\s*y:\s*31,\s*b:\s*86,\s*h:\s*68\s*\}/.test(js));
+  const b = rumpf(js, 'function baueGross(');
+  assert.ok(b.includes("'../themes/cozy/huelle-gross-vorn.png'") && b.includes("'../themes/cozy/huelle-gross-rueck.png'"));
+  // Profilbild in Fenstergroesse (65x65), nicht halbiert
+  assert.ok(rumpf(js, 'function zeichneGross(').includes('profilbild(k, t.grossFenster, GROSS_FENSTER)'));
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('Raum.grossKante(wirt.clientHeight, wirt.clientWidth)'));
+  assert.ok(n.includes("setProperty('--n', n)"));
+  assert.ok(/Math\.round\(\(wirt\.clientWidth - kante\) \/ 2\)/.test(n) && /Math\.round\(\(wirt\.clientHeight - kante\) \/ 2\)/.test(n), 'mittig auf ganzen Pixeln');
+  assert.ok(/\.gross\s*\{[^}]*width:\s*calc\(128px \* var\(--n, 2\)\)/.test(css));
+  assert.ok(/\.gross-bild\s*\{[^}]*image-rendering:\s*pixelated/.test(css));
+});
+
+test('Grosse Huelle dreht sich um: rotateY, Vorder- und Rueckseite, 400 ms, Animationen aus sofort', () => {
+  assert.ok(/\.gross-karte\s*\{[^}]*transform-style:\s*preserve-3d;[^}]*transition:\s*transform 400ms/.test(css));
+  assert.ok(/\.gross-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+  assert.ok(/\.gross-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
+  assert.ok(/\.gross-rueck\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+  const z = rumpf(js, 'function zeichneGross(');
+  const weg = z.indexOf("classList.remove('gedreht')", z.indexOf('t.grossLogin !== k.login'));
+  const reflow = z.indexOf('void t.grossKarte.offsetWidth');
+  const dreh = z.indexOf("classList.add('gedreht')");
+  assert.ok(weg > -1 && reflow > weg && dreh > reflow, 'Vorderseite festschreiben, dann umdrehen');
+  assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none/.test(css));
+});
+
+test('Rueckseite: scrollbare Liste aller VODs, Klick -> vod, Alle VODs (mehr) am Ende, keine Seiten', () => {
+  const l = rumpf(js, 'function zeichneVodListe(');
+  assert.ok(/for \(const v of r\.vods \|\| \[\]\)/.test(l), 'alle VODs, nicht nur eine Seite');
+  assert.ok(l.includes("ruf(t.grossH, 'vod', v.id)"));
+  assert.ok(l.includes("'gross-vod-titel'") && l.includes('v.publishedLabel, v.lengthLabel'));
+  assert.ok(l.includes('if (r.mehr)') && l.includes("ruf(t.grossH, 'mehr', t.grossK)"));
+  assert.ok(!/JE_SEITE|VOD_PLAETZE|'vodSeite'|r\.seite/.test(js), 'Seiten-Logik entfaellt');
+  assert.ok(/\.gross-liste\s*\{[^}]*overflow-y:\s*auto/.test(css));
+  assert.ok(/\.gross-liste\s*\{[^}]*font-family:\s*var\(--schrift-pixel\);\s*font-size:\s*var\(--raum-schrift\)/.test(css));
+  // ↑/↓ scrollen die Liste (home.js fragt zuerst vodsScrollen)
+  const s = rumpf(js, 'function vodsScrollen(');
+  assert.ok(s.includes('grossOffen()') && s.includes('t.grossListe.scrollBy('));
+  assert.ok(/\bvodsScrollen\b/.test(schnittstelle()));
+  const homeJs = lies('renderer/video/home.js');
+  const sch = homeJs.slice(homeJs.indexOf('function schritt('), homeJs.indexOf('\n}', homeJs.indexOf('function schritt(')));
+  assert.ok(/^\s*if \(rueckseite && HomeRaumDom\.vodsScrollen\(r\)\) return;/m.test(sch));
+  assert.ok(sch.indexOf('vodsScrollen') < sch.indexOf('offlineAnsicht'), 'vor dem Schliessen');
+});
+
+test('Zuruecklegen: Klick daneben und ✕ rufen rueckseiteZu; Esc bleibt in home.js', () => {
+  const b = rumpf(js, 'function baueGross(');
+  assert.ok(/if \(e\.target === t\.gross\) ruf\(t\.grossH, 'rueckseiteZu'\)/.test(b), 'Klick daneben');
+  assert.ok(/knopf\('pixel-knopf k-zu gross-zu', '✕', [^,]+, \(\) => ruf\(t\.grossH, 'rueckseiteZu'\)\)/.test(b), '✕');
+  const homeJs = lies('renderer/video/home.js');
+  assert.ok(homeJs.includes('else if (rueckseite) { rueckseite = null; renderHome(); }'), 'Esc-Kette');
+  assert.ok(homeJs.includes('rueckseiteZu: () => { rueckseite = null; renderHome(); }'));
+  // home.js gibt die ganze geladene Liste weiter
+  assert.ok(homeJs.includes('rueckseite: g.kanal ? rueckseite : null'));
+});
+
+test('Alte gekachelte Rueckseite im Buecherfach ist weg (samt CSS)', () => {
+  for (const alt of ['vorn-rueck', 'rueck-text', 'rueck-vod', 'rueck-knopf', 'rueck-links', 'rueck-fuss', 'huelle-rueck.png', 't.rueck']) {
+    assert.ok(!js.includes(alt) && !css.includes(alt), alt);
+  }
+  // herausgenommen: Huelle und Platte fehlen im Fach
+  const z = rumpf(js, 'function zeichneBuehne(');
+  assert.ok(z.includes('aus(t.vornHuelle, !k || gedreht)') && z.includes('aus(t.vornPlatte, !k || gedreht)'));
+  assert.ok(z.includes('zeichneGross(s, h)'));
+});
+
 test('home-raum-dom.js: Handler-Namen der alten Buehne bleiben', () => {
-  for (const h of ['laden', 'stern', 'vods', 'rueckseiteZu', 'vod', 'vodSeite', 'mehr', 'waehle']) {
+  for (const h of ['laden', 'stern', 'vods', 'rueckseiteZu', 'vod', 'mehr', 'waehle']) {
     assert.ok(js.includes("'" + h + "'"), h);
   }
+  // vodSeite bleibt als Schnittstelle in home.js, die Liste blaettert nicht mehr
+  assert.ok(lies('renderer/video/home.js').includes('vodSeite:'));
 });
 
 test('home-raum-dom.js: Mausrad blaettert nicht bei offener Tafel', () => {
@@ -182,12 +253,6 @@ test('home-raum-dom.js: Fokus im Fach setzt scrollLeft zurueck und blaettert per
   assert.ok(i > -1);
   const teil = js.slice(i, i + 500);
   assert.ok(teil.includes('scrollLeft = 0') && teil.includes('Raum.fachFenster') && teil.includes('zeigeFach('));
-});
-
-test('home-raum.css: Blaetter-Pfeile ohne transform (home.css :active skaliert)', () => {
-  const start = css.indexOf('.rueck-links, .rueck-rechts {');
-  assert.ok(start > -1);
-  assert.ok(!css.slice(start, css.indexOf('}', start)).includes('transform'));
 });
 
 test('home-raum.css: keine Verlaeufe, kein Blur, Ebenen pixelgenau', () => {

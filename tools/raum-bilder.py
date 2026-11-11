@@ -31,6 +31,12 @@ HOVER = {
 }
 # Ursprung der 64x64-Bilder der drehenden Platte im Raum
 PLATTE_URSPRUNG = (256, 80)
+# Grosse Huelle: cremefarbene Innenflaeche der Vorderseite = Profilbild-Fenster
+# (Lage wird per Farbe ermittelt, gemessen 11.11.2026: x 32, y 32, 65x65).
+HUELLE_GROSS_FENSTERFARBE = (241, 237, 225, 255)
+# Rueckseite: Platzhalter-Zeilen innerhalb des gepunkteten Rahmens (Rahmen x 18-109,
+# y 23-107, Eckmarken bis y 29 und ab y 100 bleiben) -> Platz fuer die VOD-Liste.
+HUELLE_GROSS_LISTE = (19, 30, 90, 70)
 
 
 def quelle(name):
@@ -87,6 +93,44 @@ def huelle_bilder(ordner):
     huelle.save(os.path.join(ordner, "huelle.png"))
     # Rueckseite unveraendert aus PixelLab.
     quelle("huelle-rueck.png").save(os.path.join(ordner, "huelle-rueck.png"))
+
+
+def deck_box(bild, farbe):
+    """Bounding-Box (x, y, b, h) aller Pixel genau dieser Farbe; die Box muss voll davon sein."""
+    p = bild.load()
+    w, h = bild.size
+    pkt = [(x, y) for y in range(h) for x in range(w) if p[x, y] == farbe]
+    if not pkt:
+        raise SystemExit("huelle-gross-vorn.png: Fensterfarbe nicht gefunden")
+    xs = [q[0] for q in pkt]
+    ys = [q[1] for q in pkt]
+    box = (min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1)
+    if box[2] * box[3] != len(pkt):
+        raise SystemExit("huelle-gross-vorn.png: Fenster ist kein volles Rechteck")
+    return box
+
+
+def huelle_gross(ordner):
+    """Grosse Huelle (Janis' Wahl, PixelLab 128x128): Vorderseite mit ausgestanztem
+    Fenster fuers Profilbild, Rueckseite mit ausgestanzter Platzhalter-Liste.
+    Gibt das Fenster der Vorderseite als (x, y, b, h) zurueck."""
+    vorn = quelle("huelle-gross-vorn.png")
+    fenster = deck_box(vorn, HUELLE_GROSS_FENSTERFARBE)
+    vp = vorn.load()
+    fx, fy, fb, fh = fenster
+    for y in range(fy, fy + fh):
+        for x in range(fx, fx + fb):
+            vp[x, y] = (0, 0, 0, 0)
+    vorn.save(os.path.join(ordner, "huelle-gross-vorn.png"))
+
+    rueck = quelle("huelle-gross-rueck.png")
+    rp = rueck.load()
+    lx, ly, lb, lh = HUELLE_GROSS_LISTE
+    for y in range(ly, ly + lh):
+        for x in range(lx, lx + lb):
+            rp[x, y] = (0, 0, 0, 0)
+    rueck.save(os.path.join(ordner, "huelle-gross-rueck.png"))
+    return fenster
 
 
 def lampe_klein(ordner):
@@ -177,10 +221,11 @@ def main():
     ecken = tv_bilder(ordner)
     hover_und_platte(ordner)
     huelle_bilder(ordner)
+    gross = huelle_gross(ordner)
     lampe_klein(ordner)
     platten(ordner)
     zettel_schild(ordner)
-    print(json.dumps({"tvEcken": ecken}, separators=(",", ":")))
+    print(json.dumps({"tvEcken": ecken, "grossFenster": gross}, separators=(",", ":")))
 
 
 if __name__ == "__main__":

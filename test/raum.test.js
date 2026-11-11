@@ -172,6 +172,21 @@ test('zettelZeilen: zuerst entfaellt die Laufzeit, dann die Kanalpunkte', () => 
   assert.strictEqual(R.zettelZeilen(100, 0).platz, 0);
 });
 
+test('grossKante: ganzzahliges Vielfaches von 128 in 70 % der Fensterhoehe', () => {
+  assert.strictEqual(R.grossKante(800), 512);
+  assert.strictEqual(R.grossKante(1332), 896);
+  assert.strictEqual(R.grossKante(384), 256);
+  assert.strictEqual(R.grossKante(100), 128);
+  assert.strictEqual(R.grossKante(1332, 1397), 896);
+  assert.strictEqual(R.grossKante(1332, 700), 512); // Breite begrenzt: (700 - 96) / 128 = 4
+  assert.strictEqual(R.grossKante(800, 100), 128);
+  for (let h = 200; h < 2000; h += 37) {
+    const k = R.grossKante(h);
+    assert.strictEqual(k % 128, 0);
+    if (k > 128) assert.ok(k <= h * 0.7 && k + 128 > h * 0.7, 'h ' + h);
+  }
+});
+
 test('zettelZeilen: vorderer Zettel (Innenhoehe 48 - 12 - 6 = 30 Bildpixel) zeigt bei jedem Faktor >= 2 die Pflichtzeilen', () => {
   for (let f = 2; f <= 12; f += 1 / 16) {
     const zeile = R.schriftPx(f);

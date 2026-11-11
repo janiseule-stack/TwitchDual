@@ -93,10 +93,6 @@
   border-width: 12px 6px 6px;
   border-image: url('../themes/cozy/zettel.png') 12 6 6 fill / 12px 6px 6px / 0 stretch;
 }
-.vorn-rueck { background: url('../themes/cozy/huelle-rueck.png') 0 0 / 40px 40px repeat; }
-.rueck-vod { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; outline: none; }
-.rueck-vod canvas { display: block; width: 100%; height: 100%; }
-.rueck-vod:hover, .rueck-vod:focus-visible { outline: 1px solid var(--text); outline-offset: 0; }
 
 /* je Zeile genau eine Zeilenhoehe (Raum.zettelZeilen zaehlt so), einzeilig mit "…" */
 .zettel-text {
@@ -109,32 +105,72 @@
 .zettel-punkte { display: flex; align-items: center; gap: .25em; }
 .zettel-punkte-symbol { width: 1em; height: 1em; image-rendering: pixelated; }
 .zettel-knoepfe { display: flex; gap: .7em; margin-top: auto; }
-.zettel-knopf, .rueck-knopf {
+.zettel-knopf, .gross-mehr {
   font: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0;
   cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
 }
 .zettel-knopf.stern { text-decoration: none; }
 .stern.an { color: var(--accent); }
-.zettel-knopf:hover, .rueck-knopf:hover { color: var(--accent); }
-.zettel-knopf:focus-visible, .rueck-knopf:focus-visible { outline: 1px dashed currentColor; }
+.zettel-knopf:hover, .gross-mehr:hover { color: var(--accent); }
+.zettel-knopf:focus-visible, .gross-mehr:focus-visible { outline: 1px dashed currentColor; }
 .zettel-text > .zettel-leer { white-space: normal; height: auto; flex: 1 1 auto; }
 
-/* liegt ueber den VOD-Bildern: nur die eigenen Knoepfe fangen Klicks */
-.rueck-text { color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5); pointer-events: none !important; }
-.rueck-text > * { pointer-events: auto; }
-.rueck-knopf { position: absolute; text-decoration: none; }
-.rueck-knopf:disabled { opacity: .35; cursor: default; }
-.rueck-zu { right: .3em; top: 0; }
-/* ohne transform: home.css setzt bei :active transform: scale(.96) */
-.rueck-links, .rueck-rechts { top: calc(50% - .5em); font-size: 1.6em; line-height: 1; }
-.rueck-links { left: .3em; }
-.rueck-rechts { right: .3em; }
-.rueck-fuss {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  display: flex; justify-content: center; align-items: center; gap: .8em;
+/* --- Regal: grosse Huelle mit VODs (Platte herausgenommen) ----------------------
+   huelle-gross-vorn/-rueck.png (PixelLab 128x128) in ganzzahliger Vergroesserung
+   --n; Lage innen = Bildpixel x --n (--x/--y/--b/--h wie in der Textschicht).
+   Umdrehen: rotateY mit Vorder- und Rueckseite, 400 ms (Animationen aus: sofort). */
+.gross-platz {
+  position: absolute; inset: 0; z-index: 3;
+  background: rgb(18 5 5 / .55);
 }
-.rueck-fuss .rueck-knopf { position: static; text-decoration: underline; }
-.rueck-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.gross {
+  position: absolute; width: calc(128px * var(--n, 2)); height: calc(128px * var(--n, 2));
+  perspective: calc(512px * var(--n, 2));
+}
+.gross-karte {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transition: transform 400ms ease-in-out;
+}
+.gross-karte.gedreht { transform: rotateY(180deg); }
+.gross-seite { position: absolute; inset: 0; backface-visibility: hidden; }
+.gross-rueck { transform: rotateY(180deg); }
+.gross-bild {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  image-rendering: pixelated; pointer-events: none; user-select: none;
+}
+.gross-teil {
+  position: absolute; box-sizing: border-box;
+  left: calc(var(--x) * var(--n, 2) * 1px); top: calc(var(--y) * var(--n, 2) * 1px);
+  width: calc(var(--b) * var(--n, 2) * 1px); height: calc(var(--h) * var(--n, 2) * 1px);
+}
+.gross-fenster { overflow: hidden; }
+.gross-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.gross-fenster .huelle-buchstabe { font-size: var(--raum-schrift-gross); }
+.gross-zu { position: absolute; top: 0; right: -40px; }
+
+.gross-liste {
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none;
+  display: flex; flex-direction: column; gap: calc(var(--raum-schrift) / 2);
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+  scrollbar-width: thin; scrollbar-color: var(--text) transparent;
+}
+.gross-vod {
+  flex: none; display: flex; align-items: center; gap: .5em; width: 100%; min-width: 0;
+  padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer; outline: none;
+  font: inherit; color: inherit; text-align: left;
+}
+.gross-vod canvas {
+  flex: none; width: calc(64px * var(--vod-k, 1)); height: calc(18px * var(--vod-k, 1));
+  image-rendering: pixelated;
+}
+.gross-vod-text { display: flex; flex-direction: column; gap: .25em; min-width: 0; }
+.gross-vod-titel, .gross-vod-info { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gross-vod-info { color: var(--muted); }
+.gross-vod:hover, .gross-vod:focus-visible { color: var(--accent); }
+.gross-vod:hover canvas, .gross-vod:focus-visible canvas { filter: brightness(1.3); }
+.gross-mehr { flex: none; align-self: center; }
+.gross-status { margin: auto; text-align: center; }
 
 /* Such-Zettel: das vorhandene Suchfeld liegt auf dem Papier */
 .such-platz { display: flex; align-items: center; color: var(--zettel-tinte); }

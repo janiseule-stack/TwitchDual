@@ -25,6 +25,8 @@ const MASSE = {
   'hover-plattenspieler.png': [54, 50],
   'hover-bild.png': [40, 62],
   'platte-dreht.png': [432, 50],
+  'huelle-gross-vorn.png': [128, 128],
+  'huelle-gross-rueck.png': [128, 128],
 };
 
 // Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4)
@@ -228,6 +230,48 @@ test('schrift/RaumKlar.ttf: vorhanden, TrueType-Kennung', () => {
   const b = fs.readFileSync(path.join(DIR, 'schrift', 'RaumKlar.ttf'));
   const k = b.subarray(0, 4);
   assert.ok(k.equals(Buffer.from([0, 1, 0, 0])) || k.toString('ascii') === 'true', 'keine TrueType-Kennung');
+});
+
+// Grosse Huelle (Task 3b): Quelle = Janis' Wahl (entwuerfe/gross/vorn-1, rueck-2).
+const QUELLEN = path.join(__dirname, '..', 'tools', 'raum-quellen');
+const imRechteck = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
+
+for (const [name, loch] of [['huelle-gross-vorn.png', [32, 32, 65, 65]], ['huelle-gross-rueck.png', [19, 30, 90, 70]]]) {
+  test(`${name}: im Rechteck ${loch.join(',')} durchsichtig, sonst gleich der PixelLab-Quelle`, () => {
+    const a = dekodiere(lade(name));
+    const q = dekodiere(fs.readFileSync(path.join(QUELLEN, name)));
+    assert.strictEqual(a.w, q.w);
+    assert.strictEqual(a.h, q.h);
+    let deckend = 0;
+    for (let y = 0; y < a.h; y++) {
+      for (let x = 0; x < a.w; x++) {
+        const i = (y * a.w + x) * 4;
+        if (imRechteck(x, y, loch)) { assert.strictEqual(a.px[i + 3], 0, `${x},${y} nicht durchsichtig`); continue; }
+        for (let k = 0; k < 4; k++) if (a.px[i + k] !== q.px[i + k]) assert.fail(`${x},${y} weicht von der Quelle ab`);
+        if (a.px[i + 3] > 0) deckend++;
+      }
+    }
+    assert.ok(deckend > 200, 'zu wenig deckende Pixel');
+  });
+}
+
+test('huelle-gross-vorn: das Fenster ist genau die cremefarbene Innenflaeche der Quelle', () => {
+  const q = dekodiere(fs.readFileSync(path.join(QUELLEN, 'huelle-gross-vorn.png')));
+  const quelle = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'renderer', 'themes', 'cozy', 'entwuerfe', 'gross', 'vorn-1.png')));
+  assert.ok(q.px.equals(quelle.px), 'Quelle = Janis\' Wahl vorn-1.png');
+  let n = 0;
+  for (let y = 0; y < q.h; y++) {
+    for (let x = 0; x < q.w; x++) {
+      const i = (y * q.w + x) * 4;
+      const creme = q.px[i] === 241 && q.px[i + 1] === 237 && q.px[i + 2] === 225 && q.px[i + 3] === 255;
+      assert.strictEqual(creme, imRechteck(x, y, [32, 32, 65, 65]), `${x},${y}`);
+      if (creme) n++;
+    }
+  }
+  assert.strictEqual(n, 65 * 65);
+  const r = dekodiere(fs.readFileSync(path.join(QUELLEN, 'huelle-gross-rueck.png')));
+  const rq = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'renderer', 'themes', 'cozy', 'entwuerfe', 'gross', 'rueck-2.png')));
+  assert.ok(r.px.equals(rq.px), 'Quelle = Janis\' Wahl rueck-2.png');
 });
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {

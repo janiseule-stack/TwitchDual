@@ -294,9 +294,12 @@ const staenderHandler = {
   stern: (k) => sternUmschalten(k),
 };
 
-// Ein Schritt (↑/↓): erst Offline-Ansicht, dann Rueckseite schliessen, sonst
-// blaettern. Das Mausrad blaettert die Faecher selbst (home-raum-dom.js).
+// Ein Schritt (↑/↓): ist die Platte fuer die VODs herausgenommen, scrollt die
+// Liste auf ihrer Rueckseite (zuruecklegen: Esc, ✕, Klick daneben); sonst erst
+// Offline-Ansicht, dann Rueckseite schliessen, sonst blaettern. Das Mausrad
+// blaettert die Faecher selbst (home-raum-dom.js).
 function schritt(r) {
+  if (rueckseite && HomeRaumDom.vodsScrollen(r)) return;
   if (offlineAnsicht) offlineAnsicht = null;
   else if (rueckseite) rueckseite = null;
   else if (!buehne.blaettern(r)) {
@@ -319,8 +322,9 @@ function schluesselVon(g) { return g.kanal ? g.modus + '|' + g.kanal.login : nul
 // Login-Teil eines Schluessels (modus|login); null bleibt null.
 function loginVon(schluessel) { return schluessel ? schluessel.slice(schluessel.indexOf('|') + 1) : null; }
 
-// VOD-Rueckseite fuer die CD vorne laden: bis zu 24 VODs, 4 je Seite; gibt es
-// genau 24, kann es mehr geben -> Knopf "Alle VODs" (alte Liste).
+// VOD-Rueckseite fuer die CD vorne laden: bis zu 24 VODs, alle als scrollbare
+// Liste auf der grossen Huelle (seite/vodSeite nutzt die Darstellung nicht
+// mehr); gibt es genau 24, kann es mehr geben -> Knopf "Alle VODs" (alte Liste).
 // schluessel der Rueckseite = Login: geht die CD vorne offline (live ->
 // markiert), bleibt die Rueckseite offen.
 const VODS_MAX = 24;

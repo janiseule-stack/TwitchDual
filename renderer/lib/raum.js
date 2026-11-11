@@ -139,5 +139,14 @@
     return { platz, titel: platz >= 4, spiel: platz >= 5, punkte: platz >= 6, laufzeit: platz >= 7 };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen };
+  // Grosse Huelle (128x128 Bildpixel): ganzzahliges Vielfaches von 128, so gross
+  // wie es in 70 % der Fensterhoehe passt (mindestens 128). Mit Fensterbreite:
+  // auch hoechstens die Breite abzueglich 2 x 48 px (Platz fuer den Knopf ✕).
+  function grossKante(fensterHoehe, fensterBreite) {
+    let n = Math.floor((zahl(fensterHoehe) * 0.7) / 128);
+    if (fensterBreite !== undefined) n = Math.min(n, Math.floor((zahl(fensterBreite) - 96) / 128));
+    return 128 * Math.max(1, n);
+  }
+
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
 });
