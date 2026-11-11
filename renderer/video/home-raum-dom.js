@@ -357,7 +357,7 @@ window.HomeRaumDom = (function () {
       ev.stopPropagation();
       waehle();
     });
-    if (k.live) p.appendChild(bildEl('../themes/cozy/lampe-rot.png', 'huelle-lampe'));
+    if (k.live) p.appendChild(bildEl('../themes/cozy/lampe-klein.png', 'huelle-lampe'));
     p.appendChild(knopf('huelle-stern stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(fach.h, 'stern', jetzt())));
     return p;

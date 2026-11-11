@@ -42,9 +42,11 @@ test('home-raum-dom.js: eigene Bilder nur aus ../themes/cozy/', () => {
   const bilder = js.match(/['"][^'"\s]*\.(png|jpe?g|gif|webp|svg)['"]/g) || [];
   assert.ok(bilder.length > 0);
   for (const b of bilder) assert.ok(/^['"]\.\.\/themes\/cozy\/[a-z0-9-]+\.png['"]$/.test(b), b);
-  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-rueck.png', 'platte-vorn.png', 'zettel.png', 'schild.png', 'lampe-rot.png']) {
+  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-rueck.png', 'platte-vorn.png', 'zettel.png', 'schild.png', 'lampe-klein.png']) {
     assert.ok(js.includes(n) || css.includes(n), n);
   }
+  assert.ok(!js.includes('lampe-rot.png'));
+  assert.ok(/\.huelle-lampe\s*\{[^}]*width:\s*11px;[^}]*height:\s*8px/.test(css), 'Lampe 11x8 in Bildkoordinaten');
   assert.ok(!/https?:/.test(js));
 });
 

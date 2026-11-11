@@ -70,7 +70,7 @@
 .fach .huelle.gewaehlt { transform: translateY(-3px); }
 .fach .huelle:focus-visible { outline: 1px solid var(--accent); outline-offset: 0; }
 .huelle.offline .huelle-fenster, .vorn.offline .vorn-huelle .huelle-fenster { filter: grayscale(1) brightness(.85); }
-.huelle-lampe { position: absolute; right: -1px; top: -1px; width: 8px; height: 8px; pointer-events: none; }
+.huelle-lampe { position: absolute; left: 27px; top: 2px; width: 11px; height: 8px; pointer-events: none; }
 .huelle-stern {
   position: absolute; right: 1px; bottom: 1px; width: 10px; height: 10px; padding: 0;
   border: 0; background: none; cursor: pointer; opacity: 0;

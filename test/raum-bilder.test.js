@@ -14,6 +14,7 @@ const MASSE = {
   'raum-tv-maske.png': [344, 192],
   'huelle.png': [40, 40],
   'huelle-rueck.png': [40, 40],
+  'lampe-klein.png': [11, 8],
   'platte-klein.png': [12, 12],
   'platte-vorn.png': [36, 36],
   'zettel.png': [129, 96],
@@ -120,6 +121,17 @@ test('huelle.png ist im Fenster (2,2,36,36) durchsichtig', () => {
       assert.strictEqual(b.px[(y * b.w + x) * 4 + 3], 0, `Pixel ${x},${y} nicht durchsichtig`);
     }
   }
+});
+
+test('huelle.png hat deckende Kante oben, unten, links und rechts', () => {
+  const b = dekodiere(lade('huelle.png'));
+  const deckend = (x, y) => b.px[(y * b.w + x) * 4 + 3] > 0;
+  const hat = (xs, ys) => xs.some((x) => ys.some((y) => deckend(x, y)));
+  const alle = Array.from({ length: 40 }, (_, i) => i);
+  assert.ok(hat(alle, [0, 1]), 'oben');
+  assert.ok(hat(alle, [38, 39]), 'unten');
+  assert.ok(hat([0, 1], alle), 'links');
+  assert.ok(hat([38, 39], alle), 'rechts');
 });
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {

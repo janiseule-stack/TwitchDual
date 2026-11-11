@@ -78,6 +78,31 @@ def huelle_bilder(ordner):
     quelle("huelle-rueck.png").save(os.path.join(ordner, "huelle-rueck.png"))
 
 
+def lampe_klein(ordner):
+    # Aus dem 16x16-Rohbild nur die zusammenhaengende deckende Flaeche (4er-Nachbarschaft)
+    # behalten, die den hellsten Pixel (groesstes R+G) enthaelt; auf ihre Bounding-Box zuschneiden.
+    roh = quelle("lampe-klein-roh.png")
+    w, h = roh.size
+    p = roh.load()
+    deckend = [(x, y) for y in range(h) for x in range(w) if p[x, y][3] > 0]
+    start = max(deckend, key=lambda q: p[q][0] + p[q][1])
+    flaeche = {start}
+    stapel = [start]
+    while stapel:
+        x, y = stapel.pop()
+        for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if n not in flaeche and 0 <= n[0] < w and 0 <= n[1] < h and p[n][3] > 0:
+                flaeche.add(n)
+                stapel.append(n)
+    aus = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ap = aus.load()
+    for q in flaeche:
+        ap[q] = p[q]
+    xs = [q[0] for q in flaeche]
+    ys = [q[1] for q in flaeche]
+    aus.crop((min(xs), min(ys), max(xs) + 1, max(ys) + 1)).save(os.path.join(ordner, "lampe-klein.png"))
+
+
 def platten(ordner):
     quelle = Image.open(os.path.join(ordner, "platte.png")).convert("RGBA")
     quelle.resize((12, 12), Image.NEAREST).save(os.path.join(ordner, "platte-klein.png"))
@@ -103,6 +128,7 @@ def main():
     ordner = sys.argv[1]
     ecken = tv_bilder(ordner)
     huelle_bilder(ordner)
+    lampe_klein(ordner)
     platten(ordner)
     zettel_schild(ordner)
     print(json.dumps({"tvEcken": ecken}, separators=(",", ":")))
