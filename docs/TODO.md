@@ -59,10 +59,9 @@ Alle Optik-Festlegungen sind Claudes Vorschlag.
    Rückseite mit 2×2 VOD-Bildern und Blättern.
 7. Suchfeld auf einem Papierzettel oben am Regal (mit ⟳).
 8. Auflegen-Ablauf (nur mit Kanal und Animationen an): Raum blendet über das
-   Regal (500 ms), kleine Platte fliegt von der Regal-Mitte zum Teller
-   (1500 ms, dreht sich **nicht** – die drehende Platte kommt in Etappe 3 als
-   PixelLab-Sprite), Kamera zoomt in den Fernseher (2500 ms); mindestens
-   4500 ms, Klick/Taste überspringt; Fehler setzt alles zurück + Hinweiszeile.
+   Regal (500 ms), Kamera fährt zum Plattenspieler, die Platte dreht sich
+   (PixelLab-Sprite), danach Zoom in den Fernseher (ersetzt das frühere
+   „Platte fliegt“, Runde 2); Klick/Taste überspringt (Doppelklick nicht); Fehler setzt alles zurück + Hinweiszeile.
    Animationen aus: alle Übergänge im Home stehen still.
 9. Fernseher: Vorschaubild des Live-Streams verpixelt (27×38) und affin in die
    schräge Bildschirmfläche gelegt, mit `raum-tv-maske.png` beschnitten;
@@ -84,7 +83,8 @@ Alle Optik-Festlegungen sind Claudes Vorschlag.
   - Hinweiszeile unten im Raum.
   - Lämpchen deckt eine Ecke des Profilbilds.
   - Auflegen: Text „Lege auf: …“ und Tipp stehen unten über dem Raum; die
-    Platte fliegt und der Zoom läuft mit sanftem Anfahren/Abbremsen.
+    Kamera fährt zum Plattenspieler, die Platte dreht sich, der Zoom in den TV
+    läuft mit sanftem Anfahren/Abbremsen (Runde 2, ersetzt „Platte fliegt“).
 - `renderer/themes/cozy/entwuerfe/` muss vor einem Build aus `renderer/`
   heraus (sonst landen die Entwürfe im Paket).
 

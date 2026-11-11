@@ -105,7 +105,7 @@ test('Hover: keine Winkel, kein Holzschild; hover-<id>.png an Raum.HOVER, aufgeh
 test('Name unten mittig: unskaliert, Schatten, ueber der Hinweiszeile; zeigeSchild nutzt den Platz', () => {
   assert.ok(/t\.name = el\('div', 'raum-name raum-aus'\);\s*r\.e\.appendChild\(t\.name\)/.test(js), 'in der unskalierten Ebene');
   const regel = css.slice(css.indexOf('.raum-name {'), css.indexOf('}', css.indexOf('.raum-name {')));
-  assert.ok(/left:\s*50%/.test(regel) && /translateX\(-50%\)/.test(regel));
+  assert.ok(/left:\s*0/.test(regel) && /right:\s*0/.test(regel) && /text-align:\s*center/.test(regel));
   const unten = Number((/bottom:\s*(\d+)px/.exec(regel) || [])[1]);
   assert.ok(unten >= 12 + 36, 'Abstand >= 12 px und ueber #home-hinweis');
   assert.ok(/color:\s*var\(--text\)/.test(regel) && /text-shadow:/.test(regel));
@@ -536,4 +536,33 @@ test('Renderer nennt die alte CD-Buehne nicht mehr', () => {
   for (const d of dateien) {
     assert.ok(!/cd-huelle|cd-laufwerk|cd-info|home-staender|home-namen|home-buehne"|HomeBuehneDom/.test(lies(d)), d);
   }
+});
+
+// --- Schluss-Fixes Runde 2: Doppelklick, Fake-Fett, ganze Pixel -----------------
+test('Doppelklick: grosse Huelle und Ablauf ignorieren den zweiten Klick (detail > 1)', () => {
+  const g = rumpf(js, 'function baueGross(');
+  const gk = g.indexOf("addEventListener('click'");
+  assert.ok(gk >= 0 && g.indexOf('e.detail > 1', gk) > gk && g.indexOf('e.detail > 1', gk) < g.indexOf("rueckseiteZu')", gk));
+  const a = rumpf(js, 'function baueAblauf(');
+  const w = a.indexOf('const weiter = (e) => {');
+  assert.ok(w >= 0);
+  assert.ok(a.indexOf('e.detail > 1', w) > w && a.indexOf('e.detail > 1', w) < a.indexOf('ablaufRuf();', w));
+});
+
+test('Raum Klar hat ein Gewicht: font-synthesis aus, damit kein Fake-Fett die Pixel verschmiert', () => {
+  const raumCss = lies('renderer/themes/cozy/raum.css');
+  assert.ok(/body\s*\{[^}]*font-synthesis:\s*none/.test(raumCss));
+  assert.ok(/<link[^>]*themes\/cozy\/raum\.css/.test(lies('renderer/video/index.html')));
+  assert.ok(/<link[^>]*themes\/cozy\/raum\.css/.test(lies('renderer/chat/index.html')));
+});
+
+test('Text liegt auf ganzen Bildschirm-Pixeln: round() im CSS, gerundete Textschicht, Name ohne Bruch-Translate', () => {
+  const t = /\.text-teil\s*\{([^}]*)\}/.exec(css)[1];
+  for (const p of ['left', 'top', 'width', 'height']) {
+    assert.ok(new RegExp('(^|[\\s;])' + p + ':\\s*round\\(calc\\([^;]*\\),\\s*1px\\)').test(t), p);
+  }
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('Math.round(skal.links)') && n.includes('Math.round(skal.oben)'));
+  const name = /\.raum-name\s*\{([^}]*)\}/.exec(css)[1];
+  assert.ok(!/translateX/.test(name) && /text-align:\s*center/.test(name) && /left:\s*0/.test(name) && /right:\s*0/.test(name));
 });

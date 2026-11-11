@@ -285,6 +285,7 @@ window.HomeRaumDom = (function () {
   function baueGross() {
     t.gross = el('div', 'gross-platz raum-aus');
     t.gross.addEventListener('click', (e) => {
+      if (e.detail > 1) return; // Doppelklick: der zweite Klick trifft die eben geoeffnete Huelle
       if (e.target === t.gross) ruf(t.grossH, 'rueckseiteZu');
     });
     t.grossHuelle = el('div', 'gross');
@@ -327,6 +328,7 @@ window.HomeRaumDom = (function () {
     t.ablauf.append(t.ablaufText,
       el('div', 'ablauf-tipp', 'Klick oder Taste: überspringen'));
     const weiter = (e) => {
+      if (e.detail > 1) return; // Doppelklick: der zweite Klick gehoert noch dem Klick, der den Ablauf startete
       if (!ablaufRuf) return;
       e.preventDefault();
       e.stopPropagation(); // Leertaste nicht als Play/Pause im Video-Fenster
@@ -396,8 +398,8 @@ window.HomeRaumDom = (function () {
     for (const r of [t.raum, t.regal]) {
       const z = r === t.raum && kamera ? kamera : { x: skal.links, y: skal.oben, faktor: f };
       r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
-      r.text.style.left = skal.links + 'px';
-      r.text.style.top = skal.oben + 'px';
+      r.text.style.left = Math.round(skal.links) + 'px'; // ganze Bildschirm-Pixel
+      r.text.style.top = Math.round(skal.oben) + 'px';
       r.text.style.width = Raum.BILD.breite * f + 'px';
       r.text.style.height = Raum.BILD.hoehe * f + 'px';
     }

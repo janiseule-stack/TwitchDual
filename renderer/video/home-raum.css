@@ -31,8 +31,9 @@
 .raum-textschicht > * { pointer-events: auto; }
 .text-teil {
   position: absolute; box-sizing: border-box;
-  left: calc(var(--x) * var(--f) * 1px); top: calc(var(--y) * var(--f) * 1px);
-  width: calc(var(--b) * var(--f) * 1px); height: calc(var(--h) * var(--f) * 1px);
+  /* auf ganze Bildschirm-Pixel gerundet, sonst verschmiert die Pixel-Schrift */
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  width: round(calc(var(--b) * var(--f) * 1px), 1px); height: round(calc(var(--h) * var(--f) * 1px), 1px);
   /* Raum Klar: 1 em = 12 Schriftpixel, Zeilenhoehe 1 = Schriftgroesse */
   font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
 }
@@ -46,7 +47,7 @@
 .raum-hover.an { opacity: 1; }
 /* unten mittig, ueber der Hinweiszeile #home-hinweis (bottom 8px, ca. 36px hoch) */
 .raum-name {
-  position: absolute; left: 50%; bottom: 56px; z-index: 3; transform: translateX(-50%);
+  position: absolute; left: 0; right: 0; text-align: center; bottom: 56px; z-index: 3;
   pointer-events: none; white-space: nowrap;
   font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
   color: var(--text); text-shadow: 2px 2px 0 rgb(18 5 5), -1px -1px 0 rgb(18 5 5);

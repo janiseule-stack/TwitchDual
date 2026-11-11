@@ -19,6 +19,8 @@
   src: url('schrift/RaumKlar.ttf') format('truetype');
   font-display: block;
 }
+/* Raum Klar hat nur ein Gewicht: kein kuenstliches Fett/Kursiv, das die Pixel verschmiert */
+body { font-synthesis: none; }
 :root {
   /* nur fuer Leisten, Schilder und Ueberschriften; Chat-Text bleibt wie er ist */
   --schrift-pixel: 'Raum Klar', 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
