@@ -164,6 +164,15 @@
       '-640x360.jpg?t=' + Math.floor(jetztMs / 60000);
   }
 
+  // Bild fuer den Fernseher im Raum aus window.laeuftEtwas(): live -> Live-
+  // Vorschau, VOD -> sein Vorschaubild (kommt mit den Stream-Infos), sonst aus.
+  function tvVorschau(l, jetztMs) {
+    if (!l) return null;
+    if (l.mode === 'live') return l.login ? vorschauUrl(l.login, jetztMs) : null;
+    if (l.mode === 'vod') return l.vorschau || null;
+    return null;
+  }
+
   // Staender unten (Runde 2): ohne Suche alle Live-CDs, dann die Offline-
   // Favoriten; mit Suche Live-, Offline- und Twitch-Treffer, jeder Kanal einmal.
   function staenderEintraege(o) {
@@ -235,5 +244,5 @@
     return api;
   }
 
-  return { createBuehne, createRad, vorschauUrl, staenderEintraege, createLaufwerk };
+  return { createBuehne, createRad, vorschauUrl, tvVorschau, staenderEintraege, createLaufwerk };
 });

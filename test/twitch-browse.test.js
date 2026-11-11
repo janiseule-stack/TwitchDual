@@ -116,7 +116,9 @@ test('streamInfo: offline, VOD, unbekannt', async () => {
   const antwort = (data) => async () => ({ ok: true, status: 200, async json() { return { data }; } });
   assert.deepEqual(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: { login: 'x', displayName: 'X', profileImageURL: null, stream: null } }), retries: 0 }),
     { art: 'offline', name: 'X', avatar: null });
-  assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' } } }), retries: 0 }),
-    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z' });
+  assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' }, previewThumbnailURL: 'v.jpg' } }), retries: 0 }),
+    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z', vorschau: 'v.jpg' });
+  // ohne Vorschaubild: vorschau null (Fernseher bleibt aus)
+  assert.equal((await browse.streamInfo({ mode: 'vod', wert: '1' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, owner: null } }), retries: 0 })).vorschau, null);
   assert.equal(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: null }), retries: 0 }), null);
 });

@@ -155,6 +155,16 @@ test('vorschauUrl', () => {
   assert.ok(vorschauUrl('kanal_a', 120000).endsWith('kanal_a-640x360.jpg?t=2'));
 });
 
+test('tvVorschau: live -> Live-Vorschau, VOD -> sein Vorschaubild, sonst aus', () => {
+  const { tvVorschau } = HomeBuehne;
+  assert.equal(tvVorschau(null, 0), null);
+  assert.equal(tvVorschau({ mode: 'live', login: 'kanal_a' }, 120000), vorschauUrl('kanal_a', 120000));
+  assert.equal(tvVorschau({ mode: 'live', login: null }, 0), null);
+  assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: 'https://x/v.jpg' }, 0), 'https://x/v.jpg');
+  assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: null }, 0), null);
+  assert.equal(tvVorschau({ mode: 'vod', login: null }, 0), null);
+});
+
 // --- Staender (Runde 2) --------------------------------------------------------
 const arten = (l) => l.map((e) => e.art + ':' + e.kanal.login);
 

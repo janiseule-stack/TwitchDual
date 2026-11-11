@@ -396,10 +396,12 @@ function zeichneHuelle() {
   }, buehnenHandler);
 }
 
-// Fernseher im Raum: Vorschau des laufenden Live-Kanals, sonst aus.
+// Fernseher im Raum: Vorschau des laufenden Live-Kanals oder Vorschaubild des
+// laufenden VODs (verpixelt wie live), sonst aus.
 function zeichneTv() {
   const l = window.laeuftEtwas ? window.laeuftEtwas() : null;
-  HomeRaumDom.setzeTv(l && l.mode === 'live' && l.login ? { vorschauUrl: HomeBuehne.vorschauUrl(l.login, Date.now()) } : null);
+  const url = HomeBuehne.tvVorschau(l, Date.now());
+  HomeRaumDom.setzeTv(url ? { vorschauUrl: url } : null);
 }
 
 function renderHome() {

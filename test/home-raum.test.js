@@ -339,7 +339,11 @@ test('home.js: Schliessen-Wege', () => {
 });
 
 test('video.js: window.laeuftEtwas, home.js fragt nur diese Auskunft', () => {
-  assert.ok(videoJs.includes("window.laeuftEtwas = () => infoQuelle ? { mode: infoQuelle.mode, login: infoQuelle.mode === 'live' ? infoQuelle.wert : null } : null"));
+  assert.ok(videoJs.includes('window.laeuftEtwas = () => infoQuelle ? {'));
+  assert.ok(videoJs.includes("login: infoQuelle.mode === 'live' ? infoQuelle.wert : null,"));
+  // VOD: Vorschaubild aus den Stream-Infos (Fernseher im Home)
+  assert.ok(videoJs.includes("vorschau: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.vorschau || null) : null,"));
+  assert.ok(homeJs.includes('HomeBuehne.tvVorschau(l, Date.now())'));
   assert.ok(videoJs.indexOf('window.laeuftEtwas') > videoJs.indexOf('let infoQuelle'));
   assert.ok(homeJs.includes('laeuftEtwas()'));
   assert.ok(!homeJs.includes("contains('onair')"));

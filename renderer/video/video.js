@@ -403,7 +403,12 @@ const $siOben = document.getElementById('si-oben');
 const $siUnten = document.getElementById('si-unten');
 let infoQuelle = null;   // { mode, wert } der geladenen Quelle
 // Auskunft fuer Home (Fernseher, Plattenspieler): was laeuft gerade?
-window.laeuftEtwas = () => infoQuelle ? { mode: infoQuelle.mode, login: infoQuelle.mode === 'live' ? infoQuelle.wert : null } : null;
+// vorschau: Vorschaubild des VODs (aus den Stream-Infos, auch bei VOD per Link).
+window.laeuftEtwas = () => infoQuelle ? {
+  mode: infoQuelle.mode,
+  login: infoQuelle.mode === 'live' ? infoQuelle.wert : null,
+  vorschau: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.vorschau || null) : null,
+} : null;
 let info = null;         // angezeigte Infos (Titel/Spiel nur alle 5 min erneuert)
 let titelZeit = 0;       // wann Titel/Spiel zuletzt uebernommen wurden
 let infoLauf = 0;        // verwirft verspaetete Antworten

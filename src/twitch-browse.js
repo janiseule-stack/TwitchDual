@@ -84,7 +84,7 @@ const INFO_LIVE_QUERY =
   `stream{ title viewersCount createdAt game{ displayName } } } }`;
 const INFO_VOD_QUERY =
   `query($id:ID!){ video(id:$id){ title lengthSeconds createdAt game{ displayName } ` +
-  `owner{ displayName profileImageURL(width:70) } } }`;
+  `owner{ displayName profileImageURL(width:70) } previewThumbnailURL(width:640,height:360) } }`;
 
 async function streamInfo({ mode, wert }, opts = {}) {
   if (mode === 'vod') {
@@ -92,7 +92,8 @@ async function streamInfo({ mode, wert }, opts = {}) {
     const v = data && data.data && data.data.video;
     if (!v) return null;
     return { art: 'vod', name: (v.owner && v.owner.displayName) || '', avatar: (v.owner && v.owner.profileImageURL) || null,
-      titel: v.title || '', spiel: (v.game && v.game.displayName) || '', laenge: v.lengthSeconds || 0, datum: v.createdAt || null };
+      titel: v.title || '', spiel: (v.game && v.game.displayName) || '', laenge: v.lengthSeconds || 0, datum: v.createdAt || null,
+      vorschau: v.previewThumbnailURL || null }; // Vorschaubild fuer den Fernseher im Home
   }
   const login = String(wert || '').trim().toLowerCase();
   const data = await gql({ query: INFO_LIVE_QUERY, variables: { login } }, opts);
