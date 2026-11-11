@@ -237,6 +237,21 @@
 }
 @keyframes raum-platte-dreht { to { background-position: -432px 0; } }
 
+/* Leben (Etappe 3, raum-leben-dom.js): PixelLab-Bildstreifen leben-home-<datei>.png
+   in Bildpixeln, --bilder Bilder je Flaeche, --sb Streifenbreite, --dauer ein
+   Durchlauf. Bild 0 = Standbild-Ausschnitt: ruhend nicht zu sehen. Schleife laeuft
+   durch, selten spielt einmal je Klasse spielt; ruht = aus (Home zu, Animationen aus).
+   Chat-Streifen (Task 6) nutzt dieselben Regeln. */
+.raum-leben {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: raum-leben var(--dauer) steps(var(--bilder)) infinite;
+}
+.raum-leben.selten:not(.spielt) { animation: none; }
+.raum-leben.selten.spielt { animation-iteration-count: 1; }
+.raum-leben.ruht { animation: none; }
+@keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
+
 /* Animationen aus: alle Uebergaenge und Bewegungen im Raum stehen still. */
 html[data-animationen="aus"] #home.raum-home *,
 body[data-animationen="aus"] #home.raum-home * { transition: none !important; animation: none !important; }

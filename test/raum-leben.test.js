@@ -196,3 +196,125 @@ test('beide index.html laden raum-leben.js vor dem Hauptskript', () => {
   const b = video.indexOf('raum-leben.js');
   assert.ok(b > -1 && b < video.indexOf('src="home-raum-dom.js"'));
 });
+
+// --- Etappe 3, Task 5: Home-Raum lebt ------------------------------------------------
+const LEBEN = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', 'leben.json'), 'utf8'));
+
+test('HOME: Ziel-Rechtecke, Bildzahl und Dateien identisch mit leben.json, Takt vorhanden', () => {
+  const soll = LEBEN.home.animationen.map((a) => ({
+    id: a.id, x: a.ziel.x, y: a.ziel.y, b: a.ziel.b, h: a.ziel.h, bilder: a.bilder, dateien: a.dateien,
+  }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(RL.HOME)), soll);
+  for (const e of RL.HOME) assert.ok(RL.TAKT[e.id], 'Takt fuer ' + e.id);
+  assert.ok(Object.isFrozen(RL.HOME));
+});
+
+// Kleines Schein-DOM fuer RaumLebenDom.baue
+function scheinDoc() {
+  return {
+    createElement(tag) {
+      const klassen = new Set();
+      const hoerer = {};
+      const props = {};
+      return {
+        tag, dataset: {},
+        set className(v) { klassen.clear(); String(v).split(/\s+/).filter(Boolean).forEach((k) => klassen.add(k)); },
+        get className() { return [...klassen].join(' '); },
+        classList: {
+          add: (...k) => k.forEach((x) => klassen.add(x)),
+          remove: (...k) => k.forEach((x) => klassen.delete(x)),
+          contains: (k) => klassen.has(k),
+          toggle: (k, an) => { if (an === undefined ? !klassen.has(k) : an) klassen.add(k); else klassen.delete(k); },
+        },
+        style: { setProperty: (k, v) => { props[k] = String(v); }, props },
+        addEventListener: (art, f) => { (hoerer[art] = hoerer[art] || []).push(f); },
+        feuere(art) { (hoerer[art] || []).forEach((f) => f({ type: art, target: this })); },
+      };
+    },
+  };
+}
+function scheinUhr() {
+  const timer = new Map();
+  let nr = 0;
+  return {
+    setTimeout: (f, ms) => { timer.set(++nr, { f, ms }); return nr; },
+    clearTimeout: (id) => { timer.delete(id); },
+    timer,
+    feuereAlle() { const alle = [...timer.entries()]; timer.clear(); alle.forEach(([, t]) => t.f()); },
+  };
+}
+
+const RLD = require('../renderer/lib/raum-leben-dom.js');
+
+test('RaumLebenDom.baue: je Eintrag ein div.raum-leben in Bildpixeln mit --bilder, --dauer, --sb und Streifen', () => {
+  const ebene = { kinder: [], appendChild(e) { this.kinder.push(e); } };
+  const uhr = scheinUhr();
+  RLD.baue(scheinDoc(), ebene, RL.HOME, '../themes/cozy/leben-home-', uhr);
+  assert.strictEqual(ebene.kinder.length, RL.HOME.length);
+  RL.HOME.forEach((e, i) => {
+    const d = ebene.kinder[i];
+    const takt = RL.TAKT[e.id];
+    assert.ok(d.classList.contains('raum-leben'));
+    assert.strictEqual(d.classList.contains('selten'), takt.modus === 'selten', e.id);
+    assert.strictEqual(d.style.left, e.x + 'px');
+    assert.strictEqual(d.style.top, e.y + 'px');
+    assert.strictEqual(d.style.width, e.b + 'px');
+    assert.strictEqual(d.style.height, e.h + 'px');
+    assert.strictEqual(d.style.props['--bilder'], String(e.bilder));
+    assert.strictEqual(d.style.props['--dauer'], e.bilder * takt.msProBild + 'ms');
+    assert.strictEqual(d.style.props['--sb'], e.bilder * e.b + 'px');
+    assert.strictEqual(d.style.backgroundImage, "url('../themes/cozy/leben-home-" + e.dateien[0] + ".png')");
+    assert.ok(d.classList.contains('ruht'), 'vor an() still');
+    assert.ok(!d.classList.contains('spielt'));
+  });
+  assert.strictEqual(uhr.timer.size, 0, 'keine Timer vor an()');
+});
+
+test('RaumLebenDom: an() spielt selten einmal, Pause per naechstePause, aus() raeumt alles weg', () => {
+  const ebene = { kinder: [], appendChild(e) { this.kinder.push(e); } };
+  const uhr = scheinUhr();
+  let z = 0.5;
+  const s = RLD.baue(scheinDoc(), ebene, RL.HOME, 'p-', { ...uhr, zufall: () => z });
+  const el = (id) => ebene.kinder[RL.HOME.findIndex((e) => e.id === id)];
+  s.an();
+  for (const d of ebene.kinder) assert.ok(!d.classList.contains('ruht'));
+  assert.ok(el('katze').classList.contains('spielt') && el('lampe').classList.contains('spielt'));
+  assert.ok(!el('regen').classList.contains('spielt'), 'Schleife braucht kein spielt');
+  s.an(); // doppelt: nichts doppelt planen
+  assert.strictEqual(uhr.timer.size, 0);
+
+  el('katze').feuere('animationend');
+  assert.ok(!el('katze').classList.contains('spielt'));
+  assert.strictEqual(uhr.timer.size, 1);
+  assert.strictEqual([...uhr.timer.values()][0].ms, RL.naechstePause(() => z, RL.TAKT.katze.pause));
+
+  // Zwei Katzen-Dateien: jeder Auftritt waehlt per Zufall eine.
+  z = 0.99;
+  uhr.feuereAlle();
+  assert.ok(el('katze').classList.contains('spielt'));
+  assert.strictEqual(el('katze').style.backgroundImage, "url('p-katze2.png')");
+  el('katze').feuere('animationend');
+  z = 0;
+  uhr.feuereAlle();
+  assert.strictEqual(el('katze').style.backgroundImage, "url('p-katze1.png')");
+
+  el('lampe').feuere('animationend');
+  assert.strictEqual(uhr.timer.size, 1);
+  s.aus();
+  assert.strictEqual(uhr.timer.size, 0, 'aus() loescht alle Timer');
+  for (const d of ebene.kinder) {
+    assert.ok(!d.classList.contains('spielt'));
+    assert.ok(d.classList.contains('ruht'));
+  }
+  el('katze').feuere('animationend');
+  assert.strictEqual(uhr.timer.size, 0, 'nach aus() nichts mehr planen');
+  s.an();
+  assert.ok(el('lampe').classList.contains('spielt'), 'wieder an');
+});
+
+test('raum-leben-dom.js: UMD, setzt RaumLebenDom, nutzt RaumLeben.TAKT und naechstePause', () => {
+  const q = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'lib', 'raum-leben-dom.js'), 'utf8');
+  assert.ok(q.includes('root.RaumLebenDom'));
+  assert.ok(q.includes('TAKT[') && q.includes('naechstePause('));
+  assert.ok(q.includes("'animationend'"));
+});

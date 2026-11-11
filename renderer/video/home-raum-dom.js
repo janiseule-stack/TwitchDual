@@ -170,6 +170,10 @@ window.HomeRaumDom = (function () {
     t.raum = r;
     t.raumBild = bildEl('../themes/cozy/raum-tv-aus.png', 'raum-bild');
     r.bild.appendChild(t.raumBild);
+    // Leben (Etappe 3): Regen, Katze, Dampf, Lampe als Bildstreifen direkt ueber dem
+    // Raum-Bild; unter dem Fernseher, weil die Lampen-Flaeche 12 Bildschirm-Pixel
+    // ueberdeckt (Bild 0 = Fernseher aus), und unter den Hover-Bildern.
+    t.leben = RaumLebenDom.baue(document, r.bild, RaumLeben.HOME, '../themes/cozy/leben-home-');
     // TV-Canvas in Bildgroesse ueber dem Raum-Bild (setzeTv zeichnet hinein).
     t.tv = el('canvas', 'raum-tv');
     t.tv.width = Raum.BILD.breite;
@@ -816,9 +820,17 @@ window.HomeRaumDom = (function () {
     img.src = url;
   }
 
+  // Raum-Animationen an/aus (home.js: Home offen und Animationen an). In der
+  // Regal-Ansicht ist #raum-ebene verborgen; die Timer duerfen weiterlaufen.
+  function leben(an) {
+    if (!t.leben) return;
+    if (an) t.leben.an();
+    else t.leben.aus();
+  }
+
   return {
     init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
-    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen,
+    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, leben,
   };
 })();

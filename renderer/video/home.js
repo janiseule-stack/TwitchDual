@@ -133,6 +133,7 @@ function openHome(ziel) {
   stickerStand = null;
   punkteAbruf.oeffnen();
   renderHome(); // alten Stand (Rueckseite, Offline-Ansicht) sofort weg, nicht erst nach dem Laden
+  HomeRaumDom.leben(!effekteAus()); // Regen, Katze, Dampf, Lampe
   ladeKanaele();
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
@@ -145,6 +146,7 @@ function closeHome() {
   // Laufwerk beenden (ein wartendes ladeWert laeuft so zu Ende statt zu haengen)
   if (laufwerk.laeuft) laufwerk.geladen(false);
   HomeRaumDom.versteckeAblauf();
+  HomeRaumDom.leben(false);
   $home.classList.add('hidden');
   document.body.classList.remove('home-offen');
   punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
@@ -222,6 +224,10 @@ function huellenText() {
 // fertig ist. Erfolg -> Suche leeren und schliessen; Fehler -> Ablauf weg,
 // Hinweiszeile.
 function effekteAus() { return document.documentElement.dataset.animationen === 'aus'; }
+// Animationen im Licht-Menue umgeschaltet: Raum-Leben bei offenem Home sofort mit.
+new MutationObserver(() => {
+  if (!$home.classList.contains('hidden')) HomeRaumDom.leben(!effekteAus());
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-animationen'] });
 async function ladeWert(wert, kanal) {
   if (ladenLaeuft || laufwerk.laeuft) return; // Doppelklick / Enter waehrend des Ladens
   ladenLaeuft = true;

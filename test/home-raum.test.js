@@ -566,3 +566,49 @@ test('Text liegt auf ganzen Bildschirm-Pixeln: round() im CSS, gerundete Textsch
   const name = /\.raum-name\s*\{([^}]*)\}/.exec(css)[1];
   assert.ok(!/translateX/.test(name) && /text-align:\s*center/.test(name) && /left:\s*0/.test(name) && /right:\s*0/.test(name));
 });
+
+// --- Etappe 3, Task 5: Home-Raum lebt (Regen, Katze, Dampf, Lampe) ---------------------
+const homeFunktion = (kopf) => {
+  const s = homeJs.indexOf(kopf);
+  return s < 0 ? '' : homeJs.slice(s, homeJs.indexOf('\n}', s));
+};
+
+test('baueRaum: RaumLebenDom.baue mit RaumLeben.HOME in r.bild, ueber dem Raum-Bild, unter TV und Hover', () => {
+  const r = rumpf(js, 'function baueRaum(');
+  const b = r.search(/t\.leben = RaumLebenDom\.baue\(document, r\.bild, RaumLeben\.HOME, '\.\.\/themes\/cozy\/leben-home-'\)/);
+  assert.ok(b > -1, 'Aufruf fehlt');
+  assert.ok(b > r.indexOf('r.bild.appendChild(t.raumBild)'), 'ueber dem Raum-Bild');
+  assert.ok(b < r.indexOf('r.bild.appendChild(t.tv)'), 'unter dem Fernseher (Lampe ragt in den Bildschirm)');
+  assert.ok(b < r.indexOf('t.hover[f.id]'), 'vor den Hover-Bildern');
+});
+
+test('HomeRaumDom.leben in der Schnittstelle, schaltet an/aus', () => {
+  assert.ok(/\bleben\b/.test(schnittstelle()));
+  const r = rumpf(js, 'function leben(');
+  assert.ok(r.includes('t.leben.an()') && r.includes('t.leben.aus()'));
+  assert.ok(!rumpf(js, 'function versteckeAblauf(').includes('leben'), 'Ablauf laesst die Animationen in Ruhe');
+});
+
+test('home.js: openHome/closeHome schalten das Leben, Beobachter auf data-animationen', () => {
+  assert.ok(homeFunktion('function openHome(').includes('HomeRaumDom.leben(!effekteAus())'));
+  assert.ok(homeFunktion('function closeHome(').includes('HomeRaumDom.leben(false)'));
+  assert.ok(/new MutationObserver\(/.test(homeJs));
+  assert.ok(/attributeFilter:\s*\['data-animationen'\]/.test(homeJs));
+  const m = homeJs.slice(homeJs.indexOf('new MutationObserver('));
+  const rumpfM = m.slice(0, m.indexOf('.observe('));
+  assert.ok(rumpfM.includes("$home.classList.contains('hidden')") && rumpfM.includes('HomeRaumDom.leben(!effekteAus())'));
+});
+
+test('home-raum.css: Leben-Regeln (Streifen, steps, selten, Keyframes)', () => {
+  assert.ok(/\.raum-leben\s*\{[^}]*position:\s*absolute;[^}]*pointer-events:\s*none;[^}]*image-rendering:\s*pixelated;[^}]*animation:\s*raum-leben var\(--dauer\) steps\(var\(--bilder\)\) infinite;/.test(css));
+  assert.ok(/\.raum-leben\.selten:not\(\.spielt\)\s*\{\s*animation:\s*none;\s*\}/.test(css));
+  assert.ok(/\.raum-leben\.selten\.spielt\s*\{\s*animation-iteration-count:\s*1;\s*\}/.test(css));
+  assert.ok(/@keyframes raum-leben\s*\{\s*to\s*\{\s*background-position:\s*calc\(-1 \* var\(--sb\)\) 0;\s*\}\s*\}/.test(css));
+  assert.ok(/\.raum-leben\.ruht\s*\{\s*animation:\s*none;\s*\}/.test(css));
+});
+
+test('index.html laedt raum-leben-dom.js nach raum-leben.js und vor home-raum-dom.js', () => {
+  const a = html.indexOf('../lib/raum-leben.js');
+  const b = html.indexOf('../lib/raum-leben-dom.js');
+  assert.ok(a > -1 && b > a && b < html.indexOf('src="home-raum-dom.js"'));
+});

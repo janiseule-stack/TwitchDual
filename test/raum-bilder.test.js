@@ -302,6 +302,52 @@ test('LIVE-/VOD-Schild: eingebunden, ganzzahlig, ohne Lampe und ohne Leuchten', 
   assert.ok(!/box-shadow|glow|animation|filter/.test(regeln));
 });
 
+// Etappe 3 (Leben): je Animation und Datei ein Bildstreifen leben-home-<datei>.png,
+// bilder x ziel.b breit, ziel.h hoch. Bild 0 = Standbild-Ausschnitt, Bild 1..n nur
+// die Pixel, die sich vom Standbild unterscheiden (Rest durchsichtig).
+const LEBEN = JSON.parse(fs.readFileSync(path.join(QUELLEN, 'leben.json'), 'utf8'));
+for (const a of LEBEN.home.animationen) {
+  for (const datei of a.dateien) {
+    const name = `leben-home-${datei}.png`;
+    const z = a.ziel;
+    test(`${name}: ${a.bilder} Bilder je ${z.b}x${z.h}, Bild 0 = ${LEBEN.home.standbild} an (${z.x},${z.y})`, () => {
+      const s = dekodiere(lade(name));
+      assert.strictEqual(s.w, a.bilder * z.b);
+      assert.strictEqual(s.h, z.h);
+      const still = dekodiere(lade(LEBEN.home.standbild));
+      let abweichungen = 0;
+      for (let y = 0; y < z.h; y++) {
+        for (let x = 0; x < z.b; x++) {
+          const i = (y * s.w + x) * 4;
+          const j = ((z.y + y) * still.w + (z.x + x)) * 4;
+          for (let k = 0; k < 4; k++) if (s.px[i + k] !== still.px[j + k]) { abweichungen++; break; }
+        }
+      }
+      assert.strictEqual(abweichungen, 0, abweichungen + ' Pixel weichen ab');
+    });
+
+    test(`${name}: Bild 1..${a.bilder - 1} nur PixelLab-Pixel, mindestens ein Bild deckend`, () => {
+      const s = dekodiere(lade(name));
+      let deckend = 0;
+      for (let f = 1; f < a.bilder; f++) {
+        const qPfad = path.join(QUELLEN, `leben-home-${datei}-${f}.png`);
+        const q = fs.existsSync(qPfad) ? dekodiere(fs.readFileSync(qPfad)) : null;
+        for (let y = 0; y < z.h; y++) {
+          for (let x = 0; x < z.b; x++) {
+            const i = (y * s.w + f * z.b + x) * 4;
+            if (s.px[i + 3] === 0) continue;
+            deckend++;
+            if (!q) continue;
+            const j = ((z.y - a.quelle.y + y) * q.w + (z.x - a.quelle.x + x)) * 4;
+            for (let k = 0; k < 4; k++) if (s.px[i + k] !== q.px[j + k]) assert.fail(`Bild ${f} Pixel ${x},${y} weicht von der Quelle ab`);
+          }
+        }
+      }
+      assert.ok(deckend > 0, 'kein Bild hat deckende Pixel');
+    });
+  }
+}
+
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {
   const maske = dekodiere(lade('raum-tv-maske.png'));
   let deckend = 0;

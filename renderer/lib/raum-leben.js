@@ -16,6 +16,17 @@
     lampe: Object.freeze({ msProBild: 125, modus: 'selten', pause: Object.freeze({ min: 10000, max: 30000 }) }),
   });
 
+  // Home-Raum (Etappe 3): Zielflaechen in Bildpixeln von raum-tv-aus.png, Bildzahl
+  // und Bildstreifen (leben-home-<datei>.png, tools/raum-bilder.py) wie in
+  // tools/raum-quellen/leben.json (ein Test prueft die Gleichheit). Takt aus TAKT[id].
+  // Mehrere Dateien: jeder Auftritt waehlt eine per Zufall (RaumLebenDom).
+  const HOME = Object.freeze([
+    Object.freeze({ id: 'regen', x: 40, y: 20, b: 48, h: 76, bilder: 13, dateien: Object.freeze(['regen']) }),
+    Object.freeze({ id: 'katze', x: 146, y: 114, b: 48, h: 40, bilder: 9, dateien: Object.freeze(['katze1', 'katze2']) }),
+    Object.freeze({ id: 'dampf', x: 186, y: 144, b: 32, h: 44, bilder: 13, dateien: Object.freeze(['dampf']) }),
+    Object.freeze({ id: 'lampe', x: 150, y: 0, b: 60, h: 56, bilder: 9, dateien: Object.freeze(['lampe']) }),
+  ]);
+
   function schirmAnzahl(anzahl) {
     const n = typeof anzahl === 'number' && Number.isFinite(anzahl) ? anzahl : 0;
     if (n >= 200) return 4;
@@ -88,5 +99,5 @@
     };
   }
 
-  return { DAUER_KISTE, MAX_WARTEND, MAX_ALTER, TAKT, schirmAnzahl, naechstePause, warteschlange, abspieler };
+  return { DAUER_KISTE, MAX_WARTEND, MAX_ALTER, TAKT, HOME, schirmAnzahl, naechstePause, warteschlange, abspieler };
 });

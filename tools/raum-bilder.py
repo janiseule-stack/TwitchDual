@@ -37,6 +37,8 @@ HUELLE_GROSS_FENSTERFARBE = (241, 237, 225, 255)
 # Rueckseite: Platzhalter-Zeilen innerhalb des gepunkteten Rahmens (Rahmen x 18-109,
 # y 23-107, Eckmarken bis y 29 und ab y 100 bleiben) -> Platz fuer die VOD-Liste.
 HUELLE_GROSS_LISTE = (19, 30, 90, 70)
+# Leben (Etappe 3): Summe der RGB-Abstaende, ab der ein PixelLab-Pixel als bewegt gilt.
+LEBEN_TOLERANZ = 24
 
 
 def quelle(name):
@@ -220,11 +222,42 @@ def hover_und_platte(ordner):
     shutil.copyfile(os.path.join(QUELLEN, "schrift-klar.ttf"), os.path.join(ordner, "schrift", "RaumKlar.ttf"))
 
 
+def leben_bilder(ordner):
+    """Etappe 3 (Leben): je Animation und Datei ein Bildstreifen leben-home-<datei>.png
+    (bilder x ziel.b breit, ziel.h hoch) aus den PixelLab-Bildern in leben.json.
+    Bild 0 = ziel-Ausschnitt des Standbilds (ersetzt PixelLabs Bild 0); in Bild 1..n
+    bleiben nur Pixel, die sich vom Standbild-Ausschnitt unterscheiden (RGB-Abstand
+    > LEBEN_TOLERANZ, damit Kompressionsrauschen nicht zaehlt), der Rest wird durchsichtig."""
+    with open(os.path.join(QUELLEN, "leben.json"), encoding="utf-8") as f:
+        home = json.load(f)["home"]
+    still = Image.open(os.path.join(ordner, home["standbild"])).convert("RGBA")
+    sp = still.load()
+    for a in home["animationen"]:
+        q, z, n = a["quelle"], a["ziel"], a["bilder"]
+        dx, dy = z["x"] - q["x"], z["y"] - q["y"]
+        for datei in a["dateien"]:
+            streifen = Image.new("RGBA", (n * z["b"], z["h"]), (0, 0, 0, 0))
+            st = streifen.load()
+            for y in range(z["h"]):
+                for x in range(z["b"]):
+                    st[x, y] = sp[z["x"] + x, z["y"] + y]
+            for k in range(1, n):
+                bp = quelle("leben-home-%s-%d.png" % (datei, k)).load()
+                for y in range(z["h"]):
+                    for x in range(z["b"]):
+                        p = bp[dx + x, dy + y]
+                        s = sp[z["x"] + x, z["y"] + y]
+                        if sum(abs(p[i] - s[i]) for i in range(3)) > LEBEN_TOLERANZ:
+                            st[k * z["b"] + x, y] = p
+            streifen.save(os.path.join(ordner, "leben-home-%s.png" % datei))
+
+
 def main():
     if len(sys.argv) != 2:
         raise SystemExit("Aufruf: raum-bilder.py <ordner>")
     ordner = sys.argv[1]
     ecken = tv_bilder(ordner)
+    leben_bilder(ordner)
     hover_und_platte(ordner)
     huelle_bilder(ordner)
     gross = huelle_gross(ordner)
