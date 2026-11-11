@@ -31,6 +31,8 @@ HOVER = {
 }
 # Ursprung der 64x64-Bilder der drehenden Platte im Raum
 PLATTE_URSPRUNG = (256, 80)
+# Drehende Platte: nur Zeilen oberhalb davon (Platte, Tonarm) wechseln, darunter der Schalter
+TELLER_BIS = 32
 # Grosse Huelle: cremefarbene Innenflaeche der Vorderseite = Profilbild-Fenster
 # (Lage wird per Farbe ermittelt, gemessen 11.11.2026: x 32, y 32, 65x65).
 HUELLE_GROSS_FENSTERFARBE = (241, 237, 225, 255)
@@ -229,15 +231,19 @@ def hover_und_platte(ordner):
     hw, hh = hov.size
     dx = HOVER["plattenspieler"][0] - PLATTE_URSPRUNG[0]
     dy = HOVER["plattenspieler"][1] - PLATTE_URSPRUNG[1]
+    # Nur die Platte dreht: ab TELLER_BIS (Schalter vorne) bleibt jedes Bild wie Bild 1,
+    # sonst blinkt der Schalter in der Schleife (Janis 11.11.2026).
     streifen = Image.new("RGBA", (hw * 8, hh), (0, 0, 0, 0))
     sp = streifen.load()
+    erstes = quelle("platte-dreht-1.png").load()
     for i in range(8):
         b = quelle("platte-dreht-%d.png" % (i + 1))
         bp = b.load()
         for y in range(hh):
+            q = bp if y < TELLER_BIS else erstes
             for x in range(hw):
                 if hp[x, y][3] > 0:
-                    sp[i * hw + x, y] = bp[x + dx, y + dy]
+                    sp[i * hw + x, y] = q[x + dx, y + dy]
     streifen.save(os.path.join(ordner, "platte-dreht.png"))
 
     os.makedirs(os.path.join(ordner, "schrift"), exist_ok=True)

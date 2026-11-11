@@ -866,6 +866,14 @@ Raid-/Abo-Ereignisse folgen mit dem Feature "Abos/Raids im Chat".
 
 ## Ideen für später
 
+- **Chat als gemütliche Wand (Janis 11.11.2026, später):** Das flache Braun hinter den
+  Chat-Nachrichten wirkt neben dem Pixel-Streifen langweilig, Chat- und Video-Fenster
+  verschwimmen. Idee: Der Chat-Hintergrund wird eine zweite Wand des Raums mit großem
+  Fenster (Regen, wie oben im Streifen), Lampe und wenigen Möbeln. Erst wenig, später
+  erweiterbar (z. B. Kratzbaum), animiert, Stimmung wie im Rest. Eigener Entwurf nötig
+  (neue Idee → EGM-Ideen-Prüfung). Lesbarkeit beachten: dunkle Namensfarben aufhellen.
+  Verworfen: gekachelte Muster (Nähte), PixelLab-Regenanimation am Stück (flimmert nur).
+  Auch die Ränder neben dem Video (flaches Braun) dabei mitdenken.
 - **Native Twitch-Emotes im VOD**: das `emote`-Feld der Kommentar-`fragments`
   zusätzlich rendern, nicht nur als Text.
 - **Mehrere Chat-Fenster / zweiter Kanal** für Squad-Streams.

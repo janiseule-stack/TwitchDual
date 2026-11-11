@@ -243,12 +243,18 @@ test('platte-dreht.png: 8 Bilder je 54x50, nur Pixel innerhalb der Flaeche von h
   assert.ok(deckend > 8 * 100, 'zu wenig deckende Pixel');
 });
 
-test('platte-dreht.png: Pixelinhalt = Quellbild N an (x+2, y+2), Rest durchsichtig', () => {
+// Janis 11.11.2026: nur die Platte dreht; der Schalter vorne (ab Zeile 32) blinkte in der
+// Schleife -> unterhalb von TELLER_BIS bleibt jedes Bild wie Quellbild 1.
+const TELLER_BIS = 32;
+test('platte-dreht.png: oben (Platte) = Quellbild N, darunter (Schalter) = Quellbild 1, Rest durchsichtig', () => {
   const s = dekodiere(lade('platte-dreht.png'));
   const hov = dekodiere(lade('hover-plattenspieler.png'));
+  const quelle = (n) => dekodiere(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', `platte-dreht-${n}.png`)));
+  const erstes = quelle(1);
   for (let n = 1; n <= 8; n++) {
-    const q = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', `platte-dreht-${n}.png`)));
+    const qn = quelle(n);
     for (let y = 0; y < 50; y++) {
+      const q = y < TELLER_BIS ? qn : erstes;
       for (let x = 0; x < 54; x++) {
         const i = (y * s.w + (n - 1) * 54 + x) * 4;
         if (hov.px[(y * hov.w + x) * 4 + 3] > 0) {
