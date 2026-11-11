@@ -77,6 +77,12 @@ test('sortByLive: live zuerst, dann Zuschauer', () => {
   assert.deepEqual(m.sortByLive(list).map((x) => x.login), ['c', 'b', 'a']);
 });
 
+test('mapVod: Spiel', () => {
+  assert.equal(m.mapVod({ id: '1', game: { displayName: 'Spiel' } }).game, 'Spiel');
+  assert.equal(m.mapVod({ id: '1', game: null }).game, '');
+  assert.equal(m.mapVod({ id: '1' }).game, '');
+});
+
 test('sortByLive: Offline alphabetisch nach Anzeigename (case-insensitiv)', () => {
   const list = [
     { login: 'zeta', displayName: 'Zeta', live: false },

@@ -64,7 +64,8 @@ function mapVod(node, now = Date.now()) {
     viewsLabel: formatViewers(node.viewCount || 0),
     published: node.publishedAt || null,
     publishedLabel: relativeDate(node.publishedAt, now),
-    thumb: node.previewThumbnailURL || null
+    thumb: node.previewThumbnailURL || null,
+    game: (node.game && node.game.displayName) || ''
   };
 }
 

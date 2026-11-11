@@ -107,7 +107,7 @@ async function streamInfo({ mode, wert }, opts = {}) {
 
 const VODS_QUERY =
   `query($login:String!,$n:Int!){ user(login:$login){ videos(first:$n,type:ARCHIVE,sort:TIME){ ` +
-  `edges{ node{ id title lengthSeconds publishedAt viewCount ` +
+  `edges{ node{ id title lengthSeconds publishedAt viewCount game{ displayName } ` +
   `previewThumbnailURL(width:640,height:360) } } } } }`; // gross fuer das VOD-Inlay (gemessen 10.11.2026)
 
 async function getChannelVods(login, limit = 20, opts = {}) {

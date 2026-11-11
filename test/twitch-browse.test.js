@@ -122,3 +122,12 @@ test('streamInfo: offline, VOD, unbekannt', async () => {
   assert.equal((await browse.streamInfo({ mode: 'vod', wert: '1' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, owner: null } }), retries: 0 })).vorschau, null);
   assert.equal(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: null }), retries: 0 }), null);
 });
+
+test("getChannelVods fragt das Spiel ab und reicht limit durch", async () => {
+  let body = null;
+  const fetchImpl = async (url, init) => { body = JSON.parse(init.body); return { ok: true, status: 200, async json() { return { data: { user: { videos: { edges: [{ node: { id: "9", game: { displayName: "G" } } }] } } } }; } }; };
+  const vods = await browse.getChannelVods("kanal_a", 50, { fetchImpl, retries: 0 });
+  assert.ok(body.query.includes("game{ displayName }"));
+  assert.equal(body.variables.n, 50);
+  assert.equal(vods[0].game, "G");
+});
