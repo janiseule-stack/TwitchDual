@@ -475,7 +475,7 @@ test('Plattenspieler dreht, solange ein Stream oder VOD laeuft (Janis 11.11.)', 
   const video = lies('renderer/video/video.js');
   const u = rumpf(video, 'function updateOnAir(');
   assert.ok(/HomeRaumDom\.plattenspielerLaeuft\(label !== null\)/.test(u), 'meldet an HomeRaumDom');
-  assert.ok(u.indexOf('plattenspielerLaeuft') < u.indexOf("if (!el) return;"), 'vor dem fruehen Ausstieg');
+  assert.ok(u.indexOf('plattenspielerLaeuft') < u.indexOf('if (!knopf || !el) return;'), 'vor dem fruehen Ausstieg');
 });
 
 test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt (Janis 11.11.: C)', () => {
@@ -490,6 +490,16 @@ test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt 
   assert.ok(rumpf(js, 'function baueRaum(').includes('Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum)'), 'Klicks im Raum');
 });
 
+test('Schild links ist der Weg ins Home: Klick oeffnet bzw. kehrt zum Stream zurueck', () => {
+  const homeJs = lies('renderer/video/home.js');
+  assert.ok(homeJs.includes("const $homeBtn = document.getElementById('onair-bar')"));
+  assert.ok(/\$homeBtn\.addEventListener\('click', \(\) => \{\s*if \(\$home\.classList\.contains\('hidden'\)\) openHome\(\);\s*else closeHomeResume\(\);/.test(homeJs));
+  const video = lies('renderer/video/video.js');
+  const u = rumpf(video, 'function updateOnAir(');
+  assert.ok(u.includes("classList.toggle('leer', !onAirMode)"), 'ohne Quelle leer und nicht klickbar');
+  assert.ok(u.includes("schild-aus.png"));
+});
+
 test('Ohne Stream/VOD bleibt Home offen: kein ☰ und kein ✕, Esc schliesst nicht (Janis 11.11.)', () => {
   const homeJs = lies('renderer/video/home.js');
   const k = rumpfOben(homeJs, 'function kannSchliessen(');
@@ -498,7 +508,6 @@ test('Ohne Stream/VOD bleibt Home offen: kein ☰ und kein ✕, Esc schliesst ni
   const c = rumpfOben(homeJs, 'function closeHomeResume(');
   assert.ok(/^\s*if \(!kannSchliessen\(\)\) return;/m.test(c.split('\n').slice(1, 6).join('\n')), 'gleich am Anfang');
   const z = rumpfOben(homeJs, 'function zeigeSchliessKnoepfe(');
-  assert.ok(z.includes("$homeBtn.classList.toggle('hidden', !kannSchliessen())"));
   assert.ok(z.includes("getElementById('home-close')"));
   assert.ok(rumpfOben(homeJs, 'function openHome(').includes('zeigeSchliessKnoepfe()'));
   assert.ok(/twitchDual\.onLoad\(\(\) => \{[^}]*zeigeSchliessKnoepfe\(\)/.test(homeJs), 'nach dem Laden erscheinen sie');

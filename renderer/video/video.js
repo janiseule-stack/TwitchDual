@@ -379,12 +379,16 @@ function updateOnAir() {
   document.body.classList.toggle('onair', label !== null);
   // Plattenspieler im Home-Raum dreht, solange etwas spielt (LIVE oder VOD).
   if (window.HomeRaumDom) HomeRaumDom.plattenspielerLaeuft(label !== null);
+  // Schild links leuchtet, solange etwas geladen ist (auch bei Pause): LIVE oder VOD.
+  // Ohne Quelle: aus und nicht klickbar (Janis 11.11.2026).
+  const knopf = document.getElementById('onair-bar');
   const el = document.getElementById('oa-label');
-  if (!el) return;
-  if (label === null) { el.removeAttribute('src'); el.alt = ''; return; }
-  el.src = '../themes/cozy/' + (label === 'VOD' ? 'schild-vod.png' : 'schild-live.png');
-  el.alt = label === 'VOD' ? 'VOD' : 'Live';
-  el.setAttribute('aria-label', el.alt);
+  if (!knopf || !el) return;
+  knopf.classList.toggle('leer', !onAirMode);
+  const art = onAirMode === 'vod' ? 'VOD' : onAirMode ? 'Live' : null;
+  el.src = '../themes/cozy/' + (art === 'VOD' ? 'schild-vod.png' : art ? 'schild-live.png' : 'schild-aus.png');
+  el.alt = art || '';
+  if (art) el.setAttribute('aria-label', art + ' – Home öffnen'); else el.removeAttribute('aria-label');
 }
 
 

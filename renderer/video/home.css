@@ -2,7 +2,7 @@
    home-raum.css (Darstellung home-raum-dom.js); hier nur #home selbst,
    Login-Zeile, Hinweiszeile, Versionsnummer und die Liste "Alle VODs". */
 
-/* #home-btn (☰ in der Leiste) ist ein Pixel-Knopf: Aussehen in ../themes/cozy/raum.css. */
+/* Ins Home geht es ueber das Schild links in der Leiste (#onair-bar, video/index.html). */
 
 .hidden { display: none !important; }
 
@@ -100,10 +100,10 @@
 }
 
 /* Dezentes Druck-Feedback fuer alle Buttons im Overlay */
-#home button:active, #home-btn:active { transform: scale(.96); }
+#home button:active { transform: scale(.96); }
 
 /* Bewusste Design-Entscheidung: Die App animiert immer, unabhaengig von der
    Windows-Einstellung "Animationseffekte" (prefers-reduced-motion). */
 
 /* Satisfying-Details */
-#home button, #home-btn { transition: background-color 120ms ease, color 120ms ease; }
+#home button { transition: background-color 120ms ease, color 120ms ease; }

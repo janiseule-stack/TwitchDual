@@ -184,10 +184,27 @@ def zettel_schild(ordner):
     schild.save(os.path.join(ordner, "schild.png"))
 
 
+# Schild in der Leiste (Janis 11.11.2026): PixelLab hat in den 64x39-Ausschnitt der
+# Leiste gemalt. Gitter-Flaeche (x 7-43, y 6-30) und Leuchtkasten (x 9-40, y 10-28).
+LEISTE_GITTER = (7, 6, 44, 31)
+LEISTE_KASTEN = (9, 10, 41, 29)
+
+
 def onair_schilder(ordner):
-    # LIVE- und VOD-Schild (PixelLab 64x32) unveraendert uebernehmen.
-    for name in ("schild-live.png", "schild-vod.png"):
-        quelle(name).save(os.path.join(ordner, name))
+    """Leiste ohne Lautsprecher-Gitter (PixelLab-Metall eingesetzt) und die Leuchtkaesten
+    LIVE, VOD, aus sowie die 8 Bilder der Pfeil-Animation, unveraendert ausgeschnitten."""
+    leiste = quelle("leiste-video-links-roh.png")
+    leiste.paste(quelle("leiste-glatt.png").crop(LEISTE_GITTER), LEISTE_GITTER[:2])
+    leiste.save(os.path.join(ordner, "leiste-video-links.png"))
+    for art in ("live", "vod", "aus"):
+        quelle("leiste-schild-%s.png" % art).crop(LEISTE_KASTEN).save(
+            os.path.join(ordner, "schild-%s.png" % art))
+    b = LEISTE_KASTEN[2] - LEISTE_KASTEN[0]
+    h = LEISTE_KASTEN[3] - LEISTE_KASTEN[1]
+    pfeil = Image.new("RGBA", (8 * b, h), DURCHSICHTIG)
+    for n in range(8):
+        pfeil.paste(quelle("leiste-schild-pfeil-%d.png" % n).crop(LEISTE_KASTEN), (n * b, 0))
+    pfeil.save(os.path.join(ordner, "schild-pfeil.png"))
 
 
 def hover_und_platte(ordner):

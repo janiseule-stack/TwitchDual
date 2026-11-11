@@ -73,9 +73,11 @@ test('Chat: harte Kanten an Tafeln, Feldern und Nachrichten', () => {
 const videoHtml = lies('renderer/video/index.html');
 test('Video: Leiste ist das TV-Gehaeuse, Knoepfe sind Pixel-Knoepfe', () => {
   assert.ok(/id="bar" class="[^"]*rahmen-leiste-video/.test(videoHtml));
-  for (const id of ['home-btn', 'vollbild-btn', 'video-only-btn', 'win-min', 'win-max', 'win-close']) {
+  for (const id of ['vollbild-btn', 'video-only-btn', 'win-min', 'win-max', 'win-close']) {
     assert.ok(new RegExp('id="' + id + '" class="[^"]*pixel-knopf').test(videoHtml), id);
   }
+  // Janis 11.11.2026: kein ☰-Knopf mehr, ins Home geht es ueber das Schild links
+  assert.ok(!videoHtml.includes('id="home-btn"'));
 });
 test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
   const start = videoHtml.indexOf('id="ads-indicator"');
@@ -88,7 +90,10 @@ test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
   assert.ok(bar.includes('id="onair-bar"') && bar.includes('id="oa-label"'));
   // 3c: das LIVE-Schild ist ein PixelLab-Bild, keine rote Lampe mehr
   assert.ok(!bar.includes('lampe rot') && !bar.includes('lampe-rot'));
-  assert.ok(/body\.onair #onair-bar\s*\{[^}]*visibility:\s*visible/.test(videoHtml));
+  // Schild ist ein Knopf und immer zu sehen (leer = aus), nicht mehr per visibility versteckt
+  assert.ok(/<button id="onair-bar" type="button" class="leer"/.test(videoHtml));
+  assert.ok(!/#onair-bar\s*\{[^}]*visibility:\s*hidden/.test(videoHtml));
+  assert.ok(/#onair-bar\s*\{[^}]*-webkit-app-region:\s*no-drag/.test(videoHtml), 'klickbar trotz ziehbarer Leiste');
 });
 test('Video: Profilbild in der Leiste ist grob verpixelt und eckig', () => {
   assert.ok(/<canvas id="si-avatar-pixel" width="16" height="16"/.test(videoHtml));

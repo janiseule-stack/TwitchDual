@@ -8,7 +8,7 @@
 // Auswahl ruft window.twitchDual.submitLoad(...) auf -> laedt beide Fenster.
 
 const $home = document.getElementById('home');
-const $homeBtn = document.getElementById('home-btn');
+const $homeBtn = document.getElementById('onair-bar'); // Schild links in der Leiste
 const $homeBack = document.getElementById('home-back');
 const $homeTitle = document.getElementById('home-title');
 const $kanaeleView = document.getElementById('home-kanaele');
@@ -161,7 +161,7 @@ function kannSchliessen() {
   return !!(window.laeuftEtwas && window.laeuftEtwas());
 }
 function zeigeSchliessKnoepfe() {
-  $homeBtn.classList.toggle('hidden', !kannSchliessen());
+  // Das Schild links (video.js) ist ohne Quelle leer und nicht klickbar.
   const zu = document.getElementById('home-close');
   if (zu) zu.classList.toggle('hidden', !kannSchliessen());
 }

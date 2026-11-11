@@ -27,8 +27,11 @@ const MASSE = {
   'platte-dreht.png': [432, 50],
   'huelle-gross-vorn.png': [128, 128],
   'huelle-gross-rueck.png': [128, 128],
-  'schild-live.png': [64, 32],
-  'schild-vod.png': [64, 32],
+  'schild-live.png': [32, 19],
+  'schild-vod.png': [32, 19],
+  'schild-aus.png': [32, 19],
+  'schild-pfeil.png': [256, 19],
+  'leiste-video-links.png': [334, 39],
   'raum-wand.png': [504, 192],
 };
 
@@ -309,30 +312,66 @@ test('huelle-gross-vorn: das Fenster ist genau die cremefarbene Innenflaeche der
   assert.ok(r.px.equals(rq.px), 'Quelle = Janis\' Wahl rueck-2.png');
 });
 
-// LIVE-/VOD-Schild (Task 3c): Janis' Wahl s-11 bzw. v-2, unveraendert uebernommen.
-for (const [name, wahl] of [['schild-live.png', 'schild/s-11.png'], ['schild-vod.png', 'vod-schild/v-2.png']]) {
-  test(`${name}: gleich der Quelle in tools/raum-quellen/ und Janis' Wahl ${wahl}`, () => {
+// Schild in der Leiste (Janis 11.11.2026): Gitter weg, eingebauter Leuchtkasten.
+// PixelLab hat in den Leisten-Ausschnitt (64x39) gemalt; der Kasten (x 9-40, y 10-28)
+// wird ausgeschnitten und doppelt gross ueber die Leiste gelegt.
+const KASTEN = { x: 9, y: 10, b: 32, h: 19 };
+function kasten(quelle) {
+  return (x, y) => {
+    const i = ((KASTEN.y + y) * quelle.w + (KASTEN.x + x)) * 4;
+    return quelle.px.subarray(i, i + 4);
+  };
+}
+for (const [name, q] of [['schild-live.png', 'leiste-schild-live.png'], ['schild-vod.png', 'leiste-schild-vod.png'], ['schild-aus.png', 'leiste-schild-aus.png']]) {
+  test(`${name}: Leuchtkasten aus ${q} (PixelLab, Janis' Wahl), unveraendert ausgeschnitten`, () => {
     const a = dekodiere(lade(name));
-    const q = dekodiere(fs.readFileSync(path.join(QUELLEN, name)));
-    assert.ok(a.px.equals(q.px), 'weicht von tools/raum-quellen ab');
-    const wahlPfad = path.join(DIR, 'entwuerfe', wahl);
-    if (fs.existsSync(wahlPfad)) { // entwuerfe/ ist gitignored
-      assert.ok(a.px.equals(dekodiere(fs.readFileSync(wahlPfad)).px), 'weicht von Janis\' Wahl ab');
+    const k = kasten(dekodiere(fs.readFileSync(path.join(QUELLEN, q))));
+    for (let y = 0; y < KASTEN.h; y++) {
+      for (let x = 0; x < KASTEN.b; x++) {
+        const i = (y * a.w + x) * 4;
+        assert.ok(a.px.subarray(i, i + 4).equals(k(x, y)), name + ' ' + x + ',' + y);
+      }
     }
   });
 }
+test('schild-pfeil.png: 8 Bilder der PixelLab-Pfeil-Animation, je Leuchtkasten 32x19', () => {
+  const a = dekodiere(lade('schild-pfeil.png'));
+  for (let n = 0; n < 8; n++) {
+    const k = kasten(dekodiere(fs.readFileSync(path.join(QUELLEN, `leiste-schild-pfeil-${n}.png`))));
+    for (let y = 0; y < KASTEN.h; y++) {
+      for (let x = 0; x < KASTEN.b; x++) {
+        const i = (y * a.w + n * KASTEN.b + x) * 4;
+        assert.ok(a.px.subarray(i, i + 4).equals(k(x, y)), 'Bild ' + n + ' ' + x + ',' + y);
+      }
+    }
+  }
+});
+test('leiste-video-links.png: Lautsprecher-Gitter durch PixelLab-Metall ersetzt, Rest unveraendert', () => {
+  const a = dekodiere(lade('leiste-video-links.png'));
+  const roh = dekodiere(fs.readFileSync(path.join(QUELLEN, 'leiste-video-links-roh.png')));
+  const glatt = dekodiere(fs.readFileSync(path.join(QUELLEN, 'leiste-glatt.png')));
+  for (let y = 0; y < 39; y++) {
+    for (let x = 0; x < 334; x++) {
+      const i = (y * 334 + x) * 4;
+      const imGitter = x >= 7 && x < 44 && y >= 6 && y < 31;
+      const soll = imGitter ? glatt.px.subarray((y * glatt.w + x) * 4, (y * glatt.w + x) * 4 + 4) : roh.px.subarray(i, i + 4);
+      assert.ok(a.px.subarray(i, i + 4).equals(soll), x + ',' + y);
+    }
+  }
+});
 
-test('LIVE-/VOD-Schild: eingebunden, ganzzahlig, ohne Lampe und ohne Leuchten', () => {
+test('Schild eingebunden: doppelt gross, scharf, Pfeil-Animation in 8 Schritten, Leuchten im Bild', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'video', 'index.html'), 'utf8');
   const js = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'video', 'video.js'), 'utf8');
-  assert.ok(js.includes('schild-live.png') && js.includes('schild-vod.png'));
+  assert.ok(js.includes('schild-live.png') && js.includes('schild-vod.png') && js.includes('schild-aus.png'));
   assert.ok(/aria-label/.test(js) && js.includes("'VOD'") && js.includes("'Live'"));
-  const bar = html.slice(html.indexOf('id="onair-bar"'), html.indexOf('class="bar-left"'));
-  assert.ok(!bar.includes('lampe'));
   const regeln = html.slice(html.indexOf('#onair-bar {'), html.indexOf('#status, #si-oben'));
   assert.ok(regeln.includes('image-rendering: pixelated'));
-  assert.ok(/#oa-label\s*\{[^}]*width:\s*64px;[^}]*height:\s*32px/.test(regeln));
-  assert.ok(!/box-shadow|glow|animation|filter/.test(regeln));
+  assert.ok(/#oa-label\s*\{[^}]*width:\s*64px;[^}]*height:\s*38px/.test(regeln));
+  assert.ok(/#oa-pfeil\s*\{[^}]*schild-pfeil\.png[^}]*512px 38px/.test(regeln));
+  assert.ok(/animation:\s*oa-pfeil 1000ms steps\(8\) infinite/.test(regeln));
+  assert.ok(/#onair-bar:not\(\.leer\):hover #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(regeln));
+  assert.ok(!/box-shadow|glow|filter/.test(regeln), 'Leuchten kommt aus dem PixelLab-Bild');
 });
 
 // Etappe 3 (Leben): je Animation und Datei ein Bildstreifen leben-home-<datei>.png,

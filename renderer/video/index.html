@@ -85,18 +85,26 @@
     #win-controls #win-close:hover { filter: saturate(2.2) hue-rotate(-22deg) brightness(1.1); }
     /* Kein Rahmen ums Fenster (Janis 09.11.2026): angedockt lagen Video- und
        Chat-Rahmen als Doppellinie nebeneinander. */
-    /* LIVE/VOD-Schild: sitzt ganz oben links auf der grau-schwarzen
-       Lautsprecher-Flaeche des Gehaeuses (linker Rahmen, 100 px breit), nur
-       wenn etwas laeuft. Kein display-Wechsel -> kein Layout-Sprung. */
+    /* Schild ganz links auf dem Gehaeuse (Janis 11.11.2026, statt Gitter und ☰):
+       PixelLab-Leuchtkasten 32x19 doppelt gross (wie die Leiste), immer zu sehen.
+       LIVE/VOD leuchtet, solange etwas geladen ist (auch bei Pause); leer = aus und
+       nicht klickbar. Hover: animierter Pfeil nach links, Klick -> Home. */
     #bar { position: relative; }
     #onair-bar {
-      position: absolute; left: -84px; top: 50%; width: 64px; height: 32px;
-      margin: -16px 0 0 0;
-      visibility: hidden;
+      position: absolute; left: -82px; top: 50%; width: 64px; height: 38px;
+      margin: -19px 0 0 0; padding: 0; border: 0; background: none; cursor: pointer;
+      -webkit-app-region: no-drag;
     }
-    body.onair #onair-bar { visibility: visible; }
-    /* PixelLab-Schild (64x32), ganzzahlig (1x) gezeigt, scharfe Pixel */
-    #oa-label { display: block; width: 64px; height: 32px; image-rendering: pixelated; }
+    #onair-bar.leer { cursor: default; pointer-events: none; }
+    #oa-label { display: block; width: 64px; height: 38px; image-rendering: pixelated; }
+    #oa-pfeil {
+      display: none; position: absolute; left: 0; top: 0; width: 64px; height: 38px;
+      background: url('../themes/cozy/schild-pfeil.png') 0 0 / 512px 38px no-repeat;
+      image-rendering: pixelated; animation: oa-pfeil 1000ms steps(8) infinite;
+    }
+    #onair-bar:not(.leer):hover #oa-pfeil, #onair-bar:not(.leer):focus-visible #oa-pfeil { display: block; }
+    @keyframes oa-pfeil { to { background-position: -512px 0; } }
+    html[data-animationen="aus"] #oa-pfeil { animation: none; }
     #status, #si-oben { font-family: var(--schrift-pixel); }
     #si-oben { font-size: 15px; letter-spacing: .03em; }
     button:focus-visible, input:focus-visible {
@@ -163,12 +171,12 @@
 </head>
 <body>
   <div id="bar" class="rahmen-leiste-video">
-    <!-- LIVE/VOD-Schild auf der Lautsprecher-Flaeche ganz links (body.onair). -->
-    <div id="onair-bar">
-      <img id="oa-label" alt="" />
-    </div>
+    <!-- Schild ganz links: zeigt LIVE/VOD, Klick -> Home (ersetzt den ☰-Knopf). -->
+    <button id="onair-bar" type="button" class="leer" title="Home">
+      <img id="oa-label" src="../themes/cozy/schild-aus.png" alt="" />
+      <span id="oa-pfeil"></span>
+    </button>
     <div class="bar-left">
-      <button id="home-btn" class="pixel-knopf k-home" title="Home: Favoriten & VODs">☰</button>
       <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
     </div>
     <div class="bar-center">
