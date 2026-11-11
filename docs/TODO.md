@@ -130,8 +130,12 @@ Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
   `platte-klein.png`, `schild.png`, `Raum.TELLER`, `.lampe.rot`/`lampe-rot.png`
   samt Tests; Quelltext-genaue Tests in `test/home-raum.test.js` lockern;
   Fokus in die VOD-Liste, wenn die große Hülle aufgeht.
-- **Nächster Schritt:** Janis schaut an und korrigiert, dann Etappe 3
-  (Animationen und PixelLab-Sprites).
+- **Janis' erstes Urteil (11.11.):** Schilder ok. LIVE-Schild oben links
+  „leuchtet nicht“. **Raum füllt das Fenster immer noch nicht ganz: links
+  gefüllt, rechts nicht** (Fehler aus Task 2, ungeklärt). Dazu „ein paar
+  kleinere Dinge“ – alles erst **nach Etappe 3** gesammelt verbessern.
+- **Nächster Schritt:** Etappe 3 (Animationen), danach eine gesammelte
+  Verbesserungsrunde mit den Punkten oben.
 
 ## Erledigt
 
