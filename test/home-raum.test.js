@@ -78,6 +78,24 @@ test('home-raum-dom.js: Mausrad blaettert nicht bei offener Tafel', () => {
   assert.ok(js.slice(i, i + 300).includes('tafelOffen()'));
 });
 
+test('home-raum-dom.js: neuer Fach-Inhalt holt die gewaehlte Platte in Sicht', () => {
+  assert.ok(/const umgebaut = fach\.schluessel !== schluessel/.test(js));
+  assert.ok(/neu = index >= 0 && \(gewaehlt !== fach\.gewaehlt \|\| umgebaut\)/.test(js));
+});
+
+test('home-raum-dom.js: Fokus im Fach setzt scrollLeft zurueck und blaettert per fachFenster', () => {
+  const i = js.indexOf("'focusin'");
+  assert.ok(i > -1);
+  const teil = js.slice(i, i + 500);
+  assert.ok(teil.includes('scrollLeft = 0') && teil.includes('Raum.fachFenster') && teil.includes('zeigeFach('));
+});
+
+test('home-raum.css: Blaetter-Pfeile ohne transform (home.css :active skaliert)', () => {
+  const start = css.indexOf('.rueck-links, .rueck-rechts {');
+  assert.ok(start > -1);
+  assert.ok(!css.slice(start, css.indexOf('}', start)).includes('transform'));
+});
+
 test('home-raum.css: keine Verlaeufe, kein Blur, Ebenen pixelgenau', () => {
   assert.ok(css.length > 0);
   assert.ok(!/gradient|backdrop-filter/.test(css));

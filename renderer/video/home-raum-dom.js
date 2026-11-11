@@ -214,6 +214,17 @@ window.HomeRaumDom = (function () {
         e.stopPropagation();
         fachBlaettern(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
       }, { passive: false });
+      // Tab auf eine Platte ausserhalb des Fensters: der Browser wuerde das Fach
+      // per scrollLeft verschieben, zusaetzlich zum eigenen translateX.
+      box.addEventListener('focusin', (e) => {
+        box.scrollLeft = 0;
+        const p = e.target.closest('.huelle');
+        const i = p ? Array.prototype.indexOf.call(reihe.children, p) : -1;
+        if (i < 0) return;
+        const f = faecher[art];
+        f.start = Raum.fachFenster(f.anzahl, i, Raum.FACH[art].b, f.start).start;
+        zeigeFach(art);
+      });
       faecher[art].box = box;
       faecher[art].reihe = reihe;
       r.bild.appendChild(box);
@@ -358,7 +369,8 @@ window.HomeRaumDom = (function () {
     fach.kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
     const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal), e.kanal.avatar || '',
       e.kanal.favorit ? 1 : 0, e.kanal.live ? 1 : 0].join('|')).join('\n');
-    if (fach.schluessel !== schluessel) {
+    const umgebaut = fach.schluessel !== schluessel;
+    if (umgebaut) {
       fach.schluessel = schluessel;
       const fokus = merkeFokus(fach.reihe, 'login');
       fach.reihe.replaceChildren();
@@ -372,9 +384,10 @@ window.HomeRaumDom = (function () {
     fach.anzahl = liste.length;
     const index = liste.findIndex((e) => e.kanal.login === gewaehlt);
     Array.prototype.forEach.call(fach.reihe.children, (p, i) => p.classList.toggle('gewaehlt', i === index));
-    // Nur eine neue Auswahl holt die Platte in Sicht; sonst bleibt der Stand
-    // vom Mausrad (nur in die Grenzen geklemmt).
-    const neu = index >= 0 && gewaehlt !== fach.gewaehlt;
+    // Neue Auswahl oder neuer Fach-Inhalt (Suche, Refresh schiebt Platten
+    // davor) holt die Platte in Sicht; sonst bleibt der Stand vom Mausrad
+    // (nur in die Grenzen geklemmt).
+    const neu = index >= 0 && (gewaehlt !== fach.gewaehlt || umgebaut);
     fach.gewaehlt = index >= 0 ? gewaehlt : null;
     fach.start = Raum.fachFenster(fach.anzahl, neu ? index : -1, Raum.FACH[art].b, fach.start).start;
     zeigeFach(art);

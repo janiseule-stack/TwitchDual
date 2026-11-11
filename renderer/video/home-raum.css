@@ -120,7 +120,8 @@
 .rueck-knopf { position: absolute; text-decoration: none; }
 .rueck-knopf:disabled { opacity: .35; cursor: default; }
 .rueck-zu { right: .3em; top: 0; }
-.rueck-links, .rueck-rechts { top: 50%; transform: translateY(-50%); font-size: 1.6em; }
+/* ohne transform: home.css setzt bei :active transform: scale(.96) */
+.rueck-links, .rueck-rechts { top: calc(50% - .5em); font-size: 1.6em; line-height: 1; }
 .rueck-links { left: .3em; }
 .rueck-rechts { right: .3em; }
 .rueck-fuss {
