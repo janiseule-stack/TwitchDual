@@ -29,6 +29,7 @@ const MASSE = {
   'huelle-gross-rueck.png': [128, 128],
   'schild-live.png': [64, 32],
   'schild-vod.png': [64, 32],
+  'raum-wand.png': [504, 192],
 };
 
 // Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4)
@@ -516,6 +517,39 @@ for (const datei of S.raid.dateien) {
     assert.ok(deckend > r.bilder * 50, 'Figur fehlt');
   });
 }
+
+// Holzwand hinter dem Raum (Janis 11.11.: Variante C). 504x192, der Raum liegt bei x=80.
+test('raum-wand.png: PixelLab-Holzwand (links/rechts), deckt nur den dunklen Aussenbereich', () => {
+  const w = dekodiere(lade('raum-wand.png'));
+  const raum = dekodiere(lade('raum-tv-aus.png'));
+  const quelleL = dekodiere(fs.readFileSync(path.join(QUELLEN, 'raum-wand-links.png')));
+  const quelleR = dekodiere(fs.readFileSync(path.join(QUELLEN, 'raum-wand-rechts.png')));
+  const VERSATZ = 80;
+  const at = (b, x, y) => { const i = (y * b.w + x) * 4; return [b.px[i], b.px[i + 1], b.px[i + 2], b.px[i + 3]]; };
+  let gedeckt = 0;
+  for (let y = 0; y < 192; y++) {
+    for (let x = 0; x < 504; x++) {
+      const p = at(w, x, y);
+      // PixelLab-Quelle: links bis x 251, rechts ab 252 (Quelle beginnt bei 248)
+      const q = x < 252 ? at(quelleL, x, y) : at(quelleR, x - 248, y);
+      const innen = x >= VERSATZ && x < VERSATZ + 344;
+      if (!innen) {
+        assert.strictEqual(p[3], 255, 'aussen deckend ' + x + ',' + y);
+        assert.deepStrictEqual(p.slice(0, 3), q.slice(0, 3), 'aussen = Quelle ' + x + ',' + y);
+        continue;
+      }
+      const r = at(raum, x - VERSATZ, y);
+      if (p[3] > 0) {
+        gedeckt++;
+        assert.ok(r[0] + r[1] + r[2] < 60, 'deckt nur dunkle Raum-Pixel ' + x + ',' + y);
+      }
+      // Wand ueber Raum ergibt genau das PixelLab-Bild (Variante C)
+      const sicht = p[3] > 0 ? p : r;
+      assert.deepStrictEqual(sicht.slice(0, 3), q.slice(0, 3), 'zusammen = Variante C ' + x + ',' + y);
+    }
+  }
+  assert.ok(gedeckt > 5000, 'schwarzer Aussenbereich gedeckt: ' + gedeckt);
+});
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {
   const maske = dekodiere(lade('raum-tv-maske.png'));

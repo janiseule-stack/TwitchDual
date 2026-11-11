@@ -89,6 +89,32 @@ test('skalierung: Gegenstaende x 100-314 sichtbar, solange Breite/Hoehe >= 214/1
   assert.ok(!sichtbar(1000, 1000)); // 1:1
 });
 
+// Janis 11.11.: Raum steht vor der PixelLab-Holzwand (raum-wand.png, 504 breit, Raum bei x=80)
+const GROESSEN = [[2960, 1390], [2040, 952], [1920, 1030], [1536, 1030], [1280, 670], [900, 700]];
+
+test('RAUM_RAHMEN: Raum samt Holzwand x -80 bis 424', () => {
+  assert.deepStrictEqual(R.RAUM_RAHMEN, { x: -80, b: 504 });
+  assert.ok(Object.isFrozen(R.RAUM_RAHMEN));
+});
+
+test('skalierung mit RAUM_RAHMEN: feste Groessen zeigen die ganze Hoehe (Kaffee, Lampe), nie ueber die Wand hinaus', () => {
+  for (const [b, h] of GROESSEN) {
+    const s = R.skalierung(b, h, R.RAUM_RAHMEN);
+    assert.ok(Math.abs(s.faktor - h / 192) < 1e-9, b + 'x' + h + ': ganze Hoehe sichtbar');
+    assert.strictEqual(s.oben, 0, b + 'x' + h);
+    const l = -s.links / s.faktor;
+    const r = l + b / s.faktor;
+    assert.ok(l >= -80 - 1 / s.faktor && r <= 424 + 1 / s.faktor, b + 'x' + h + ': innerhalb der Wand');
+    assert.ok(l <= 100 && r >= 314, b + 'x' + h + ': alle Gegenstaende sichtbar');
+  }
+  // Ultrawide bildschirmfuellend: 409 Bildpixel breit, mittig auf 172 -> links -32,4 -> 235
+  assert.deepStrictEqual(R.skalierung(2960, 1390, R.RAUM_RAHMEN), { faktor: 1390 / 192, links: 235, oben: 0 });
+});
+
+test('skalierung ohne Rahmen-Angabe bleibt beim Raum ohne Wand (Regal-Ansicht)', () => {
+  assert.deepStrictEqual(R.skalierung(1536, 1030), R.skalierung(1536, 1030, R.RAHMEN));
+});
+
 test('skalierung: zu schmal fuer alle Gegenstaende -> auf deren Mitte (x 207)', () => {
   // 1397x1332: Hoehe deckt (6,9375), 201,4 Bildpixel sichtbar, Mitte 207 -> links 106,32 -> -737,55 -> -738
   assert.deepStrictEqual(R.skalierung(1397, 1332), { faktor: 6.9375, links: -738, oben: 0 });

@@ -26,6 +26,8 @@
 .raum-bildebene img, .raum-bildebene canvas { image-rendering: pixelated; }
 .raum-bild { position: absolute; left: 0; top: 0; width: 344px; height: 192px; user-select: none; }
 .raum-tv { position: absolute; }
+/* Holzwand (PixelLab) hinter dem Raum: 504x192, der Raum liegt bei x=80 */
+.raum-wand { position: absolute; left: -80px; top: 0; width: 504px; height: 192px; user-select: none; }
 
 .raum-textschicht { position: absolute; left: 0; top: 0; pointer-events: none; }
 .raum-textschicht > * { pointer-events: auto; }

@@ -41,7 +41,8 @@ window.HomeRaumDom = (function () {
 
   let wirt = null;
   let opt = {};
-  let skal = { faktor: 1, links: 0, oben: 0 };
+  let skal = { faktor: 1, links: 0, oben: 0 }; // Regal-Ansicht (Zettel, Schrift)
+  let skalRaum = skal; // Raum-Ansicht samt Holzwand (Raum.RAUM_RAHMEN)
   let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
@@ -171,6 +172,9 @@ window.HomeRaumDom = (function () {
     t.raum = r;
     t.raumBild = bildEl('../themes/cozy/raum-tv-aus.png', 'raum-bild');
     r.bild.appendChild(t.raumBild);
+    // Holzwand hinter dem Raum (PixelLab, 504x192 ab x=-80): deckt den schwarzen
+    // Aussenbereich des Raum-Bildes, damit breite Fenster nicht abschneiden muessen.
+    r.bild.appendChild(bildEl('../themes/cozy/raum-wand.png', 'raum-wand'));
     // Leben (Etappe 3): Regen, Katze, Dampf, Lampe als Bildstreifen direkt ueber dem
     // Raum-Bild; unter dem Fernseher, weil die Lampen-Flaeche 12 Bildschirm-Pixel
     // ueberdeckt (Bild 0 = Fernseher aus), und unter den Hover-Bildern.
@@ -200,7 +204,7 @@ window.HomeRaumDom = (function () {
 
     const bildPunkt = (e) => {
       const box = wirt.getBoundingClientRect();
-      const p = Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skal);
+      const p = Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum);
       return Raum.treffer(p.x, p.y);
     };
     r.e.addEventListener('mousemove', (e) => zeigeHover(bildPunkt(e)));
@@ -383,6 +387,7 @@ window.HomeRaumDom = (function () {
   function neuAusrichten() {
     if (!wirt) return;
     skal = Raum.skalierung(wirt.clientWidth, wirt.clientHeight);
+    skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN);
     const f = skal.faktor;
     wirt.style.setProperty('--f', f);
     // Pixel-Schrift in Vielfachen von 12 px, Rahmen in ganzen Bildschirm-Pixeln.
@@ -402,12 +407,13 @@ window.HomeRaumDom = (function () {
     // Im Ablauf bleibt die Raum-Ebene auf dem Kamera-Ziel (auch bei Groessenaenderung).
     const kamera = kameraZiel();
     for (const r of [t.raum, t.regal]) {
-      const z = r === t.raum && kamera ? kamera : { x: skal.links, y: skal.oben, faktor: f };
+      const s = r === t.raum ? skalRaum : skal;
+      const z = r === t.raum && kamera ? kamera : { x: s.links, y: s.oben, faktor: s.faktor };
       r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
-      r.text.style.left = Math.round(skal.links) + 'px'; // ganze Bildschirm-Pixel
-      r.text.style.top = Math.round(skal.oben) + 'px';
-      r.text.style.width = Raum.BILD.breite * f + 'px';
-      r.text.style.height = Raum.BILD.hoehe * f + 'px';
+      r.text.style.left = Math.round(s.links) + 'px'; // ganze Bildschirm-Pixel
+      r.text.style.top = Math.round(s.oben) + 'px';
+      r.text.style.width = Raum.BILD.breite * s.faktor + 'px';
+      r.text.style.height = Raum.BILD.hoehe * s.faktor + 'px';
     }
   }
 

@@ -470,6 +470,18 @@ test('Plattenspieler dreht, solange ein Stream oder VOD laeuft (Janis 11.11.)', 
   assert.ok(u.indexOf('plattenspielerLaeuft') < u.indexOf("if (!el) return;"), 'vor dem fruehen Ausstieg');
 });
 
+test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt (Janis 11.11.: C)', () => {
+  const r = rumpf(js, 'function baueRaum(');
+  assert.ok(r.includes("bildEl('../themes/cozy/raum-wand.png', 'raum-wand')"));
+  assert.ok(r.indexOf("'raum-wand'") > r.indexOf('t.raumBild'), 'ueber dem Raum-Bild (deckt dessen schwarzen Rand)');
+  assert.ok(r.indexOf("'raum-wand'") < r.indexOf('RaumLebenDom.baue'), 'unter dem Leben');
+  assert.ok(/\.raum-wand\s*\{[^}]*left:\s*-80px[^}]*width:\s*504px[^}]*height:\s*192px/.test(css));
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN)'));
+  assert.ok(/r === t\.raum \? skalRaum : skal/.test(n), 'Raum-Ebene mit skalRaum, Regal mit skal');
+  assert.ok(rumpf(js, 'function baueRaum(').includes('Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum)'), 'Klicks im Raum');
+});
+
 test('Home liegt direkt unter der Leiste (kein Holzstreifen dazwischen, Janis 11.11.)', () => {
   const homeCss = lies('renderer/video/home.css');
   assert.ok(!homeCss.includes('top: 63px'), 'keine feste alte Hoehe');
@@ -586,7 +598,7 @@ test('Text liegt auf ganzen Bildschirm-Pixeln: round() im CSS, gerundete Textsch
     assert.ok(new RegExp('(^|[\\s;])' + p + ':\\s*round\\(calc\\([^;]*\\),\\s*1px\\)').test(t), p);
   }
   const n = rumpf(js, 'function neuAusrichten(');
-  assert.ok(n.includes('Math.round(skal.links)') && n.includes('Math.round(skal.oben)'));
+  assert.ok(n.includes('Math.round(s.links)') && n.includes('Math.round(s.oben)'));
   const name = /\.raum-name\s*\{([^}]*)\}/.exec(css)[1];
   assert.ok(!/translateX/.test(name) && /text-align:\s*center/.test(name) && /left:\s*0/.test(name) && /right:\s*0/.test(name));
 });

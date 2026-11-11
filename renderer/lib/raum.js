@@ -56,6 +56,9 @@
   // Raum ohne den dunklen Rand des PixelLab-Bildes (links/rechts je 12 px schwarz,
   // gemessen 11.11.2026); nur dieser Teil wird je gezeigt (Janis 11.11.: Variante A).
   const RAHMEN = Object.freeze({ x: 12, b: 320 });
+  // Raum-Ansicht: der Raum steht vor der PixelLab-Holzwand raum-wand.png (504 breit,
+  // Raum bei x=80), damit auch breite Fenster die ganze Hoehe zeigen (Janis 11.11.: C).
+  const RAUM_RAHMEN = Object.freeze({ x: -80, b: 504 });
 
   const MIN_BREITE = 688;
   const MIN_HOEHE = 384;
@@ -71,20 +74,21 @@
   // Hoehe) fuellt das Fenster, Ueberstand wird abgeschnitten. Waagerecht mittig auf
   // den Raum; passen alle Gegenstaende ins Fenster, so wenig verschoben, dass sie
   // ganz sichtbar bleiben; sonst mittig auf die Gegenstaende. Nie ueber den Rahmen.
-  function skalierung(fensterBreite, fensterHoehe) {
+  function skalierung(fensterBreite, fensterHoehe, rahmen) {
     const b = zahl(fensterBreite);
     const h = zahl(fensterHoehe);
     if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
-    const faktor = Math.max(b / RAHMEN.b, h / BILD.hoehe);
-    const sichtbar = b / faktor; // Bildpixel waagerecht, hoechstens RAHMEN.b
-    const raumRechts = RAHMEN.x + RAHMEN.b;
-    let l = RAHMEN.x + RAHMEN.b / 2 - sichtbar / 2;
+    const rah = rahmen || RAHMEN;
+    const faktor = Math.max(b / rah.b, h / BILD.hoehe);
+    const sichtbar = b / faktor; // Bildpixel waagerecht, hoechstens rah.b
+    const raumRechts = rah.x + rah.b;
+    let l = rah.x + rah.b / 2 - sichtbar / 2;
     if (sichtbar >= GEGENSTAENDE.bis - GEGENSTAENDE.von) l = zwischen(l, GEGENSTAENDE.bis - sichtbar, GEGENSTAENDE.von);
     else l = MITTE_X - sichtbar / 2;
     // In ganzen Bildschirm-Pixeln innerhalb des Rahmens (bei genau passender Breite
     // gewinnt der linke Rand: hoechstens ein Bildschirm-Pixel Umriss rechts).
     const min = Math.ceil(b - raumRechts * faktor - 1e-9);
-    const max = Math.floor(-RAHMEN.x * faktor + 1e-9);
+    const max = Math.floor(-rah.x * faktor + 1e-9);
     const links = Math.min(max, Math.max(min, Math.round(-l * faktor))) + 0;
     return {
       faktor,
@@ -166,5 +170,5 @@
     return 128 * Math.max(1, n);
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
 });

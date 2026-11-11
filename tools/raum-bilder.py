@@ -372,12 +372,42 @@ def leben_bilder(ordner):
         gehen.save(os.path.join(ordner, "leben-%s.png" % datei))
 
 
+def wand_bild(ordner):
+    """Holzwand hinter dem Raum (Janis 11.11.2026: Variante C). PixelLab hat links und
+    rechts je eine 256x192-Haelfte der 504x192-Leinwand (Raum bei x=80) ergaenzt.
+    Zusammensetzen (links bis x 251, rechts ab 252) und ausstanzen: alles, was dem
+    Raum-Bild gleicht, wird durchsichtig; uebrig bleibt nur der neue Aussenbereich."""
+    links = quelle("raum-wand-links.png")
+    rechts = quelle("raum-wand-rechts.png")
+    raum = Image.open(os.path.join(ordner, "raum-tv-aus.png")).convert("RGBA")
+    rp = raum.load()
+    w, h = 504, 192
+    wand = Image.new("RGBA", (w, h), DURCHSICHTIG)
+    wand.paste(rechts, (w - 256, 0))
+    wand.paste(links.crop((0, 0, 252, h)), (0, 0))
+    wp = wand.load()
+    for y in range(h):
+        for x in range(80, 80 + 344):
+            p = wp[x, y]
+            r = rp[x - 80, y]
+            if p[:3] == r[:3] or sum(r[:3]) >= 60:
+                wp[x, y] = DURCHSICHTIG
+            else:
+                wp[x, y] = (p[0], p[1], p[2], 255)
+    for y in range(h):
+        for x in list(range(0, 80)) + list(range(80 + 344, w)):
+            p = wp[x, y]
+            wp[x, y] = (p[0], p[1], p[2], 255)
+    wand.save(os.path.join(ordner, "raum-wand.png"))
+
+
 def main():
     if len(sys.argv) != 2:
         raise SystemExit("Aufruf: raum-bilder.py <ordner>")
     ordner = sys.argv[1]
     ecken = tv_bilder(ordner)
     leben_bilder(ordner)
+    wand_bild(ordner)
     hover_und_platte(ordner)
     huelle_bilder(ordner)
     gross = huelle_gross(ordner)
