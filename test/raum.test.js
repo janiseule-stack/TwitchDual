@@ -26,27 +26,38 @@ test('TV_RECHTECK: Fernseher-Bildschirm, eingefroren', () => {
   assert.ok(Object.isFrozen(R.TV_RECHTECK));
 });
 
-test('skalierung: deckt das Fenster, Ausschnitt auf Gegenstaende zentriert und geklemmt', () => {
-  // 1400x800: Hoehe deckt (800/192), Breite 1433,3 -> links auf -33 geklemmt (Mitte waere -162,5)
-  const a = R.skalierung(1400, 800);
-  assert.ok(Math.abs(a.faktor - 25 / 6) < 1e-12);
-  assert.strictEqual(a.links, -33);
+test('RAHMEN: Raum ohne den dunklen Bildrand (x 12-331 von 344)', () => {
+  assert.deepStrictEqual(R.RAHMEN, { x: 12, b: 320 });
+  assert.ok(Object.isFrozen(R.RAHMEN));
+});
+
+test('skalierung: deckt das Fenster mit dem Raum ohne dunklen Rand, mittig (Janis 11.11.: Variante A)', () => {
+  // 1536x1030 (Video neben Chat, Full HD): Hoehe deckt (5,3646), sichtbar 286,3 Bildpixel,
+  // Mitte x=172 -> links 28,8 Bildpixel -> -154,6 -> -155
+  const a = R.skalierung(1536, 1030);
+  assert.ok(Math.abs(a.faktor - 1030 / 192) < 1e-12);
+  assert.strictEqual(a.links, -155);
   assert.strictEqual(a.oben, 0);
-  // 1397x1332: Hoehe deckt (6,9375), Mitte x=207 -> -737,56 -> -738
-  assert.deepStrictEqual(R.skalierung(1397, 1332), { faktor: 6.9375, links: -738, oben: 0 });
-  // 700x400: 2,0833, Mitte -81,25 -> auf -16 geklemmt
-  const c = R.skalierung(700, 400);
-  assert.ok(Math.abs(c.faktor - 25 / 12) < 1e-12);
-  assert.strictEqual(c.links, -16);
-  assert.strictEqual(c.oben, 0);
-  // Breite deckt: 688x384 -> Faktor 2, passt exakt
-  assert.deepStrictEqual(R.skalierung(688, 384), { faktor: 2, links: 0, oben: 0 });
-  // sehr breit: Breite deckt, senkrecht auf Bildmitte geklemmt
-  const d = R.skalierung(2000, 600);
-  assert.ok(Math.abs(d.faktor - 2000 / 344) < 1e-12);
-  assert.strictEqual(d.links, 0);
-  assert.strictEqual(d.oben, -258);
+  // sehr breit: Breite deckt mit dem Rahmen (2000/320 = 6,25), links genau am Rahmen,
+  // senkrecht mittig: (600/2 - 96*6,25) = -300
+  assert.deepStrictEqual(R.skalierung(2000, 600), { faktor: 6.25, links: -75, oben: -300 });
+  // Rahmen-Seitenverhaeltnis genau (320x192 * 2): passt exakt
+  assert.deepStrictEqual(R.skalierung(640, 384), { faktor: 2, links: -24, oben: 0 });
   for (const [b, h] of [[0, 0], [NaN, 5], [-1, -1], ['x', {}]]) assert.deepStrictEqual(R.skalierung(b, h), { faktor: 1, links: 0, oben: 0 });
+});
+
+test('skalierung: nie dunkler Bildrand, 60 zufaellige Groessen (sichtbar nur x 12-332)', () => {
+  let seed = 777;
+  const zufall = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let i = 0; i < 60; i++) {
+    const b = Math.round(300 + zufall() * 3000);
+    const h = Math.round(200 + zufall() * 1800);
+    const s = R.skalierung(b, h);
+    const l = -s.links / s.faktor;
+    const r = l + b / s.faktor;
+    assert.ok(l >= 12 - 1 / s.faktor, 'links ' + b + 'x' + h + ': ' + l);
+    assert.ok(r <= 332 + 1 / s.faktor, 'rechts ' + b + 'x' + h + ': ' + r);
+  }
 });
 
 test('skalierung: nie ein Rand, 20 zufaellige Groessen', () => {
@@ -72,9 +83,15 @@ test('skalierung: Gegenstaende x 100-314 sichtbar, solange Breite/Hoehe >= 214/1
   };
   assert.ok(sichtbar(1024, 768));   // 4:3
   assert.ok(sichtbar(1120, 1000));  // 1,12: sichtbare Breite 215 Bildpixel
+  assert.ok(sichtbar(1300, 1000));  // 1,3: Mitte 172 wuerde den Plattenspieler abschneiden -> verschoben
+  assert.ok(sichtbar(1536, 1030));
   assert.ok(!sichtbar(1100, 1000)); // 1,10: nur 211 Bildpixel, Raender der Gegenstaende abgeschnitten
-  assert.ok(!sichtbar(1397, 1332)); // 201 Bildpixel
   assert.ok(!sichtbar(1000, 1000)); // 1:1
+});
+
+test('skalierung: zu schmal fuer alle Gegenstaende -> auf deren Mitte (x 207)', () => {
+  // 1397x1332: Hoehe deckt (6,9375), 201,4 Bildpixel sichtbar, Mitte 207 -> links 106,32 -> -737,55 -> -738
+  assert.deepStrictEqual(R.skalierung(1397, 1332), { faktor: 6.9375, links: -738, oben: 0 });
 });
 
 test('passtAlsRaum: Fenster mindestens 688x384', () => {

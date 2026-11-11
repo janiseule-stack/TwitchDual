@@ -50,8 +50,12 @@
 
   const PLATTENSPIELER_RECHTECK = Object.freeze({ x: 262, y: 86, b: 46, h: 42 });
 
-  // Mitte der Gegenstaende (x 100-314): darauf wird waagerecht zentriert.
+  // Gegenstaende (x 100-314) und ihre Mitte: zu schmale Fenster zentrieren darauf.
+  const GEGENSTAENDE = Object.freeze({ von: 100, bis: 314 });
   const MITTE_X = 207;
+  // Raum ohne den dunklen Rand des PixelLab-Bildes (links/rechts je 12 px schwarz,
+  // gemessen 11.11.2026); nur dieser Teil wird je gezeigt (Janis 11.11.: Variante A).
+  const RAHMEN = Object.freeze({ x: 12, b: 320 });
 
   const MIN_BREITE = 688;
   const MIN_HOEHE = 384;
@@ -61,16 +65,30 @@
     const untergrenze = Math.ceil(fenster - gesamt - 1e-9);
     return Math.min(0, Math.max(untergrenze, Math.round(ideal))) + 0;
   }
+  function zwischen(wert, min, max) { return Math.min(max, Math.max(min, wert)); }
 
-  // Deckender Faktor (nicht ganzzahlig): Bild fuellt das Fenster, Ueberstand wird abgeschnitten.
+  // Deckender Faktor (nicht ganzzahlig): der Raum ohne dunklen Rand (RAHMEN, volle
+  // Hoehe) fuellt das Fenster, Ueberstand wird abgeschnitten. Waagerecht mittig auf
+  // den Raum; passen alle Gegenstaende ins Fenster, so wenig verschoben, dass sie
+  // ganz sichtbar bleiben; sonst mittig auf die Gegenstaende. Nie ueber den Rahmen.
   function skalierung(fensterBreite, fensterHoehe) {
     const b = zahl(fensterBreite);
     const h = zahl(fensterHoehe);
     if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
-    const faktor = Math.max(b / BILD.breite, h / BILD.hoehe);
+    const faktor = Math.max(b / RAHMEN.b, h / BILD.hoehe);
+    const sichtbar = b / faktor; // Bildpixel waagerecht, hoechstens RAHMEN.b
+    const raumRechts = RAHMEN.x + RAHMEN.b;
+    let l = RAHMEN.x + RAHMEN.b / 2 - sichtbar / 2;
+    if (sichtbar >= GEGENSTAENDE.bis - GEGENSTAENDE.von) l = zwischen(l, GEGENSTAENDE.bis - sichtbar, GEGENSTAENDE.von);
+    else l = MITTE_X - sichtbar / 2;
+    // In ganzen Bildschirm-Pixeln innerhalb des Rahmens (bei genau passender Breite
+    // gewinnt der linke Rand: hoechstens ein Bildschirm-Pixel Umriss rechts).
+    const min = Math.ceil(b - raumRechts * faktor - 1e-9);
+    const max = Math.floor(-RAHMEN.x * faktor + 1e-9);
+    const links = Math.min(max, Math.max(min, Math.round(-l * faktor))) + 0;
     return {
       faktor,
-      links: klemme(b / 2 - MITTE_X * faktor, b, BILD.breite * faktor),
+      links,
       oben: klemme(h / 2 - (BILD.hoehe / 2) * faktor, h, BILD.hoehe * faktor),
     };
   }
@@ -148,5 +166,5 @@
     return 128 * Math.max(1, n);
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante };
 });

@@ -106,7 +106,8 @@
         }
         // aus() innerhalb von starte hat schon alles gestoppt: nichts mehr planen.
         if (!laeuft) return;
-        timer = setT(weiter, dauer(ev));
+        // Nach der Dauer aufraeumen, auch wenn animationend ausbleibt (Fenster verdeckt).
+        timer = setT(() => { stoppe(); weiter(); }, dauer(ev));
         return;
       }
     }

@@ -13,7 +13,7 @@
 }
 #home {
   position: absolute;
-  top: 63px; /* unter der On-Air-Leiste (16px) + Bar */
+  top: var(--leiste-h, 50px); /* direkt unter der Leiste (video.js misst ihre Hoehe) */
   left: 0; right: 0; bottom: 0;
   background: var(--bg);
   display: flex; flex-direction: column;

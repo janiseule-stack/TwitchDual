@@ -113,8 +113,20 @@
     function katzeZeigen(an) {
       if (o.katze) o.katze.classList.toggle('verdeckt', !an);
     }
+    // Waehrend der Kiste ist die Katze angehalten; spielte sie (oder startete ihr
+    // Takt inzwischen), beginnt sie danach von vorn - nicht, wenn das Leben ruht.
+    let katzeNeu = false;
     function kisteEnde() {
       kiste.classList.remove('spielt');
+      const k = o.katze;
+      if (k && (katzeNeu || k.classList.contains('spielt')) && !k.classList.contains('ruht')) {
+        k.classList.remove('spielt');
+        void k.offsetWidth; // Neustart der Animation erzwingen
+        k.classList.add('spielt');
+      } else if (k && k.classList.contains('ruht')) {
+        k.classList.remove('spielt');
+      }
+      katzeNeu = false;
       katzeZeigen(true);
     }
     function raidEnde() {
@@ -166,6 +178,10 @@
         const schritte = RaumLeben.raidSchritte();
         for (let i = 0; i < n; i++) figuren.push(raid.appendChild(figur(i, schritte)));
       } else if (ev.art === 'kiste') {
+        if (o.katze && o.katze.classList.contains('spielt')) {
+          katzeNeu = true;
+          o.katze.classList.remove('spielt');
+        }
         katzeZeigen(false);
         void kiste.offsetWidth; // Neustart der Animation erzwingen
         kiste.classList.add('spielt');

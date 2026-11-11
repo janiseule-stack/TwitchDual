@@ -90,6 +90,17 @@ test('abspieler: nacheinander', () => {
   assert.strictEqual(a.laeuft, false);
 });
 
+test('abspieler: Ende der Dauer raeumt den Effekt auf (auch ohne animationend, z. B. Fenster verdeckt)', () => {
+  const { f, log, a } = bau();
+  a.melde('kiste', { n: 1 });
+  assert.strictEqual(log.stop, 0);
+  f.feuere(0);
+  assert.strictEqual(log.stop, 1, 'nach der Dauer gestoppt');
+  assert.strictEqual(a.laeuft, false);
+  a.aus();
+  assert.strictEqual(log.stop, 1, 'aus() danach stoppt nicht doppelt');
+});
+
 test('abspieler: aus() waehrend Lauf', () => {
   const { f, log, schlange, a } = bau();
   a.melde('raid', { n: 1 });
@@ -460,6 +471,32 @@ test('RaumLebenDom.effekte: Kiste spielt einmal, Katze ist waehrenddessen verdec
   // Unbekannte Art: nichts passiert, kein Fehler
   fx.starte({ art: 'abo', daten: {} });
   assert.ok(!kiste.classList.contains('spielt'));
+});
+
+test('RaumLebenDom.effekte: Katze spielt nicht verdeckt weiter, beginnt nach der Kiste von vorn', () => {
+  const doc = baumDoc();
+  const ebene = doc.createElement('div');
+  const katze = doc.createElement('div');
+  const fx = RLD.effekte(doc, ebene, 'p/', { katze });
+  const kiste = ebene.kinder[ebene.kinder.length - 1];
+  // Katze mitten im seltenen Auftritt
+  katze.classList.add('spielt');
+  fx.starte({ art: 'kiste', daten: {} });
+  assert.ok(!katze.classList.contains('spielt'), 'verdeckt angehalten');
+  kiste.feuere('animationend');
+  assert.ok(katze.classList.contains('spielt'), 'neu gestartet (von vorn)');
+  assert.ok(!katze.classList.contains('verdeckt'));
+  // Katze ruhte: bleibt danach ruhig
+  katze.classList.remove('spielt');
+  fx.starte({ art: 'kiste', daten: {} });
+  kiste.feuere('animationend');
+  assert.ok(!katze.classList.contains('spielt'));
+  // Animationen aus (ruht): kein Neustart
+  katze.classList.add('spielt');
+  fx.starte({ art: 'kiste', daten: {} });
+  katze.classList.add('ruht');
+  fx.stoppe();
+  assert.ok(!katze.classList.contains('spielt'));
 });
 
 test('raum-leben-dom.js: UMD, setzt RaumLebenDom, nutzt RaumLeben.TAKT und naechstePause', () => {

@@ -450,9 +450,33 @@ test('versteckeAblauf raeumt Klassen, Timer, Sprite und Kamera weg', () => {
   const r = rumpf(js, 'function versteckeAblauf(');
   assert.ok(r.includes('clearTimeout('));
   for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zoom'"]) assert.ok(r.includes(k), k);
-  assert.ok(r.includes('aus(t.dreht, true)'), 'Sprite aus');
+  assert.ok(r.includes('aus(t.dreht, !spielt)'), 'Sprite aus, ausser es laeuft gerade etwas');
   assert.ok(r.includes('zeigeAnsicht(aktuell)'), 'Ansicht und Kamera zurueck (ruft neuAusrichten)');
   assert.ok(r.indexOf('classList.remove(') < r.indexOf('zeigeAnsicht(aktuell)'), 'Klassen weg vor der Ruhelage');
+});
+
+test('Plattenspieler dreht, solange ein Stream oder VOD laeuft (Janis 11.11.)', () => {
+  assert.ok(schnittstelle().includes('plattenspielerLaeuft'), 'exportiert');
+  const r = rumpf(js, 'function plattenspielerLaeuft(');
+  assert.ok(r.includes('spielt = !!an'));
+  assert.ok(r.includes("classList.contains('im-ablauf')"), 'im Ablauf steuert der Ablauf die Platte');
+  assert.ok(r.includes('aus(t.dreht, !spielt)'));
+  // Zustand vor dem Aufbau merken: init zeigt die Platte gleich richtig
+  assert.ok(rumpf(js, 'function init(').includes('aus(t.dreht, !spielt)'));
+  // video.js meldet jeden On-Air-Wechsel (LIVE und VOD spielen = dreht)
+  const video = lies('renderer/video/video.js');
+  const u = rumpf(video, 'function updateOnAir(');
+  assert.ok(/HomeRaumDom\.plattenspielerLaeuft\(label !== null\)/.test(u), 'meldet an HomeRaumDom');
+  assert.ok(u.indexOf('plattenspielerLaeuft') < u.indexOf("if (!el) return;"), 'vor dem fruehen Ausstieg');
+});
+
+test('Home liegt direkt unter der Leiste (kein Holzstreifen dazwischen, Janis 11.11.)', () => {
+  const homeCss = lies('renderer/video/home.css');
+  assert.ok(!homeCss.includes('top: 63px'), 'keine feste alte Hoehe');
+  assert.ok(/#home\s*\{[^}]*top:\s*var\(--leiste-h, 50px\)/.test(homeCss));
+  const video = lies('renderer/video/video.js');
+  assert.ok(/new ResizeObserver\(/.test(video), 'Hoehe der Leiste gemessen');
+  assert.ok(video.includes("setProperty('--leiste-h'"));
 });
 
 test('Fliegende Platte entfaellt samt CSS', () => {

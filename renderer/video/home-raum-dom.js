@@ -42,6 +42,7 @@ window.HomeRaumDom = (function () {
   let wirt = null;
   let opt = {};
   let skal = { faktor: 1, links: 0, oben: 0 };
+  let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
   let tvLogin = null; // Kanal des Bildes auf dem Fernseher
@@ -364,6 +365,7 @@ window.HomeRaumDom = (function () {
     wirt = opt.wirt || document.getElementById('home');
     wirt.classList.add('raum-home');
     wirt.prepend(baueRaum(), baueRegal(), baueKnoepfe(), baueTafel(), baueAblauf());
+    aus(t.dreht, !spielt);
     zeigeAnsicht('raum');
   }
 
@@ -720,9 +722,17 @@ window.HomeRaumDom = (function () {
     ablaufTimer = [];
     // Mit den Klassen faellt auch der Uebergang weg: Ruecksprung ohne Animation.
     wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-spieler', 'ablauf-dreht', 'ablauf-zoom');
-    aus(t.dreht, true);
+    aus(t.dreht, !spielt);
     aus(t.ablauf, true);
     zeigeAnsicht(aktuell); // Raum/Regal wie vorher, ruft neuAusrichten()
+  }
+
+  // Platte dreht im Raum, solange ein Stream oder VOD spielt (video.js meldet jeden
+  // On-Air-Wechsel, auch vor dem Aufbau). Im Ablauf steuert der Ablauf die Platte.
+  function plattenspielerLaeuft(an) {
+    spielt = !!an;
+    if (!wirt || wirt.classList.contains('im-ablauf')) return;
+    aus(t.dreht, !spielt);
   }
 
   // Element in die Tafel leihen; versteckeTafel gibt es an seinen Platz zurueck.
@@ -831,6 +841,6 @@ window.HomeRaumDom = (function () {
   return {
     init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
-    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, leben,
+    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, leben, plattenspielerLaeuft,
   };
 })();

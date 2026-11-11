@@ -251,6 +251,12 @@ document.getElementById('win-min').addEventListener('click', () => window.twitch
 document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
 document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
 // Doppelklick nur auf die freie Leiste (nicht Eingabefeld/Buttons) maximiert.
+// Home liegt direkt unter der Leiste (home.css: top = --leiste-h).
+new ResizeObserver(() => {
+  const leiste = document.getElementById('bar');
+  document.documentElement.style.setProperty('--leiste-h', leiste.offsetHeight + 'px');
+}).observe(document.getElementById('bar'));
+
 document.getElementById('bar').addEventListener('dblclick', (e) => {
   if (e.target.id === 'bar') window.twitchDual.windowControl('maximize');
 });
@@ -371,6 +377,8 @@ let onAirPlayerState = null;
 function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
   document.body.classList.toggle('onair', label !== null);
+  // Plattenspieler im Home-Raum dreht, solange etwas spielt (LIVE oder VOD).
+  if (window.HomeRaumDom) HomeRaumDom.plattenspielerLaeuft(label !== null);
   const el = document.getElementById('oa-label');
   if (!el) return;
   if (label === null) { el.removeAttribute('src'); el.alt = ''; return; }
