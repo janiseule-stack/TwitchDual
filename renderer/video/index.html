@@ -88,18 +88,13 @@
        wenn etwas laeuft. Kein display-Wechsel -> kein Layout-Sprung. */
     #bar { position: relative; }
     #onair-bar {
-      position: absolute; left: -92px; top: 50%; width: 80px; height: 30px;
+      position: absolute; left: -84px; top: 50%; width: 64px; height: 32px;
       margin: -16px 0 0 0;
-      display: flex; align-items: center; justify-content: center; gap: 0;
-      background: var(--accent-contrast); border: 2px solid var(--line);
       visibility: hidden;
     }
     body.onair #onair-bar { visibility: visible; }
-    #onair-bar .lampe { margin: -4px -2px -4px -8px; }
-    #oa-label {
-      font-family: var(--schrift-pixel); font-size: 14px; font-weight: 700;
-      letter-spacing: .06em; white-space: nowrap; color: var(--accent-title);
-    }
+    /* PixelLab-Schild (64x32), ganzzahlig (1x) gezeigt, scharfe Pixel */
+    #oa-label { display: block; width: 64px; height: 32px; image-rendering: pixelated; }
     #status, #si-oben { font-family: var(--schrift-pixel); }
     #si-oben { font-size: 15px; letter-spacing: .03em; }
     button:focus-visible, input:focus-visible {
@@ -168,8 +163,7 @@
   <div id="bar" class="rahmen-leiste-video">
     <!-- LIVE/VOD-Schild auf der Lautsprecher-Flaeche ganz links (body.onair). -->
     <div id="onair-bar">
-      <span class="lampe rot"></span>
-      <span id="oa-label"></span>
+      <img id="oa-label" alt="" />
     </div>
     <div class="bar-left">
       <button id="home-btn" class="pixel-knopf k-home" title="Home: Favoriten & VODs">☰</button>

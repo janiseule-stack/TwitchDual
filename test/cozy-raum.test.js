@@ -85,7 +85,9 @@ test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
   // ganz links in der Leiste, nicht mehr bei den Stream-Infos.
   assert.ok(!videoHtml.includes('si-lampe'));
   const bar = videoHtml.slice(videoHtml.indexOf('id="bar"'), videoHtml.indexOf('class="bar-left"'));
-  assert.ok(bar.includes('id="onair-bar"') && bar.includes('lampe rot') && bar.includes('id="oa-label"'));
+  assert.ok(bar.includes('id="onair-bar"') && bar.includes('id="oa-label"'));
+  // 3c: das LIVE-Schild ist ein PixelLab-Bild, keine rote Lampe mehr
+  assert.ok(!bar.includes('lampe rot') && !bar.includes('lampe-rot'));
   assert.ok(/body\.onair #onair-bar\s*\{[^}]*visibility:\s*visible/.test(videoHtml));
 });
 test('Video: Profilbild in der Leiste ist grob verpixelt und eckig', () => {

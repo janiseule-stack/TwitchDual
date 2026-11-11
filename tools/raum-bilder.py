@@ -177,6 +177,12 @@ def zettel_schild(ordner):
     schild.save(os.path.join(ordner, "schild.png"))
 
 
+def onair_schilder(ordner):
+    # LIVE- und VOD-Schild (PixelLab 64x32) unveraendert uebernehmen.
+    for name in ("schild-live.png", "schild-vod.png"):
+        quelle(name).save(os.path.join(ordner, name))
+
+
 def hover_und_platte(ordner):
     raum = Image.open(os.path.join(ordner, "raum.png")).convert("RGBA")
     rp = raum.load()
@@ -225,6 +231,7 @@ def main():
     lampe_klein(ordner)
     platten(ordner)
     zettel_schild(ordner)
+    onair_schilder(ordner)
     print(json.dumps({"tvEcken": ecken, "grossFenster": gross}, separators=(",", ":")))
 
 

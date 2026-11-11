@@ -372,7 +372,11 @@ function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
   document.body.classList.toggle('onair', label !== null);
   const el = document.getElementById('oa-label');
-  if (el) el.textContent = label || ''; // die Lampe daneben ist der Punkt
+  if (!el) return;
+  if (label === null) { el.removeAttribute('src'); el.alt = ''; return; }
+  el.src = '../themes/cozy/' + (label === 'VOD' ? 'schild-vod.png' : 'schild-live.png');
+  el.alt = label === 'VOD' ? 'VOD' : 'Live';
+  el.setAttribute('aria-label', el.alt);
 }
 
 

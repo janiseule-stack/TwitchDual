@@ -27,6 +27,8 @@ const MASSE = {
   'platte-dreht.png': [432, 50],
   'huelle-gross-vorn.png': [128, 128],
   'huelle-gross-rueck.png': [128, 128],
+  'schild-live.png': [64, 32],
+  'schild-vod.png': [64, 32],
 };
 
 // Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4)
@@ -272,6 +274,32 @@ test('huelle-gross-vorn: das Fenster ist genau die cremefarbene Innenflaeche der
   const r = dekodiere(fs.readFileSync(path.join(QUELLEN, 'huelle-gross-rueck.png')));
   const rq = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'renderer', 'themes', 'cozy', 'entwuerfe', 'gross', 'rueck-2.png')));
   assert.ok(r.px.equals(rq.px), 'Quelle = Janis\' Wahl rueck-2.png');
+});
+
+// LIVE-/VOD-Schild (Task 3c): Janis' Wahl s-11 bzw. v-2, unveraendert uebernommen.
+for (const [name, wahl] of [['schild-live.png', 'schild/s-11.png'], ['schild-vod.png', 'vod-schild/v-2.png']]) {
+  test(`${name}: gleich der Quelle in tools/raum-quellen/ und Janis' Wahl ${wahl}`, () => {
+    const a = dekodiere(lade(name));
+    const q = dekodiere(fs.readFileSync(path.join(QUELLEN, name)));
+    assert.ok(a.px.equals(q.px), 'weicht von tools/raum-quellen ab');
+    const wahlPfad = path.join(DIR, 'entwuerfe', wahl);
+    if (fs.existsSync(wahlPfad)) { // entwuerfe/ ist gitignored
+      assert.ok(a.px.equals(dekodiere(fs.readFileSync(wahlPfad)).px), 'weicht von Janis\' Wahl ab');
+    }
+  });
+}
+
+test('LIVE-/VOD-Schild: eingebunden, ganzzahlig, ohne Lampe und ohne Leuchten', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'video', 'index.html'), 'utf8');
+  const js = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'video', 'video.js'), 'utf8');
+  assert.ok(js.includes('schild-live.png') && js.includes('schild-vod.png'));
+  assert.ok(/aria-label/.test(js) && js.includes("'VOD'") && js.includes("'Live'"));
+  const bar = html.slice(html.indexOf('id="onair-bar"'), html.indexOf('class="bar-left"'));
+  assert.ok(!bar.includes('lampe'));
+  const regeln = html.slice(html.indexOf('#onair-bar {'), html.indexOf('#status, #si-oben'));
+  assert.ok(regeln.includes('image-rendering: pixelated'));
+  assert.ok(/#oa-label\s*\{[^}]*width:\s*64px;[^}]*height:\s*32px/.test(regeln));
+  assert.ok(!/box-shadow|glow|animation|filter/.test(regeln));
 });
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {
