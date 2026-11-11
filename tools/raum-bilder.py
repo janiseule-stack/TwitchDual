@@ -3,8 +3,8 @@
 
 Aufruf:  python tools/raum-bilder.py renderer/themes/cozy
 
-Liest raum.png, platte.png und die Entwuerfe in entwuerfe/ sowie die von Janis
-gewaehlten PixelLab-Quellen in tools/raum-quellen/, schreibt RGBA-PNGs und gibt
+Liest raum.png, platte.png sowie die von Janis gewaehlten Quellen (PixelLab,
+Zettel/Schild) in tools/raum-quellen/, schreibt RGBA-PNGs und gibt
 die vier Eckpunkte der Bildschirmflaeche als eine JSON-Zeile aus (oben links,
 oben rechts, unten rechts, unten links), in Pixelkanten.
 Es wird nichts selbst gezeichnet: nur zuschneiden, skalieren, ausstanzen, einsetzen.
@@ -110,7 +110,7 @@ def platten(ordner):
 
 
 def zettel_schild(ordner):
-    q = Image.open(os.path.join(ordner, "entwuerfe", "zettel-schild.png")).convert("RGBA")
+    q = quelle("zettel-schild.png")
     zettel = q.crop((27, 13, 156, 109))  # 129x96
     # Pinnnadel (Original x 80..106, y 13..37) mit Papier derselben Zeilen ueberdecken.
     zp = zettel.load()

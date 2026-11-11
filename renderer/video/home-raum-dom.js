@@ -34,6 +34,7 @@ window.HomeRaumDom = (function () {
   let skal = { faktor: 1, links: 0, oben: 0 };
   let aktuell = 'raum';
   let tvVorschau = null;
+  let tvLogin = null; // Kanal des Bildes auf dem Fernseher
   let schildTimer = null;
   let ablaufRuf = null;
   let ablaufTimer = [];
@@ -569,7 +570,7 @@ window.HomeRaumDom = (function () {
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
   // Kamera: der gruene Bildschirm fuellt das Fenster.
   function kameraZiel() {
-    return Raum.kameraZiel({ x: 206, y: 52, b: 27, h: 38 }, wirt.clientWidth, wirt.clientHeight);
+    return Raum.kameraZiel(Raum.TV_RECHTECK,wirt.clientWidth, wirt.clientHeight);
   }
 
   // Auflegen: Regal blendet zum Raum (ablauf-raum), Platte fliegt zum Teller
@@ -685,12 +686,16 @@ window.HomeRaumDom = (function () {
     if (!wirt || url === tvVorschau) return; // gleiche Adresse: Bild steht schon
     tvVorschau = url;
     const nr = ++tvNr;
-    leereTv();
+    // Kanal aus der Adresse: bei bloessem Adresswechsel (?t= jede Minute) bleibt
+    // das alte Bild stehen, bis das neue geladen ist; sonst flackert der Fernseher.
+    const login = url ? ((/live_user_([^-]+)-/.exec(url) || [])[1] || url) : null;
+    if (!url || login !== tvLogin) leereTv();
+    tvLogin = login;
     if (!url) return;
     const img = new Image();
     img.decoding = 'async';
     // Ladefehler: Aus-Bildschirm bleibt; der naechste Aufruf versucht es neu.
-    const fehler = () => { if (nr === tvNr) { leereTv(); tvVorschau = null; } };
+    const fehler = () => { if (nr === tvNr) { leereTv(); tvVorschau = null; tvLogin = null; } };
     img.addEventListener('error', fehler);
     img.addEventListener('load', () => {
       if (nr !== tvNr) return;

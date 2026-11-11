@@ -32,6 +32,9 @@
     Object.freeze({ x: 207, y: 78 }),
   ]);
 
+  // Rechteck um den Bildschirm: Ziel der Kamera beim Auflegen.
+  const TV_RECHTECK = Object.freeze({ x: 206, y: 52, b: 27, h: 38 });
+
   const TELLER = Object.freeze({ x: 284, y: 113 });
 
   const zahl = (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
@@ -91,5 +94,5 @@
     return { start: Math.min(grenze, Math.max(0, s)), sichtbar };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster };
 });

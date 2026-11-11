@@ -22,7 +22,8 @@
       "preload.js",
       "renderer/**/*",
       "src/**/*",
-      "vendor/**/*"
+      "vendor/**/*",
+      "!renderer/themes/cozy/entwuerfe/**"
     ],
     "win": {
       "target": "nsis"

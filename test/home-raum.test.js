@@ -248,7 +248,7 @@ test('versteckeAblauf raeumt Klassen, Timer, Platte und Kamera weg', () => {
 });
 
 test('Kamera und fliegende Platte nutzen Raum-Geometrie', () => {
-  assert.ok(/Raum\.kameraZiel\(\{\s*x:\s*206,\s*y:\s*52,\s*b:\s*27,\s*h:\s*38\s*\}/.test(js));
+  assert.ok(js.includes('Raum.kameraZiel(Raum.TV_RECHTECK'));
   assert.ok(js.includes('Raum.TELLER'));
   assert.ok(js.includes('../themes/cozy/platte-klein.png'));
   assert.ok(/Raum\.FLAECHEN\.find\(\(f\) => f\.id === 'regal'\)/.test(js));
@@ -266,6 +266,35 @@ test('setzeTv: Vorschau verpixelt, affin auf TV_ECKEN, Maske per destination-in,
   const r = rumpf(js, 'function setzeTv(');
   assert.ok(r.length > 0);
   assert.ok(js.includes('clearRect('), 'Ladefehler leert die Canvas');
+});
+
+test('setzeTv: bloesser Adresswechsel (?t=) leert die Canvas nicht, Kanalwechsel, null und Fehler schon', () => {
+  const r = rumpf(js, 'function setzeTv(');
+  assert.ok(!/\n    leereTv\(\);/.test(r), 'kein unbedingtes Leeren auf oberster Ebene');
+  assert.ok(/if \(!url \|\| [^)]*tvLogin[^)]*\) leereTv\(\);/.test(r), 'leeren nur bei null oder anderem Kanal');
+  assert.ok(/const fehler = \(\) => \{ if \(nr === tvNr\) \{ leereTv\(\);/.test(r), 'Fehlerzweig leert');
+  assert.ok(/nr === tvNr/.test(r), 'veraltete Ladungen verworfen');
+});
+
+test('Fernseher-Rechteck kommt aus Raum.TV_RECHTECK', () => {
+  assert.ok(js.includes('Raum.kameraZiel(Raum.TV_RECHTECK'));
+  assert.ok(!/x:\s*206,\s*y:\s*52/.test(js));
+});
+
+test('home.js: Auflegen zeigt den neuen Kanal im Fernseher (live) oder schaltet ihn aus', () => {
+  const lw = homeJs.indexOf('async function ladeWert(');
+  const r = homeJs.slice(lw, homeJs.indexOf('\n}', lw));
+  const tv = r.indexOf('HomeRaumDom.setzeTv(');
+  assert.ok(tv > -1, 'setzeTv in ladeWert');
+  assert.ok(tv < r.indexOf('HomeRaumDom.zeigeAblauf('), 'vor dem Ablauf');
+  assert.ok(r.includes('HomeBuehne.vorschauUrl(kanal.login, Date.now())'));
+  assert.ok(/\{ vorschauUrl: [^}]*\} : null\)/.test(r), 'offline/VOD: Fernseher aus (null)');
+  assert.ok(/wert === kanal\.login/.test(r) && /!kanal\.offline/.test(r));
+});
+
+test('home.css: Hinweiszeile und Version weichen im Ablauf', () => {
+  assert.ok(/#home\.im-ablauf #home-hinweis[^{]*\{[^}]*display:\s*none/.test(homeCss));
+  assert.ok(/#home\.im-ablauf #home-version/.test(homeCss));
 });
 
 test('home-raum.css: Animationen aus -> Uebergaenge still, keine Platten-Drehung', () => {

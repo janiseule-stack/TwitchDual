@@ -21,6 +21,11 @@ test('TV_ECKEN: vier Ecken im Bildschirmbereich', () => {
   }
 });
 
+test('TV_RECHTECK: Fernseher-Bildschirm, eingefroren', () => {
+  assert.deepStrictEqual(R.TV_RECHTECK, { x: 206, y: 52, b: 27, h: 38 });
+  assert.ok(Object.isFrozen(R.TV_RECHTECK));
+});
+
 test('skalierung: groesster ganzer Faktor, zentriert', () => {
   assert.deepStrictEqual(R.skalierung(1400, 800), { faktor: 4, links: 12, oben: 16 });
   assert.deepStrictEqual(R.skalierung(700, 400), { faktor: 2, links: 6, oben: 8 });

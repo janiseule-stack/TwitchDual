@@ -229,6 +229,10 @@ async function ladeWert(wert, kanal) {
   let ende = null;
   const fertig = new Promise((r) => { ende = r; });
   if (mitLaufwerk) {
+    // Fernseher zeigt schon den neuen Kanal (live) oder ist aus (offline/VOD).
+    // Schlaegt das Laden fehl, setzt der naechste renderHome den laufenden Stream zurueck.
+    HomeRaumDom.setzeTv(kanal.login && wert === kanal.login && !kanal.offline
+      ? { vorschauUrl: HomeBuehne.vorschauUrl(kanal.login, Date.now()) } : null);
     laufwerk.start((ok) => ende(ok));
     HomeRaumDom.zeigeAblauf(kanal, () => laufwerk.ueberspringen());
   }
