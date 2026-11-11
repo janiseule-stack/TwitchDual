@@ -1,5 +1,5 @@
-// DOM-freier Zustand der Home-Buehne (CD-Reihe, Blaettern, Mausrad,
-// Namenswolke, Vorschau-URL). UMD wie chat-ui.js: laeuft im Browser
+// DOM-freier Zustand der Home-Buehne (Platten-Reihe, Blaettern, Mausrad,
+// Vorschau-URL, Regal-Eintraege, Ablauf beim Auflegen). UMD wie chat-ui.js: laeuft im Browser
 // (<script>, globales HomeBuehne) und unter Node -> testbar.
 
 (function (root, factory) {
@@ -159,23 +159,6 @@
     };
   }
 
-  function namenAuswahl(live, offlineFavoriten, max) {
-    const grenze = max === undefined ? 20 : max;
-    const name = (c) => c.displayName || c.login;
-    const a = (live || []).map((c) => ({ name: name(c), live: true }));
-    const b = (offlineFavoriten || [])
-      .map((c) => ({ name: name(c), live: false }))
-      .sort((x, y) => x.name.localeCompare(y.name, 'de'));
-    return a.concat(b).slice(0, grenze);
-  }
-
-  function zeilenInhalt(auswahl, zeile) {
-    const n = auswahl.length;
-    if (!n) return [];
-    const s = (((zeile * 4) % n) + n) % n;
-    return auswahl.slice(s).concat(auswahl.slice(0, s));
-  }
-
   function vorschauUrl(login, jetztMs) {
     return 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + encodeURIComponent(login) +
       '-640x360.jpg?t=' + Math.floor(jetztMs / 60000);
@@ -252,5 +235,5 @@
     return api;
   }
 
-  return { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl, staenderEintraege, createLaufwerk };
+  return { createBuehne, createRad, vorschauUrl, staenderEintraege, createLaufwerk };
 });

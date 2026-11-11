@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createBuehne, createRad, namenAuswahl, zeilenInhalt, vorschauUrl, staenderEintraege, createLaufwerk } = require('../renderer/lib/home-buehne.js');
+const HomeBuehne = require('../renderer/lib/home-buehne.js');
+const { createBuehne, createRad, vorschauUrl, staenderEintraege, createLaufwerk } = HomeBuehne;
 
 const k = (login, viewers = 0, extra = {}) => ({ login, displayName: login.toUpperCase(), viewers, ...extra });
 const logins = (arr) => arr.map((x) => x.login);
@@ -125,25 +126,9 @@ test('Rad: Schwelle, Zeilen, Sperre', () => {
   assert.equal(createRad().eingabe(-60, 0, 0), -1);
 });
 
-test('namenAuswahl: 0, 1, viele, live zuerst, offline alphabetisch, displayName vor login', () => {
-  assert.deepEqual(namenAuswahl([], []), []);
-  assert.deepEqual(namenAuswahl([{ login: 'x' }], []), [{ name: 'x', live: true }]);
-  const live = Array.from({ length: 25 }, (_, i) => k('l' + i));
-  assert.equal(namenAuswahl(live, []).length, 20);
-  const r = namenAuswahl([k('b'), { login: 'a' }], [{ login: 'z' }, { login: 'm', displayName: 'Mia' }]);
-  assert.deepEqual(r, [
-    { name: 'B', live: true },
-    { name: 'a', live: true },
-    { name: 'Mia', live: false },
-    { name: 'z', live: false },
-  ]);
-});
-
-test('zeilenInhalt rotiert um zeile*4', () => {
-  const a = Array.from({ length: 6 }, (_, i) => ({ name: 'n' + i, live: true }));
-  assert.deepEqual(zeilenInhalt(a, 0).map((x) => x.name), ['n0', 'n1', 'n2', 'n3', 'n4', 'n5']);
-  assert.deepEqual(zeilenInhalt(a, 1).map((x) => x.name), ['n4', 'n5', 'n0', 'n1', 'n2', 'n3']);
-  assert.deepEqual(zeilenInhalt([], 2), []);
+test('Riesen-Namen sind weg: namenAuswahl und zeilenInhalt nicht mehr exportiert', () => {
+  assert.equal(HomeBuehne.namenAuswahl, undefined);
+  assert.equal(HomeBuehne.zeilenInhalt, undefined);
 });
 
 test('leere Buehne: erster neuer Live-Kanal wird aktuell', () => {

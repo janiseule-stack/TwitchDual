@@ -1,13 +1,14 @@
-// Home-Overlay: CD-Buehne mit der gewaehlten CD, CD-Staender mit allen Live-
-// Kanaelen (★-Favoriten zuerst) und Offline-Favoriten, Suche + VOD-Browser,
-// Laufwerk beim Abspielen. Steuerung und Zustand hier, Darstellung in
-// home-buehne-dom.js, Reihenfolge/Blaettern/Laufwerk-Ablauf in home-buehne.js.
-// Plaene: docs/superpowers/plans/2026-11-09-home-cd.md, ...-home-cd-v2.md
+// Home-Overlay als Cozy-Raum: Raum-Ansicht (Hauptmenue, Klick auf Regal,
+// Fernseher, Plattenspieler, Bild, Lampe) und Regal-Ansicht mit der vorderen
+// Platte (Zettel, VOD-Rueckseite), oben Live-Kanaele (★-Favoriten zuerst),
+// unten Offline-Favoriten bzw. Suchtreffer; Tafel fuer Konto, Licht und
+// "Alle VODs"; Ablauf beim Auflegen. Steuerung und Zustand hier, Darstellung
+// in home-raum-dom.js, Geometrie in lib/raum.js, Reihenfolge/Blaettern/Ablauf
+// in home-buehne.js. Plan: docs/superpowers/plans/2026-11-10-cozy-raum-etappe-2.md
 // Auswahl ruft window.twitchDual.submitLoad(...) auf -> laedt beide Fenster.
 
 const $home = document.getElementById('home');
 const $homeBtn = document.getElementById('home-btn');
-const $homeClose = document.getElementById('home-close');
 const $homeBack = document.getElementById('home-back');
 const $homeTitle = document.getElementById('home-title');
 const $kanaeleView = document.getElementById('home-kanaele');
@@ -16,10 +17,7 @@ const $vodList = document.getElementById('vod-list');
 const $suche = document.getElementById('home-suche');
 const $refreshBtn = document.getElementById('refresh-btn');
 const $hinweis = document.getElementById('home-hinweis');
-const $buehneFlaeche = document.getElementById('home-buehne');
-const $staender = document.getElementById('home-staender');
-const $huelle = document.getElementById('cd-huelle');
-const $namen = document.getElementById('home-namen');
+const $authBar = document.getElementById('auth-bar');
 
 let kanaele = [];          // aus home-kanaele: Kanal + {favorit, gefolgt}
 let gefolgtFehler = null;
@@ -37,11 +35,10 @@ let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;       // submitLoad aus Home laeuft
 let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
 let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
-let namenAuswahl = null;       // Riesen-Namen dieses Oeffnens
-const rad = HomeBuehne.createRad();
-// Laufwerk beim Abspielen: Animation (mind. 1,5 s) und Laden laufen parallel.
+// Ablauf beim Auflegen: Animation (mind. 4,5 s, per Klick/Taste
+// ueberspringbar) und Laden laufen parallel.
 const laufwerk = HomeBuehne.createLaufwerk({
-  mindestMs: 1500,
+  mindestMs: 4500,
   jetzt: Date.now,
   setzeTimer: (f, ms) => setTimeout(f, ms),
   loescheTimer: (t) => clearTimeout(t),
@@ -64,26 +61,72 @@ let loggedIn = false;      // aus renderAuth (Login-Teil unten)
 function nadel() { return HomeListe.normalisiere($suche.value); }
 
 // --- Sichtbarkeit / Navigation --------------------------------------------
+// Passt der Raum mindestens in Faktor 2? Sonst gibt es nur die Regal-Ansicht.
+function raumPasst() { return Raum.passtAlsRaum($home.clientWidth, $home.clientHeight); }
+
+// Zustand nach dem Schliessen der Tafel (✕ der Tafel, Esc, Neu-Oeffnen):
+// "Alle VODs" zu, Regal-Behaelter wieder sichtbar (60-s-Refresh haengt daran).
 function showKanaeleView() {
   $vodView.classList.add('hidden');
   $kanaeleView.classList.remove('hidden');
-  $homeBack.classList.add('hidden');
   $homeTitle.textContent = 'Home';
+  zeigeZurueckKnopf();
+}
+function schliesseTafel() {
+  HomeRaumDom.versteckeTafel();
+  showKanaeleView();
 }
 
+// "Alle VODs" liegt in der Tafel (Titel und Liste werden hineingeliehen).
 function showVodView(login, displayName) {
   $kanaeleView.classList.add('hidden');
   $vodView.classList.remove('hidden');
-  $homeBack.classList.remove('hidden');
   $homeTitle.textContent = 'VODs · ' + (displayName || login);
+  HomeRaumDom.zeigeTafel('vods', $vodView);
+  zeigeZurueckKnopf();
 }
 
-function openHome() {
+function zeigeRegal(fokus) {
+  HomeRaumDom.zeigeAnsicht('regal');
+  if (fokus) $suche.focus(); // direkt lostippen
+  zeigeZurueckKnopf();
+}
+function zeigeRaum() {
+  // Fokus nicht in der versteckten Regal-Ansicht lassen (Tippen landet sonst dort)
+  const a = document.activeElement;
+  if (a && a !== document.body && $home.contains(a)) a.blur();
+  HomeRaumDom.zeigeAnsicht('raum');
+  zeigeZurueckKnopf();
+}
+
+// Ein Schritt zurueck (Esc, ←): Tafel zu > Offline-Ansicht > Rueckseite >
+// Regal -> Raum (nur wenn der Raum passt). false: nichts mehr zurueck.
+function zurueckSchritt() {
+  if (HomeRaumDom.tafelOffen()) schliesseTafel();
+  else if (offlineAnsicht) { offlineAnsicht = null; rueckseite = null; renderHome(); }
+  else if (rueckseite) { rueckseite = null; renderHome(); }
+  else if (HomeRaumDom.ansicht() === 'regal' && raumPasst()) zeigeRaum();
+  else return false;
+  return true;
+}
+function kannZurueck() {
+  return HomeRaumDom.tafelOffen() || !!offlineAnsicht || !!rueckseite ||
+    (HomeRaumDom.ansicht() === 'regal' && raumPasst());
+}
+function zeigeZurueckKnopf() {
+  $homeBack.classList.toggle('hidden', $home.classList.contains('hidden') || !kannZurueck());
+}
+
+// Ziel: 'regal' (Strg+L, Klick auf die Stream-Infos) oder Raum (Start,
+// Home-Knopf). Passt der Raum nicht, immer das Regal.
+function openHome(ziel) {
   window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
   document.body.classList.add('home-offen'); // Leiste oben: nur "Ads blocked"
-  showKanaeleView();
-  $suche.focus(); // direkt lostippen
+  schliesseTafel();
+  HomeRaumDom.neuAusrichten(); // init hat im versteckten #home gemessen
+  if (ziel === 'regal' || !raumPasst()) zeigeRegal(true);
+  else zeigeRaum();
   oeffnenAusstehend = true; // vorne die erste CD der frischen Reihe
   offlineAnsicht = null;
   rueckseite = null;
@@ -102,7 +145,7 @@ function openHome() {
 function closeHome() {
   // Laufwerk beenden (ein wartendes ladeWert laeuft so zu Ende statt zu haengen)
   if (laufwerk.laeuft) laufwerk.geladen(false);
-  HomeBuehneDom.versteckeLaufwerk();
+  HomeRaumDom.versteckeAblauf();
   $home.classList.add('hidden');
   document.body.classList.remove('home-offen');
   punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
@@ -137,12 +180,7 @@ async function ladeKanaele() {
   // der beste Treffer, beim Aktualisieren ohne Sprung.
   const frisch = oeffnenAusstehend;
   if (frisch) {
-    const live = reihe();
-    buehne.oeffnen(live);
-    // Riesen-Namen nur einmal je Oeffnen (Neubau startet die Laufbaender neu).
-    const offlineFavs = abschnittKanaele(HomeListe.abschnitte({ kanaele, nadel: '' }), 'offline').filter((k) => k.favorit);
-    namenAuswahl = HomeBuehne.namenAuswahl(live, offlineFavs);
-    HomeBuehneDom.zeichneNamen(namenAuswahl);
+    buehne.oeffnen(reihe());
     oeffnenAusstehend = false;
   } else buehne.aktualisieren(reihe());
   wendeSucheAn(frisch);
@@ -174,16 +212,16 @@ function huellenText() {
     const r = HomeListe.abschnitte({ kanaele, nadel: n });
     if (r.keineEigenen) return 'Keine eigenen Kanäle passen';
     const live = abschnittKanaele(r, 'favoriten').length + abschnittKanaele(r, 'live').length;
-    if (!live && abschnittKanaele(r, 'offline').length) return 'Kein Live-Treffer – unten im Ständer';
+    if (!live && abschnittKanaele(r, 'offline').length) return 'Kein Live-Treffer – unten im Regal';
   }
   if (!kanaele.length) return 'Noch keine Kanäle – oben suchen und mit ☆ merken';
   return 'Gerade spielt niemand';
 }
 
-// Laden aus Home (▶, Cover, Track, Staender, Enter). Mit Kanal und Effekten
-// an: Laufwerk-Ablauf (Schublade, Terminal) parallel zum Laden; Home schliesst,
-// wenn beides fertig ist. Erfolg -> Suche leeren und schliessen; Fehler ->
-// Laufwerk weg, Hinweiszeile.
+// Laden aus Home (Auflegen, VOD, Regal, Enter). Mit Kanal und Animationen
+// an: Ablauf (ueberspringbar) parallel zum Laden; Home schliesst, wenn beides
+// fertig ist. Erfolg -> Suche leeren und schliessen; Fehler -> Ablauf weg,
+// Hinweiszeile.
 function effekteAus() { return document.documentElement.dataset.animationen === 'aus'; }
 async function ladeWert(wert, kanal) {
   if (ladenLaeuft || laufwerk.laeuft) return; // Doppelklick / Enter waehrend des Ladens
@@ -193,7 +231,7 @@ async function ladeWert(wert, kanal) {
   const fertig = new Promise((r) => { ende = r; });
   if (mitLaufwerk) {
     laufwerk.start((ok) => ende(ok));
-    HomeBuehneDom.zeigeLaufwerk(kanal);
+    HomeRaumDom.zeigeAblauf(kanal, () => laufwerk.ueberspringen());
   }
   let r;
   try { r = await window.twitchDual.submitLoad(wert); } catch (e) { r = { ok: false, error: e.message || String(e) }; }
@@ -201,8 +239,8 @@ async function ladeWert(wert, kanal) {
   const ok = !!(r && r.ok);
   if (mitLaufwerk) {
     laufwerk.geladen(ok);
-    await fertig; // Mindestdauer der Animation abwarten
-    HomeBuehneDom.versteckeLaufwerk();
+    await fertig; // Mindestdauer der Animation abwarten (oder uebersprungen)
+    HomeRaumDom.versteckeAblauf();
   }
   if (ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
   $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
@@ -215,7 +253,7 @@ function kanalZu(login) {
   return kanaele.find((x) => x.login === login) || (twitch.channels || []).find((x) => x.login === login) || { login };
 }
 
-// Handler fuer HomeBuehneDom.
+// Handler fuer die vordere Platte (HomeRaumDom.zeichneBuehne).
 const buehnenHandler = {
   laden: (login) => ladeWert(login, kanalZu(login)),
   // Offline-Marke der Buehne nicht in kanaele uebernehmen
@@ -251,15 +289,15 @@ const staenderHandler = {
   stern: (k) => sternUmschalten(k),
 };
 
-// Ein Schritt (Mausrad, ↑/↓): erst Offline-Ansicht, dann Rueckseite
-// schliessen, sonst blaettern.
+// Ein Schritt (↑/↓): erst Offline-Ansicht, dann Rueckseite schliessen, sonst
+// blaettern. Das Mausrad blaettert die Faecher selbst (home-raum-dom.js).
 function schritt(r) {
   if (offlineAnsicht) offlineAnsicht = null;
   else if (rueckseite) rueckseite = null;
   else if (!buehne.blaettern(r)) {
-    // Ende der Live-Reihe: Staender weiterschieben, damit die Offline- und
-    // Twitch-Alben dahinter erreichbar sind (keine sichtbare Scrollleiste).
-    $staender.scrollBy({ left: r * $staender.clientWidth * 0.6, behavior: 'smooth' });
+    // Ende der Live-Reihe: unteres Fach weiterschieben, damit die Offline-
+    // und Twitch-Platten dahinter erreichbar sind.
+    HomeRaumDom.fachBlaettern('offline', r);
     return;
   }
   renderHome();
@@ -319,36 +357,20 @@ punkteAbruf.beiStand((login, s) => {
 
 function zeichneHuelle() {
   const g = gezeigt();
-  HomeBuehneDom.zeichneBuehne({
+  HomeRaumDom.zeichneBuehne({
     kanal: g.kanal, modus: g.modus,
     rueckseite: g.kanal ? rueckseite : null,
     punkte: g.kanal ? stickerStand : null,
     leerText: g.kanal ? null : huellenText(),
     ladend: !geladen,
   }, buehnenHandler);
-  // Gleicher Name -> zeichneMitte tut nichts; leere Huelle -> leer.
-  HomeBuehneDom.zeichneMitte(g.kanal ? (g.kanal.displayName || g.kanal.login) : null);
 }
 
-// Mittelzeile der Riesen-Namen auf Hoehe der CD-Mitte setzen (CSS-Variable
-// an #home-namen). Nur Lesen von zwei Rechtecken, kein Neubau.
-function setzeMitteY() {
-  if ($home.classList.contains('hidden')) return;
-  const h = $huelle.getBoundingClientRect();
-  const n = $namen.getBoundingClientRect();
-  if (!h.height || !n.height) return;
-  $namen.style.setProperty('--mitte-y', Math.round(h.top + h.height / 2 - n.top) + 'px');
+// Fernseher im Raum: Vorschau des laufenden Live-Kanals, sonst aus.
+function zeichneTv() {
+  const l = window.laeuftEtwas ? window.laeuftEtwas() : null;
+  HomeRaumDom.setzeTv(l && l.mode === 'live' && l.login ? { vorschauUrl: HomeBuehne.vorschauUrl(l.login, Date.now()) } : null);
 }
-// Neu messen, wenn sich Buehne, Huelle oder Info-Block in der Groesse aendern
-// (schmales Layout: Info-Text verschiebt die Huelle) und nach dem Wachsen der
-// Huelle (VOD-Rueckseite, 400 ms Uebergang).
-if (typeof ResizeObserver === 'function') {
-  const ro = new ResizeObserver(setzeMitteY);
-  ro.observe($buehneFlaeche);
-  ro.observe($huelle);
-  ro.observe(document.getElementById('cd-info'));
-}
-$huelle.addEventListener('transitionend', (e) => { if (e.target === $huelle) setzeMitteY(); });
 
 // Vorschaubilder der Nachbar-CDs in den Cache holen (Blaettern ohne Warten).
 function vorladen() {
@@ -369,25 +391,18 @@ function renderHome() {
   if (schluessel !== angezeigt) {
     // Merker zuerst: punkteAbruf.vorne ruft aus dem Speicher sofort zurueck
     // und zeichnet dabei neu.
-    const vorher = angezeigt;
     angezeigt = schluessel;
     // Nur ein echter Kanalwechsel dreht die Rueckseite zu (nicht live -> markiert).
     if (rueckseite && rueckseite.schluessel !== loginVon(schluessel)) rueckseite = null;
     stickerStand = null; // auch bei live -> markiert: markierte CD hat keinen Sticker
-    // Andere CD: Schlitten faehrt rein, Inhalt tauscht, faehrt wieder raus.
-    if (vorher && schluessel && loginVon(vorher) !== g.kanal.login) {
-      HomeBuehneDom.cdWechsel(zeichneHuelle);
-    }
     punkteAbruf.vorne(g.kanal && g.modus === 'live' ? g.kanal.login : null);
-    // Mittelzeile der Riesen-Namen: zeichnet zeichneHuelle, also beim
-    // CD-Wechsel erst im Tausch - Name und Cover wechseln zusammen.
   }
-  // Waehrend der Schlitten in der Huelle ist, tauscht cdWechsel den Inhalt.
-  if (!HomeBuehneDom.cdWechselLaeuft()) zeichneHuelle();
-  HomeBuehneDom.zeichneStaender(staenderEintraege(), g.kanal ? g.kanal.login : null, staenderHandler);
+  zeichneHuelle();
+  HomeRaumDom.zeichneStaender(staenderEintraege(), g.kanal ? g.kanal.login : null, staenderHandler);
+  zeichneTv();
   vorladen();
   renderHinweis();
-  setzeMitteY();
+  zeigeZurueckKnopf();
 }
 
 // Staender: ohne Suche alle Live-CDs der Buehne und die Offline-Favoriten;
@@ -498,10 +513,8 @@ function emptyMsg(text) {
 function buildVodCard(v) {
   const card = document.createElement('div');
   card.className = 'vod';
-  card.addEventListener('click', () => {
-    window.twitchDual.submitLoad(v.id);
-    closeHome();
-  });
+  // Ohne Ablauf (kein Kanal); Fehler zeigt die Hinweiszeile.
+  card.addEventListener('click', () => ladeWert(v.id, null));
 
   const thumbwrap = document.createElement('div');
   thumbwrap.className = 'thumbwrap';
@@ -540,8 +553,6 @@ $homeBtn.addEventListener('click', () => {
   if ($home.classList.contains('hidden')) openHome();
   else closeHomeResume();
 });
-$homeClose.addEventListener('click', closeHomeResume);
-$homeBack.addEventListener('click', showKanaeleView);
 $refreshBtn.addEventListener('click', ladeKanaele);
 $suche.addEventListener('input', sucheGetippt);
 // Enter: Reihenfolge in HomeListe.enterZiel (VOD > eigener Kanal > Twitch-
@@ -576,44 +587,98 @@ $suche.addEventListener('keydown', async (e) => {
     ladeWert(z.wert, /^[a-z0-9_]{2,25}$/.test(login) && !/^v?\d{4,}$/.test(login) ? kanalZu(login) : null);
   }
 });
-$buehneFlaeche.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const r = rad.eingabe(e.deltaY, e.deltaMode, performance.now());
-  if (r) schritt(r);
-}, { passive: false });
-// Staender: Mausrad blaettert wie auf der Buehne (Auswahl scrollt in Sicht);
-// waagerechtes Rad (Touchpad) scrollt den Staender selbst.
-$staender.addEventListener('wheel', (e) => {
-  if (!e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-  e.preventDefault();
-  const r = rad.eingabe(e.deltaY, e.deltaMode, performance.now());
-  if (r) schritt(r);
-}, { passive: false });
-// Fuer die Leiste im Video-Fenster: Klick auf die Infos / Strg+L.
+// Fuer die Leiste im Video-Fenster: Klick auf die Infos / Strg+L -> Regal
+// mit Fokus im Suchfeld.
 window.homeMitSuche = () => {
-  if ($home.classList.contains('hidden')) openHome();
-  else showKanaeleView();
+  if ($home.classList.contains('hidden')) openHome('regal');
+  else { schliesseTafel(); zeigeRegal(false); }
   $suche.focus();
   $suche.select();
 };
 
-// Tasten auf Home: ↑/↓ blaettern wie das Rad (nicht in der alten VOD-Ansicht),
-// Esc geht schrittweise zurueck: VOD-Ansicht > Offline-Ansicht > Rueckseite > schliessen.
+// --- Klick im Raum -------------------------------------------------------------
+// Was liegt gerade auf? Kanalname (Anzeigename, wenn bekannt), bei VOD "VOD".
+function aufgelegt() {
+  const l = window.laeuftEtwas ? window.laeuftEtwas() : null;
+  if (!l) return null;
+  if (l.mode !== 'live' || !l.login) return 'VOD';
+  const k = kanalZu(l.login);
+  return k.displayName || k.login;
+}
+
+// Tafel "Licht": Schalter Animationen (wie im ⚙-Fenster des Chats).
+let $licht = null;
+let $lichtAnimationen = null;
+function lichtInhalt() {
+  if (!$licht) {
+    $licht = document.createElement('div');
+    $licht.className = 'licht-inhalt';
+    const zeile = document.createElement('label');
+    $lichtAnimationen = document.createElement('input');
+    $lichtAnimationen.type = 'checkbox';
+    $lichtAnimationen.addEventListener('change', () => {
+      window.twitchDual.saveThemePrefs({ animationen: $lichtAnimationen.checked });
+    });
+    zeile.append($lichtAnimationen, ' Animationen');
+    const satz = document.createElement('p');
+    satz.textContent = 'Weitere Einstellungen: ⚙ im Chat';
+    $licht.append(zeile, satz);
+  }
+  $lichtAnimationen.checked = !effekteAus();
+  return $licht;
+}
+
+function beiFlaeche(id) {
+  if (id === 'regal') zeigeRegal(true);
+  else if (id === 'fernseher') {
+    if (window.laeuftEtwas && window.laeuftEtwas()) closeHomeResume();
+    else HomeRaumDom.zeigeSchild('Nichts geladen');
+  } else if (id === 'plattenspieler') HomeRaumDom.zeigeSchild(aufgelegt() || 'Leer');
+  else if (id === 'bild') HomeRaumDom.zeigeTafel('konto', $authBar);
+  else if (id === 'lampe') HomeRaumDom.zeigeTafel('licht', lichtInhalt());
+  zeigeZurueckKnopf();
+}
+
+HomeRaumDom.init({
+  beiFlaeche,
+  beiSchliessen: closeHomeResume,
+  beiZurueck: zurueckSchritt,
+  beiTafelZu: showKanaeleView, // ✕ der Tafel: "Alle VODs"-Zustand zuruecksetzen
+});
+
+window.addEventListener('resize', () => {
+  if ($home.classList.contains('hidden')) return;
+  HomeRaumDom.neuAusrichten();
+  // Fenster zu klein fuer den Raum: Regal (ohne Fokus zu stehlen)
+  if (HomeRaumDom.ansicht() === 'raum' && !raumPasst()) zeigeRegal(false);
+  else zeigeZurueckKnopf();
+});
+
+// Tasten auf Home: ↑/↓ blaettern in der Regal-Ansicht (nicht bei offener
+// Tafel); Esc geht schrittweise zurueck (zurueckSchritt), zuletzt schliessen.
+// Im Raum wechselt ein Buchstabe oder eine Ziffer ins Regal und landet im
+// Suchfeld (ersetzt einen alten Suchtext, wie Strg+L).
 document.addEventListener('keydown', (e) => {
   if ($home.classList.contains('hidden')) return;
-  const vodAnsicht = !$vodView.classList.contains('hidden');
+  const tafel = HomeRaumDom.tafelOffen();
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    if (vodAnsicht || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (tafel || HomeRaumDom.ansicht() !== 'regal' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault(); // im Suchfeld sonst Cursor an Anfang/Ende
     schritt(e.key === 'ArrowDown' ? 1 : -1);
     return;
   }
-  if (e.key !== 'Escape') return;
-  escZaehler += 1; // bricht ein wartendes Enter ab
-  if (vodAnsicht) showKanaeleView();
-  else if (offlineAnsicht) { offlineAnsicht = null; rueckseite = null; renderHome(); }
-  else if (rueckseite) { rueckseite = null; renderHome(); }
-  else closeHomeResume();
+  if (e.key === 'Escape') {
+    escZaehler += 1; // bricht ein wartendes Enter ab
+    if (!zurueckSchritt()) closeHomeResume();
+    return;
+  }
+  if (!tafel && HomeRaumDom.ansicht() === 'raum' && !e.ctrlKey && !e.altKey && !e.metaKey &&
+      /^[\p{L}\p{N}]$/u.test(e.key)) {
+    e.preventDefault();
+    zeigeRegal(true);
+    $suche.value = e.key;
+    sucheGetippt();
+  }
 });
 
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen - ausser

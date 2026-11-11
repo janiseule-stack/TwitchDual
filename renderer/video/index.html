@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="../themes/cozy/farben.css" />
   <link rel="stylesheet" href="../themes/cozy/raum.css" />
   <link rel="stylesheet" href="home.css" />
+  <link rel="stylesheet" href="home-raum.css" />
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -134,10 +135,6 @@
       padding: 6px 10px; font-size: 12px; cursor: pointer;
     }
     #video-exit:hover { background: rgba(0, 0, 0, .85); }
-    /* Home: die Riesen-Namen liegen unter dem Home-Inhalt. */
-    #home > :not(#home-version):not(#home-namen) { position: relative; z-index: 1; }
-    #home > #home-namen { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    #home-title, #cd-info .cd-name, #home-namen { font-family: var(--schrift-titel, inherit); }
     /* Updater in der Leiste: Fortschritt, dann "Neu starten" als Knopf */
     #update-chip {
       padding: 3px 9px; margin-right: 6px; border-radius: 0; font: inherit; font-size: 11px;
@@ -206,14 +203,14 @@
     <div id="hint">☰ Home öffnen und einen Kanal wählen.</div>
   </div>
 
-  <!-- Home-Overlay: Favoriten (Live-Status) + VOD-Browser -->
+  <!-- Home-Overlay: Raum und Regal (home-raum-dom.js baut beide Ansichten,
+       die Knoepfe-Leiste, die Tafel und den Ablauf davor ein). ✕/← haengt
+       HomeRaumDom.init in #home-knoepfe um, die Suchzeile in den Such-Zettel;
+       #home-title, #auth-bar und #home-vod-view erscheinen nur in der Tafel. -->
   <div id="home" class="hidden">
-    <div id="home-namen" aria-hidden="true"></div>
-    <div id="home-head">
-      <button id="home-back" class="hidden">← Zurück</button>
-      <span id="home-title">Home</span>
-      <button id="home-close" title="Schließen">✕</button>
-    </div>
+    <button id="home-back" class="hidden" title="Zurück">←</button>
+    <button id="home-close" title="Schließen">✕</button>
+    <span id="home-title">Home</span>
 
     <div id="auth-bar">
       <span id="auth-state">Nicht angemeldet</span>
@@ -221,29 +218,16 @@
       <button id="auth-logout" type="button" class="hidden">Abmelden</button>
     </div>
 
+    <!-- Behaelter der Regal-Ansicht: sichtbar, solange "Alle VODs" zu ist
+         (daran haengt der 60-s-Refresh). Die Suchzeile wandert in den Such-Zettel. -->
     <div id="home-kanaele">
       <div id="home-such-zeile">
         <input id="home-suche" type="text" placeholder="Kanäle suchen (Name, Spiel, Titel) …" autocomplete="off" />
         <button id="refresh-btn" title="Aktualisieren">⟳</button>
       </div>
-      <div id="home-hinweis" class="empty hidden"></div>
-      <div id="home-buehne">
-        <div id="cd-huelle" tabindex="0">
-          <!-- Schlitten verschiebt, Flip dreht um die senkrechte Achse (Silber -> Label),
-               die Seiten drehen sich selbst - drei Elemente, drei transforms. -->
-          <div class="cd-schlitten"><div class="cd-flip">
-            <div class="cd-seite cd-silber"><div class="cd-regenbogen"></div></div>
-            <div class="cd-seite cd-label"><div class="cd-label-bild"></div></div>
-          </div></div>
-          <div class="cd-front"></div>
-          <div class="cd-rueck"></div>
-        </div>
-        <div id="cd-info"></div>
-        <!-- Laufwerk beim Abspielen: Schublade, CD, Terminal (home-buehne-dom.js) -->
-        <div id="cd-laufwerk" class="hidden" aria-hidden="true"></div>
-      </div>
-      <div id="home-staender"></div>
     </div>
+    <!-- Hinweiszeile: auch ueber der Tafel sichtbar (Ladefehler aus "Alle VODs") -->
+    <div id="home-hinweis" class="empty hidden"></div>
 
     <div id="home-vod-view" class="hidden">
       <div id="vod-list"></div>
@@ -261,8 +245,9 @@
   <script src="../lib/anmeldung.js"></script>
   <script src="../lib/home-buehne.js"></script>
   <script src="../lib/home-punkte.js"></script>
+  <script src="../lib/raum.js"></script>
   <script src="video.js"></script>
-  <script src="home-buehne-dom.js"></script>
+  <script src="home-raum-dom.js"></script>
   <script src="home.js"></script>
 </body>
 </html>

@@ -208,7 +208,7 @@ document.addEventListener('keydown', (e) => {
   const t = e.target;
   const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (inField) return;
-  // Knopf auf Home (Huelle, Staender): Leertaste loest den Knopf aus, pausiert nicht.
+  // Knopf auf Home (Platte, Zettel): Leertaste loest den Knopf aus, pausiert nicht.
   const homeKnopf = t && t.closest && t.closest('#home') &&
     (t.tagName === 'BUTTON' || t.getAttribute('role') === 'button');
   if (homeKnopf) return;
@@ -319,7 +319,7 @@ function sendeBalken() {
     try { f.contentWindow.postMessage({ source: 'twitchdual-theme', balken: balkenFarbe }, '*'); } catch (e) { /* egal */ }
   }
 }
-// Home-Buehne: Animationen "aus" -> Namen stehen, CD dreht nicht (home.css).
+// Animationen "aus" -> data-animationen="aus" (Home liest es beim Auflegen).
 function applyTheme(prefs) {
   document.documentElement.dataset.animationen = ThemeLib.cleanThemePrefs(prefs).animationen ? 'an' : 'aus';
   sendeBalken();
@@ -386,6 +386,8 @@ const $siAvatar = document.getElementById('si-avatar');
 const $siOben = document.getElementById('si-oben');
 const $siUnten = document.getElementById('si-unten');
 let infoQuelle = null;   // { mode, wert } der geladenen Quelle
+// Auskunft fuer Home (Fernseher, Plattenspieler): was laeuft gerade?
+window.laeuftEtwas = () => infoQuelle ? { mode: infoQuelle.mode, login: infoQuelle.mode === 'live' ? infoQuelle.wert : null } : null;
 let info = null;         // angezeigte Infos (Titel/Spiel nur alle 5 min erneuert)
 let titelZeit = 0;       // wann Titel/Spiel zuletzt uebernommen wurden
 let infoLauf = 0;        // verwirft verspaetete Antworten
