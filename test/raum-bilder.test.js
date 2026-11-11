@@ -109,7 +109,21 @@ test('raum-tv-aus.png hat kein Gruen mehr', () => {
   assert.strictEqual(zaehleGruen(dekodiere(lade('raum-tv-aus.png'))), 0);
 });
 
-test('raum-tv-aus.png ist ausserhalb der gruenen Pixel gleich raum.png', () => {
+// gelbWeg (leben.json, Janis: Regen ohne Gelb): gelbliche Pixel kuehl einfaerben,
+// gleiche Regel wie tools/raum-bilder.py (int() = Math.trunc, Werte sind >= 0).
+function gelbWeg(p) {
+  const [r, g, b, a] = p;
+  if (r - b > 5 && Math.abs(r - g) < 25) {
+    const l = 0.3 * r + 0.59 * g + 0.11 * b;
+    if (l < 130) return [Math.trunc(l * 0.82), Math.trunc(l * 0.95), Math.min(255, Math.trunc(l * 1.2)), a];
+  }
+  return [r, g, b, a];
+}
+const LEBEN_JSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', 'leben.json'), 'utf8'));
+const GELB_WEG = LEBEN_JSON.home.animationen.filter((a) => a.gelbWeg).map((a) => a.gelbWeg);
+const inGelbWeg = (x, y) => GELB_WEG.some((r) => x >= r.x && x < r.x + r.b && y >= r.y && y < r.y + r.h);
+
+test('raum-tv-aus.png ist ausserhalb der gruenen Pixel gleich raum.png (im gelbWeg-Rechteck kuehl eingefaerbt)', () => {
   const raum = dekodiere(lade('raum.png'));
   const aus = dekodiere(lade('raum-tv-aus.png'));
   assert.strictEqual(aus.w, raum.w);
@@ -117,12 +131,30 @@ test('raum-tv-aus.png ist ausserhalb der gruenen Pixel gleich raum.png', () => {
   let geprueft = 0;
   for (let i = 0; i < raum.px.length; i += 4) {
     if (raum.px[i + 1] > 200 && raum.px[i] < 90) continue;
+    const n = i / 4;
+    const soll = inGelbWeg(n % raum.w, Math.floor(n / raum.w))
+      ? gelbWeg([raum.px[i], raum.px[i + 1], raum.px[i + 2], raum.px[i + 3]])
+      : [raum.px[i], raum.px[i + 1], raum.px[i + 2], raum.px[i + 3]];
     for (let k = 0; k < 4; k++) {
-      if (aus.px[i + k] !== raum.px[i + k]) assert.fail('Pixel ' + (i / 4) + ' weicht ab');
+      if (aus.px[i + k] !== soll[k]) assert.fail('Pixel ' + n + ' weicht ab');
     }
     geprueft++;
   }
   assert.ok(geprueft > 0);
+});
+
+test('gelbWeg: im Rechteck bleibt kein gelblicher Pixel in raum-tv-aus.png', () => {
+  assert.ok(GELB_WEG.length > 0);
+  const aus = dekodiere(lade('raum-tv-aus.png'));
+  for (const r of GELB_WEG) {
+    for (let y = r.y; y < r.y + r.h; y++) {
+      for (let x = r.x; x < r.x + r.b; x++) {
+        const i = (y * aus.w + x) * 4;
+        const p = [aus.px[i], aus.px[i + 1], aus.px[i + 2], aus.px[i + 3]];
+        assert.deepStrictEqual(gelbWeg(p), p, `${x},${y} noch gelblich`);
+      }
+    }
+  }
 });
 
 test('huelle-rueck.png ist die PixelLab-Quelle aus tools/raum-quellen/', () => {
@@ -339,13 +371,150 @@ for (const a of LEBEN.home.animationen) {
             deckend++;
             if (!q) continue;
             const j = ((z.y - a.quelle.y + y) * q.w + (z.x - a.quelle.x + x)) * 4;
-            for (let k = 0; k < 4; k++) if (s.px[i + k] !== q.px[j + k]) assert.fail(`Bild ${f} Pixel ${x},${y} weicht von der Quelle ab`);
+            const roh = [q.px[j], q.px[j + 1], q.px[j + 2], q.px[j + 3]];
+            const soll = a.gelbWeg && inGelbWeg(z.x + x, z.y + y) ? gelbWeg(roh) : roh;
+            for (let k = 0; k < 4; k++) if (s.px[i + k] !== soll[k]) assert.fail(`Bild ${f} Pixel ${x},${y} weicht von der Quelle ab`);
           }
         }
       }
       assert.ok(deckend > 0, 'kein Bild hat deckende Pixel');
     });
   }
+}
+
+// --- Etappe 3, Task 6: Chat-Streifen ------------------------------------------------
+// Glasmaske: Flutfuellung ueber die gemessenen Glasfarben (Saat + jede weitere Scheibe),
+// 344x72, deckend nur auf Glas. Streifen-Animationen: Bild 0 und unveraenderte Pixel
+// sind auf Glas durchsichtig (Regen/Raid darunter bleiben sichtbar), sonst Standbild.
+const S = LEBEN.streifen;
+const STILL_S = () => dekodiere(lade(S.standbild));
+const inR = (x, y, r) => x >= r.x && x < r.x + r.b && y >= r.y && y < r.y + r.h;
+const ladeQuelle = (name) => {
+  const p = path.join(QUELLEN, name);
+  return fs.existsSync(p) ? dekodiere(fs.readFileSync(p)) : null;
+};
+
+test('streifen-glas-maske.png: 344x72, deckend nur in GLAS, deckt mindestens 50 % davon, Saat deckend', () => {
+  const m = dekodiere(lade('streifen-glas-maske.png'));
+  assert.strictEqual(m.w, 344);
+  assert.strictEqual(m.h, 72);
+  const g = S.glas;
+  let drin = 0;
+  for (let y = 0; y < m.h; y++) {
+    for (let x = 0; x < m.w; x++) {
+      const a = m.px[(y * m.w + x) * 4 + 3];
+      if (a === 0) continue;
+      assert.ok(inR(x, y, g), `${x},${y} deckend ausserhalb GLAS`);
+      assert.strictEqual(a, 255);
+      drin++;
+    }
+  }
+  assert.ok(drin >= 0.5 * g.b * g.h, drin + ' von ' + g.b * g.h);
+  assert.strictEqual(m.px[(g.saat.y * m.w + g.saat.x) * 4 + 3], 255, 'Saat');
+});
+
+test('streifen-glas-maske.png: Rahmen und Sprossen sind durchsichtig, die Scheiben deckend', () => {
+  const m = dekodiere(lade('streifen-glas-maske.png'));
+  const a = (x, y) => m.px[(y * m.w + x) * 4 + 3];
+  // Sprossen zwischen den Scheiben, Querholz oben, Fensterbank unten (gemessen in streifen.png)
+  for (const [x, y] of [[131, 30], [133, 40], [213, 30], [214, 20], [170, 10], [120, 11], [170, 54], [150, 55]]) {
+    assert.strictEqual(a(x, y), 0, `Rahmen ${x},${y}`);
+  }
+  // linke, mittlere, rechte Scheibe
+  for (const [x, y] of [[115, 30], [170, 30], [228, 30]]) assert.strictEqual(a(x, y), 255, `Glas ${x},${y}`);
+});
+
+for (const a of S.animationen) {
+  for (const datei of a.dateien) {
+    const name = `leben-streifen-${datei}.png`;
+    const z = a.ziel;
+    test(`${name}: ${a.bilder} Bilder je ${z.b}x${z.h}; deckend = Standbild oder PixelLab, durchsichtig nur auf Glas`, () => {
+      const s = dekodiere(lade(name));
+      assert.strictEqual(s.w, a.bilder * z.b);
+      assert.strictEqual(s.h, z.h);
+      const still = STILL_S();
+      const m = dekodiere(lade('streifen-glas-maske.png'));
+      let bewegt = 0;
+      for (let f = 0; f < a.bilder; f++) {
+        const q = f === 0 ? null : ladeQuelle(`leben-streifen-${datei}-${f}.png`);
+        for (let y = 0; y < z.h; y++) {
+          for (let x = 0; x < z.b; x++) {
+            const i = (y * s.w + f * z.b + x) * 4;
+            const ax = z.x + x, ay = z.y + y;
+            const j = (ay * still.w + ax) * 4;
+            if (s.px[i + 3] === 0) {
+              assert.strictEqual(m.px[j + 3], 255, `Bild ${f} ${x},${y} durchsichtig, aber kein Glas`);
+              continue;
+            }
+            let gleichStill = true;
+            for (let k = 0; k < 4; k++) if (s.px[i + k] !== still.px[j + k]) gleichStill = false;
+            if (f === 0) { assert.ok(gleichStill, `Bild 0 ${x},${y} weicht vom Standbild ab`); continue; }
+            if (gleichStill) continue;
+            bewegt++;
+            if (!q) continue;
+            const jq = ((ay - a.quelle.y) * q.w + (ax - a.quelle.x)) * 4;
+            for (let k = 0; k < 4; k++) if (s.px[i + k] !== q.px[jq + k]) assert.fail(`Bild ${f} ${x},${y} weicht von der Quelle ab`);
+          }
+        }
+      }
+      assert.ok(bewegt > 0, 'kein Bild bewegt sich');
+    });
+  }
+}
+
+test('leben-kiste.png: Bildstreifen wie die Streifen-Animationen, Bild 0 = Standbild', () => {
+  const k = S.kiste;
+  const z = k.ziel;
+  const s = dekodiere(lade('leben-kiste.png'));
+  assert.strictEqual(s.w, k.bilder * z.b);
+  assert.strictEqual(s.h, z.h);
+  const still = STILL_S();
+  const m = dekodiere(lade('streifen-glas-maske.png'));
+  let bewegt = 0;
+  for (let f = 0; f < k.bilder; f++) {
+    const q = f === 0 ? null : ladeQuelle(`leben-streifen-${k.datei}-${f}.png`);
+    for (let y = 0; y < z.h; y++) {
+      for (let x = 0; x < z.b; x++) {
+        const i = (y * s.w + f * z.b + x) * 4;
+        const ax = z.x + x, ay = z.y + y;
+        const j = (ay * still.w + ax) * 4;
+        if (s.px[i + 3] === 0) { assert.strictEqual(m.px[j + 3], 255, `Bild ${f} ${x},${y}`); continue; }
+        let gleich = true;
+        for (let c = 0; c < 4; c++) if (s.px[i + c] !== still.px[j + c]) gleich = false;
+        if (f === 0) { assert.ok(gleich, `Bild 0 ${x},${y}`); continue; }
+        if (gleich) continue;
+        bewegt++;
+        if (!q) continue;
+        const jq = ((ay - k.quelle.y) * q.w + (ax - k.quelle.x)) * 4;
+        for (let c = 0; c < 4; c++) if (s.px[i + c] !== q.px[jq + c]) assert.fail(`Bild ${f} ${x},${y} weicht von der Quelle ab`);
+      }
+    }
+  }
+  assert.ok(bewegt > 100, 'Kiste bewegt sich kaum');
+});
+
+for (const datei of S.raid.dateien) {
+  test(`leben-${datei}.png: Gehzyklus ${S.raid.bilder} Bilder je ${S.raid.b}x${S.raid.h}, Bild k = PixelLab-Bild k`, () => {
+    const r = S.raid;
+    const s = dekodiere(lade(`leben-${datei}.png`));
+    assert.strictEqual(s.w, r.bilder * r.b);
+    assert.strictEqual(s.h, r.h);
+    let deckend = 0;
+    for (let f = 0; f < r.bilder; f++) {
+      const q = ladeQuelle(`leben-streifen-${datei}-${f}.png`);
+      for (let y = 0; y < r.h; y++) {
+        for (let x = 0; x < r.b; x++) {
+          const i = (y * s.w + f * r.b + x) * 4;
+          if (s.px[i + 3] > 0) deckend++;
+          if (!q) continue;
+          const j = (y * q.w + x) * 4;
+          if (q.px[j + 3] === 0) { assert.strictEqual(s.px[i + 3], 0, `Bild ${f} ${x},${y}`); continue; }
+          for (let c = 0; c < 4; c++) if (s.px[i + c] !== q.px[j + c]) assert.fail(`Bild ${f} ${x},${y} weicht ab`);
+        }
+      }
+    }
+    assert.ok(deckend > r.bilder * 50, 'Figur fehlt');
+  });
 }
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {

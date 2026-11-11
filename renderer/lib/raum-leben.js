@@ -21,11 +21,40 @@
   // tools/raum-quellen/leben.json (ein Test prueft die Gleichheit). Takt aus TAKT[id].
   // Mehrere Dateien: jeder Auftritt waehlt eine per Zufall (RaumLebenDom).
   const HOME = Object.freeze([
-    Object.freeze({ id: 'regen', x: 40, y: 20, b: 48, h: 76, bilder: 13, dateien: Object.freeze(['regen']) }),
+    Object.freeze({ id: 'regen', x: 40, y: 20, b: 48, h: 76, bilder: 9, dateien: Object.freeze(['regen']) }),
     Object.freeze({ id: 'katze', x: 146, y: 114, b: 48, h: 40, bilder: 9, dateien: Object.freeze(['katze1', 'katze2']) }),
     Object.freeze({ id: 'dampf', x: 186, y: 144, b: 32, h: 44, bilder: 13, dateien: Object.freeze(['dampf']) }),
     Object.freeze({ id: 'lampe', x: 150, y: 0, b: 60, h: 56, bilder: 9, dateien: Object.freeze(['lampe']) }),
   ]);
+
+  // Chat-Streifen (Task 6): Zielflaechen in Bildpixeln von streifen.png, Bildstreifen
+  // leben-streifen-<datei>.png; alles wie in tools/raum-quellen/leben.json (Test).
+  const STREIFEN = Object.freeze([
+    Object.freeze({ id: 'regen', x: 104, y: 0, b: 137, h: 58, bilder: 9, dateien: Object.freeze(['regen']) }),
+    Object.freeze({ id: 'katze', x: 188, y: 36, b: 46, h: 28, bilder: 13, dateien: Object.freeze(['katze1', 'katze2']) }),
+    Object.freeze({ id: 'lampe', x: 290, y: 30, b: 52, h: 42, bilder: 9, dateien: Object.freeze(['lampe']) }),
+  ]);
+  // Fensterglas im Streifen; die Raid-Ebene liegt darueber, maskiert mit streifen-glas-maske.png.
+  const GLAS = Object.freeze({ x: 104, y: 0, b: 137, h: 56 });
+  // Kanalpunkte-Kiste: Katze bringt eine Muenze (leben-kiste.png), spielt einmal.
+  const KISTE = Object.freeze({ x: 178, y: 18, b: 76, h: 46, bilder: 17, msProBild: 200 });
+  // Raid: Leute mit Schirm (Gehzyklus leben-<datei>.png, Figuren abwechselnd) ruecken je
+  // Gehbild um pxProBild vor; y = Oberkante der Figur, versatzMs = Abstand der Figuren.
+  const RAID = Object.freeze({
+    bilder: 9, b: 32, h: 32, msProBild: 125, y: 22, pxProBild: 2, versatzMs: 1500,
+    dateien: Object.freeze(['raid1', 'raid2']),
+  });
+
+  // Schritte einer Figur: von ganz links ausserhalb (-RAID.b) bis ganz rechts hinaus (GLAS.b).
+  function raidSchritte() {
+    return Math.ceil((GLAS.b + RAID.b) / RAID.pxProBild);
+  }
+
+  // Dauer eines Raid-Effekts mit n Figuren (1..4); die letzte startet (n-1)*versatzMs spaeter.
+  function raidDauer(n) {
+    const figuren = Number.isInteger(n) && n > 1 ? n : 1;
+    return raidSchritte() * RAID.msProBild + (figuren - 1) * RAID.versatzMs;
+  }
 
   function schirmAnzahl(anzahl) {
     const n = typeof anzahl === 'number' && Number.isFinite(anzahl) ? anzahl : 0;
@@ -99,5 +128,8 @@
     };
   }
 
-  return { DAUER_KISTE, MAX_WARTEND, MAX_ALTER, TAKT, HOME, schirmAnzahl, naechstePause, warteschlange, abspieler };
+  return {
+    DAUER_KISTE, MAX_WARTEND, MAX_ALTER, TAKT, HOME, STREIFEN, GLAS, KISTE, RAID,
+    schirmAnzahl, naechstePause, raidSchritte, raidDauer, warteschlange, abspieler,
+  };
 });

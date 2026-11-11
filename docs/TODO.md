@@ -14,10 +14,12 @@ Entwurf: `docs/superpowers/specs/2026-11-10-cozy-raum-design.md`.
 - `themePrefs` = `{ chatAlpha, animationen }` (gesäubert in `renderer/lib/theme.js`).
 - ⚙ enthält zusätzlich Deckkraft, Animationen und „Ausprobieren“.
 - Kiste fest im Stil `pixel` (der Geschenk-Stil bleibt als ungenutzter Rest
-  in `kiste.js` bis Etappe 3).
-- Abo/Raid nur als Zeile; Vorhersage-Start und „Tipp verloren“ ohne Effekt
-  bis Etappe 3.
-- Der Schalter „Animationen“ wirkt bis Etappe 3 nur auf die Home-Bühne.
+  in `kiste.js`, Aufräumen nach Etappe 3).
+- Abo nur als Zeile (Janis: kein Effekt); Raid seit Etappe 3 zusätzlich als
+  Effekt im Chat-Streifen. Vorhersage-Start und „Tipp verloren“ ohne Effekt
+  (in Etappe 3 nicht vorgesehen).
+- Der Schalter „Animationen“ wirkt auf Home und (seit Etappe 3) auf den
+  Chat-Streifen samt Raid-/Kisten-Effekt.
 
 ### Etappe 1b (eingebaut, wartet auf Janis' Urteil)
 
@@ -136,6 +138,43 @@ Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
   kleinere Dinge“ – alles erst **nach Etappe 3** gesammelt verbessern.
 - **Nächster Schritt:** Etappe 3 (Animationen), danach eine gesammelte
   Verbesserungsrunde mit den Punkten oben.
+
+### Etappe 3 – Leben (eingebaut 11.11., wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-3-leben.md`, Spec
+`docs/superpowers/specs/2026-11-11-cozy-raum-etappe-3-leben-design.md`. Alle
+Bilder aus PixelLab (Janis' Wahl), Orte und Bildzahlen in
+`tools/raum-quellen/leben.json`, aufbereitet von `tools/raum-bilder.py`.
+
+1. Chat-Streifen zeigt immer die ganze Breite und das ganze Fenster
+   (höchstens 30 % der Chat-Höhe, oben beschnitten).
+2. Home lebt (Regen 4 ohne Gelb, Katze 1/2 abwechselnd, Dampf 2, Lampe 1),
+   solange Home offen ist; Regal-Ansicht still.
+3. Chat-Streifen lebt: Regen am Fenster, Katze (zwei Varianten abwechselnd,
+   selten), Lampe flackert selten.
+4. Raid: 1–4 Leute mit Schirm (1–9 / ab 10 / ab 50 / ab 200 Raider) gehen
+   draußen hinter dem Glas von links nach rechts, je Figur ~10,6 s, alle
+   1,5 s die nächste. Sichtbar nur in den Glasscheiben (Maske aus
+   `streifen.png` ausgestanzt).
+5. Kanalpunkte-Kiste (auch Tipp-Gewinn): die Katze bringt eine Münze
+   (17 Bilder, 3,4 s), währenddessen ruht die Katzen-Animation.
+6. Effekte laufen einzeln nacheinander (höchstens 3 wartend, älter als 30 s
+   entfällt). „Animationen aus“ hält alles an, leert die Warteschlange und
+   verwirft neue Ereignisse.
+
+- Offene Optik-Fragen für Janis (Etappe 3):
+  - Takt: Regen 150 ms, Katze 200 ms (Pause 8–20 s), Lampe 125 ms (Pause
+    10–30 s), Raid 125 ms je Gehbild bei 2 px Vorrücken, Kiste 200 ms
+    (`RaumLeben.TAKT`, `leben.json`) – zu schnell/zu langsam?
+  - Raid-Figuren laufen unter den Regentropfen-Bildern (Tropfen vor den
+    Leuten) und verschwinden hinter Sprossen und Katze. Gemalte Regenstriche
+    im Standbild sind aus der Maske ausgenommen, die Figur hat dort kleine
+    Lücken – stört das?
+  - Raid dauert mit 1 Figur ~10,6 s, mit 4 Figuren ~15 s (Spec sagte „etwa 8 s“).
+  - Kiste wird auch beim gewonnenen Tipp gespielt.
+  - Leute laufen nur von links nach rechts (Figuren schauen nach rechts).
+- Bekannt: die Glasmaske wird mit dem Streifen skaliert; je nach Faktor
+  können ihre Kanten leicht weich wirken.
 
 ## Erledigt
 

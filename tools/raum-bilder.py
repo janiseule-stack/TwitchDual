@@ -39,6 +39,11 @@ HUELLE_GROSS_FENSTERFARBE = (241, 237, 225, 255)
 HUELLE_GROSS_LISTE = (19, 30, 90, 70)
 # Leben (Etappe 3): Summe der RGB-Abstaende, ab der ein PixelLab-Pixel als bewegt gilt.
 LEBEN_TOLERANZ = 24
+# Glasmaske im Streifen: RGB-Abstand zu einer gemessenen Glasfarbe (leben.json), bis zu
+# dem ein Pixel als Glas gilt, und kleinste Scheibe (Pixel), die mitgenommen wird.
+GLAS_TOLERANZ = 20
+GLAS_MINDEST = 50
+DURCHSICHTIG = (0, 0, 0, 0)
 
 
 def quelle(name):
@@ -222,34 +227,149 @@ def hover_und_platte(ordner):
     shutil.copyfile(os.path.join(QUELLEN, "schrift-klar.ttf"), os.path.join(ordner, "schrift", "RaumKlar.ttf"))
 
 
+def gelb_weg(p):
+    """Janis: Regen ohne Gelb. Gelbliche Pixel kuehl einfaerben (Regel in leben.json)."""
+    r, g, b, a = p
+    if r - b > 5 and abs(r - g) < 25:
+        l = 0.3 * r + 0.59 * g + 0.11 * b
+        if l < 130:
+            return (int(l * 0.82), int(l * 0.95), min(255, int(l * 1.2)), a)
+    return p
+
+
+def im_rechteck(x, y, r):
+    return r["x"] <= x < r["x"] + r["b"] and r["y"] <= y < r["y"] + r["h"]
+
+
+def bildstreifen(sp, a, name, glas=None, rechteck=None):
+    """Bildstreifen (bilder x ziel.b breit, ziel.h hoch) aus den PixelLab-Bildern
+    name % k (k = 1..bilder-1) gegen das Standbild sp. Ein Pixel gilt als bewegt,
+    wenn sein RGB-Abstand zum Standbild > LEBEN_TOLERANZ ist (Kompressionsrauschen
+    zaehlt nicht); bewegte Pixel kommen unveraendert aus PixelLab.
+    Ohne glas (Home): Bild 0 = Standbild-Ausschnitt, unbewegte Pixel in Bild 1..n
+    durchsichtig. Mit glas (Streifen, Menge der Glaspixel): unbewegte Pixel sind in
+    jedem Bild (auch Bild 0) auf Glas durchsichtig - Regen und Raid darunter bleiben
+    sichtbar - und sonst das Standbild, damit Katze und Rahmen darunterliegende
+    Ebenen verdecken. rechteck = gelbWeg-Rechteck: dort werden die PixelLab-Pixel
+    vor dem Vergleich wie das Standbild eingefaerbt."""
+    q, z, n = a["quelle"], a["ziel"], a["bilder"]
+    streifen = Image.new("RGBA", (n * z["b"], z["h"]), DURCHSICHTIG)
+    st = streifen.load()
+    for k in range(n):
+        bp = quelle(name % k).load() if k > 0 else None
+        for y in range(z["h"]):
+            for x in range(z["b"]):
+                ax, ay = z["x"] + x, z["y"] + y
+                s = sp[ax, ay]
+                if bp is not None:
+                    p = bp[ax - q["x"], ay - q["y"]]
+                    if rechteck is not None and im_rechteck(ax, ay, rechteck):
+                        p = gelb_weg(p)
+                    if sum(abs(p[i] - s[i]) for i in range(3)) > LEBEN_TOLERANZ:
+                        st[k * z["b"] + x, y] = p
+                        continue
+                if glas is None:
+                    if k == 0:
+                        st[x, y] = s
+                elif (ax, ay) not in glas:
+                    st[k * z["b"] + x, y] = s
+    return streifen
+
+
+def glas_maske(still, glas):
+    """Glaspixel des Streifen-Fensters als Menge: Flutfuellung (4er-Nachbarschaft) ab der
+    Saat ueber die gemessenen Glasfarben, nur innerhalb des Glas-Rechtecks. Sprossen
+    teilen das Glas in Scheiben, deshalb wird zusaetzlich jede weitere Scheibe
+    (zusammenhaengende Glasflaeche ab GLAS_MINDEST Pixeln) geflutet. Es werden nur
+    vorhandene Pixel ausgewaehlt (Ausstanzen), nichts gezeichnet."""
+    sp = still.load()
+    farben = [tuple(f) for f in glas["glasfarben"]]
+
+    def ist_glas(x, y):
+        if not im_rechteck(x, y, glas):
+            return False
+        p = sp[x, y]
+        return min(sum(abs(p[i] - f[i]) for i in range(3)) for f in farben) <= GLAS_TOLERANZ
+
+    def flut(start, schon):
+        flaeche = {start}
+        stapel = [start]
+        while stapel:
+            x, y = stapel.pop()
+            for nb in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if nb not in flaeche and nb not in schon and ist_glas(*nb):
+                    flaeche.add(nb)
+                    stapel.append(nb)
+        return flaeche
+
+    saat = (glas["saat"]["x"], glas["saat"]["y"])
+    if not ist_glas(*saat):
+        raise SystemExit("streifen.png: Saatpunkt liegt nicht auf Glas")
+    maske = flut(saat, set())
+    gesehen = set(maske)
+    for y in range(glas["y"], glas["y"] + glas["h"]):
+        for x in range(glas["x"], glas["x"] + glas["b"]):
+            if (x, y) in gesehen or not ist_glas(x, y):
+                continue
+            scheibe = flut((x, y), gesehen)
+            gesehen |= scheibe
+            if len(scheibe) >= GLAS_MINDEST:
+                maske |= scheibe
+    return maske
+
+
 def leben_bilder(ordner):
-    """Etappe 3 (Leben): je Animation und Datei ein Bildstreifen leben-home-<datei>.png
-    (bilder x ziel.b breit, ziel.h hoch) aus den PixelLab-Bildern in leben.json.
-    Bild 0 = ziel-Ausschnitt des Standbilds (ersetzt PixelLabs Bild 0); in Bild 1..n
-    bleiben nur Pixel, die sich vom Standbild-Ausschnitt unterscheiden (RGB-Abstand
-    > LEBEN_TOLERANZ, damit Kompressionsrauschen nicht zaehlt), der Rest wird durchsichtig."""
+    """Etappe 3 (Leben), Orte und Bildzahlen aus leben.json.
+    Home: je Animation und Datei leben-home-<datei>.png (Bild 0 = Standbild-Ausschnitt,
+    ersetzt PixelLabs Bild 0). gelbWeg: im Rechteck werden gelbliche Pixel im Standbild
+    raum-tv-aus.png (wird neu gespeichert) und in den Animationsbildern kuehl eingefaerbt.
+    Streifen: Glasmaske streifen-glas-maske.png (344x72, weiss = Glas), je Animation
+    leben-streifen-<datei>.png, die Kiste leben-kiste.png und je Raid-Figur der
+    Gehzyklus leben-<datei>.png (PixelLab-Bilder unveraendert nebeneinander)."""
     with open(os.path.join(QUELLEN, "leben.json"), encoding="utf-8") as f:
-        home = json.load(f)["home"]
-    still = Image.open(os.path.join(ordner, home["standbild"])).convert("RGBA")
+        leben = json.load(f)
+
+    home = leben["home"]
+    still_pfad = os.path.join(ordner, home["standbild"])
+    still = Image.open(still_pfad).convert("RGBA")
     sp = still.load()
     for a in home["animationen"]:
-        q, z, n = a["quelle"], a["ziel"], a["bilder"]
-        dx, dy = z["x"] - q["x"], z["y"] - q["y"]
+        r = a.get("gelbWeg")
+        if r:
+            for y in range(r["y"], r["y"] + r["h"]):
+                for x in range(r["x"], r["x"] + r["b"]):
+                    sp[x, y] = gelb_weg(sp[x, y])
+    still.save(still_pfad)
+    for a in home["animationen"]:
         for datei in a["dateien"]:
-            streifen = Image.new("RGBA", (n * z["b"], z["h"]), (0, 0, 0, 0))
-            st = streifen.load()
-            for y in range(z["h"]):
-                for x in range(z["b"]):
-                    st[x, y] = sp[z["x"] + x, z["y"] + y]
-            for k in range(1, n):
-                bp = quelle("leben-home-%s-%d.png" % (datei, k)).load()
-                for y in range(z["h"]):
-                    for x in range(z["b"]):
-                        p = bp[dx + x, dy + y]
-                        s = sp[z["x"] + x, z["y"] + y]
-                        if sum(abs(p[i] - s[i]) for i in range(3)) > LEBEN_TOLERANZ:
-                            st[k * z["b"] + x, y] = p
-            streifen.save(os.path.join(ordner, "leben-home-%s.png" % datei))
+            bild = bildstreifen(sp, a, "leben-home-" + datei + "-%d.png", rechteck=a.get("gelbWeg"))
+            bild.save(os.path.join(ordner, "leben-home-%s.png" % datei))
+
+    st = leben["streifen"]
+    still = Image.open(os.path.join(ordner, st["standbild"])).convert("RGBA")
+    sp = still.load()
+    glas = glas_maske(still, st["glas"])
+    maske = Image.new("RGBA", still.size, DURCHSICHTIG)
+    mp = maske.load()
+    for q in glas:
+        mp[q] = (255, 255, 255, 255)
+    maske.save(os.path.join(ordner, "streifen-glas-maske.png"))
+    for a in st["animationen"]:
+        for datei in a["dateien"]:
+            bild = bildstreifen(sp, a, "leben-streifen-" + datei + "-%d.png", glas=glas)
+            bild.save(os.path.join(ordner, "leben-streifen-%s.png" % datei))
+    k = st["kiste"]
+    bildstreifen(sp, k, "leben-streifen-" + k["datei"] + "-%d.png", glas=glas).save(
+        os.path.join(ordner, "leben-kiste.png"))
+    r = st["raid"]
+    for datei in r["dateien"]:
+        gehen = Image.new("RGBA", (r["bilder"] * r["b"], r["h"]), DURCHSICHTIG)
+        for k in range(r["bilder"]):
+            b = quelle("leben-streifen-%s-%d.png" % (datei, k))
+            if b.size != (r["b"], r["h"]):
+                raise SystemExit("leben-streifen-%s-%d.png: Groesse %s" % (datei, k, b.size))
+            gehen.paste(b, (k * r["b"], 0))
+        gehen.save(os.path.join(ordner, "leben-%s.png" % datei))
 
 
 def main():

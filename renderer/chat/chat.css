@@ -307,6 +307,53 @@ button { transition: background-color 120ms ease, color 120ms ease; }
   transform: scale(var(--szene-f, 1)); transform-origin: 0 0;
 }
 
+/* Leben im Streifen (Etappe 3, raum-leben-dom.js): PixelLab-Bildstreifen
+   leben-streifen-<datei>.png in Bildpixeln, gleiche Regeln wie im Home
+   (home-raum.css). Bild 0 und unbewegte Pixel sind auf Glas durchsichtig. */
+.raum-leben {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: raum-leben var(--dauer) steps(var(--bilder)) infinite;
+}
+.raum-leben.selten:not(.spielt) { animation: none; }
+.raum-leben.selten.spielt { animation-iteration-count: 1; }
+.raum-leben.ruht { animation: none; }
+.raum-leben.verdeckt { visibility: hidden; }
+@keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
+
+/* Raid: Leute mit Schirm gehen draussen hinter dem Glas vorbei. Die Ebene liegt
+   ueber dem Glas-Rechteck, die Maske (aus streifen.png ausgestanzt) laesst sie nur
+   in den Scheiben sehen. Jede Figur rueckt im Takt ihres Gehzyklus um ganze
+   Bildpixel vor (steps), der Gehzyklus innen laeuft im selben Takt. */
+.raum-raid {
+  position: absolute; overflow: hidden; pointer-events: none;
+  -webkit-mask: url('../themes/cozy/streifen-glas-maske.png') var(--mx) var(--my) / 344px 72px no-repeat;
+  mask: url('../themes/cozy/streifen-glas-maske.png') var(--mx) var(--my) / 344px 72px no-repeat;
+}
+.raum-raid-figur {
+  position: absolute; left: 0; transform: translateX(var(--von));
+  animation: raum-raid-geht var(--dauer) steps(var(--schritte)) var(--verzug) 1 both;
+}
+.raum-raid-geht {
+  width: 100%; height: 100%; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: raum-leben var(--dauer) steps(var(--bilder)) var(--verzug) infinite;
+}
+@keyframes raum-raid-geht {
+  from { transform: translateX(var(--von)); }
+  to { transform: translateX(var(--bis)); }
+}
+
+/* Kanalpunkte-Kiste: die Katze bringt eine Muenze, spielt einmal (Katze verdeckt). */
+.raum-kiste {
+  position: absolute; pointer-events: none; image-rendering: pixelated; display: none;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+}
+.raum-kiste.spielt { display: block; animation: raum-leben var(--dauer) steps(var(--bilder)) 1; }
+
+/* Animationen aus: im Streifen steht alles still (chat.js leert dazu die Effekte). */
+html[data-animationen="aus"] #szene * { animation: none !important; }
+
 
 /* Monospace fuer den technischen Puls: Zeitstempel, Status, msg/min. */
 .msg .ts, #footer, #mode { font-family: var(--mono); }

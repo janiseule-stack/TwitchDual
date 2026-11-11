@@ -312,6 +312,156 @@ test('RaumLebenDom: an() spielt selten einmal, Pause per naechstePause, aus() ra
   assert.ok(el('lampe').classList.contains('spielt'), 'wieder an');
 });
 
+// --- Etappe 3, Task 6: Chat-Streifen, Raid und Kiste ---------------------------------
+test('STREIFEN, GLAS, KISTE, RAID: identisch mit leben.json', () => {
+  const s = LEBEN.streifen;
+  const soll = s.animationen.map((a) => ({
+    id: a.id, x: a.ziel.x, y: a.ziel.y, b: a.ziel.b, h: a.ziel.h, bilder: a.bilder, dateien: a.dateien,
+  }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(RL.STREIFEN)), soll);
+  for (const e of RL.STREIFEN) assert.ok(RL.TAKT[e.id], 'Takt fuer ' + e.id);
+  assert.ok(Object.isFrozen(RL.STREIFEN));
+  const g = s.glas;
+  assert.deepStrictEqual({ ...RL.GLAS }, { x: g.x, y: g.y, b: g.b, h: g.h });
+  const k = s.kiste;
+  assert.deepStrictEqual({ ...RL.KISTE }, { x: k.ziel.x, y: k.ziel.y, b: k.ziel.b, h: k.ziel.h, bilder: k.bilder, msProBild: k.msProBild });
+  const r = s.raid;
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(RL.RAID)), {
+    bilder: r.bilder, b: r.b, h: r.h, msProBild: r.msProBild, y: r.y, pxProBild: r.pxProBild, versatzMs: r.versatzMs, dateien: r.dateien,
+  });
+  for (const o of [RL.GLAS, RL.KISTE, RL.RAID]) assert.ok(Object.isFrozen(o));
+});
+
+test('Raid und Kiste: ruhiger Takt, Kiste endet vor DAUER_KISTE, Figur steht im Glas', () => {
+  for (const ms of [RL.KISTE.msProBild, RL.RAID.msProBild]) assert.ok(ms >= 100 && ms <= 250, String(ms));
+  assert.ok(RL.KISTE.bilder * RL.KISTE.msProBild <= RL.DAUER_KISTE);
+  assert.ok(RL.RAID.y >= RL.GLAS.y && RL.RAID.y + RL.RAID.h <= RL.GLAS.y + RL.GLAS.h + 8);
+  assert.ok(Number.isInteger(RL.RAID.pxProBild) && RL.RAID.pxProBild > 0);
+});
+
+test('raidDauer: Schritte ueber das Glas mal Takt plus Versatz je weiterer Figur', () => {
+  const schritte = Math.ceil((RL.GLAS.b + RL.RAID.b) / RL.RAID.pxProBild);
+  assert.strictEqual(RL.raidSchritte(), schritte);
+  assert.strictEqual(RL.raidDauer(1), schritte * RL.RAID.msProBild);
+  assert.strictEqual(RL.raidDauer(4), schritte * RL.RAID.msProBild + 3 * RL.RAID.versatzMs);
+  assert.strictEqual(RL.raidDauer(RL.schirmAnzahl(100000)), RL.raidDauer(4));
+  assert.strictEqual(RL.raidDauer(0), RL.raidDauer(1), 'Muell -> 1 Figur');
+});
+
+// Schein-DOM mit Baum fuer RaumLebenDom.effekte
+function baumDoc() {
+  const doc = scheinDoc();
+  const erzeuge = doc.createElement.bind(doc);
+  doc.createElement = (tag) => {
+    const el = erzeuge(tag);
+    el.kinder = [];
+    el.parent = null;
+    el.appendChild = (k) => { k.parent = el; el.kinder.push(k); return k; };
+    el.insertBefore = (k, vor) => {
+      k.parent = el;
+      const i = vor ? el.kinder.indexOf(vor) : -1;
+      if (i < 0) el.kinder.push(k); else el.kinder.splice(i, 0, k);
+      return k;
+    };
+    el.removeChild = (k) => { el.kinder.splice(el.kinder.indexOf(k), 1); k.parent = null; return k; };
+    Object.defineProperty(el, 'firstChild', { get: () => el.kinder[0] || null });
+    return el;
+  };
+  return doc;
+}
+
+test('RaumLebenDom.effekte: Raid-Ebene ueber GLAS unter dem Leben, Kiste obenauf', () => {
+  const doc = baumDoc();
+  const ebene = doc.createElement('div');
+  const leben = RLD.baue(doc, ebene, RL.STREIFEN, 'p/leben-streifen-', scheinUhr());
+  const katze = ebene.kinder.find((d) => d.dataset.leben === 'katze');
+  const fx = RLD.effekte(doc, ebene, 'p/', { katze });
+  assert.ok(leben && fx.starte && fx.stoppe);
+  const raid = ebene.kinder[0];
+  const kiste = ebene.kinder[ebene.kinder.length - 1];
+  assert.ok(raid.classList.contains('raum-raid'), 'Raid-Ebene liegt unter Regen/Katze/Lampe');
+  assert.strictEqual(raid.style.left, RL.GLAS.x + 'px');
+  assert.strictEqual(raid.style.top, RL.GLAS.y + 'px');
+  assert.strictEqual(raid.style.width, RL.GLAS.b + 'px');
+  assert.strictEqual(raid.style.height, RL.GLAS.h + 'px');
+  assert.strictEqual(raid.style.props['--mx'], -RL.GLAS.x + 'px');
+  assert.strictEqual(raid.style.props['--my'], -RL.GLAS.y + 'px');
+  assert.ok(kiste.classList.contains('raum-kiste'));
+  assert.strictEqual(kiste.style.left, RL.KISTE.x + 'px');
+  assert.strictEqual(kiste.style.top, RL.KISTE.y + 'px');
+  assert.strictEqual(kiste.style.props['--bilder'], String(RL.KISTE.bilder));
+  assert.strictEqual(kiste.style.props['--dauer'], RL.KISTE.bilder * RL.KISTE.msProBild + 'ms');
+  assert.strictEqual(kiste.style.props['--sb'], RL.KISTE.bilder * RL.KISTE.b + 'px');
+  assert.strictEqual(kiste.style.backgroundImage, "url('p/leben-kiste.png')");
+  assert.ok(!kiste.classList.contains('spielt'));
+});
+
+test('RaumLebenDom.effekte: Raid setzt 1-4 Figuren, im Gehtakt versetzt, raeumt am Ende auf', () => {
+  const doc = baumDoc();
+  const ebene = doc.createElement('div');
+  const fx = RLD.effekte(doc, ebene, 'p/', {});
+  const raid = ebene.kinder[0];
+  const schritte = RL.raidSchritte();
+  fx.starte({ art: 'raid', daten: { anzahl: 120 } });
+  assert.strictEqual(raid.kinder.length, 3);
+  raid.kinder.forEach((f, i) => {
+    assert.ok(f.classList.contains('raum-raid-figur'));
+    assert.strictEqual(f.style.top, RL.RAID.y - RL.GLAS.y + 'px');
+    assert.strictEqual(f.style.width, RL.RAID.b + 'px');
+    assert.strictEqual(f.style.height, RL.RAID.h + 'px');
+    assert.strictEqual(f.style.props['--schritte'], String(schritte));
+    assert.strictEqual(f.style.props['--dauer'], schritte * RL.RAID.msProBild + 'ms');
+    assert.strictEqual(f.style.props['--von'], -RL.RAID.b + 'px');
+    const bis = -RL.RAID.b + schritte * RL.RAID.pxProBild;
+    assert.ok(bis >= RL.GLAS.b, 'laeuft ganz hinaus');
+    assert.strictEqual(f.style.props['--bis'], bis + 'px');
+    assert.strictEqual(f.style.props['--verzug'], i * RL.RAID.versatzMs + 'ms');
+    const g = f.kinder[0];
+    assert.ok(g.classList.contains('raum-raid-geht'));
+    assert.strictEqual(g.style.props['--bilder'], String(RL.RAID.bilder));
+    assert.strictEqual(g.style.props['--dauer'], RL.RAID.bilder * RL.RAID.msProBild + 'ms');
+    assert.strictEqual(g.style.props['--sb'], RL.RAID.bilder * RL.RAID.b + 'px');
+    assert.strictEqual(g.style.props['--verzug'], i * RL.RAID.versatzMs + 'ms');
+    assert.strictEqual(g.style.backgroundImage, "url('p/leben-" + RL.RAID.dateien[i % RL.RAID.dateien.length] + ".png')");
+  });
+  // Gehzyklus-Ende (innen, Schleife) zaehlt nicht; erst wenn alle Figuren durch sind, ist die Ebene leer.
+  const [a, b, c] = raid.kinder;
+  a.kinder[0].feuere('animationend');
+  a.feuere('animationend');
+  b.feuere('animationend');
+  assert.strictEqual(raid.kinder.length, 3);
+  c.feuere('animationend');
+  assert.strictEqual(raid.kinder.length, 0);
+
+  fx.starte({ art: 'raid', daten: {} });
+  assert.strictEqual(raid.kinder.length, 1, 'ohne Anzahl 1 Figur');
+  fx.starte({ art: 'raid', daten: { anzahl: 100000 } });
+  assert.strictEqual(raid.kinder.length, 4, 'neuer Start raeumt den alten weg, hoechstens 4');
+  fx.stoppe();
+  assert.strictEqual(raid.kinder.length, 0);
+});
+
+test('RaumLebenDom.effekte: Kiste spielt einmal, Katze ist waehrenddessen verdeckt', () => {
+  const doc = baumDoc();
+  const ebene = doc.createElement('div');
+  const katze = doc.createElement('div');
+  const fx = RLD.effekte(doc, ebene, 'p/', { katze });
+  const kiste = ebene.kinder[ebene.kinder.length - 1];
+  fx.starte({ art: 'kiste', daten: { betrag: 50 } });
+  assert.ok(kiste.classList.contains('spielt'));
+  assert.ok(katze.classList.contains('verdeckt'));
+  kiste.feuere('animationend');
+  assert.ok(!kiste.classList.contains('spielt'));
+  assert.ok(!katze.classList.contains('verdeckt'), 'Katze beginnt danach wieder');
+  fx.starte({ art: 'kiste', daten: {} });
+  fx.stoppe();
+  assert.ok(!kiste.classList.contains('spielt'));
+  assert.ok(!katze.classList.contains('verdeckt'));
+  // Unbekannte Art: nichts passiert, kein Fehler
+  fx.starte({ art: 'abo', daten: {} });
+  assert.ok(!kiste.classList.contains('spielt'));
+});
+
 test('raum-leben-dom.js: UMD, setzt RaumLebenDom, nutzt RaumLeben.TAKT und naechstePause', () => {
   const q = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'lib', 'raum-leben-dom.js'), 'utf8');
   assert.ok(q.includes('root.RaumLebenDom'));

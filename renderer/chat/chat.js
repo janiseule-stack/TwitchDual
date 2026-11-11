@@ -155,11 +155,15 @@ function appendEreignis(text, nachricht) {
   trimMessages();
 }
 
-// Echte und Test-Ereignisse laufen hier durch: bis Etappe 3 nur als Zeile.
+// Echte und Test-Ereignisse laufen hier durch: immer als Zeile; ein Raid
+// spielt zusaetzlich den Effekt im Szenen-Streifen (Leute mit Schirm), Abos
+// bleiben bewusst nur Zeile (Janis). Diagnose: effekt = wirklich gemeldet.
 function zeigeChatEreignis(ev) {
   if (!ev) return;
   appendEreignis(ChatEreignisse.zeile(ev), ev.nachricht);
-  window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt: false });
+  const effekt = ev.art === 'raid' && lebenAktiv();
+  if (effekt) abspieler.melde('raid', ev);
+  window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt });
 }
 
 function appendSystem(text) {
@@ -777,11 +781,33 @@ const $optAnimationen = document.getElementById('opt-animationen');
 
 let themePrefs = ThemeLib.cleanThemePrefs(null);
 
+// Leben im Szenen-Streifen (Etappe 3): Regen, Katze und Lampe laufen dauernd
+// (RaumLebenDom.baue), Raid und Kanalpunkte-Kiste spielen als Effekt einzeln
+// nacheinander (RaumLeben.abspieler, hoechstens 3 wartend). "Animationen aus"
+// (applyTheme) haelt alles an, leert die Warteschlange und verwirft neue Ereignisse.
+const $szeneEbene = document.querySelector('#szene .szene-bildebene');
+const leben = RaumLebenDom.baue(document, $szeneEbene, RaumLeben.STREIFEN, '../themes/cozy/leben-streifen-');
+const lebenEffekte = RaumLebenDom.effekte(document, $szeneEbene, '../themes/cozy/', {
+  katze: $szeneEbene.querySelector('[data-leben="katze"]'),
+});
+const lebenAktiv = () => document.documentElement.dataset.animationen !== 'aus';
+const abspieler = RaumLeben.abspieler({
+  schlange: RaumLeben.warteschlange({ jetzt: () => Date.now() }),
+  aktiv: lebenAktiv,
+  starte: lebenEffekte.starte,
+  stoppe: lebenEffekte.stoppe,
+  dauer: (ev) => (ev.art === 'raid' ? RaumLeben.raidDauer(RaumLeben.schirmAnzahl(ev.daten.anzahl)) : RaumLeben.DAUER_KISTE),
+  setTimeout: (f, ms) => setTimeout(f, ms),
+  clearTimeout: (id) => clearTimeout(id),
+});
+
 function applyTheme(prefs) {
   themePrefs = ThemeLib.cleanThemePrefs(prefs);
   const r = document.documentElement;
   r.style.setProperty('--chat-alpha', String(themePrefs.chatAlpha / 100));
   r.dataset.animationen = themePrefs.animationen ? 'an' : 'aus';
+  if (themePrefs.animationen) leben.an();
+  else { leben.aus(); abspieler.aus(); }
   $alphaChat.value = themePrefs.chatAlpha;
   $alphaChatVal.textContent = themePrefs.chatAlpha + '%';
   $optAnimationen.checked = themePrefs.animationen;
@@ -1357,6 +1383,9 @@ window.twitchDual.onFxTest((art) => {
 });
 
 function zeigeZuwachs(z) {
+  // Kiste (auch Tipp-Gewinn): die Katze im Szenen-Streifen bringt eine Muenze -
+  // unabhaengig davon, ob die Punkte-Leiste sichtbar ist.
+  if (z && z.quelle === 'kiste') abspieler.melde('kiste', { betrag: z.betrag });
   if (!$pointsGain) return;
   const kiste = z.quelle === 'kiste';
   // Leiste: Schatzkiste bzw. Chip-Puls.
