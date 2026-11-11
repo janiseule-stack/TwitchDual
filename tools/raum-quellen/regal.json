@@ -1,0 +1,10 @@
+{
+  "_quelle": "Regal neu (Plan docs/superpowers/plans/2026-11-11-regal-neu.md), Janis' Wahl 11.11.2026: Variante A (PixelLab inpaint, seed 11). Bildpixel in regal.png (344x192). Gemessen am Bild: Innenraum x 115..286; Brett ab x 144, weil die Pflanzenblaetter bis x 143 ins obere Fach haengen; Brett-Unterkante = Oberkante der Lippe (y 61).",
+  "brett": { "x": 144, "y": 14, "b": 130, "h": 47 },
+  "faecher": {
+    "live": { "x": 115, "y": 76, "b": 172, "h": 44 },
+    "unten": { "x": 115, "y": 133, "b": 172, "h": 47 }
+  },
+  "such": { "x": 140, "y": 0, "b": 120, "h": 18 },
+  "bereich": { "von": 100, "bis": 300, "mitte": 200 }
+}
