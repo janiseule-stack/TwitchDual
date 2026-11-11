@@ -244,3 +244,50 @@ test('Laufwerk: abbrechen ohne Rueckruf, start waehrend Lauf ignoriert', () => {
   assert.deepEqual(z.fertig, []);
   assert.equal(z.lw.laeuft, false);
 });
+
+test('Laufwerk: ueberspringen beendet die Mindestdauer, wartet aber aufs Laden', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.lw.ueberspringen();
+  assert.deepEqual(z.fertig, []);
+  assert.equal(z.timer.length, 0);   // loescheTimer wurde gerufen
+  z.lw.geladen(true);
+  assert.deepEqual(z.fertig, [true]);
+});
+
+test('Laufwerk: ueberspringen nach geladen(true) ist sofort fertig', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.lw.geladen(true);
+  assert.deepEqual(z.fertig, []);
+  z.lw.ueberspringen();
+  assert.deepEqual(z.fertig, [true]);
+  assert.equal(z.lw.laeuft, false);
+});
+
+test('Laufwerk: ueberspringen, dann Ladefehler ruft false genau einmal', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.lw.ueberspringen();
+  z.lw.geladen(false);
+  assert.deepEqual(z.fertig, [false]);
+});
+
+test('Laufwerk: ueberspringen ohne Lauf und doppelt tut nichts', () => {
+  const z = laufwerk();
+  assert.doesNotThrow(() => z.lw.ueberspringen());
+  z.lw.start((ok) => z.fertig.push(ok));
+  z.lw.ueberspringen();
+  assert.doesNotThrow(() => z.lw.ueberspringen());
+  assert.deepEqual(z.fertig, []);
+});
+
+test('Laufwerk: alter Timer-Rueckruf nach ueberspringen ruft nichts doppelt', () => {
+  const z = laufwerk();
+  z.lw.start((ok) => z.fertig.push(ok));
+  const alt = z.timer.slice();
+  z.lw.ueberspringen();
+  z.lw.geladen(true);
+  alt.forEach((t) => t.fn());
+  assert.deepEqual(z.fertig, [true]);
+});

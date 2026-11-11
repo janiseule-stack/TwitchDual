@@ -235,6 +235,14 @@
         lauf.ladenOk = true;
         pruefe();
       },
+      // Mindestdauer gilt als abgelaufen; fertig wird es erst mit geladen(true).
+      ueberspringen() {
+        if (!lauf) return;
+        if (lauf.timer !== null) opt.loescheTimer(lauf.timer);
+        lauf.timer = null;
+        lauf.zeitUm = true;
+        pruefe();
+      },
       abbrechen() {
         if (!lauf) return;
         if (lauf.timer !== null) opt.loescheTimer(lauf.timer);
