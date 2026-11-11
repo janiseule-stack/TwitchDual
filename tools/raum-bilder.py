@@ -3,9 +3,11 @@
 
 Aufruf:  python tools/raum-bilder.py renderer/themes/cozy
 
-Liest raum.png, platte.png und die Entwuerfe in entwuerfe/, schreibt RGBA-PNGs
-und gibt die vier Eckpunkte der Bildschirmflaeche als eine JSON-Zeile aus
-(oben links, oben rechts, unten rechts, unten links), in Pixelkanten.
+Liest raum.png, platte.png und die Entwuerfe in entwuerfe/ sowie die von Janis
+gewaehlten PixelLab-Quellen in tools/raum-quellen/, schreibt RGBA-PNGs und gibt
+die vier Eckpunkte der Bildschirmflaeche als eine JSON-Zeile aus (oben links,
+oben rechts, unten rechts, unten links), in Pixelkanten.
+Es wird nichts selbst gezeichnet: nur zuschneiden, skalieren, ausstanzen, einsetzen.
 """
 import json
 import os
@@ -13,11 +15,15 @@ import sys
 
 from PIL import Image
 
-AUS = (0x1A, 0x14, 0x10, 255)
-GLANZ = (0x4A, 0x3C, 0x30, 255)
-KONTUR = (1, 1, 2, 255)
-KARTON = (237, 224, 184, 255)
-KARTON_SCHATTEN = (205, 188, 142, 255)
+QUELLEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "raum-quellen")
+# Lage des PixelLab-Ausschnitts tv-aus.png in raum.png
+TV_AUSSCHNITT = (156, 8)
+# Profilbild-Fenster der Huelle (Variante A: Profilbild fuellt das Cover)
+HUELLE_FENSTER = (2, 2, 36, 36)
+
+
+def quelle(name):
+    return Image.open(os.path.join(QUELLEN, name)).convert("RGBA")
 
 
 def ist_gruen(p):
@@ -32,24 +38,17 @@ def tv_bilder(ordner):
     if not gruen:
         raise SystemExit("raum.png: keine gruenen Pixel gefunden")
 
-    xs = [x for x, _ in gruen]
-    ys = [y for _, y in gruen]
-    breite = max(xs) - min(xs) + 1
-    hoehe = max(ys) - min(ys) + 1
-
+    # Ausgeschalteter Fernseher: nur die gruenen Pixel durch den PixelLab-Ausschnitt ersetzen.
+    tv = quelle("tv-aus.png")
+    tp = tv.load()
+    ox, oy = TV_AUSSCHNITT
     aus = raum.copy()
     ap = aus.load()
     maske = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     mp = maske.load()
     for (x, y) in gruen:
-        ap[x, y] = AUS
+        ap[x, y] = tp[x - ox, y - oy]
         mp[x, y] = (255, 255, 255, 255)
-    # Glanzlinie oben links: obere und linke Kante, jeweils nur das erste Stueck.
-    for (x, y) in gruen:
-        if (x, y - 1) not in gruen and x < min(xs) + breite * 0.45:
-            ap[x, y] = GLANZ
-        if (x - 1, y) not in gruen and y < min(ys) + hoehe * 0.45:
-            ap[x, y] = GLANZ
     aus.save(os.path.join(ordner, "raum-tv-aus.png"))
     maske.save(os.path.join(ordner, "raum-tv-maske.png"))
 
@@ -67,30 +66,16 @@ def tv_bilder(ordner):
 
 
 def huelle_bilder(ordner):
-    n = 40
-    for name, fenster in (("huelle.png", True), ("huelle-rueck.png", False)):
-        b = Image.new("RGBA", (n, n), (0, 0, 0, 0))
-        p = b.load()
-        for y in range(n):
-            for x in range(n):
-                rand = x in (0, n - 1) or y in (0, n - 1)
-                ecke = x in (0, n - 1) and y in (0, n - 1)
-                if ecke:
-                    continue
-                if rand:
-                    p[x, y] = KONTUR
-                else:
-                    # Karton, unten und rechts eine Stufe dunkler
-                    p[x, y] = KARTON_SCHATTEN if (x == n - 2 or y == n - 2) else KARTON
-        if fenster:
-            # innere Kontur um das Fenster (4..35), Fenster 5..34 durchsichtig
-            for i in range(4, 36):
-                for (x, y) in ((i, 4), (i, 35), (4, i), (35, i)):
-                    p[x, y] = KONTUR
-            for y in range(5, 35):
-                for x in range(5, 35):
-                    p[x, y] = (0, 0, 0, 0)
-        b.save(os.path.join(ordner, name))
+    # Vorderseite: aeussere Kante der PixelLab-Huelle, Fenster ausgestanzt.
+    huelle = quelle("huelle-kante.png")
+    p = huelle.load()
+    fx, fy, fb, fh = HUELLE_FENSTER
+    for y in range(fy, fy + fh):
+        for x in range(fx, fx + fb):
+            p[x, y] = (0, 0, 0, 0)
+    huelle.save(os.path.join(ordner, "huelle.png"))
+    # Rueckseite unveraendert aus PixelLab.
+    quelle("huelle-rueck.png").save(os.path.join(ordner, "huelle-rueck.png"))
 
 
 def platten(ordner):

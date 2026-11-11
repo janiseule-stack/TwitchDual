@@ -89,10 +89,34 @@ test('raum-tv-aus.png hat kein Gruen mehr', () => {
   assert.strictEqual(zaehleGruen(dekodiere(lade('raum-tv-aus.png'))), 0);
 });
 
-test('huelle.png ist im Fenster (5,5,30,30) durchsichtig', () => {
+test('raum-tv-aus.png ist ausserhalb der gruenen Pixel gleich raum.png', () => {
+  const raum = dekodiere(lade('raum.png'));
+  const aus = dekodiere(lade('raum-tv-aus.png'));
+  assert.strictEqual(aus.w, raum.w);
+  assert.strictEqual(aus.h, raum.h);
+  let geprueft = 0;
+  for (let i = 0; i < raum.px.length; i += 4) {
+    if (raum.px[i + 1] > 200 && raum.px[i] < 90) continue;
+    for (let k = 0; k < 4; k++) {
+      if (aus.px[i + k] !== raum.px[i + k]) assert.fail('Pixel ' + (i / 4) + ' weicht ab');
+    }
+    geprueft++;
+  }
+  assert.ok(geprueft > 0);
+});
+
+test('huelle-rueck.png ist die PixelLab-Quelle aus tools/raum-quellen/', () => {
+  const a = dekodiere(lade('huelle-rueck.png'));
+  const b = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', 'huelle-rueck.png')));
+  assert.strictEqual(a.w, b.w);
+  assert.strictEqual(a.h, b.h);
+  assert.ok(a.px.equals(b.px));
+});
+
+test('huelle.png ist im Fenster (2,2,36,36) durchsichtig', () => {
   const b = dekodiere(lade('huelle.png'));
-  for (let y = 5; y < 35; y++) {
-    for (let x = 5; x < 35; x++) {
+  for (let y = 2; y < 38; y++) {
+    for (let x = 2; x < 38; x++) {
       assert.strictEqual(b.px[(y * b.w + x) * 4 + 3], 0, `Pixel ${x},${y} nicht durchsichtig`);
     }
   }

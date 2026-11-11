@@ -48,10 +48,11 @@ test('home-raum-dom.js: eigene Bilder nur aus ../themes/cozy/', () => {
   assert.ok(!/https?:/.test(js));
 });
 
-test('home-raum-dom.js: Huellen-Fenster als eine Konstante, Profilbild-Canvas 15x15', () => {
-  assert.ok(/HUELLE_FENSTER\s*=\s*\{\s*x:\s*5,\s*y:\s*5,\s*b:\s*30,\s*h:\s*30\s*\}/.test(js));
+test('home-raum-dom.js: Huellen-Fenster als eine Konstante, Profilbild-Canvas halbe Fenstergroesse', () => {
+  assert.ok(/HUELLE_FENSTER\s*=\s*\{\s*x:\s*2,\s*y:\s*2,\s*b:\s*36,\s*h:\s*36\s*\}/.test(js));
   assert.strictEqual((js.match(/HUELLE_FENSTER\s*=/g) || []).length, 1);
-  assert.ok(/width\s*=\s*15/.test(js) && /height\s*=\s*15/.test(js));
+  // 18x18, aus der Konstante abgeleitet
+  assert.ok(/width\s*=\s*HUELLE_FENSTER\.b\s*\/\s*2/.test(js) && /height\s*=\s*HUELLE_FENSTER\.h\s*\/\s*2/.test(js));
   assert.ok(js.includes('drawImage'));
 });
 

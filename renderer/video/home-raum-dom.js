@@ -12,7 +12,7 @@
 window.HomeRaumDom = (function () {
   // Lage des Profilbild-Fensters in huelle.png (einzige Stelle; das Bild kann
   // noch getauscht werden).
-  const HUELLE_FENSTER = { x: 5, y: 5, b: 30, h: 30 };
+  const HUELLE_FENSTER = { x: 2, y: 2, b: 36, h: 36 };
   // Vordere Platte im Buecherfach (Raum.FACH.vorn), Bildpixel.
   const VORN_HUELLE = { x: 118, y: 144, b: 40, h: 40 };
   const VORN_PLATTE = { x: 118 + 18, y: 146, b: 36, h: 36 };
@@ -109,8 +109,8 @@ window.HomeRaumDom = (function () {
   // oder Ladefehler: leeres Fenster mit dem Anfangsbuchstaben.
   function profilbild(k, fenster) {
     const c = document.createElement('canvas');
-    c.width = 15;
-    c.height = 15;
+    c.width = HUELLE_FENSTER.b / 2;
+    c.height = HUELLE_FENSTER.h / 2;
     fenster.appendChild(c);
     const anfangsbuchstabe = () => {
       c.remove();
