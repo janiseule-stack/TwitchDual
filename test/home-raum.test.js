@@ -777,6 +777,10 @@ test('Karte: Huelle fuellt die linke Haelfte (Bild 128/111 skaliert, Fenster mit
   const zu = regel('.karte-zu');
   assert.ok(/width:\s*calc\(16px \* var\(--karte-n, 2\)\)/.test(zu) && /right:\s*calc\(2px \* var\(--karte-n, 2\)\)/.test(zu));
   assert.ok(!/right:\s*-/.test(zu), 'innerhalb der Karte');
+  // Platz fuer das ✕: Kopf der Rueckseite und erste Tafelzeilen enden davor (Rand 10n + Platz 10n > 2n + 16n)
+  assert.ok(/--karte-zu-platz:\s*calc\(10px \* var\(--karte-n, 2\)\)/.test(regel('.karte')));
+  assert.ok(/padding-right:\s*var\(--karte-zu-platz\)/.test(regel('.karte-kopf')));
+  assert.ok(/\.karte-info > \.karte-status,\s*\.karte-info > \.karte-name\s*\{\s*padding-right:\s*var\(--karte-zu-platz\)/.test(css));
   assert.ok(/\.karte-platz\s*\{[^}]*background:\s*rgb\(18 5 5 \/ \.55\)/.test(css), 'gleiche Abdunklung wie .gross-platz');
 });
 

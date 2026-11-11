@@ -190,6 +190,9 @@
 .karte {
   position: absolute; width: var(--karte-b, 512px); height: var(--karte-h, 256px);
   perspective: calc(1024px * var(--karte-n, 2));
+  /* Platz fuer das ✕ (16 x n breit, 2 x n vom Rand, Kartenrand 10 x n): Kopf der
+     Rueckseite und die ersten Zeilen der Tafel enden davor */
+  --karte-zu-platz: calc(10px * var(--karte-n, 2));
 }
 .karte-karte {
   position: absolute; inset: 0; transform-style: preserve-3d;
@@ -247,6 +250,7 @@
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   max-height: 2em;
 }
+.karte-info > .karte-status, .karte-info > .karte-name { padding-right: var(--karte-zu-platz); }
 .karte-info > .karte-spiel, .karte-info > .karte-zuschauer { font-size: var(--karte-schrift, 12px); }
 .karte-knoepfe, .karte-kopf { display: flex; align-items: center; gap: .7em; }
 .karte-info > .karte-knoepfe { margin-top: auto; overflow: visible; }
@@ -270,7 +274,7 @@
   font-family: var(--schrift-pixel); font-size: var(--karte-schrift-klein, 12px); line-height: 1;
   color: var(--zettel-tinte);
 }
-.karte-kopf { flex: none; font-size: var(--karte-schrift, 12px); }
+.karte-kopf { flex: none; font-size: var(--karte-schrift, 12px); padding-right: var(--karte-zu-platz); }
 .karte-kopf-titel { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .karte-vods {
   flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none;
