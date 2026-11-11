@@ -165,17 +165,27 @@
 }
 .tafel-inhalt { overflow: auto; min-height: 0; }
 
+/* Auflegen: durchsichtige Fangschicht fuer Klick/Taste, Text unten. Ablauf in
+   drei Klassen an #home (home-raum-dom.js, ABLAUF_MS): Raum blendet ueber das
+   Regal (500ms), Platte fliegt zum Teller (1500ms), Kamera zoomt (2500ms). */
 #home-ablauf {
   position: absolute; inset: 0; z-index: 6; outline: none; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-  background: rgb(18 5 5 / .8); color: var(--text);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
+  padding-bottom: 16px; box-sizing: border-box;
+  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
   font-family: var(--schrift-pixel); font-size: max(14px, calc(var(--f, 2) * 5px));
-}
-.ablauf-platte {
-  width: calc(36px * var(--f, 2)); height: calc(36px * var(--f, 2));
-  image-rendering: pixelated; animation: raum-dreh 1.6s steps(8) infinite;
 }
 .ablauf-tipp { color: var(--muted); font-size: .7em; }
 
+#home.im-ablauf #raum-ebene { z-index: 2; opacity: 0; transition: opacity 500ms linear; }
+#home.im-ablauf #raum-ebene .raum-textschicht { visibility: hidden; }
+#home.ablauf-raum #raum-ebene { opacity: 1; }
+.ablauf-flug { position: absolute; transform: translate(0, 0); transition: transform 1500ms ease-in-out; }
+#home.ablauf-platte .ablauf-flug { transform: translate(var(--dx), var(--dy)); }
+#home.ablauf-zoom #raum-ebene .raum-bildebene { transition: transform 2500ms ease-in-out; }
+
+/* Animationen aus: alle Uebergaenge und Bewegungen im Raum stehen still. */
+html[data-animationen="aus"] #home.raum-home *,
+body[data-animationen="aus"] #home.raum-home * { transition: none !important; animation: none !important; }
+
 @keyframes raum-puls { 50% { opacity: .5; } }
-@keyframes raum-dreh { to { transform: rotate(360deg); } }

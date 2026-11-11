@@ -34,6 +34,62 @@ Optik-Festlegungen sind Claudes Vorschlag.
   blocked“, rote Lampe bei Live, leerer Player zeigt die Holzwand.
 - **Nächster Schritt:** Janis' Korrekturen, dann Etappe 2 (Raum als Home).
 
+### Etappe 2 (eingebaut, wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-10-cozy-raum-etappe-2.md` (Prüfung:
+`…-etappe-2-pruefung.md`). Geometrie in `renderer/lib/raum.js`, Darstellung in
+`renderer/video/home-raum-dom.js` + `home-raum.css`, Steuerung in `home.js`.
+Alle Optik-Festlegungen sind Claudes Vorschlag.
+
+1. Zwei Ansichten: `raum` (Hauptmenü) und `regal`; passt der Raum nicht in
+   Faktor 2 (unter 688×384), öffnet Home direkt im Regal.
+2. Tippen im Raum springt ins Regal-Suchfeld; Strg+L und Klick auf die
+   Stream-Infos öffnen das Regal mit Fokus im Suchfeld.
+3. Klick im Raum: Regal → Regal-Ansicht; Fernseher → zurück zum Stream
+   (sonst Schild „Nichts geladen“); Plattenspieler → Schild mit dem, was
+   aufliegt; Bild → Tafel „Konto“; Stehlampe → Tafel „Licht“ (Animationen,
+   „Weitere Einstellungen: ⚙ im Chat“).
+4. Hover: vier helle Pixel-Winkel an den Ecken der Fläche + Holzschild mit Namen.
+5. Regal: oben Live-Platten (★ zuerst), Mitte Offline-Favoriten bzw.
+   Such-Treffer; Hüllen 40×40 mit verpixeltem Profilbild, Live mit Lämpchen,
+   Offline entsättigt; Fächer blättern per Mausrad und Auswahl.
+6. Gewählte Platte vorn im Bücherfach in 1× (Hülle, Platte 18 px versetzt
+   dahinter), daneben der Zettel (9-Slice) mit Kanal, Titel, Spiel,
+   Zuschauern, Laufzeit, Punkten, ★, „Auflegen“, „VODs“; „VODs“ dreht auf die
+   Rückseite mit 2×2 VOD-Bildern und Blättern.
+7. Suchfeld auf einem Papierzettel oben am Regal (mit ⟳).
+8. Auflegen-Ablauf (nur mit Kanal und Animationen an): Raum blendet über das
+   Regal (500 ms), kleine Platte fliegt von der Regal-Mitte zum Teller
+   (1500 ms, dreht sich **nicht** – die drehende Platte kommt in Etappe 3 als
+   PixelLab-Sprite), Kamera zoomt in den Fernseher (2500 ms); mindestens
+   4500 ms, Klick/Taste überspringt; Fehler setzt alles zurück + Hinweiszeile.
+   Animationen aus: alle Übergänge im Home stehen still.
+9. Fernseher: Vorschaubild des Live-Streams verpixelt (27×38) und affin in die
+   schräge Bildschirmfläche gelegt, mit `raum-tv-maske.png` beschnitten;
+   sonst `raum-tv-aus.png`. Das Grün aus `raum.png` ist nie zu sehen.
+10. Entfallen: CD-Hülle, CD, Laufwerk, Ständer, Riesen-Namen, `cdWechsel`;
+    „Alle VODs“ bleibt als Tafel.
+11. Kopfzeile entfällt: ✕ und ← als Pixel-Knöpfe oben rechts, `#home-version`
+    bleibt unten rechts.
+
+- Janis' Bild-Entscheidungen vom 11.11.: Fernseher aus = PixelLab-Variante 2;
+  Hülle = Profilbild mit dünner Kante aus PixelLab-Hülle 18; Rückseite =
+  Variante 12; Live-Lämpchen = PixelLab-Lampe 43, ausgeschnitten.
+- Offene Optik-Punkte für Janis:
+  - ←-Knopf zeigt noch das Haus-Symbol (Pfeil-Bild aus PixelLab fehlt).
+  - ✓-Haken am Kanalnamen ohne eigenen Stil.
+  - `#auth-bar` und VOD-Karten haben noch runde Ecken.
+  - Licht-Tafel ohne eigenen Stil.
+  - ✕ von Home liegt über der Tafel neben deren eigenem ✕.
+  - Hinweiszeile unten im Raum.
+  - Lämpchen deckt eine Ecke des Profilbilds.
+  - Auflegen: Text „Lege auf: …“ und Tipp stehen unten über dem Raum; die
+    Platte fliegt und der Zoom läuft mit sanftem Anfahren/Abbremsen.
+- `renderer/themes/cozy/entwuerfe/` muss vor einem Build aus `renderer/`
+  heraus (sonst landen die Entwürfe im Paket).
+- **Nächster Schritt:** Janis schaut an und korrigiert, dann Etappe 3
+  (Animationen und PixelLab-Sprites, u. a. drehende Platte).
+
 ## Erledigt
 
 **Robustheit / Testbarkeit**

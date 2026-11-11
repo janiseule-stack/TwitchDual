@@ -211,6 +211,69 @@ test('home.css: nur noch Home-Grundregeln, keine Verlaeufe, kein Blur', () => {
   }
 });
 
+// --- Task 5: Auflegen-Ablauf und Fernseher-Bild ---------------------------------
+function rumpf(quelle, kopf) {
+  const start = quelle.indexOf(kopf);
+  if (start < 0) return '';
+  const ende = quelle.indexOf('\n  }\n', start);
+  return quelle.slice(start, ende < 0 ? undefined : ende);
+}
+
+test('zeigeAblauf: Klassen ablauf-raum, ablauf-platte, ablauf-zoom nacheinander, Dauern 500/1500/2500', () => {
+  assert.ok(/ABLAUF_MS\s*=\s*\{\s*raum:\s*500,\s*platte:\s*1500,\s*zoom:\s*2500\s*\}/.test(js));
+  const r = rumpf(js, 'function zeigeAblauf(');
+  assert.ok(r.length > 0);
+  const a = r.indexOf("'ablauf-raum'");
+  const p = r.indexOf("'ablauf-platte'");
+  const z = r.indexOf("'ablauf-zoom'");
+  assert.ok(a > -1 && p > a && z > p, 'Reihenfolge');
+  assert.ok((r.match(/setTimeout\(/g) || []).length >= 2, 'Timer fuer Platte und Zoom');
+  for (const ms of ['500ms', '1500ms', '2500ms']) assert.ok(css.includes(ms), ms);
+});
+
+test('Ablauf: Klick oder Taste auf #home-ablauf ruft beiUeberspringen', () => {
+  const r = rumpf(js, 'function baueAblauf(');
+  assert.ok(r.includes("'home-ablauf'"));
+  assert.ok(/t\.ablauf\.addEventListener\('click'/.test(r) && /t\.ablauf\.addEventListener\('keydown'/.test(r));
+  assert.ok(/ablaufRuf\s*=\s*typeof beiUeberspringen === 'function'/.test(js));
+});
+
+test('versteckeAblauf raeumt Klassen, Timer, Platte und Kamera weg', () => {
+  const r = rumpf(js, 'function versteckeAblauf(');
+  assert.ok(r.includes('clearTimeout('));
+  for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-platte'", "'ablauf-zoom'"]) assert.ok(r.includes(k), k);
+  assert.ok(r.includes('t.flug'), 'fliegende Platte');
+  assert.ok(r.includes('neuAusrichten()'), 'Kamera zurueck');
+  assert.ok(r.includes('zeigeAnsicht(aktuell)'), 'Ansicht zurueck');
+});
+
+test('Kamera und fliegende Platte nutzen Raum-Geometrie', () => {
+  assert.ok(/Raum\.kameraZiel\(\{\s*x:\s*206,\s*y:\s*52,\s*b:\s*27,\s*h:\s*38\s*\}/.test(js));
+  assert.ok(js.includes('Raum.TELLER'));
+  assert.ok(js.includes('../themes/cozy/platte-klein.png'));
+  assert.ok(/Raum\.FLAECHEN\.find\(\(f\) => f\.id === 'regal'\)/.test(js));
+});
+
+test('setzeTv: Vorschau verpixelt, affin auf TV_ECKEN, Maske per destination-in, kein getImageData', () => {
+  assert.ok(!js.includes('getImageData'));
+  assert.ok(js.includes('../themes/cozy/raum-tv-maske.png'));
+  assert.ok(js.includes("globalCompositeOperation = 'destination-in'"));
+  assert.ok(js.includes('setTransform('));
+  assert.ok(/imageSmoothingEnabled\s*=\s*false/.test(js));
+  assert.ok(/width\s*=\s*27/.test(js) && /height\s*=\s*38/.test(js), 'kleine Canvas 27x38');
+  assert.ok(/width\s*=\s*Raum\.BILD\.breite/.test(js) && /height\s*=\s*Raum\.BILD\.hoehe/.test(js), 'TV-Canvas 344x192');
+  for (const i of [0, 1, 3]) assert.ok(js.includes('Raum.TV_ECKEN[' + i + ']'), 'Ecke ' + i);
+  const r = rumpf(js, 'function setzeTv(');
+  assert.ok(r.length > 0);
+  assert.ok(js.includes('clearRect('), 'Ladefehler leert die Canvas');
+});
+
+test('home-raum.css: Animationen aus -> Uebergaenge still, keine Platten-Drehung', () => {
+  assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none/.test(css));
+  assert.ok(!css.includes('raum-dreh') && !/rotate\(/.test(css));
+  assert.ok(!/bildEl\('\.\.\/themes\/cozy\/platte-vorn\.png', 'ablauf-platte'\)/.test(js), 'alte drehende Platte im Ablauf weg');
+});
+
 test('Renderer nennt die alte CD-Buehne nicht mehr', () => {
   const dateien = [];
   for (const ordner of ['renderer/video', 'renderer/lib']) {

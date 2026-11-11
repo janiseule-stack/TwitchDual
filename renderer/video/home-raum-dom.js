@@ -25,6 +25,9 @@ window.HomeRaumDom = (function () {
   const VOD_PLAETZE = [{ x: 20, y: 6 }, { x: 90, y: 6 }, { x: 20, y: 28 }, { x: 90, y: 28 }];
   const SCHILD_MS = 2000;
   const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht', vods: 'Alle VODs' };
+  // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
+  const ABLAUF_MS = { raum: 500, platte: 1500, zoom: 2500 };
+  const FLUG_KANTE = 12; // platte-klein.png
 
   let wirt = null;
   let opt = {};
@@ -33,6 +36,9 @@ window.HomeRaumDom = (function () {
   let tvVorschau = null;
   let schildTimer = null;
   let ablaufRuf = null;
+  let ablaufTimer = [];
+  let tvNr = 0; // verwirft verspaetete Vorschau-Bilder
+  let tvMaske = null;
   let tafelLeihe = []; // umgehaengte Elemente: { el, eltern, danach }
   const t = {}; // DOM-Teile
   const faecher = {
@@ -150,14 +156,21 @@ window.HomeRaumDom = (function () {
     t.raum = r;
     t.raumBild = bildEl('../themes/cozy/raum-tv-aus.png', 'raum-bild');
     r.bild.appendChild(t.raumBild);
-    // TV-Canvas (Vorschau im Fernseher folgt in Task 5), umschliesst TV_ECKEN.
-    const xs = Raum.TV_ECKEN.map((p) => p.x);
-    const ys = Raum.TV_ECKEN.map((p) => p.y);
-    t.tv = lage(el('canvas', 'raum-tv raum-aus'), {
-      x: Math.min.apply(null, xs), y: Math.min.apply(null, ys),
-      b: Math.max.apply(null, xs) - Math.min.apply(null, xs), h: Math.max.apply(null, ys) - Math.min.apply(null, ys),
-    });
+    // TV-Canvas in Bildgroesse ueber dem Raum-Bild (setzeTv zeichnet hinein).
+    t.tv = el('canvas', 'raum-tv');
+    t.tv.width = Raum.BILD.breite;
+    t.tv.height = Raum.BILD.hoehe;
     r.bild.appendChild(t.tv);
+    tvMaske = new Image();
+    tvMaske.src = '../themes/cozy/raum-tv-maske.png';
+    // Fliegende Platte: von der Mitte des Regals zum Plattenteller (CSS-Uebergang).
+    const regal = Raum.FLAECHEN.find((f) => f.id === 'regal');
+    const von = { x: Math.round(regal.x + regal.b / 2), y: Math.round(regal.y + regal.h / 2) };
+    t.flug = lage(bildEl('../themes/cozy/platte-klein.png', 'ablauf-flug raum-aus'),
+      { x: von.x - FLUG_KANTE / 2, y: von.y - FLUG_KANTE / 2, b: FLUG_KANTE, h: FLUG_KANTE });
+    t.flug.style.setProperty('--dx', (Raum.TELLER.x - von.x) + 'px');
+    t.flug.style.setProperty('--dy', (Raum.TELLER.y - von.y) + 'px');
+    r.bild.appendChild(t.flug);
     t.winkel = ['ol', 'or', 'ul', 'ur'].map((ecke) => {
       const w = el('div', 'raum-winkel raum-aus ' + ecke);
       r.bild.appendChild(w);
@@ -266,7 +279,7 @@ window.HomeRaumDom = (function () {
     t.ablauf.id = 'home-ablauf';
     t.ablauf.tabIndex = -1;
     t.ablaufText = el('div', 'ablauf-text');
-    t.ablauf.append(bildEl('../themes/cozy/platte-vorn.png', 'ablauf-platte'), t.ablaufText,
+    t.ablauf.append(t.ablaufText,
       el('div', 'ablauf-tipp', 'Klick oder Taste: überspringen'));
     const weiter = (e) => {
       if (!ablaufRuf) return;
@@ -319,8 +332,11 @@ window.HomeRaumDom = (function () {
     skal = Raum.skalierung(wirt.clientWidth, wirt.clientHeight);
     const f = skal.faktor;
     wirt.style.setProperty('--f', f);
+    // Waehrend des Zooms bleibt die Raum-Ebene auf dem Kamera-Ziel.
+    const kamera = wirt.classList.contains('ablauf-zoom') ? kameraZiel() : null;
     for (const r of [t.raum, t.regal]) {
-      r.bild.style.transform = 'translate(' + skal.links + 'px, ' + skal.oben + 'px) scale(' + f + ')';
+      const z = r === t.raum && kamera ? kamera : { x: skal.links, y: skal.oben, faktor: f };
+      r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
       r.text.style.left = skal.links + 'px';
       r.text.style.top = skal.oben + 'px';
       r.text.style.width = Raum.BILD.breite * f + 'px';
@@ -551,17 +567,47 @@ window.HomeRaumDom = (function () {
   }
 
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
+  // Kamera: der gruene Bildschirm fuellt das Fenster.
+  function kameraZiel() {
+    return Raum.kameraZiel({ x: 206, y: 52, b: 27, h: 38 }, wirt.clientWidth, wirt.clientHeight);
+  }
+
+  // Auflegen: Regal blendet zum Raum (ablauf-raum), Platte fliegt zum Teller
+  // (ablauf-platte), Kamera zoomt in den Fernseher (ablauf-zoom). Die
+  // Uebergaenge stehen in home-raum.css; home.js steuert die Mindestdauer.
   function zeigeAblauf(kanal, beiUeberspringen) {
     if (!wirt) return;
+    versteckeAblauf();
     ablaufRuf = typeof beiUeberspringen === 'function' ? beiUeberspringen : null;
     t.ablaufText.textContent = 'Lege auf: ' + (kanal ? name(kanal) : '…');
+    zeigeHover(null);
     aus(t.ablauf, false);
     t.ablauf.focus({ preventScroll: true });
+    wirt.classList.add('im-ablauf');
+    aus(t.raum.e, false); // liegt ueber dem Regal, startet unsichtbar
+    void t.raum.e.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
+    wirt.classList.add('ablauf-raum');
+    ablaufTimer.push(setTimeout(() => {
+      aus(t.flug, false);
+      void t.flug.offsetWidth;
+      wirt.classList.add('ablauf-platte');
+    }, ABLAUF_MS.raum));
+    ablaufTimer.push(setTimeout(() => {
+      wirt.classList.add('ablauf-zoom');
+      neuAusrichten();
+    }, ABLAUF_MS.raum + ABLAUF_MS.platte));
   }
+  // Setzt alles zurueck (auch nach Fehler): Timer, Klassen, Platte, Kamera, Ansicht.
   function versteckeAblauf() {
     if (!wirt) return;
     ablaufRuf = null;
+    ablaufTimer.forEach((x) => clearTimeout(x));
+    ablaufTimer = [];
+    // Mit den Klassen faellt auch der Uebergang weg: Ruecksprung ohne Animation.
+    wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-platte', 'ablauf-zoom');
+    aus(t.flug, true);
     aus(t.ablauf, true);
+    zeigeAnsicht(aktuell); // Raum/Regal wie vorher, ruft neuAusrichten()
   }
 
   // Element in die Tafel leihen; versteckeTafel gibt es an seinen Platz zurueck.
@@ -601,13 +647,58 @@ window.HomeRaumDom = (function () {
     schildTimer = setTimeout(() => aus(t.hinweis, true), SCHILD_MS);
   }
 
-  // Task 3: nur das Raum-Bild mit ausgeschaltetem Fernseher; die Vorschau im
-  // TV-Canvas folgt in Task 5 (Adresse wird schon gemerkt).
+  // Fernseher: Vorschau des Live-Streams verpixelt in die schraege
+  // Bildschirmflaeche; ohne Vorschau (oder bei Ladefehler) bleibt die Canvas
+  // leer und raum-tv-aus.png sichtbar. Pixel werden nie ausgelesen (fremdes
+  // Bild), die Maske beschneidet per Zeichen-Modus.
+  function leereTv() {
+    const g = t.tv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, t.tv.width, t.tv.height);
+  }
+  function zeichneTvBild(img) {
+    const p0 = Raum.TV_ECKEN[0], p1 = Raum.TV_ECKEN[1], p3 = Raum.TV_ECKEN[3];
+    const klein = document.createElement('canvas');
+    klein.width = 27;
+    klein.height = 38;
+    // mittig auf das Seitenverhaeltnis der schraegen Flaeche zuschneiden
+    const ziel = Math.hypot(p1.x - p0.x, p1.y - p0.y) / Math.hypot(p3.x - p0.x, p3.y - p0.y);
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const qb = Math.min(w, h * ziel), qh = Math.min(h, w / ziel);
+    const k = klein.getContext('2d');
+    k.imageSmoothingEnabled = false;
+    k.drawImage(img, (w - qb) / 2, (h - qh) / 2, qb, qh, 0, 0, klein.width, klein.height);
+    leereTv();
+    const g = t.tv.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    // affin: (0,0) -> oben links, (27,0) -> oben rechts, (0,38) -> unten links
+    g.setTransform((p1.x - p0.x) / klein.width, (p1.y - p0.y) / klein.width,
+      (p3.x - p0.x) / klein.height, (p3.y - p0.y) / klein.height, p0.x, p0.y);
+    g.drawImage(klein, 0, 0);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(tvMaske, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+  }
   function setzeTv(o) {
-    tvVorschau = (o && o.vorschauUrl) || null;
-    if (!wirt) return;
-    if (!/raum-tv-aus\.png$/.test(t.raumBild.src)) t.raumBild.src = '../themes/cozy/raum-tv-aus.png';
-    t.tv.dataset.vorschau = tvVorschau || '';
+    const url = (o && o.vorschauUrl) || null;
+    if (!wirt || url === tvVorschau) return; // gleiche Adresse: Bild steht schon
+    tvVorschau = url;
+    const nr = ++tvNr;
+    leereTv();
+    if (!url) return;
+    const img = new Image();
+    img.decoding = 'async';
+    // Ladefehler: Aus-Bildschirm bleibt; der naechste Aufruf versucht es neu.
+    const fehler = () => { if (nr === tvNr) { leereTv(); tvVorschau = null; } };
+    img.addEventListener('error', fehler);
+    img.addEventListener('load', () => {
+      if (nr !== tvNr) return;
+      if (tvMaske.complete && tvMaske.naturalWidth) { zeichneTvBild(img); return; }
+      tvMaske.addEventListener('load', () => { if (nr === tvNr) zeichneTvBild(img); }, { once: true });
+      tvMaske.addEventListener('error', fehler, { once: true });
+    });
+    img.src = url;
   }
 
   return {
