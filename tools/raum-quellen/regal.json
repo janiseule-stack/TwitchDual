@@ -13,7 +13,12 @@
     "b": 6, "h": 40, "abstand": 0,
     "bild": { "x": 0, "y": 0, "b": 6, "h": 40 },
     "fenster": { "x": 0, "y": 2, "b": 5, "h": 5 },
-    "name": { "x": 0, "y": 8, "b": 5, "h": 30 }
+    "name": { "x": 0, "y": 8, "b": 5, "h": 26 }
+  },
+  "_livePunkt": "Live-Punkt ist CSS (Janis 12.11.: in der App, nicht generiert). Lage/Durchmesser in Bildpixeln: Cover 40x40 oben rechts, Ruecken unten unter dem Namen. Vorschlag, Abnahme in der App.",
+  "livePunkt": {
+    "cover": { "x": 33, "y": 3, "d": 4 },
+    "ruecken": { "x": 1, "y": 35, "d": 3 }
   },
   "_karte": "karte.png = karte-rueck.png = PixelLab pixflux 96x96 seed 777 (Janis 12.11.: Flaeche 2 fuer Infotafel und Rueckseite). 9-Slice-Rand 10 px rundum (Nieten in den Ecken bis ~10 px, Mitte ruhig ab 5-9 px).",
   "karte": { "datei": "karte.png", "rand": { "oben": 10, "rechts": 10, "unten": 10, "links": 10 } },
