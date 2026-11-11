@@ -87,8 +87,41 @@ Alle Optik-Festlegungen sind Claudes Vorschlag.
     Platte fliegt und der Zoom läuft mit sanftem Anfahren/Abbremsen.
 - `renderer/themes/cozy/entwuerfe/` muss vor einem Build aus `renderer/`
   heraus (sonst landen die Entwürfe im Paket).
+
+#### Runde 2 (Janis' Korrekturen, eingebaut 11.11., wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
+
+1. PixelLab-Quellen für Hover, drehende Platte (`platte-dreht.png`, 8 Bilder
+   je 54×50) und Schrift „Raum Klar“.
+2. Raum füllt das Fenster ohne Rand (deckender, nicht ganzzahliger Faktor).
+3. Neue Pixel-Schrift (Vielfache von 12 px), Hover in Form des Gegenstands
+   (aufgehellter PixelLab-Ausschnitt), feinere Profilbilder, Zettel zeigt je
+   nach Höhe mehr oder weniger Zeilen, Doppelklick auf eine Live-Hülle legt auf.
+4. „VODs“ nimmt die Platte heraus: große Hülle mittig, dreht sich um, auf der
+   Rückseite eine scrollbare Liste aller geladenen VODs.
+5. LIVE- und VOD-Schild aus PixelLab statt Kasten mit Lämpchen.
+6. Auflegen neu: Raum blendet über das Regal (500 ms), Kamera fährt zum
+   Plattenspieler (1200 ms), die Platte dreht sich als PixelLab-Sprite
+   (1500 ms, ~10 Bilder/s, dreht bis zum Ende weiter), Schwenk + Zoom in den
+   Fernseher (2000 ms); mindestens 5200 ms, Klick/Taste überspringt. Die
+   fliegende Platte entfällt. Große Hülle ist im Ablauf ausgeblendet.
+
+- Offene Optik-Fragen für Janis (Runde 2):
+  - Rückseite der großen Hülle ist bis auf ihre Linien durchsichtig: die
+    VOD-Liste steht auf dem abgedunkelten Regal, nicht auf Papier.
+  - Platzhalter-Balken aus `rueck-2` ausgestanzt.
+  - Laufzeit und Kanalpunkte stehen je in einer eigenen Zeile.
+  - Kanalname nicht mehr fett.
+  - ✕ rechts neben der großen Hülle.
+  - Hintergrund hinter der großen Hülle abgedunkelt.
+  - Name des Gegenstands 56 px über dem unteren Rand.
+  - LIVE-/VOD-Schild in 1× (2× passt nicht in die Lautsprecher-Fläche).
+  - Klick auf eine Offline-Hülle öffnet jetzt die große Hülle.
+  - Auflegen: Kamera-Fahrten mit sanftem Anfahren/Abbremsen, Zoom-Stufen
+    ganzzahlig (Plattenspieler bzw. Bildschirm füllen das Fenster knapp).
 - **Nächster Schritt:** Janis schaut an und korrigiert, dann Etappe 3
-  (Animationen und PixelLab-Sprites, u. a. drehende Platte).
+  (Animationen und PixelLab-Sprites).
 
 ## Erledigt
 

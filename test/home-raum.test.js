@@ -311,7 +311,7 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   const initOpt = homeJs.slice(i, homeJs.indexOf('});', i));
   for (const n of ['beiFlaeche', 'beiSchliessen', 'beiZurueck', 'beiTafelZu']) assert.ok(new RegExp('\\b' + n + '\\b').test(initOpt), n);
   assert.ok(homeJs.includes('Raum.passtAlsRaum('));
-  assert.ok(/mindestMs:\s*4500/.test(homeJs));
+  assert.ok(/mindestMs:\s*5200/.test(homeJs));
   assert.ok(/HomeRaumDom\.zeigeAblauf\([^)]*\(\)\s*=>\s*laufwerk\.ueberspringen\(\)\)/.test(homeJs));
   assert.ok(homeJs.includes('HomeRaumDom.versteckeAblauf()'));
   assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern('offline'"));
@@ -374,16 +374,69 @@ function rumpf(quelle, kopf) {
   return quelle.slice(start, ende < 0 ? undefined : ende);
 }
 
-test('zeigeAblauf: Klassen ablauf-raum, ablauf-platte, ablauf-zoom nacheinander, Dauern 500/1500/2500', () => {
-  assert.ok(/ABLAUF_MS\s*=\s*\{\s*raum:\s*500,\s*platte:\s*1500,\s*zoom:\s*2500\s*\}/.test(js));
+// --- Runde 2, Task 4: Auflegen mit Kamera zum Plattenspieler und drehender Platte ---
+function ablaufMs() {
+  const m = /ABLAUF_MS\s*=\s*(\{[^}]*\})/.exec(js);
+  assert.ok(m, 'ABLAUF_MS');
+  return Function('return ' + m[1])();
+}
+
+test('Ablauf: Phasenlaengen 500/1200/1500/2000, Summe 5200 = mindestMs in home.js', () => {
+  const m = ablaufMs();
+  assert.deepStrictEqual(m, { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 });
+  const summe = m.raum + m.spieler + m.dreht + m.zoom;
+  assert.strictEqual(summe, 5200);
+  assert.ok(new RegExp('mindestMs:\\s*' + summe + '\\b').test(homeJs));
+});
+
+test('zeigeAblauf: Klassen ablauf-raum, -spieler, -dreht, -zoom nacheinander zu den Phasengrenzen', () => {
   const r = rumpf(js, 'function zeigeAblauf(');
   assert.ok(r.length > 0);
-  const a = r.indexOf("'ablauf-raum'");
-  const p = r.indexOf("'ablauf-platte'");
-  const z = r.indexOf("'ablauf-zoom'");
-  assert.ok(a > -1 && p > a && z > p, 'Reihenfolge');
-  assert.ok((r.match(/setTimeout\(/g) || []).length >= 2, 'Timer fuer Platte und Zoom');
-  for (const ms of ['500ms', '1500ms', '2500ms']) assert.ok(css.includes(ms), ms);
+  const reihe = ["'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zoom'"].map((k) => r.indexOf(k));
+  assert.ok(reihe[0] > -1 && reihe.every((x, i) => i === 0 || x > reihe[i - 1]), 'Reihenfolge');
+  assert.ok(r.includes('abschnitt(m.raum, ()'), 'spieler nach raum');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler, ()'), 'dreht nach raum+spieler');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.dreht, ()'), 'zoom nach raum+spieler+dreht');
+  assert.ok(/function abschnitt\(ms, f\) \{ ablaufTimer\.push\(setTimeout\(f, ms\)\); \}/.test(js));
+  assert.ok(r.includes('aus(t.dreht, false)'), 'Sprite an');
+  assert.strictEqual((r.match(/neuAusrichten\(\)/g) || []).length, 2, 'Kamera bei spieler und zoom');
+});
+
+test('CSS: Uebergaenge passen zu den Phasen, Zoom-Regel steht nach der Spieler-Regel', () => {
+  const m = ablaufMs();
+  assert.ok(/#home\.im-ablauf #raum-ebene\s*\{[^}]*transition:\s*opacity 500ms/.test(css));
+  const sp = css.search(new RegExp('#home\\.ablauf-spieler #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.spieler + 'ms'));
+  const zo = css.search(new RegExp('#home\\.ablauf-zoom #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.zoom + 'ms'));
+  assert.ok(sp > -1 && zo > sp, 'zoom gewinnt (gleiche Spezifitaet, spaeter)');
+  assert.ok(!css.includes('2500ms') && !css.includes('ablauf-flug') && !css.includes('ablauf-platte'));
+});
+
+test('Drehende Platte: platte-dreht.png als Sprite an (258, 82), 8 Bilder je 54x50, steps(8), ~10 Bilder/s', () => {
+  assert.ok(/const DREHT = \{ x: 258, y: 82, b: 54, h: 50, bilder: 8 \}/.test(js));
+  const raum = rumpf(js, 'function baueRaum(');
+  assert.ok(/t\.dreht = lage\(el\('div', 'ablauf-dreht-platte raum-aus'\), DREHT\)/.test(raum));
+  assert.ok(raum.includes('r.bild.appendChild(t.dreht)'), 'in der skalierten Bildebene');
+  assert.ok(raum.indexOf('r.bild.appendChild(t.dreht)') > raum.indexOf('t.hover[f.id]'), 'ueber dem Hover-Bild');
+  const regel = /\.ablauf-dreht-platte\s*\{([^}]*)\}/.exec(css);
+  assert.ok(regel);
+  assert.ok(regel[1].includes("url('../themes/cozy/platte-dreht.png') 0 0 / 432px 50px no-repeat"), 'Streifen in Bildpixeln');
+  const anim = /animation:\s*raum-platte-dreht (\d+)ms steps\(8\) infinite/.exec(regel[1]);
+  assert.ok(anim);
+  const bilderProSek = 8 / (Number(anim[1]) / 1000);
+  assert.ok(bilderProSek >= 9 && bilderProSek <= 11, 'ca. 10 Bilder/s');
+  assert.ok(/@keyframes raum-platte-dreht\s*\{\s*to\s*\{\s*background-position:\s*-432px 0;\s*\}\s*\}/.test(css));
+  assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/platte-dreht.png')));
+});
+
+test('Kamera: Plattenspieler im Abschnitt spieler, Fernseher im Zoom, sonst Ruhelage', () => {
+  const r = rumpf(js, 'function kameraZiel(');
+  assert.ok(r.includes("k.contains('ablauf-zoom') ? Raum.TV_RECHTECK"));
+  assert.ok(r.includes("k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null"));
+  assert.ok(r.indexOf('ablauf-zoom') < r.indexOf('ablauf-spieler'), 'Zoom geht vor (beide Klassen gesetzt)');
+});
+
+test('Grosse Huelle ist waehrend des Ablaufs ausgeblendet', () => {
+  assert.ok(/#home\.im-ablauf \.gross-platz\s*\{[^}]*display:\s*none/.test(css));
 });
 
 test('Ablauf: Klick oder Taste auf #home-ablauf ruft beiUeberspringen', () => {
@@ -393,20 +446,34 @@ test('Ablauf: Klick oder Taste auf #home-ablauf ruft beiUeberspringen', () => {
   assert.ok(/ablaufRuf\s*=\s*typeof beiUeberspringen === 'function'/.test(js));
 });
 
-test('versteckeAblauf raeumt Klassen, Timer, Platte und Kamera weg', () => {
+test('versteckeAblauf raeumt Klassen, Timer, Sprite und Kamera weg', () => {
   const r = rumpf(js, 'function versteckeAblauf(');
   assert.ok(r.includes('clearTimeout('));
-  for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-platte'", "'ablauf-zoom'"]) assert.ok(r.includes(k), k);
-  assert.ok(r.includes('t.flug'), 'fliegende Platte');
-  assert.ok(r.includes('neuAusrichten()'), 'Kamera zurueck');
-  assert.ok(r.includes('zeigeAnsicht(aktuell)'), 'Ansicht zurueck');
+  for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zoom'"]) assert.ok(r.includes(k), k);
+  assert.ok(r.includes('aus(t.dreht, true)'), 'Sprite aus');
+  assert.ok(r.includes('zeigeAnsicht(aktuell)'), 'Ansicht und Kamera zurueck (ruft neuAusrichten)');
+  assert.ok(r.indexOf('classList.remove(') < r.indexOf('zeigeAnsicht(aktuell)'), 'Klassen weg vor der Ruhelage');
 });
 
-test('Kamera und fliegende Platte nutzen Raum-Geometrie', () => {
-  assert.ok(js.includes('Raum.kameraZiel(Raum.TV_RECHTECK'));
-  assert.ok(js.includes('Raum.TELLER'));
-  assert.ok(js.includes('../themes/cozy/platte-klein.png'));
-  assert.ok(/Raum\.FLAECHEN\.find\(\(f\) => f\.id === 'regal'\)/.test(js));
+test('Fliegende Platte entfaellt samt CSS', () => {
+  assert.ok(!js.includes('platte-klein.png') && !js.includes('t.flug') && !js.includes('FLUG_KANTE') && !js.includes('Raum.TELLER'));
+  assert.ok(!css.includes('ablauf-flug') && !css.includes('--dx'));
+});
+
+test('Kamera-Ziele (ganzzahliger Faktor) decken das Fenster und bleiben im Bild', () => {
+  const R = require('../renderer/lib/raum.js');
+  for (const [w, h] of [[688, 384], [1397, 1332], [1920, 1080], [2560, 1440], [800, 1400], [3000, 500]]) {
+    const cover = R.skalierung(w, h).faktor;
+    for (const rect of [R.PLATTENSPIELER_RECHTECK, R.TV_RECHTECK]) {
+      const z = R.kameraZiel(rect, w, h);
+      assert.ok(Number.isInteger(z.faktor) && z.faktor > cover, 'naeher als die Ruhelage');
+      // sichtbarer Ausschnitt in Bildpixeln liegt innerhalb des Rechtecks (+1 px Rundung)
+      const links = -z.x / z.faktor, oben = -z.y / z.faktor;
+      const rechts = links + w / z.faktor, unten = oben + h / z.faktor;
+      assert.ok(links >= rect.x - 1 && rechts <= rect.x + rect.b + 1, w + 'x' + h + ' waagerecht');
+      assert.ok(oben >= rect.y - 1 && unten <= rect.y + rect.h + 1, w + 'x' + h + ' senkrecht');
+    }
+  }
 });
 
 test('setzeTv: Vorschau verpixelt, affin auf TV_ECKEN, Maske per destination-in, kein getImageData', () => {
@@ -432,7 +499,7 @@ test('setzeTv: bloesser Adresswechsel (?t=) leert die Canvas nicht, Kanalwechsel
 });
 
 test('Fernseher-Rechteck kommt aus Raum.TV_RECHTECK', () => {
-  assert.ok(js.includes('Raum.kameraZiel(Raum.TV_RECHTECK'));
+  assert.ok(js.includes('? Raum.TV_RECHTECK') && js.includes('Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight)'));
   assert.ok(!/x:\s*206,\s*y:\s*52/.test(js));
 });
 
@@ -452,8 +519,11 @@ test('home.css: Hinweiszeile und Version weichen im Ablauf', () => {
   assert.ok(/#home\.im-ablauf #home-version/.test(homeCss));
 });
 
-test('home-raum.css: Animationen aus -> Uebergaenge still, keine Platten-Drehung', () => {
-  assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none/.test(css));
+test('home-raum.css: Animationen aus -> Uebergaenge und Sprite still, keine CSS-Rotation der Platte', () => {
+  assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none[^}]*animation:\s*none/.test(css));
+  // ohne Animationen startet home.js keinen Ablauf
+  const lw = homeJs.indexOf('async function ladeWert(');
+  assert.ok(/const mitLaufwerk = !!kanal && !effekteAus\(\);/.test(homeJs.slice(lw, homeJs.indexOf('\n}', lw))));
   assert.ok(!css.includes('raum-dreh') && !/rotate\(/.test(css));
   assert.ok(!/bildEl\('\.\.\/themes\/cozy\/platte-vorn\.png', 'ablauf-platte'\)/.test(js), 'alte drehende Platte im Ablauf weg');
 });

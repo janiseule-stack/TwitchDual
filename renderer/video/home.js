@@ -34,10 +34,10 @@ let laufendeSuche = null;      // { text, fertig: Promise, erledigt } der Twitch
 let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;       // submitLoad aus Home laeuft
 let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
-// Ablauf beim Auflegen: Animation (mind. 4,5 s, per Klick/Taste
+// Ablauf beim Auflegen: Animation (mind. 5,2 s, per Klick/Taste
 // ueberspringbar) und Laden laufen parallel.
 const laufwerk = HomeBuehne.createLaufwerk({
-  mindestMs: 4500,
+  mindestMs: 5200,
   jetzt: Date.now,
   setzeTimer: (f, ms) => setTimeout(f, ms),
   loescheTimer: (t) => clearTimeout(t),

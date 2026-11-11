@@ -33,8 +33,11 @@ window.HomeRaumDom = (function () {
   const SCHILD_MS = 2000;
   const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht', vods: 'Alle VODs' };
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
-  const ABLAUF_MS = { raum: 500, platte: 1500, zoom: 2500 };
-  const FLUG_KANTE = 12; // platte-klein.png
+  // Summe 5200 ms = mindestMs in home.js.
+  const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
+  // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
+  // Ursprung wie Raum.HOVER.plattenspieler.
+  const DREHT = { x: 258, y: 82, b: 54, h: 50, bilder: 8 };
 
   let wirt = null;
   let opt = {};
@@ -182,14 +185,10 @@ window.HomeRaumDom = (function () {
     }
     tvMaske = new Image();
     tvMaske.src = '../themes/cozy/raum-tv-maske.png';
-    // Fliegende Platte: von der Mitte des Regals zum Plattenteller (CSS-Uebergang).
-    const regal = Raum.FLAECHEN.find((f) => f.id === 'regal');
-    const von = { x: Math.round(regal.x + regal.b / 2), y: Math.round(regal.y + regal.h / 2) };
-    t.flug = lage(bildEl('../themes/cozy/platte-klein.png', 'ablauf-flug raum-aus'),
-      { x: von.x - FLUG_KANTE / 2, y: von.y - FLUG_KANTE / 2, b: FLUG_KANTE, h: FLUG_KANTE });
-    t.flug.style.setProperty('--dx', (Raum.TELLER.x - von.x) + 'px');
-    t.flug.style.setProperty('--dy', (Raum.TELLER.y - von.y) + 'px');
-    r.bild.appendChild(t.flug);
+    // Drehende Platte (Ablauf): Sprite in Bildpixeln in der skalierten Ebene,
+    // die Ebene vergroessert es mit (kein Bild-Bluten bei krummem Faktor).
+    t.dreht = lage(el('div', 'ablauf-dreht-platte raum-aus'), DREHT);
+    r.bild.appendChild(t.dreht);
     // Name des Gegenstands bzw. Hinweis (zeigeSchild): klein unten mittig, unskaliert.
     t.name = el('div', 'raum-name raum-aus');
     r.e.appendChild(t.name);
@@ -392,8 +391,8 @@ window.HomeRaumDom = (function () {
     t.grossHuelle.style.top = Math.round((wirt.clientHeight - kante) / 2) + 'px';
     // Der Zettel zeigt je nach Hoehe mehr oder weniger Zeilen.
     if (t.vornStand && zettelPlatz().platz !== t.zettelPlatz) zeichneZettel(t.vornStand, t.buehneH);
-    // Waehrend des Zooms bleibt die Raum-Ebene auf dem Kamera-Ziel.
-    const kamera = wirt.classList.contains('ablauf-zoom') ? kameraZiel() : null;
+    // Im Ablauf bleibt die Raum-Ebene auf dem Kamera-Ziel (auch bei Groessenaenderung).
+    const kamera = kameraZiel();
     for (const r of [t.raum, t.regal]) {
       const z = r === t.raum && kamera ? kamera : { x: skal.links, y: skal.oben, faktor: f };
       r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
@@ -665,14 +664,22 @@ window.HomeRaumDom = (function () {
   }
 
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
-  // Kamera: der gruene Bildschirm fuellt das Fenster.
+  // Kamera je Abschnitt: auf den Plattenspieler (ablauf-spieler), dann der
+  // gruene Bildschirm fuellt das Fenster (ablauf-zoom); sonst keine (null).
   function kameraZiel() {
-    return Raum.kameraZiel(Raum.TV_RECHTECK,wirt.clientWidth, wirt.clientHeight);
+    const k = wirt.classList;
+    const ziel = k.contains('ablauf-zoom') ? Raum.TV_RECHTECK
+      : k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null;
+    return ziel ? Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight) : null;
   }
+  // Naechster Abschnitt nach ms (seit Beginn des Ablaufs).
+  function abschnitt(ms, f) { ablaufTimer.push(setTimeout(f, ms)); }
 
-  // Auflegen: Regal blendet zum Raum (ablauf-raum), Platte fliegt zum Teller
-  // (ablauf-platte), Kamera zoomt in den Fernseher (ablauf-zoom). Die
-  // Uebergaenge stehen in home-raum.css; home.js steuert die Mindestdauer.
+  // Auflegen: Regal blendet zum Raum (ablauf-raum, 500 ms), Kamera faehrt zum
+  // Plattenspieler (ablauf-spieler, 1200 ms), die Platte dreht sich
+  // (ablauf-dreht, 1500 ms, dreht weiter bis zum Ende), Schwenk und Zoom in den
+  // Fernseher (ablauf-zoom, 2000 ms). Die Uebergaenge stehen in
+  // home-raum.css; home.js steuert die Mindestdauer (5200 ms).
   function zeigeAblauf(kanal, beiUeberspringen) {
     if (!wirt) return;
     versteckeAblauf();
@@ -685,15 +692,19 @@ window.HomeRaumDom = (function () {
     aus(t.raum.e, false); // liegt ueber dem Regal, startet unsichtbar
     void t.raum.e.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
     wirt.classList.add('ablauf-raum');
-    ablaufTimer.push(setTimeout(() => {
-      aus(t.flug, false);
-      void t.flug.offsetWidth;
-      wirt.classList.add('ablauf-platte');
-    }, ABLAUF_MS.raum));
-    ablaufTimer.push(setTimeout(() => {
+    const m = ABLAUF_MS;
+    abschnitt(m.raum, () => {
+      wirt.classList.add('ablauf-spieler');
+      neuAusrichten();
+    });
+    abschnitt(m.raum + m.spieler, () => {
+      aus(t.dreht, false);
+      wirt.classList.add('ablauf-dreht');
+    });
+    abschnitt(m.raum + m.spieler + m.dreht, () => {
       wirt.classList.add('ablauf-zoom');
       neuAusrichten();
-    }, ABLAUF_MS.raum + ABLAUF_MS.platte));
+    });
   }
   // Setzt alles zurueck (auch nach Fehler): Timer, Klassen, Platte, Kamera, Ansicht.
   function versteckeAblauf() {
@@ -702,8 +713,8 @@ window.HomeRaumDom = (function () {
     ablaufTimer.forEach((x) => clearTimeout(x));
     ablaufTimer = [];
     // Mit den Klassen faellt auch der Uebergang weg: Ruecksprung ohne Animation.
-    wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-platte', 'ablauf-zoom');
-    aus(t.flug, true);
+    wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-spieler', 'ablauf-dreht', 'ablauf-zoom');
+    aus(t.dreht, true);
     aus(t.ablauf, true);
     zeigeAnsicht(aktuell); // Raum/Regal wie vorher, ruft neuAusrichten()
   }
