@@ -332,7 +332,7 @@ test('home.js: Schliessen-Wege', () => {
   assert.ok(rumpf.includes('notifyHomeClose'));
   const lw = homeJs.indexOf('async function ladeWert(');
   assert.ok(/if \(ok\) \{[^}]*closeHome\(\)/.test(homeJs.slice(lw, homeJs.indexOf('\n}', lw))));
-  assert.ok(/onLoad\(\(\) => \{ if \(!laufwerk\.laeuft\) closeHome\(\); \}\)/.test(homeJs));
+  assert.ok(/onLoad\(\(\) => \{ zeigeSchliessKnoepfe\(\); if \(!laufwerk\.laeuft\) closeHome\(\); \}\)/.test(homeJs));
   // VOD-Karte laedt ueber ladeWert (kein eigenes submitLoad + closeHome)
   assert.ok(homeJs.includes('ladeWert(v.id, null)'));
   assert.strictEqual((homeJs.match(/^(?!\s*\/\/).*twitchDual\.submitLoad\(/gm) || []).length, 1);
@@ -367,6 +367,14 @@ test('home.css: nur noch Home-Grundregeln, keine Verlaeufe, kein Blur', () => {
 });
 
 // --- Task 5: Auflegen-Ablauf und Fernseher-Bild ---------------------------------
+// Rumpf einer Funktion auf oberster Ebene (schliessende Klammer in Spalte 0).
+function rumpfOben(quelle, kopf) {
+  const start = quelle.indexOf(kopf);
+  if (start < 0) return '';
+  const ende = quelle.indexOf('\n}\n', start);
+  return quelle.slice(start, ende < 0 ? undefined : ende);
+}
+
 function rumpf(quelle, kopf) {
   const start = quelle.indexOf(kopf);
   if (start < 0) return '';
@@ -480,6 +488,20 @@ test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt 
   assert.ok(n.includes('skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN)'));
   assert.ok(/r === t\.raum \? skalRaum : skal/.test(n), 'Raum-Ebene mit skalRaum, Regal mit skal');
   assert.ok(rumpf(js, 'function baueRaum(').includes('Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum)'), 'Klicks im Raum');
+});
+
+test('Ohne Stream/VOD bleibt Home offen: kein ☰ und kein ✕, Esc schliesst nicht (Janis 11.11.)', () => {
+  const homeJs = lies('renderer/video/home.js');
+  const k = rumpfOben(homeJs, 'function kannSchliessen(');
+  assert.ok(k.includes('window.laeuftEtwas && window.laeuftEtwas()'));
+  // closeHomeResume ist der einzige Schliess-Weg zurueck zur Quelle (☰, ✕, Esc, Fernseher)
+  const c = rumpfOben(homeJs, 'function closeHomeResume(');
+  assert.ok(/^\s*if \(!kannSchliessen\(\)\) return;/m.test(c.split('\n').slice(1, 6).join('\n')), 'gleich am Anfang');
+  const z = rumpfOben(homeJs, 'function zeigeSchliessKnoepfe(');
+  assert.ok(z.includes("$homeBtn.classList.toggle('hidden', !kannSchliessen())"));
+  assert.ok(z.includes("getElementById('home-close')"));
+  assert.ok(rumpfOben(homeJs, 'function openHome(').includes('zeigeSchliessKnoepfe()'));
+  assert.ok(/twitchDual\.onLoad\(\(\) => \{[^}]*zeigeSchliessKnoepfe\(\)/.test(homeJs), 'nach dem Laden erscheinen sie');
 });
 
 test('Home liegt direkt unter der Leiste (kein Holzstreifen dazwischen, Janis 11.11.)', () => {

@@ -122,6 +122,7 @@ function openHome(ziel) {
   window.twitchDual.notifyHomeOpen(); // Chat trennt die laufende Quelle
   $home.classList.remove('hidden');
   document.body.classList.add('home-offen'); // Leiste oben: nur "Ads blocked"
+  zeigeSchliessKnoepfe();
   schliesseTafel();
   HomeRaumDom.neuAusrichten(); // init hat im versteckten #home gemessen
   if (ziel === 'regal' || !raumPasst()) zeigeRegal(true);
@@ -152,10 +153,23 @@ function closeHome() {
   punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
 }
 
+// Home schliessen geht nur, wenn ein Stream oder VOD geladen ist (Janis 11.11.2026):
+// sonst laege dahinter nur die leere Holzwand. ☰ in der Leiste und ✕ in Home
+// erscheinen deshalb erst, wenn etwas geladen ist.
+function kannSchliessen() {
+  return !!(window.laeuftEtwas && window.laeuftEtwas());
+}
+function zeigeSchliessKnoepfe() {
+  $homeBtn.classList.toggle('hidden', !kannSchliessen());
+  const zu = document.getElementById('home-close');
+  if (zu) zu.classList.toggle('hidden', !kannSchliessen());
+}
+
 // Home schliessen und zur bereits laufenden Quelle zurueck -> Chat wieder
 // verbinden (der Player lief unter dem Overlay weiter). NICHT benutzen, wenn
 // gerade eine neue Quelle geladen wird - das erledigt onLoad im Chat selbst.
 function closeHomeResume() {
+  if (!kannSchliessen()) return; // nichts geladen: hinter Home laege nur die leere Wand
   // Laeuft gerade ein Laden aus Home (Laufwerk), ist die neue Quelle schon
   // unterwegs: nur schliessen, sonst verbaende sich der Chat doppelt neu.
   if (ladenLaeuft || laufwerk.laeuft) { closeHome(); return; }
@@ -684,7 +698,7 @@ document.addEventListener('keydown', (e) => {
 
 // Wenn etwas geladen wird (auch via Eingabefeld), Overlay schliessen - ausser
 // das Laufwerk spielt gerade; dann schliesst ladeWert nach der Animation.
-window.twitchDual.onLoad(() => { if (!laufwerk.laeuft) closeHome(); });
+window.twitchDual.onLoad(() => { zeigeSchliessKnoepfe(); if (!laufwerk.laeuft) closeHome(); });
 
 // --- Login: ein Anmelden fuer Chat (Device Flow) + Kanalpunkte (Web) -------
 // Ablauf im Main (IPC 'anmelden'): ein Twitch-Fenster, nur fehlende Schritte.
