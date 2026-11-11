@@ -755,7 +755,29 @@ test('Karte: Nachladen per scroll an .karte-vods (weitere, laedtNach, 2 Zeilenho
   const k = rumpf(js, 'function kartenScrollen(');
   assert.ok(k.includes('karteOffen()') && k.includes('t.karteVods.scrollBy('));
   assert.ok(rumpf(js, 'function karteOffen(').includes("classList.contains('raum-aus')"));
-  assert.ok(rumpf(js, 'function karteOffen(').includes('gedreht'), 'nur die Rueckseite');
+  assert.ok(!rumpf(js, 'function karteOffen(').includes('gedreht'), 'karteOffen = herausgenommen (vorn oder hinten)');
+  assert.ok(k.includes("classList.contains('gedreht')"), 'nur die Rueckseite scrollt');
+});
+
+test('Karte: wechselt nur das laufende VOD, ziehen die vorhandenen Zeilen die Markierung nach', () => {
+  const v = rumpf(js, 'function zeichneKarteVods(');
+  const a = v.indexOf('if (anhaengen)');
+  const teil = v.slice(a, v.indexOf('} else {', a));
+  assert.ok(/kv\.laufend !== laufend/.test(teil) && teil.includes('karteSetzeLaufend(laufend)'));
+  assert.ok(/t\.karteKv = \{[^}]*laufend/.test(v), 'laufend im Anhaenge-Stand');
+  const s = rumpf(js, 'function karteSetzeLaufend(');
+  assert.ok(s.includes("toggle('laeuft'") && s.includes('b.dataset.id') && s.includes('karteVodInfo('));
+});
+
+test('Karte: Huelle fuellt die linke Haelfte (Bild 128/111 skaliert, Fenster mit dunkler Flaeche), ✕ skaliert mit --karte-n', () => {
+  const regel = (sel) => (new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.') + '\\s*\\{([^}]*)\\}').exec(css) || [])[2] || '';
+  assert.ok(regel('.karte-huelle').includes('--karte-s: calc(var(--karte-n, 2) * 128 / 111)'));
+  assert.ok(/left:\s*calc\(-9px \* var\(--karte-s\)\)/.test(regel('.karte-bild')));
+  assert.ok(/background:\s*var\(--zettel-tinte\)/.test(regel('.karte-fenster')), 'Fenster nie durchsichtig');
+  const zu = regel('.karte-zu');
+  assert.ok(/width:\s*calc\(16px \* var\(--karte-n, 2\)\)/.test(zu) && /right:\s*calc\(2px \* var\(--karte-n, 2\)\)/.test(zu));
+  assert.ok(!/right:\s*-/.test(zu), 'innerhalb der Karte');
+  assert.ok(/\.karte-platz\s*\{[^}]*background:\s*rgb\(18 5 5 \/ \.55\)/.test(css), 'gleiche Abdunklung wie .gross-platz');
 });
 
 test('Karte: Klick daneben und ✕ legen zurueck (Doppelklick ignoriert), Doppelklick auf die Huelle legt auf', () => {

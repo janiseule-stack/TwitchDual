@@ -358,8 +358,8 @@ window.HomeRaumDom = (function () {
     return t.karteWurzel;
   }
   function karteOffen() {
-    return !!wirt && !!t.karteWurzel && !t.karteWurzel.classList.contains('raum-aus')
-      && t.karteKarte.classList.contains('gedreht');
+    // Karte herausgenommen (vorn oder hinten), wie grossOffen
+    return !!wirt && !!t.karteWurzel && !t.karteWurzel.classList.contains('raum-aus');
   }
 
   function baueTafel() {
@@ -814,6 +814,19 @@ window.HomeRaumDom = (function () {
     stelleFokusHer(z, 'id', fokus);
   }
 
+  function karteVodInfo(rest, laufend) {
+    return [laufend ? '● läuft' : '', rest].filter(Boolean).join(' · ');
+  }
+  // Das laufende VOD wechselt, die Liste bleibt: Markierung an den vorhandenen Zeilen nachziehen.
+  function karteSetzeLaufend(laufend) {
+    for (const b of t.karteVods.querySelectorAll('.karte-vod')) {
+      const an = b.dataset.id === 'vod-' + laufend;
+      b.classList.toggle('laeuft', an);
+      const info = b.querySelector('.karte-vod-info');
+      if (info) info.textContent = karteVodInfo(b.dataset.info, an);
+    }
+  }
+
   // Eine VOD-Zeile: Vorschau links (Canvas 64x36, 16:9), Titel, darunter Spiel · wann · Laenge.
   // Einziger Weg, Zeilen zu bauen: neu bauen und Anhaengen haben dieselbe Vorschau.
   // Fehlt thumb, bleibt die Canvas eine ruhige Flaeche (CSS) und haelt den Platz.
@@ -828,8 +841,9 @@ window.HomeRaumDom = (function () {
     c.height = 36;
     vodBild(v.thumb, c);
     const text = el('span', 'karte-vod-text');
-    const info = [laufend ? '● läuft' : '', v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
-    text.append(el('span', 'karte-vod-titel', v.title || 'VOD'), el('span', 'karte-vod-info', info));
+    b.dataset.info = [v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
+    text.append(el('span', 'karte-vod-titel', v.title || 'VOD'),
+      el('span', 'karte-vod-info', karteVodInfo(b.dataset.info, laufend)));
     b.append(c, text);
     return b;
   }
@@ -846,6 +860,7 @@ window.HomeRaumDom = (function () {
       for (let i = kv.ids.length; i < alle.length; i++) {
         liste.insertBefore(karteVodZeile(alle[i], alle[i].id === laufend), t.karteFuss);
       }
+      if (kv.laufend !== laufend) karteSetzeLaufend(laufend);
     } else {
       const fokus = merkeFokus(t.karteRueck, 'id');
       liste.replaceChildren();
@@ -858,7 +873,7 @@ window.HomeRaumDom = (function () {
       liste.appendChild(t.karteFuss);
       stelleFokusHer(t.karteRueck, 'id', fokus);
     }
-    t.karteKv = { login, ids: alle.map((v) => v.id) };
+    t.karteKv = { login, ids: alle.map((v) => v.id), laufend };
     t.karteFuss.textContent = vods && vods.laedtNach ? 'lade weitere …' : '';
     aus(t.karteFuss, !(vods && vods.laedtNach));
     // Ohne Scrollleiste (kurze Liste) kommt nie ein scroll-Ereignis: nach dem Zeichnen pruefen
@@ -877,7 +892,8 @@ window.HomeRaumDom = (function () {
 
   // ↑/↓ bei offener Rueckseite: Liste scrollen statt zuruecklegen (home.js).
   function kartenScrollen(richtung) {
-    if (!karteOffen()) return false;
+    // nur die Rueckseite scrollt (gedreht); vorn tut kartenScrollen nichts
+    if (!karteOffen() || !t.karteKarte.classList.contains('gedreht')) return false;
     const eine = t.karteVods.querySelector('.karte-vod');
     t.karteVods.scrollBy({ top: (richtung > 0 ? 1 : -1) * (eine ? eine.offsetHeight : 36) });
     return true;

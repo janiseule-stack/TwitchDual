@@ -198,23 +198,37 @@
 .karte-karte.ohne-drehen { transition: none; }
 .karte-karte.gedreht { transform: rotateY(180deg); }
 .karte-seite { position: absolute; inset: 0; backface-visibility: hidden; }
+/* huelle-gross-vorn.png ist 128x128, die Huelle selbst aber nur 9..119 (111 Bildpixel,
+   ringsum durchsichtiger Rand). Damit sie die linke Haelfte (kante x kante) genau
+   fuellt und oben mit der Infotafel abschliesst, wird das Bild um 128/111 groesser
+   gezeichnet (--karte-s) und um 9 Bildpixel nach oben links versetzt; Fenster und
+   Bild skalieren gleich. Das Bild wird nur skaliert (scharfkantig), nicht neu gezeichnet. */
 .karte-huelle {
-  position: absolute; left: 0; top: 0;
+  --karte-s: calc(var(--karte-n, 2) * 128 / 111);
+  position: absolute; left: 0; top: 0; overflow: hidden;
   width: calc(128px * var(--karte-n, 2)); height: calc(128px * var(--karte-n, 2));
 }
 .karte-bild {
-  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
-  image-rendering: pixelated; pointer-events: none; user-select: none;
+  position: absolute; pointer-events: none; user-select: none; image-rendering: pixelated;
+  left: calc(-9px * var(--karte-s)); top: calc(-9px * var(--karte-s));
+  width: calc(128px * var(--karte-s)); height: calc(128px * var(--karte-s));
 }
 .karte-teil {
   position: absolute; box-sizing: border-box;
-  left: calc(var(--x) * var(--karte-n, 2) * 1px); top: calc(var(--y) * var(--karte-n, 2) * 1px);
-  width: calc(var(--b) * var(--karte-n, 2) * 1px); height: calc(var(--h) * var(--karte-n, 2) * 1px);
+  left: round(calc((var(--x) - 9) * var(--karte-s) * 1px), 1px); top: round(calc((var(--y) - 9) * var(--karte-s) * 1px), 1px);
+  width: round(calc(var(--b) * var(--karte-s) * 1px), 1px); height: round(calc(var(--h) * var(--karte-s) * 1px), 1px);
 }
-.karte-fenster { overflow: hidden; }
+/* Fenster: ruhige dunkle Flaeche, nie das, was dahinter liegt; das Profilbild kommt darueber */
+.karte-fenster { overflow: hidden; background: var(--zettel-tinte); }
 .karte-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 .karte-fenster .huelle-buchstabe { font-size: var(--karte-schrift, 12px); }
-.karte-zu { position: absolute; top: 0; right: -40px; z-index: 1; }
+/* ✕ in der rechten oberen Ecke, ganzzahlig mit --karte-n (Bild 32 px = 16 x n) */
+.karte-zu {
+  position: absolute; z-index: 1;
+  top: calc(2px * var(--karte-n, 2)); right: calc(2px * var(--karte-n, 2));
+  width: calc(16px * var(--karte-n, 2)); height: calc(16px * var(--karte-n, 2));
+  background-size: 100% 100%; image-rendering: pixelated;
+}
 
 .karte-info {
   position: absolute; left: 50%; top: 0; width: 50%; height: 100%; box-sizing: border-box;
