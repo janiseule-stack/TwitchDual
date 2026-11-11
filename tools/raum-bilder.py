@@ -11,6 +11,7 @@ Es wird nichts selbst gezeichnet: nur zuschneiden, skalieren, ausstanzen, einset
 """
 import json
 import os
+import shutil
 import sys
 
 from PIL import Image
@@ -20,6 +21,16 @@ QUELLEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "raum-quellen
 TV_AUSSCHNITT = (156, 8)
 # Profilbild-Fenster der Huelle (Variante A: Profilbild fuellt das Cover)
 HUELLE_FENSTER = (2, 2, 36, 36)
+# Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4); Task 2 uebertraegt sie in Raum.HOVER
+HOVER = {
+    "regal": (96, 10),
+    "lampe": (161, 2),
+    "fernseher": (194, 34),
+    "plattenspieler": (258, 82),
+    "bild": (278, 32),
+}
+# Ursprung der 64x64-Bilder der drehenden Platte im Raum
+PLATTE_URSPRUNG = (256, 80)
 
 
 def quelle(name):
@@ -122,11 +133,49 @@ def zettel_schild(ordner):
     schild.save(os.path.join(ordner, "schild.png"))
 
 
+def hover_und_platte(ordner):
+    raum = Image.open(os.path.join(ordner, "raum.png")).convert("RGBA")
+    rp = raum.load()
+    # Ausschnitte unveraendert; beim Fernseher werden die Bildschirm-Pixel (gruen in raum.png)
+    # durchsichtig, damit beim Aufleuchten das Stream-Bild sichtbar bleibt.
+    for name, (ox, oy) in HOVER.items():
+        bild = quelle("hover-%s.png" % name)
+        if name == "fernseher":
+            bp = bild.load()
+            for y in range(bild.size[1]):
+                for x in range(bild.size[0]):
+                    if ist_gruen(rp[ox + x, oy + y]):
+                        bp[x, y] = (0, 0, 0, 0)
+        bild.save(os.path.join(ordner, "hover-%s.png" % name))
+
+    # Drehende Platte: 8 Bilder (64x64, Ursprung PLATTE_URSPRUNG) auf die deckende Flaeche
+    # des Plattenspieler-Ausschnitts begrenzt, nebeneinander.
+    hov = quelle("hover-plattenspieler.png")
+    hp = hov.load()
+    hw, hh = hov.size
+    dx = HOVER["plattenspieler"][0] - PLATTE_URSPRUNG[0]
+    dy = HOVER["plattenspieler"][1] - PLATTE_URSPRUNG[1]
+    streifen = Image.new("RGBA", (hw * 8, hh), (0, 0, 0, 0))
+    sp = streifen.load()
+    for i in range(8):
+        b = quelle("platte-dreht-%d.png" % (i + 1))
+        bp = b.load()
+        for y in range(hh):
+            for x in range(hw):
+                if hp[x, y][3] > 0:
+                    sp[i * hw + x, y] = bp[x - dx, y - dy]
+    streifen.save(os.path.join(ordner, "platte-dreht.png"))
+
+    os.makedirs(os.path.join(ordner, "schrift"), exist_ok=True)
+    shutil.copyfile(os.path.join(QUELLEN, "schrift-klar.ttf"), os.path.join(ordner, "schrift", "RaumKlar.ttf"))
+
+
 def main():
     if len(sys.argv) != 2:
         raise SystemExit("Aufruf: raum-bilder.py <ordner>")
     ordner = sys.argv[1]
     ecken = tv_bilder(ordner)
+    hover_und_platte(ordner)
     huelle_bilder(ordner)
     lampe_klein(ordner)
     platten(ordner)

@@ -19,6 +19,21 @@ const MASSE = {
   'platte-vorn.png': [36, 36],
   'zettel.png': [129, 96],
   'schild.png': [131, 41],
+  'hover-regal.png': [72, 124],
+  'hover-lampe.png': [39, 112],
+  'hover-fernseher.png': [78, 78],
+  'hover-plattenspieler.png': [54, 50],
+  'hover-bild.png': [40, 62],
+  'platte-dreht.png': [432, 50],
+};
+
+// Ursprung der Hover-Ausschnitte im Raum (Klickflaeche - 4)
+const HOVER_URSPRUNG = {
+  regal: [96, 10],
+  lampe: [161, 2],
+  fernseher: [194, 34],
+  plattenspieler: [258, 82],
+  bild: [278, 32],
 };
 
 const KOPF = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -132,6 +147,66 @@ test('huelle.png hat deckende Kante oben, unten, links und rechts', () => {
   assert.ok(hat(alle, [38, 39]), 'unten');
   assert.ok(hat([0, 1], alle), 'links');
   assert.ok(hat([38, 39], alle), 'rechts');
+});
+
+for (const [id, [ox, oy]] of Object.entries(HOVER_URSPRUNG)) {
+  test(`hover-${id}.png: jeder deckende Pixel gleich raum-tv-aus.png an (${ox},${oy})+Pixel`, () => {
+    const h = dekodiere(lade(`hover-${id}.png`));
+    const aus = dekodiere(lade('raum-tv-aus.png'));
+    let deckend = 0;
+    let abweichungen = 0;
+    for (let y = 0; y < h.h; y++) {
+      for (let x = 0; x < h.w; x++) {
+        const i = (y * h.w + x) * 4;
+        if (h.px[i + 3] === 0) continue;
+        deckend++;
+        const j = ((oy + y) * aus.w + (ox + x)) * 4;
+        for (let k = 0; k < 4; k++) if (h.px[i + k] !== aus.px[j + k]) { abweichungen++; break; }
+      }
+    }
+    assert.ok(deckend > 0, 'nichts deckend');
+    assert.strictEqual(abweichungen, 0, abweichungen + ' Pixel weichen ab');
+  });
+}
+
+test('hover-fernseher.png: Bildschirm-Pixel (gruen in raum.png) sind durchsichtig', () => {
+  const [ox, oy] = HOVER_URSPRUNG.fernseher;
+  const h = dekodiere(lade('hover-fernseher.png'));
+  const raum = dekodiere(lade('raum.png'));
+  let durchsichtig = 0;
+  for (let y = 0; y < h.h; y++) {
+    for (let x = 0; x < h.w; x++) {
+      const j = ((oy + y) * raum.w + (ox + x)) * 4;
+      const gruen = raum.px[j + 1] > 200 && raum.px[j] < 90;
+      const a = h.px[(y * h.w + x) * 4 + 3];
+      if (gruen) { assert.strictEqual(a, 0, `Bildschirm-Pixel ${x},${y} nicht durchsichtig`); durchsichtig++; }
+    }
+  }
+  assert.ok(durchsichtig > 100, 'zu wenig Bildschirm-Pixel');
+});
+
+test('platte-dreht.png: 8 Bilder je 54x50, nur Pixel innerhalb der Flaeche von hover-plattenspieler.png', () => {
+  const s = dekodiere(lade('platte-dreht.png'));
+  const hov = dekodiere(lade('hover-plattenspieler.png'));
+  let deckend = 0;
+  for (let f = 0; f < 8; f++) {
+    for (let y = 0; y < 50; y++) {
+      for (let x = 0; x < 54; x++) {
+        const a = s.px[(y * s.w + f * 54 + x) * 4 + 3];
+        if (a > 0) {
+          deckend++;
+          assert.ok(hov.px[(y * hov.w + x) * 4 + 3] > 0, `Bild ${f + 1} Pixel ${x},${y} ausserhalb der Flaeche`);
+        }
+      }
+    }
+  }
+  assert.ok(deckend > 8 * 100, 'zu wenig deckende Pixel');
+});
+
+test('schrift/RaumKlar.ttf: vorhanden, TrueType-Kennung', () => {
+  const b = fs.readFileSync(path.join(DIR, 'schrift', 'RaumKlar.ttf'));
+  const k = b.subarray(0, 4);
+  assert.ok(k.equals(Buffer.from([0, 1, 0, 0])) || k.toString('ascii') === 'true', 'keine TrueType-Kennung');
 });
 
 test('raum-tv-maske.png deckt genau die gruenen Pixel von raum.png', () => {
