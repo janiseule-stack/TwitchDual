@@ -34,7 +34,6 @@ let laufendeSuche = null;      // { text, fertig: Promise, erledigt } der Twitch
 let enterLaeuft = false;       // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;       // submitLoad aus Home laeuft
 let escZaehler = 0;            // Esc-Druecke (wartendes Enter verwirft sich danach)
-let letzteVorladung = '';      // zuletzt vorgeladene Nachbar-Vorschauen
 // Ablauf beim Auflegen: Animation (mind. 4,5 s, per Klick/Taste
 // ueberspringbar) und Laden laufen parallel.
 const laufwerk = HomeBuehne.createLaufwerk({
@@ -245,6 +244,8 @@ async function ladeWert(wert, kanal) {
   if (ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
   $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
   $hinweis.classList.remove('hidden');
+  // Der Ablauf hatte den Fokus und ist jetzt ausgeblendet: Fokus zurueck ins Suchfeld.
+  if (HomeRaumDom.ansicht() === 'regal') $suche.focus();
 }
 // Kanal zu einem Login fuer das Laufwerk (Profilbild, Name).
 function kanalZu(login) {
@@ -372,19 +373,6 @@ function zeichneTv() {
   HomeRaumDom.setzeTv(l && l.mode === 'live' && l.login ? { vorschauUrl: HomeBuehne.vorschauUrl(l.login, Date.now()) } : null);
 }
 
-// Vorschaubilder der Nachbar-CDs in den Cache holen (Blaettern ohne Warten).
-function vorladen() {
-  const s = buehne.sichtbar();
-  const i = buehne.index();
-  if (i < 0) return;
-  const jetzt = Date.now();
-  const urls = [s[i - 1], s[i + 1]].filter(Boolean).map((k) => HomeBuehne.vorschauUrl(k.login, jetzt));
-  const merk = urls.join(' ');
-  if (merk === letzteVorladung) return;
-  letzteVorladung = merk;
-  urls.forEach((u) => { new Image().src = u; });
-}
-
 function renderHome() {
   const g = gezeigt();
   const schluessel = schluesselVon(g);
@@ -400,7 +388,6 @@ function renderHome() {
   zeichneHuelle();
   HomeRaumDom.zeichneStaender(staenderEintraege(), g.kanal ? g.kanal.login : null, staenderHandler);
   zeichneTv();
-  vorladen();
   renderHinweis();
   zeigeZurueckKnopf();
 }
