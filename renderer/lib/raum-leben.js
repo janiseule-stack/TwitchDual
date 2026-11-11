@@ -53,11 +53,22 @@
 
     function weiter() {
       timer = null;
-      const ev = schlange.naechstes();
-      if (!ev) { laeuft = false; return; }
-      laeuft = true;
-      starte(ev);
-      timer = setT(weiter, dauer(ev));
+      for (;;) {
+        const ev = schlange.naechstes();
+        if (!ev) { laeuft = false; return; }
+        laeuft = true;
+        try {
+          starte(ev);
+        } catch (e) {
+          // Ein kaputter Effekt darf den Abspieler nicht blockieren.
+          if (!laeuft) return;
+          continue;
+        }
+        // aus() innerhalb von starte hat schon alles gestoppt: nichts mehr planen.
+        if (!laeuft) return;
+        timer = setT(weiter, dauer(ev));
+        return;
+      }
     }
 
     return {
@@ -68,8 +79,10 @@
       },
       aus() {
         if (timer !== null) { clearT(timer); timer = null; }
-        if (laeuft) { laeuft = false; stoppe(); }
+        const warLaufend = laeuft;
+        laeuft = false;
         schlange.leeren();
+        if (warLaufend) stoppe();
       },
       get laeuft() { return laeuft; },
     };

@@ -98,8 +98,85 @@ test('abspieler: aus() waehrend Lauf', () => {
   assert.strictEqual(log.stop, 1);
   assert.strictEqual(schlange.laenge, 0);
   assert.strictEqual(a.laeuft, false);
+  assert.strictEqual(f.timer[0].weg, true);
   f.feuere(0);
   assert.deepStrictEqual(log.start, [1]);
+  // neuer Effekt nach aus(): alter Timer darf ihn nicht kuerzen
+  a.melde('raid', { n: 3 });
+  assert.deepStrictEqual(log.start, [1, 3]);
+  f.feuere(0);
+  assert.strictEqual(a.laeuft, true);
+});
+
+test('abspieler: starte wirft -> naechstes Ereignis laeuft', () => {
+  const f = fake();
+  const gestartet = [];
+  const schlange = RL.warteschlange({ jetzt: () => 0 });
+  const a = RL.abspieler({
+    schlange, aktiv: () => true,
+    starte: (ev) => { if (ev.daten.n === 1) throw new Error('kaputt'); gestartet.push(ev.daten.n); },
+    stoppe() {}, dauer: () => 1000,
+    setTimeout: f.setTimeout, clearTimeout: f.clearTimeout,
+  });
+  schlange.rein('raid', { n: 1 });
+  schlange.rein('raid', { n: 2 });
+  a.melde('raid', { n: 3 });
+  assert.deepStrictEqual(gestartet, [2]);
+  assert.strictEqual(a.laeuft, true);
+  f.feuere(0);
+  assert.deepStrictEqual(gestartet, [2, 3]);
+  // einzelnes kaputtes Ereignis: danach nicht haengen
+  const b = RL.abspieler({
+    schlange: RL.warteschlange({ jetzt: () => 0 }), aktiv: () => true,
+    starte: () => { throw new Error('x'); }, stoppe() {}, dauer: () => 1,
+    setTimeout: f.setTimeout, clearTimeout: f.clearTimeout,
+  });
+  b.melde('raid', { n: 1 });
+  assert.strictEqual(b.laeuft, false);
+});
+
+test('abspieler: aus() innerhalb von starte hinterlaesst keinen Timer', () => {
+  const f = fake();
+  const gestartet = [];
+  let a;
+  const schlange = RL.warteschlange({ jetzt: () => 0 });
+  a = RL.abspieler({
+    schlange, aktiv: () => true,
+    starte: (ev) => { gestartet.push(ev.daten.n); if (ev.daten.n === 1) a.aus(); },
+    stoppe() {}, dauer: () => 1000,
+    setTimeout: f.setTimeout, clearTimeout: f.clearTimeout,
+  });
+  a.melde('raid', { n: 1 });
+  assert.strictEqual(f.timer.length, 0);
+  assert.strictEqual(a.laeuft, false);
+  a.melde('raid', { n: 2 });
+  assert.strictEqual(f.timer.length, 1);
+  assert.strictEqual(a.laeuft, true);
+});
+
+test('abspieler: Ueberlauf und veraltete Ereignisse', () => {
+  let t = 0;
+  const f = fake();
+  const gestartet = [];
+  const a = RL.abspieler({
+    schlange: RL.warteschlange({ jetzt: () => t }), aktiv: () => true,
+    starte: (ev) => gestartet.push(ev.daten.n), stoppe() {}, dauer: () => 1000,
+    setTimeout: f.setTimeout, clearTimeout: f.clearTimeout,
+  });
+  for (let n = 1; n <= 5; n++) a.melde('raid', { n });
+  assert.deepStrictEqual(gestartet, [1]);
+  t = 30001;
+  f.feuere(0); // wartende 3..5 (Zeit 0) sind veraltet
+  assert.deepStrictEqual(gestartet, [1]);
+  assert.strictEqual(a.laeuft, false);
+});
+
+test('warteschlange: genau 30000 ms bleibt', () => {
+  let t = 0;
+  const s = RL.warteschlange({ jetzt: () => t });
+  s.rein('raid', { n: 1 });
+  t = 30000;
+  assert.strictEqual(s.naechstes().daten.n, 1);
 });
 
 test('abspieler: inaktiv verwirft', () => {
