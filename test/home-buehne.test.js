@@ -286,3 +286,101 @@ test('Laufwerk: alter Timer-Rueckruf nach ueberspringen ruft nichts doppelt', ()
   alt.forEach((t) => t.fn());
   assert.deepEqual(z.fertig, [true]);
 });
+
+// ---- Regal neu, Task 2: Belegung, Karten-Zustand, VOD-Nachladen ----
+const abs = (o) => [
+  ['favoriten', o.fav], ['live', o.live], ['offline', o.off], ['twitch', o.tw],
+].filter(([, l]) => l && l.length).map(([art, kanaele]) => ({ art, kanaele }));
+
+test('regalBelegung: 9 Live-Favoriten, 4 Plaetze -> Brett = 4 mit den meisten Zuschauern', () => {
+  const zahlen = [5, 90, 10, 90, 3, 70, 1, 2, 4];
+  const fav = zahlen.map((v, i) => k('f' + i, v, { favorit: true, live: true }));
+  const r = HomeBuehne.regalBelegung({ abschnitte: abs({ fav }), plaetze: 4, suche: '' });
+  assert.deepEqual(r.brett.map((x) => x.login), ['f1', 'f3', 'f5', 'f2']);
+  assert.equal(r.live.length, 5);
+  assert.ok(r.live.slice(0, 5).every((e) => e.art === 'favorit'));
+  assert.deepEqual(r.live.map((e) => e.kanal.login), ['f0', 'f8', 'f4', 'f7', 'f6']);
+});
+
+test('regalBelegung: andere Live nach Zuschauern, ohne Suche unten nur Offline-Favoriten', () => {
+  const live = [k('l1', 5, { live: true }), k('l2', 50, { live: true })];
+  const off = [k('o1', 0, { favorit: true }), k('o2', 0)];
+  const tw = [k('t1')];
+  const r = HomeBuehne.regalBelegung({ abschnitte: abs({ live, off, tw }), plaetze: 4, suche: '' });
+  assert.deepEqual(r.brett, []);
+  assert.deepEqual(r.live.map((e) => [e.kanal.login, e.art]), [['l2', 'live'], ['l1', 'live']]);
+  assert.deepEqual(r.unten.map((e) => [e.kanal.login, e.art]), [['o1', 'offline'], ['t1', 'twitch']]);
+});
+
+test('regalBelegung: ohne Suche kein Twitch-Treffer noetig, nur Offline-Favoriten', () => {
+  const off = [k('o2', 0), k('o3', 0)];
+  const r = HomeBuehne.regalBelegung({ abschnitte: abs({ off }), plaetze: 4, suche: '' });
+  assert.deepEqual(r.unten, []);
+});
+
+test('regalBelegung: mit Suche unten Offline-Treffer, dann Twitch, jeder Login einmal', () => {
+  const off = [k('o1', 0, { favorit: true }), k('o2', 0)];
+  const tw = [k('t1'), k('o2'), k('t2')];
+  const r = HomeBuehne.regalBelegung({ abschnitte: abs({ off, tw }), plaetze: 4, suche: 'o' });
+  assert.deepEqual(r.unten.map((e) => [e.kanal.login, e.art]),
+    [['o1', 'offline'], ['o2', 'offline'], ['t1', 'twitch'], ['t2', 'twitch']]);
+});
+
+test('regalBelegung: plaetze 0 oder kein Favorit -> Brett leer', () => {
+  const fav = [k('f1', 10, { favorit: true, live: true })];
+  const r0 = HomeBuehne.regalBelegung({ abschnitte: abs({ fav }), plaetze: 0, suche: '' });
+  assert.deepEqual(r0.brett, []);
+  assert.deepEqual(r0.live.map((e) => [e.kanal.login, e.art]), [['f1', 'favorit']]);
+  const r1 = HomeBuehne.regalBelegung({ abschnitte: [], plaetze: 4, suche: '' });
+  assert.deepEqual(r1, { brett: [], live: [], unten: [] });
+});
+
+test('vodLimit', () => {
+  const v = HomeBuehne.vodLimit;
+  assert.equal(HomeBuehne.VODS.schritt, 25);
+  assert.equal(HomeBuehne.VODS.max, 100);
+  assert.equal(v(0, 25), null);
+  assert.equal(v(25, 25), 50);
+  assert.equal(v(50, 50), 75);
+  assert.equal(v(75, 75), 100);
+  assert.equal(v(100, 100), null);
+  assert.equal(v(40, 50), null);
+});
+
+test('vodsZusammen: alte behalten Reihenfolge, neue hinten', () => {
+  const id = (x) => ({ id: x });
+  const r = HomeBuehne.vodsZusammen([id('a'), id('b')], [id('x'), id('a'), id('b'), id('c')]);
+  assert.deepEqual(r.vods.map((x) => x.id), ['a', 'b', 'x', 'c']);
+  assert.equal(r.neuAb, 2);
+  const l = HomeBuehne.vodsZusammen([], [id('a')]);
+  assert.deepEqual(l.vods.map((x) => x.id), ['a']);
+  assert.equal(l.neuAb, 0);
+});
+
+test('laufendesVod', () => {
+  const kanal = { live: true, start: '2026-11-11T18:00:00Z' };
+  const vod = (p) => [{ id: 'v1', published: p }];
+  assert.equal(HomeBuehne.laufendesVod(vod('2026-11-11T18:05:00Z'), kanal), 'v1');
+  assert.equal(HomeBuehne.laufendesVod(vod('2026-11-11T19:00:00Z'), kanal), null);
+  assert.equal(HomeBuehne.laufendesVod(vod('2026-11-11T18:05:00Z'), { live: false, start: kanal.start }), null);
+  assert.equal(HomeBuehne.laufendesVod([], kanal), null);
+});
+
+test('herausgenommenStand', () => {
+  const s = HomeBuehne.herausgenommenStand;
+  assert.equal(s(null, []), null);
+  const alt = k('a', 5, { live: true, title: 'alt' });
+  const frisch = k('a', 9, { live: true, title: 'neu' });
+  const r = s({ login: 'a', art: 'brett', kanal: alt }, [frisch]);
+  assert.equal(r.modus, 'live');
+  assert.equal(r.kanal.title, 'neu');
+  const aus = k('a', 0, { live: false });
+  for (const art of ['brett', 'live', 'favorit']) {
+    const m = s({ login: 'a', art, kanal: alt }, [aus]);
+    assert.equal(m.modus, 'markiert', art);
+    assert.equal(m.kanal, aus);
+  }
+  assert.equal(s({ login: 'a', art: 'offline', kanal: aus }, [aus]).modus, 'offline');
+  const fehlt = s({ login: 'z', art: 'twitch', kanal: alt }, [frisch]);
+  assert.equal(fehlt.kanal, alt);
+});

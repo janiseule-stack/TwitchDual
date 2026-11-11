@@ -194,6 +194,73 @@
     return out;
   }
 
+  // ---- Regal neu (Plan docs/superpowers/plans/2026-11-11-regal-neu.md, Task 2) ----
+  // Reine Logik fuer Regal-Belegung, VOD-Nachladen und Karten-Zustand.
+
+  // Stabil absteigend nach Zuschauern (Array.prototype.sort ist stabil).
+  function nachZuschauern(liste) {
+    return liste.slice().sort((a, b) => (b.viewers || 0) - (a.viewers || 0));
+  }
+
+  // abschnitte = HomeListe.abschnitte(...).abschnitte. Live-Favoriten: die
+  // ersten `plaetze` aufs Brett, der Rest vorne in `live`. Jeder Login einmal.
+  function regalBelegung(o) {
+    const opt = o || {};
+    const abschnitte = opt.abschnitte || [];
+    const plaetze = Math.max(0, opt.plaetze || 0);
+    const kanaele = (art) => {
+      const a = abschnitte.find((x) => x.art === art);
+      return a ? a.kanaele || [] : [];
+    };
+    const gesehen = new Set();
+    const neu = (liste) => liste.filter((kanal) => {
+      if (!kanal || gesehen.has(kanal.login)) return false;
+      gesehen.add(kanal.login);
+      return true;
+    });
+    const favs = nachZuschauern(neu(kanaele('favoriten')));
+    const brett = favs.slice(0, plaetze);
+    const live = favs.slice(plaetze).map((kanal) => ({ kanal, art: 'favorit' }));
+    nachZuschauern(neu(kanaele('live'))).forEach((kanal) => live.push({ kanal, art: 'live' }));
+    const offline = neu(kanaele('offline')).filter((kanal) => opt.suche || kanal.favorit);
+    const unten = offline.map((kanal) => ({ kanal, art: 'offline' }));
+    neu(kanaele('twitch')).forEach((kanal) => unten.push({ kanal, art: 'twitch' }));
+    return { brett, live, unten };
+  }
+
+  const VODS = { schritt: 25, max: 100 };
+
+  // Naechstes Limit fuers Nachladen oder null (alles da / Obergrenze erreicht).
+  function vodLimit(geladen, letztesLimit) {
+    if (geladen < letztesLimit || letztesLimit >= VODS.max) return null;
+    return Math.min(VODS.max, letztesLimit + VODS.schritt);
+  }
+
+  // Alte VODs behalten ihren Platz, unbekannte IDs aus `neu` kommen hinten dran.
+  function vodsZusammen(alt, neu) {
+    const a = alt || [];
+    const bekannt = new Set(a.map((v) => v.id));
+    const dazu = (neu || []).filter((v) => !bekannt.has(v.id));
+    return { vods: a.concat(dazu), neuAb: a.length };
+  }
+
+  // ID des VODs, das gerade mitlaeuft (Start des Streams ~ Start des VODs).
+  function laufendesVod(vods, kanal) {
+    if (!kanal || !kanal.live || !kanal.start || !vods || !vods.length) return null;
+    const diff = Math.abs(Date.parse(vods[0].published) - Date.parse(kanal.start));
+    return diff <= 15 * 60000 ? vods[0].id : null;
+  }
+
+  // h = { login, art, kanal } (Schnappschuss beim Herausnehmen).
+  function herausgenommenStand(h, kanaele) {
+    if (!h) return null;
+    const aktuell = (kanaele || []).find((x) => x.login === h.login);
+    const kanal = aktuell || h.kanal;
+    if (kanal && kanal.live) return { kanal, modus: 'live' };
+    if (['brett', 'live', 'favorit'].includes(h.art)) return { kanal, modus: 'markiert' };
+    return { kanal, modus: 'offline' };
+  }
+
   // Laufwerk-Ablauf beim Abspielen: fertig erst, wenn die Mindestdauer der
   // Animation vorbei ist UND das Laden gemeldet wurde; ein Fehler beendet sofort.
   function createLaufwerk(o) {
@@ -244,5 +311,5 @@
     return api;
   }
 
-  return { createBuehne, createRad, vorschauUrl, tvVorschau, staenderEintraege, createLaufwerk };
+  return { createBuehne, createRad, vorschauUrl, tvVorschau, staenderEintraege, createLaufwerk, regalBelegung, VODS, vodLimit, vodsZusammen, laufendesVod, herausgenommenStand };
 });
