@@ -163,7 +163,7 @@ def hover_und_platte(ordner):
         for y in range(hh):
             for x in range(hw):
                 if hp[x, y][3] > 0:
-                    sp[i * hw + x, y] = bp[x - dx, y - dy]
+                    sp[i * hw + x, y] = bp[x + dx, y + dy]
     streifen.save(os.path.join(ordner, "platte-dreht.png"))
 
     os.makedirs(os.path.join(ordner, "schrift"), exist_ok=True)

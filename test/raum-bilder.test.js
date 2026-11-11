@@ -203,6 +203,27 @@ test('platte-dreht.png: 8 Bilder je 54x50, nur Pixel innerhalb der Flaeche von h
   assert.ok(deckend > 8 * 100, 'zu wenig deckende Pixel');
 });
 
+test('platte-dreht.png: Pixelinhalt = Quellbild N an (x+2, y+2), Rest durchsichtig', () => {
+  const s = dekodiere(lade('platte-dreht.png'));
+  const hov = dekodiere(lade('hover-plattenspieler.png'));
+  for (let n = 1; n <= 8; n++) {
+    const q = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-quellen', `platte-dreht-${n}.png`)));
+    for (let y = 0; y < 50; y++) {
+      for (let x = 0; x < 54; x++) {
+        const i = (y * s.w + (n - 1) * 54 + x) * 4;
+        if (hov.px[(y * hov.w + x) * 4 + 3] > 0) {
+          const j = ((y + 2) * q.w + (x + 2)) * 4;
+          for (let k = 0; k < 4; k++) {
+            if (s.px[i + k] !== q.px[j + k]) assert.fail(`Bild ${n} Pixel ${x},${y} weicht von der Quelle ab`);
+          }
+        } else {
+          assert.strictEqual(s.px[i + 3], 0, `Bild ${n} Pixel ${x},${y} muss durchsichtig sein`);
+        }
+      }
+    }
+  }
+});
+
 test('schrift/RaumKlar.ttf: vorhanden, TrueType-Kennung', () => {
   const b = fs.readFileSync(path.join(DIR, 'schrift', 'RaumKlar.ttf'));
   const k = b.subarray(0, 4);
