@@ -816,13 +816,14 @@ function updateOnAir() {
   document.body.classList.toggle('onair', label !== null);
 }
 
-// Szenen-Streifen: ganzzahliger Faktor aus der Fenstergroesse (Szene-Lib),
-// als CSS-Variablen fuer chat.css.
+// Szenen-Streifen: Faktor (Breite/344), Hoehe und Verschiebung aus der
+// Fenstergroesse (Szene-Lib), als CSS-Variablen fuer chat.css.
 const $szene = document.getElementById('szene');
 function setzeSzene() {
   const m = Szene.masse(window.innerWidth, window.innerHeight);
   $szene.style.setProperty('--szene-f', String(m.faktor));
   $szene.style.setProperty('--szene-h', m.hoehe + 'px');
+  $szene.style.setProperty('--szene-oben', m.oben + 'px');
 }
 setzeSzene();
 window.addEventListener('resize', setzeSzene);

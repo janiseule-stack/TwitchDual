@@ -288,17 +288,23 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 /* Titelzeile traegt die Akzentfarbe. */
 #title { color: var(--accent-title); }
 
-/* Szenen-Streifen: Pixel-Bild aus dem Raum, ganzzahlig vergroessert (Faktor
-   und Hoehe setzt chat.js aus der Szene-Lib). Das Bild fuellt immer die
-   ganze Breite; ist es dabei hoeher als der Streifen, wird oben beschnitten
-   (Fensterbank und Katze bleiben). Die Wandfarbe dahinter greift nur bei
-   extrem breiten Fenstern. Immer deckend, auch bei reduzierter Deckkraft. */
+/* Szenen-Streifen: Pixel-Bild aus dem Raum. Faktor, Hoehe und Verschiebung
+   setzt chat.js aus der Szene-Lib (nicht ganzzahlig, Breite/344). Das Bild
+   liegt in einer 344x72-Ebene, die skaliert wird (spaetere Animationen kommen
+   als Kinder dort hinein). Das Fenster bleibt ganz sichtbar, oben wird
+   beschnitten. Immer deckend, auch bei reduzierter Deckkraft. */
 #szene {
   position: relative; z-index: 1; flex-shrink: 0; overflow: hidden;
   height: var(--szene-h, 72px);
-  background: #2e1612 url('../themes/cozy/streifen.png') center bottom / calc(344px * var(--szene-f, 1)) calc(72px * var(--szene-f, 1)) no-repeat;
-  image-rendering: pixelated;
+  background: #2e1612;
   border-bottom: 2px solid var(--line);
+}
+.szene-bildebene {
+  position: absolute; left: 0; top: var(--szene-oben, 0px);
+  width: 344px; height: 72px;
+  background: url('../themes/cozy/streifen.png') 0 0 / 344px 72px no-repeat;
+  image-rendering: pixelated;
+  transform: scale(var(--szene-f, 1)); transform-origin: 0 0;
 }
 
 

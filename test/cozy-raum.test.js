@@ -140,11 +140,16 @@ test('Video: Ads blocked ohne Emote, Lampe blinkt beim Blocken', () => {
 });
 
 // --- Runde 3 (Janis 10.11.2026): Streifen fuellt die Breite, Knoepfe mit Bild-Zeichen
-test('Chat: Streifen fuellt die Breite, daneben keine Tapete', () => {
-  const regel = chatCss.slice(chatCss.indexOf('#szene {'), chatCss.indexOf('}', chatCss.indexOf('#szene {')));
+test('Chat: Streifen fuellt die Breite, Bild liegt in einer skalierten Ebene', () => {
+  assert.ok(/<div id="szene">\s*<div class="szene-bildebene"><\/div>/.test(chatHtml));
+  const regel = chatCss.slice(chatCss.indexOf('.szene-bildebene {'), chatCss.indexOf('}', chatCss.indexOf('.szene-bildebene {')));
   assert.ok(regel.includes('streifen.png'));
   assert.ok(!regel.includes('tapete.png'));
-  assert.ok(/center bottom/.test(regel));
+  assert.ok(/0 0 \/ 344px 72px/.test(regel));
+  assert.ok(regel.includes('image-rendering: pixelated'));
+  assert.ok(/transform:\s*scale\(var\(--szene-f/.test(regel) && /transform-origin:\s*0 0/.test(regel));
+  assert.ok(/top:\s*var\(--szene-oben/.test(regel));
+  assert.ok(chatJs.includes('--szene-oben'));
 });
 test('Knoepfe: jedes Zeichen ist ein eigenes Bild, kein Schriftzeichen', () => {
   const belegung = { 'win-min': 'min', 'win-max': 'max', 'win-close': 'zu', 'settings-btn': 'zahnrad',
