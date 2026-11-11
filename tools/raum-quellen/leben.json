@@ -1,0 +1,12 @@
+{
+  "_hinweis": "Einzige Quelle fuer Orte und Bildzahlen der Raum-Animationen (Etappe 3). Koordinaten in Bildpixeln. quelle = PixelLab-Eingabe-Ausschnitt (Ursprung x/y, Groesse b/h) im Standbild; ziel = Flaeche, die als Animation gesetzt wird (absolut im Standbild, liegt innerhalb der Quelle). Quellbilder: leben-home-<datei>-<k>.png, k = 0..bilder-1, Bild 0 = Eingabe. Janis' Wahl 11.11.2026.",
+  "home": {
+    "standbild": "raum-tv-aus.png",
+    "animationen": [
+      { "id": "regen",  "dateien": ["regen"],            "bilder": 13, "quelle": { "x": 32,  "y": 8,   "b": 64, "h": 96 }, "ziel": { "x": 40,  "y": 20,  "b": 48, "h": 76 } },
+      { "id": "katze",  "dateien": ["katze1", "katze2"], "bilder": 9,  "quelle": { "x": 136, "y": 104, "b": 64, "h": 64 }, "ziel": { "x": 146, "y": 114, "b": 48, "h": 40 } },
+      { "id": "dampf",  "dateien": ["dampf"],            "bilder": 13, "quelle": { "x": 180, "y": 140, "b": 48, "h": 48 }, "ziel": { "x": 186, "y": 144, "b": 32, "h": 44 } },
+      { "id": "lampe",  "dateien": ["lampe"],            "bilder": 9,  "quelle": { "x": 148, "y": 0,   "b": 64, "h": 64 }, "ziel": { "x": 150, "y": 0,   "b": 60, "h": 56 } }
+    ]
+  }
+}

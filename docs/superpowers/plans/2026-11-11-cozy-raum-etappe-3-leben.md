@@ -88,7 +88,7 @@ Janis 11.11. (1A): Der Streifen wird so hoch, dass das Fenster ganz sichtbar ist
 
 Läuft im Hauptchat mit dem PixelLab-MCP, nicht als Helfer.
 
-- [ ] **Step 1:** `search_help(tool="animate_image")`, `search_help(tool="create_character")`, `search_help(tool="animate_character")`: Größen, Bildzahl, Kosten, ob Bild 0 die Eingabe ist; hier nachtragen.
+- [x] **Step 1:** Grenzen geprüft (11.11.): `animate_image` – Bild höchstens 256×256, `b·h·bilder ≤ 524 288`, `frame_count` gerade 4–16, Ergebnis hat `frame_count + 1` Bilder, **Bild 0 = Eingabe unverändert**, optional `last_frame` (für nahtlose Schleifen: letztes Bild = erstes), Kosten nach Pixeln (64×64×8 = 1 Generation). `animate_character` braucht eine mit `create_character` erzeugte Figur (Gehen per Vorlage `walking`, 1 Gen./Richtung bis ~92 px). Für die Raid-Figur reicht deshalb: Figur per `create_image_pro` (Stilbild `streifen.png`), dann `animate_image` „walking to the right, side view“, 8 Bilder. Stand Konto: 1538 Generationen frei bis 10.12.2026.
 - [ ] **Step 2:** Je Animation (regen, katze, dampf, lampe) in `raum-tv-aus.png` zwei Rechtecke messen und in `tools/raum-quellen/leben.json` eintragen: `quelle` (Ursprung + PixelLab-Größe des Eingabe-Ausschnitts) und `ziel` (`{x, y, b, h}` = Fläche, die sich bewegt, innerhalb der Quelle).
 - [ ] **Step 3:** Je Animation 2–3 Varianten mit `animate_image` (Beschreibungen: „rain drops running down the window glass, slow loop“, „sleeping cat breathing slowly, small tail flick“, „thin steam rising from the cup, slow loop“, „warm lamp light flickering slightly“). Übersichten 8-fach in `entwuerfe/leben/_uebersicht-home-<id>.png`, vor dem Zeigen groß prüfen (Nahtstellen, Abweichungen außerhalb der bewegten Fläche → Variante verwerfen).
 - [ ] **Step 4:** Janis wählt. Bilder der gewählten Variante per `cp` nach `tools/raum-quellen/leben-home-<id>-<k>.png` (`<k>` = Bildnummer ab 0); Wahl, Bildzahl und Generationen-Zähler unten unter „Janis' Wahl“ eintragen; `leben.json` ergänzen (`bilder`).
@@ -98,7 +98,7 @@ Läuft im Hauptchat mit dem PixelLab-MCP, nicht als Helfer.
 Läuft im Hauptchat, nicht als Helfer. Das heutige `streifen.png` bleibt (Janis 1A).
 
 - [ ] **Step 1:** In `streifen.png` messen und in `leben.json` eintragen: `quelle`/`ziel` für regen (Glas), katze (Fensterbrett), lampe (Tischlampe); `glas` = Rechteck des Fensterglases + Saatpunkt `(sx, sy)` + Liste der Glasfarben (für die Maske); `kiste` (`quelle`/`ziel` um die Katze, Platz für die Münze).
-- [ ] **Step 2:** Je 2–3 Varianten: regen, katze (ruhig: Schwanz/Ohr/Atmen), lampe (selten flackern) mit `animate_image`; **Kiste** mit `animate_image` auf dem Katzen-Ausschnitt: „cat wakes up and places a small gold coin in front of it, coin sparkles, cat lies down again“ (Ende = Ruhelage); **Raid** (Janis 3A): kleine Figur mit Schirm, Seitenansicht, Gehzyklus nach rechts, Höhe ≈ 60 % der Glashöhe, Stilbild `streifen.png` – Werkzeug nach Step-1-Ergebnis aus Task 3 (`create_character` + `animate_character` „walk“, eine Richtung).
+- [ ] **Step 2:** Je 2–3 Varianten: regen, katze (ruhig: Schwanz/Ohr/Atmen), lampe (selten flackern) mit `animate_image`; **Kiste** mit `animate_image` auf dem Katzen-Ausschnitt: „cat wakes up and places a small gold coin in front of it, coin sparkles, cat lies down again“ (Ende = Ruhelage); **Raid** (Janis 3A): kleine Figur mit Schirm, Seitenansicht, Gehzyklus nach rechts, Höhe ≈ 60 % der Glashöhe, Stilbild `streifen.png` – Figur per `create_image_pro`, Gehzyklus per `animate_image` (siehe Task 3 Step 1).
 - [ ] **Step 3:** Übersichten zeigen, Janis wählt. Quellen per `cp` nach `tools/raum-quellen/leben-streifen-<id>-<k>.png`, Wahl/Zähler unten eintragen, `leben.json` ergänzen: `raid = { bilder, b, h, msProBild, y, pxProBild, versatzMs }` mit `pxProBild` = Vorrücken je Gehbild (am Gehzyklus gemessen, damit die Füße nicht rutschen), `versatzMs` = 1500.
 
 ### Task 5: Home-Raum lebt
@@ -147,4 +147,5 @@ Läuft im Hauptchat, nicht als Helfer. Das heutige `streifen.png` bleibt (Janis 
 ## Janis' Wahl
 
 - 11.11.: 1A (Streifen wird höher, bis 30 %), 2A (Regal still), 3A (Leute mit Schirm, Vorrücken im Gehtakt).
-- Generationen Etappe 3: 0 / ~400.
+- 11.11. Home: **Dampf 2, Katze 1 und 2** (beide; abwechselnd zufällig, je Ruhepause eine), **Lampe 1**, Regen 3 war „zu gelblich, nicht wie Regen“ → neu erzeugt, gewählt **Regen 4** (kühl, 13 Bilder). Quellen in `tools/raum-quellen/leben-home-*.png`, Orte in `tools/raum-quellen/leben.json` (Katze hat zwei Dateien `katze1`/`katze2`: bei jedem seltenen Auftritt zufällig eine). Ausschnitte (Quelle in `raum-tv-aus.png`, x y b h): regen 32 8 64 96, katze 136 104 64 64, dampf 180 140 48 48, lampe 148 0 64 64. Entwürfe `entwuerfe/leben/<id>-<n>-<k>.png`.
+- Generationen Etappe 3: 14 (Home) + 10 (Streifen, laufen) / ~400.
