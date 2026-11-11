@@ -120,6 +120,16 @@ Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
   - Klick auf eine Offline-Hülle öffnet jetzt die große Hülle.
   - Auflegen: Kamera-Fahrten mit sanftem Anfahren/Abbremsen, Zoom-Stufen
     ganzzahlig (Plattenspieler bzw. Bildschirm füllen das Fenster knapp).
+    Bei Fenstern breiter als 16:9 schneidet die Kamera den Plattenteller an.
+  - Profilbild in der großen Hülle ist so grob verpixelt wie in den kleinen
+    Hüllen (Plan sagte „kaum verpixelt“) – feiner machen?
+  - Schrift in Chat- und Video-Leiste (heute 13–16 px, künstliches Fett ist
+    abgeschaltet): **A** „Raum Klar“ in 12/24 px wie in Home (Empfehlung) oder
+    **B** dort die alte Pixelify-Schrift behalten. Janis entscheidet beim Anschauen.
+- Aufräumen nach Janis' Urteil: ungenutzte Bilder `huelle-rueck.png`,
+  `platte-klein.png`, `schild.png`, `Raum.TELLER`, `.lampe.rot`/`lampe-rot.png`
+  samt Tests; Quelltext-genaue Tests in `test/home-raum.test.js` lockern;
+  Fokus in die VOD-Liste, wenn die große Hülle aufgeht.
 - **Nächster Schritt:** Janis schaut an und korrigiert, dann Etappe 3
   (Animationen und PixelLab-Sprites).
 
