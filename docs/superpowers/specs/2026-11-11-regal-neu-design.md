@@ -7,7 +7,7 @@ Grundlage: Janis' Anmerkungen 7, 8a, 10, 11, 13 (`renderer/themes/cozy/entwuerfe
 
 Das Regal ist die **Live-Auswahl**. Janis öffnet Home, um zu sehen, **wer gerade live ist**, und eine Platte aufzulegen. Wichtig ist die Reihenfolge: zuerst die eigenen Favoriten, die live sind, dann andere Live-Kanäle, denen Janis folgt. Offline-Favoriten sind nachrangig.
 
-Zweiter wichtiger Weg: Janis schaut einen Live-Stream, der Streamer macht etwas Spannendes, Janis geht ins Home, nimmt dessen Platte und schaut **den laufenden Stream als VOD von Anfang an**.
+Zweiter wichtiger Weg: Janis schaut einen Live-Stream, der Streamer macht etwas Spannendes, Janis geht ins Home, nimmt dessen Platte, dreht sie um und öffnet **das VOD des laufenden Streams** (oben in der Liste), um von Anfang zu schauen. Die Rückseite muss das leicht machen.
 
 VODs anderer Kanäle und fremde Kanäle findet Janis über das **Suchfeld oben**.
 
@@ -25,7 +25,7 @@ VODs anderer Kanäle und fremde Kanäle findet Janis über das **Suchfeld oben**
 1. **Ausstellbrett oben:** Live-Favoriten stehen **mit dem Cover nach vorne** (Profilbild verpixelt wie heute). Passen nicht alle, stehen dort die mit den **meisten Zuschauern**; die übrigen Live-Favoriten rutschen zu den Rücken.
 2. **Rücken darunter:** andere Live-Kanäle (denen Janis folgt) und danach Offline-Favoriten als **schmale Plattenrücken**. Am Rücken erkennt man den Kanal (kleines Profilbild und Name längs) und ob er live ist (kleines Licht). Live-Favoriten, die nicht mehr aufs Brett passten, haben eine **eigene Rückenfarbe**.
 3. **Herausnehmen:** Klick auf Cover oder Rücken holt die Platte nach vorne, sie wird **groß**. Daneben, groß lesbar: **Titel, Spiel, Zuschauer**. Alles andere (Laufzeit, Kanalpunkte) klein oder weg.
-4. **Live-Platte vorne:** ein Knopf „von vorne schauen“, der den **laufenden Stream als VOD ab Anfang** lädt.
+4. *(entfällt, Janis 11.11.: kein eigener „von vorne schauen“-Knopf; Janis öffnet das VOD auf der Rückseite und schaut von Anfang.)*
 5. **Rückseite:** Umdrehen zeigt die **VOD-Liste groß, lesbar und scrollbar** (Titel, Spiel, wann, Länge, Vorschaubild).
 6. **Neues Live-Zeichen** an Covern und Rücken statt des roten Lämpchens.
 7. **Auswahlrahmen** im Raum um das Regal größer.
@@ -33,7 +33,7 @@ VODs anderer Kanäle und fremde Kanäle findet Janis über das **Suchfeld oben**
 9. **Jede Fenstergröße:** Das Regal ist ganz sichtbar, auch auf dem Ultrawide (feste Größenliste: 2960×1390, 2040×952, 1920×1030, 1536×1030, 1280×670, 900×700).
 10. **Suche (Janis, 11.11.):** Mit Suchtext zeigen Brett und Rücken nur die Treffer. Fremde Kanäle („Auf Twitch“) erscheinen als Rücken in eigener Farbe; Klick auf einen fremden Live-Treffer legt ihn sofort auf (wie heute).
 11. **Beim Öffnen (Janis):** Home startet mit dem ganzen Regal, **keine** Platte ist herausgenommen. Die große Platte liegt beim Herausnehmen **über** dem Regal; Esc legt sie zurück.
-12. **„Von vorne schauen“ ohne VOD (Janis):** Speichert ein Kanal keine VODs (oder nur für Abos), ist der Knopf **ausgegraut** mit Hinweis „kein VOD“.
+12. *(entfällt mit Punkt 4)*
 13. **Offline-Platte herausnehmen (Janis):** zeigt gleich die **VOD-Rückseite** (wie heute).
 14. **„Alle VODs“-Übersicht fällt weg (Janis):** Die Rückseite lädt beim Scrollen weitere VODs nach.
 
@@ -67,6 +67,5 @@ VODs anderer Kanäle und fremde Kanäle findet Janis über das **Suchfeld oben**
 
 ## Meine Entscheidungen (Claude, technisch)
 
-- **„Von vorne schauen“:** Kandidat ist das neueste Archiv-VOD des Kanals (`getChannelVods` in `src/twitch-browse.js`, `ARCHIVE` nach Zeit), abgeglichen mit `stream.createdAt` aus `getLiveStatus`. **Ungeprüft:** ob das VOD wirklich der laufende Stream ist und ob der Player ein noch wachsendes VOD ab 0 abspielt. Der Plan misst das zuerst an einem echten Kanal, bevor gebaut wird.
 - **Spiel in der VOD-Liste:** `getChannelVods` holt heute kein Spiel; wird in `src/twitch-browse.js`/`src/browse-map.js` ergänzt (ohne `main.js`/`preload.js`).
 - Reihenfolge der Abschnitte bleibt die von `HomeListe.abschnitte`.
