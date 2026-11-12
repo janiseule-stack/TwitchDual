@@ -16,12 +16,6 @@
     Object.freeze({ id: 'regal', name: 'Platten', x: 90, y: 13, b: 69, h: 113 }),
   ]);
 
-  const FACH = Object.freeze({
-    live: Object.freeze({ x: 114, y: 19, b: 175, h: 46 }),
-    offline: Object.freeze({ x: 114, y: 80, b: 175, h: 43 }),
-    vorn: Object.freeze({ x: 114, y: 138, b: 175, h: 52 }),
-  });
-
   const HUELLE = Object.freeze({ kante: 40, abstand: 4 });
 
   // Schraege Bildschirmflaeche: oben links, oben rechts, unten rechts, unten links.
@@ -216,24 +210,6 @@
     return Math.max(1, Math.round(zahl(faktor) * zahl(bildPixel)));
   }
 
-  // Zettel: welche Zeilen passen in die Innenhoehe (beides in Bildschirm-Pixeln)?
-  // Reihenfolge: Status, Name, Titel, Spiel, Laufzeit, Kanalpunkte, Knoepfe.
-  // Fehlt Platz, entfallen zuerst Laufzeit, dann Kanalpunkte, dann Spiel, dann Titel.
-  function zettelZeilen(innenHoehe, zeilenHoehe) {
-    const z = zahl(zeilenHoehe);
-    const platz = z ? Math.floor(zahl(innenHoehe) / z + 1e-9) : 0;
-    return { platz, titel: platz >= 4, spiel: platz >= 5, punkte: platz >= 6, laufzeit: platz >= 7 };
-  }
-
-  // Grosse Huelle (128x128 Bildpixel): ganzzahliges Vielfaches von 128, so gross
-  // wie es in 70 % der Fensterhoehe passt (mindestens 128). Mit Fensterbreite:
-  // auch hoechstens die Breite abzueglich 2 x 48 px (Platz fuer den Knopf ✕).
-  function grossKante(fensterHoehe, fensterBreite) {
-    let n = Math.floor((zahl(fensterHoehe) * 0.7) / 128);
-    if (fensterBreite !== undefined) n = Math.min(n, Math.floor((zahl(fensterBreite) - 96) / 128));
-    return 128 * Math.max(1, n);
-  }
-
   // Maße der vergrößerten Plattenkarte (zwei Hüllen breit): n = Vielfaches von 128 Bildpixeln.
   function kartenMasse(fensterBreite, fensterHoehe) {
     const b = zahl(fensterBreite);
@@ -254,5 +230,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, kartenMasse };
 });

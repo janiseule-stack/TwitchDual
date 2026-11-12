@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const HomeBuehne = require('../renderer/lib/home-buehne.js');
-const { createBuehne, createRad, vorschauUrl, staenderEintraege, createLaufwerk } = HomeBuehne;
+const { createBuehne, createRad, vorschauUrl, createLaufwerk } = HomeBuehne;
 
 const k = (login, viewers = 0, extra = {}) => ({ login, displayName: login.toUpperCase(), viewers, ...extra });
 const logins = (arr) => arr.map((x) => x.login);
@@ -165,24 +165,10 @@ test('tvVorschau: live -> Live-Vorschau, VOD -> sein Vorschaubild, sonst aus', (
   assert.equal(tvVorschau({ mode: 'vod', login: null }, 0), null);
 });
 
-// --- Staender (Runde 2) --------------------------------------------------------
-const arten = (l) => l.map((e) => e.art + ':' + e.kanal.login);
-
-test('staenderEintraege ohne Suche: Live, dann Offline-Favoriten', () => {
-  const r = staenderEintraege({ live: [k('a'), k('b')], offlineFavoriten: [k('c')] });
-  assert.deepEqual(arten(r), ['live:a', 'live:b', 'offline:c']);
-});
-
-test('staenderEintraege mit Suche: Live-, Offline-, Twitch-Treffer ohne Doppelte', () => {
-  const r = staenderEintraege({
-    suche: true, live: [k('a')], offlineTreffer: [k('c'), k('d')],
-    twitchTreffer: [k('d'), k('e')], offlineFavoriten: [k('x')],
-  });
-  assert.deepEqual(arten(r), ['live:a', 'offline:c', 'offline:d', 'twitch:e']);
-});
-
-test('staenderEintraege leer', () => {
-  assert.deepEqual(staenderEintraege({}), []);
+// --- Staender (Runde 2) entfaellt mit dem neuen Regal (Task 9b) ----------------
+test('staenderEintraege entfaellt (regalBelegung ersetzt es)', () => {
+  assert.equal('staenderEintraege' in HomeBuehne, false);
+  assert.equal(typeof HomeBuehne.regalBelegung, 'function');
 });
 
 // --- Laufwerk-Ablauf (Runde 2) -------------------------------------------------

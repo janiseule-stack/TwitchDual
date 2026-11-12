@@ -42,9 +42,6 @@ TELLER_BIS = 32
 # Grosse Huelle: cremefarbene Innenflaeche der Vorderseite = Profilbild-Fenster
 # (Lage wird per Farbe ermittelt, gemessen 11.11.2026: x 32, y 32, 65x65).
 HUELLE_GROSS_FENSTERFARBE = (241, 237, 225, 255)
-# Rueckseite: Platzhalter-Zeilen innerhalb des gepunkteten Rahmens (Rahmen x 18-109,
-# y 23-107, Eckmarken bis y 29 und ab y 100 bleiben) -> Platz fuer die VOD-Liste.
-HUELLE_GROSS_LISTE = (19, 30, 90, 70)
 # Leben (Etappe 3): Summe der RGB-Abstaende, ab der ein PixelLab-Pixel als bewegt gilt.
 LEBEN_TOLERANZ = 24
 # Glasmaske im Streifen: RGB-Abstand zu einer gemessenen Glasfarbe (leben.json), bis zu
@@ -127,7 +124,7 @@ def deck_box(bild, farbe):
 
 def huelle_gross(ordner):
     """Grosse Huelle (Janis' Wahl, PixelLab 128x128): Vorderseite mit ausgestanztem
-    Fenster fuers Profilbild, Rueckseite mit ausgestanzter Platzhalter-Liste.
+    Fenster fuers Profilbild (die Rueckseite der Karte ist karte-rueck.png).
     Gibt das Fenster der Vorderseite als (x, y, b, h) zurueck."""
     vorn = quelle("huelle-gross-vorn.png")
     fenster = deck_box(vorn, HUELLE_GROSS_FENSTERFARBE)
@@ -137,14 +134,6 @@ def huelle_gross(ordner):
         for x in range(fx, fx + fb):
             vp[x, y] = (0, 0, 0, 0)
     vorn.save(os.path.join(ordner, "huelle-gross-vorn.png"))
-
-    rueck = quelle("huelle-gross-rueck.png")
-    rp = rueck.load()
-    lx, ly, lb, lh = HUELLE_GROSS_LISTE
-    for y in range(ly, ly + lh):
-        for x in range(lx, lx + lb):
-            rp[x, y] = (0, 0, 0, 0)
-    rueck.save(os.path.join(ordner, "huelle-gross-rueck.png"))
     return fenster
 
 

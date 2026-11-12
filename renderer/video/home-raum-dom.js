@@ -14,24 +14,12 @@ window.HomeRaumDom = (function () {
   // Lage des Profilbild-Fensters in huelle.png (einzige Stelle; das Bild kann
   // noch getauscht werden).
   const HUELLE_FENSTER = { x: 2, y: 2, b: 36, h: 36 };
-  // Vordere Platte im Buecherfach (Raum.FACH.vorn), Bildpixel.
-  const VORN_HUELLE = { x: 118, y: 144, b: 40, h: 40 };
-  const VORN_PLATTE = { x: 118 + 18, y: 146, b: 36, h: 36 };
-  const VORN_ZETTEL = { x: 178, y: 140, b: 111, h: 48 };
-  // Such-Zettel oben am Regal, ueber dem obersten Brett.
-  const SUCH_ZETTEL = { x: 140, y: 0, b: 120, h: 18 };
-  const ZETTEL_RAND = 6; // 9-Slice-Rand von zettel.png in Bildpixeln
-  // zettel.png ist oben 9 Bildpixel durchsichtig, die Kante liegt bei 9-10, das
-  // Papier beginnt bei 12: der vordere Zettel schneidet oben 12 (home-raum.css).
-  const ZETTEL_RAND_OBEN = 12;
-  // Grosse Huelle (VODs, 128x128 Bildpixel, huelle-gross-vorn/-rueck.png):
-  // Fenster fuers Profilbild (in tools/raum-bilder.py ausgestanzt, per Farbe
-  // gemessen) und Platz der VOD-Liste innerhalb des Rahmens der Rueckseite.
-  const GROSS_KANTE = 128;
+  const ZETTEL_RAND = 6; // 9-Slice-Rand von zettel.png in Bildpixeln (Tafel, Such-Zettel)
+  // Huelle der Karte (huelle-gross-vorn.png, 128x128 Bildpixel): Fenster fuers
+  // Profilbild (in tools/raum-bilder.py ausgestanzt, per Farbe gemessen).
   const GROSS_FENSTER = { x: 32, y: 32, b: 65, h: 65 };
-  const GROSS_LISTE = { x: 21, y: 31, b: 86, h: 68 };
   const SCHILD_MS = 2000;
-  const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht', vods: 'Alle VODs' };
+  const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht' };
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
   // Summe 5200 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
@@ -41,9 +29,9 @@ window.HomeRaumDom = (function () {
 
   let wirt = null;
   let opt = {};
-  let skal = { faktor: 1, links: 0, oben: 0 }; // Regal-Ansicht (Zettel, Schrift)
+  let skal = { faktor: 1, links: 0, oben: 0 }; // --f und Schrift an #home (Tafel, Ablauf, Name)
   let skalRaum = skal; // Raum-Ansicht samt Holzwand (Raum.RAUM_RAHMEN)
-  let skalRegal = skal; // Regal neu samt Leinwand (Raum.skalierungRegal)
+  let skalRegal = skal; // Regal samt Leinwand (Raum.skalierungRegal)
   let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
@@ -55,11 +43,7 @@ window.HomeRaumDom = (function () {
   let tvMaske = null;
   let tafelLeihe = []; // umgehaengte Elemente: { el, eltern, danach }
   const t = {}; // DOM-Teile
-  const faecher = {
-    live: { start: 0, anzahl: 0, gewaehlt: null },
-    offline: { start: 0, anzahl: 0, gewaehlt: null },
-  };
-  // Regal neu (Task 9a, bis 9b unverdrahtet): Ruecken-Faecher unter dem Ausstellbrett.
+  // Regal: Ruecken-Faecher unter dem Ausstellbrett.
   const faecherNeu = {
     live: { start: 0, anzahl: 0, gewaehlt: null },
     unten: { start: 0, anzahl: 0, gewaehlt: null },
@@ -102,8 +86,8 @@ window.HomeRaumDom = (function () {
     if (r.h !== undefined) e.style.height = r.h + 'px';
     return e;
   }
-  // Textschicht: Lage aus Bildpixeln, CSS rechnet mal --f (in der grossen
-  // Huelle mal --n, ganzzahlig).
+  // Textschicht: Lage aus Bildpixeln, CSS rechnet mal --f (in der Karte mal
+  // --karte-s).
   function textLage(e, r) {
     e.style.setProperty('--x', r.x);
     e.style.setProperty('--y', r.y);
@@ -111,9 +95,8 @@ window.HomeRaumDom = (function () {
     if (r.h !== undefined) e.style.setProperty('--h', r.h);
     return e;
   }
-  function innen(r, oben) {
-    const o = oben || ZETTEL_RAND;
-    return { x: r.x + ZETTEL_RAND, y: r.y + o, b: r.b - 2 * ZETTEL_RAND, h: r.h - o - ZETTEL_RAND };
+  function innen(r) {
+    return { x: r.x + ZETTEL_RAND, y: r.y + ZETTEL_RAND, b: r.b - 2 * ZETTEL_RAND, h: r.h - 2 * ZETTEL_RAND };
   }
 
   // Fokus ueber einen Neubau retten (wie in der alten Buehne).
@@ -242,89 +225,10 @@ window.HomeRaumDom = (function () {
     aus(t.name, !text);
   }
 
-  function baueRegal() {
-    const r = ebene('regal-ebene');
-    t.regal = r;
-    r.bild.appendChild(bildEl('../themes/cozy/regal.png', 'raum-bild'));
-    for (const art of ['live', 'offline']) {
-      const box = lage(el('div', 'fach fach-' + art), Raum.FACH[art]);
-      const reihe = el('div', 'fach-reihe');
-      box.appendChild(reihe);
-      box.addEventListener('wheel', (e) => {
-        if (tafelOffen()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        fachBlaettern(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
-      }, { passive: false });
-      // Tab auf eine Platte ausserhalb des Fensters: der Browser wuerde das Fach
-      // per scrollLeft verschieben, zusaetzlich zum eigenen translateX.
-      box.addEventListener('focusin', (e) => {
-        box.scrollLeft = 0;
-        const p = e.target.closest('.huelle');
-        const i = p ? Array.prototype.indexOf.call(reihe.children, p) : -1;
-        if (i < 0) return;
-        const f = faecher[art];
-        f.start = Raum.fachFenster(f.anzahl, i, Raum.FACH[art].b, f.start).start;
-        zeigeFach(art);
-      });
-      faecher[art].box = box;
-      faecher[art].reihe = reihe;
-      r.bild.appendChild(box);
-    }
-    // Vordere Platte: Schallplatte hinter der Huelle, Zettel daneben.
-    t.vorn = el('div', 'vorn');
-    t.vornPlatte = lage(bildEl('../themes/cozy/platte-vorn.png', 'vorn-platte'), VORN_PLATTE);
-    t.vornHuelle = lage(el('div', 'vorn-huelle'), VORN_HUELLE);
-    t.vornZettel = lage(el('div', 'zettel vorn-zettel'), VORN_ZETTEL);
-    t.vorn.append(t.vornPlatte, t.vornHuelle, t.vornZettel);
-    r.bild.appendChild(t.vorn);
-    r.bild.appendChild(lage(el('div', 'zettel such-zettel'), SUCH_ZETTEL));
-    // Doppelklick auf die vordere Huelle legt auf (wie der Knopf "Auflegen").
-    t.vornHuelle.addEventListener('dblclick', () => {
-      const s = t.vornStand;
-      if (s && s.kanal && s.modus === 'live') ruf(t.buehneH, 'laden', s.kanal.login);
-    });
-    t.zettelText = textLage(el('div', 'text-teil zettel-text'), innen(VORN_ZETTEL, ZETTEL_RAND_OBEN));
-    t.suchPlatz = textLage(el('div', 'text-teil such-platz'), innen(SUCH_ZETTEL));
-    r.text.append(t.zettelText, t.suchPlatz);
-    const such = document.getElementById('home-such-zeile');
-    if (such) t.suchPlatz.appendChild(such);
-    r.e.appendChild(baueGross());
-    return r.e;
-  }
-
-  // VODs: die gewaehlte Platte wird herausgenommen - grosse Huelle mittig ueber
-  // dem Regal (ganzzahlig vergroessert, --n), dreht sich um (CSS rotateY,
-  // 400 ms); auf der Rueckseite eine scrollbare Liste aller geladenen VODs.
-  // Klick daneben oder ✕ legt sie zurueck (Esc: home.js).
-  function baueGross() {
-    t.gross = el('div', 'gross-platz raum-aus');
-    t.gross.addEventListener('click', (e) => {
-      if (e.detail > 1) return; // Doppelklick: der zweite Klick trifft die eben geoeffnete Huelle
-      if (e.target === t.gross) ruf(t.grossH, 'rueckseiteZu');
-    });
-    t.grossHuelle = el('div', 'gross');
-    t.grossKarte = el('div', 'gross-karte');
-    const vorn = el('div', 'gross-seite gross-vorn');
-    t.grossFenster = textLage(el('div', 'gross-teil gross-fenster'), GROSS_FENSTER);
-    vorn.append(t.grossFenster, bildEl('../themes/cozy/huelle-gross-vorn.png', 'gross-bild'));
-    const rueck = el('div', 'gross-seite gross-rueck');
-    t.grossListe = textLage(el('div', 'gross-teil gross-liste'), GROSS_LISTE);
-    t.grossListe.tabIndex = -1;
-    rueck.append(bildEl('../themes/cozy/huelle-gross-rueck.png', 'gross-bild'), t.grossListe);
-    t.grossKarte.append(vorn, rueck);
-    const zu = knopf('pixel-knopf k-zu gross-zu', '✕', 'Zurücklegen', () => ruf(t.grossH, 'rueckseiteZu'));
-    zu.dataset.id = 'zu';
-    t.grossHuelle.append(t.grossKarte, zu);
-    t.gross.appendChild(t.grossHuelle);
-    return t.gross;
-  }
-  function grossOffen() { return !!wirt && !t.gross.classList.contains('raum-aus'); }
-
-  // Karte (Regal neu): grosse Platte, doppelt so breit wie hoch. Vorn links die
-  // Huelle mit Profilbild, rechts die Infotafel (9-Slice karte.png); hinten
-  // (karte-rueck.png) die scrollbare VOD-Liste, die am Ende nachlaedt. Eigener
-  // Baustein neben baueGross; die Handler kommen mit zeichneKarte (t.karteH usw.).
+  // Karte: die herausgenommene Platte gross, doppelt so breit wie hoch. Vorn links
+  // die Huelle mit Profilbild, rechts die Infotafel (9-Slice karte.png); hinten
+  // (karte-rueck.png) die scrollbare VOD-Liste, die am Ende nachlaedt. Haengt an
+  // der Regal-Ebene; die Handler kommen mit zeichneKarte (t.karteH usw.).
   // Das Aussehen liegt in home-raum.css (Abschnitt Karte).
   function baueKarte() {
     t.karteWurzel = el('div', 'karte-platz raum-aus');
@@ -364,7 +268,7 @@ window.HomeRaumDom = (function () {
     return t.karteWurzel;
   }
   function karteOffen() {
-    // Karte herausgenommen (vorn oder hinten), wie grossOffen
+    // Karte herausgenommen (vorn oder hinten)
     return !!wirt && !!t.karteWurzel && !t.karteWurzel.classList.contains('raum-aus');
   }
 
@@ -421,7 +325,7 @@ window.HomeRaumDom = (function () {
     opt = o || {};
     wirt = opt.wirt || document.getElementById('home');
     wirt.classList.add('raum-home');
-    wirt.prepend(baueRaum(), baueRegal(), baueKnoepfe(), baueTafel(), baueAblauf());
+    wirt.prepend(baueRaum(), baueRegalNeu(), baueKnoepfe(), baueTafel(), baueAblauf());
     t.regal.e.appendChild(baueKarte());
     aus(t.dreht, !spielt);
     zeigeAnsicht('raum');
@@ -448,14 +352,6 @@ window.HomeRaumDom = (function () {
     wirt.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
     wirt.style.setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px');
     wirt.style.setProperty('--rand', Raum.randPx(f, ZETTEL_RAND) + 'px');
-    // Grosse Huelle: ganzzahlig vergroessert (--n), mittig auf ganzen Pixeln;
-    // VOD-Vorschau 64x18 ebenfalls ganzzahlig (--vod-k).
-    const kante = Raum.grossKante(wirt.clientHeight, wirt.clientWidth);
-    const n = kante / GROSS_KANTE;
-    wirt.style.setProperty('--n', n);
-    wirt.style.setProperty('--vod-k', Math.max(1, Math.floor(n / 2)));
-    t.grossHuelle.style.left = Math.round((wirt.clientWidth - kante) / 2) + 'px';
-    t.grossHuelle.style.top = Math.round((wirt.clientHeight - kante) / 2) + 'px';
     // Karte: doppelt so breit wie hoch, ganzzahlig (--karte-n), eigene Schriftgroessen
     // und Vorschau-Faktor; mittig auf ganzen Pixeln.
     const km = Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight);
@@ -467,115 +363,31 @@ window.HomeRaumDom = (function () {
     wirt.style.setProperty('--karte-vod-k', km.vodK);
     t.karte.style.left = km.links + 'px';
     t.karte.style.top = km.oben + 'px';
-    // Der Zettel zeigt je nach Hoehe mehr oder weniger Zeilen.
-    if (t.vornStand && zettelPlatz().platz !== t.zettelPlatz) zeichneZettel(t.vornStand, t.buehneH);
-    // Im Ablauf bleibt die Raum-Ebene auf dem Kamera-Ziel (auch bei Groessenaenderung).
+    // Raum-Ebene; im Ablauf bleibt sie auf dem Kamera-Ziel (auch bei Groessenaenderung).
     const kamera = kameraZiel();
-    for (const r of [t.raum, t.regal]) {
-      const s = r === t.raum ? skalRaum : skal;
-      const z = r === t.raum && kamera ? kamera : { x: s.links, y: s.oben, faktor: s.faktor };
-      r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
-      r.text.style.left = Math.round(s.links) + 'px'; // ganze Bildschirm-Pixel
-      r.text.style.top = Math.round(s.oben) + 'px';
-      r.text.style.width = Raum.BILD.breite * s.faktor + 'px';
-      r.text.style.height = Raum.BILD.hoehe * s.faktor + 'px';
-    }
+    const r = t.raum;
+    const s = skalRaum;
+    const z = kamera || { x: s.links, y: s.oben, faktor: s.faktor };
+    r.bild.style.transform = 'translate(' + z.x + 'px, ' + z.y + 'px) scale(' + z.faktor + ')';
+    r.text.style.left = Math.round(s.links) + 'px'; // ganze Bildschirm-Pixel
+    r.text.style.top = Math.round(s.oben) + 'px';
+    r.text.style.width = Raum.BILD.breite * s.faktor + 'px';
+    r.text.style.height = Raum.BILD.hoehe * s.faktor + 'px';
+    // Regal-Ebene: eigene Skalierung (Leinwand), eigenes --f und --raum-schrift
+    richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight);
   }
 
-  // --- Regal: Faecher ---------------------------------------------------------------
-  function zeigeFach(art) {
-    const f = faecher[art];
-    f.reihe.style.transform = 'translateX(' + (-f.start * (Raum.HUELLE.kante + Raum.HUELLE.abstand)) + 'px)';
-  }
-  function fachBlaettern(art, richtung) {
-    const f = faecher[art];
-    if (!f || !f.reihe) return;
-    f.start = Raum.fachFenster(f.anzahl, -1, Raum.FACH[art].b, f.start + (richtung > 0 ? 1 : -1)).start;
-    zeigeFach(art);
-  }
-
-  function baueFachPlatte(fach, e) {
-    const k = e.kanal;
-    const jetzt = () => fach.kanal.get(e.art + '|' + k.login) || k;
-    const p = huelle(k, 'platte-' + e.art + (k.live ? ' ist-live' : ' offline'));
-    p.tabIndex = 0;
-    p.setAttribute('role', 'button');
-    p.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
-    p.dataset.login = k.login;
-    p.dataset.art = e.art;
-    const waehle = () => ruf(fach.h, 'waehle', jetzt(), e.art);
-    p.addEventListener('click', waehle);
-    // Doppelklick: waehlen und sofort auflegen, derselbe Weg wie der Knopf
-    // "Auflegen" (Handler laden). Nur Live-Platten im Live-Fach; ein Twitch-
-    // Treffer laedt schon beim Waehlen, eine Offline-Platte hat kein Auflegen.
-    p.addEventListener('dblclick', (ev) => {
-      if (ev.target.closest('.huelle-stern')) return;
-      const kj = jetzt();
-      if (e.art !== 'live' || !kj.live) return;
-      waehle();
-      ruf(t.buehneH, 'laden', kj.login);
-    });
-    p.addEventListener('keydown', (ev) => {
-      if (ev.target !== p || (ev.key !== 'Enter' && ev.key !== ' ')) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      waehle();
-    });
-    if (k.live) p.appendChild(bildEl('../themes/cozy/lampe-klein.png', 'huelle-lampe'));
-    p.appendChild(knopf('huelle-stern stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
-      k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(fach.h, 'stern', jetzt())));
-    return p;
-  }
-
-  function zeichneFach(art, liste, gewaehlt, h) {
-    const fach = faecher[art];
-    fach.h = h;
-    fach.kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
-    const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal), e.kanal.avatar || '',
-      e.kanal.favorit ? 1 : 0, e.kanal.live ? 1 : 0].join('|')).join('\n');
-    const umgebaut = fach.schluessel !== schluessel;
-    if (umgebaut) {
-      fach.schluessel = schluessel;
-      const fokus = merkeFokus(fach.reihe, 'login');
-      fach.reihe.replaceChildren();
-      liste.forEach((e, i) => {
-        const p = baueFachPlatte(fach, e);
-        lage(p, { x: i * (Raum.HUELLE.kante + Raum.HUELLE.abstand), y: Raum.FACH[art].h - Raum.HUELLE.kante });
-        fach.reihe.appendChild(p);
-      });
-      stelleFokusHer(fach.reihe, 'login', fokus);
-    }
-    fach.anzahl = liste.length;
-    const index = liste.findIndex((e) => e.kanal.login === gewaehlt);
-    Array.prototype.forEach.call(fach.reihe.children, (p, i) => p.classList.toggle('gewaehlt', i === index));
-    // Neue Auswahl oder neuer Fach-Inhalt (Suche, Refresh schiebt Platten
-    // davor) holt die Platte in Sicht; sonst bleibt der Stand vom Mausrad
-    // (nur in die Grenzen geklemmt).
-    const neu = index >= 0 && (gewaehlt !== fach.gewaehlt || umgebaut);
-    fach.gewaehlt = index >= 0 ? gewaehlt : null;
-    fach.start = Raum.fachFenster(fach.anzahl, neu ? index : -1, Raum.FACH[art].b, fach.start).start;
-    zeigeFach(art);
-  }
-
-  function zeichneStaender(eintraege, gewaehlt, h) {
-    if (!wirt) return;
-    const liste = eintraege || [];
-    zeichneFach('live', liste.filter((e) => e.art === 'live'), gewaehlt, h);
-    zeichneFach('offline', liste.filter((e) => e.art !== 'live'), gewaehlt, h);
-  }
-
-  // --- Regal neu (Task 9a): Leinwand, Ausstellbrett, Plattenruecken ---------------------
-  // Baustein neben dem alten Regal: init ruft baueRegalNeu erst ab Task 9b auf (dann
-  // ersetzt es baueRegal, richteRegalNeuAus die Regal-Zeilen in neuAusrichten und
-  // fachBlaetternNeu das alte fachBlaettern). Alle Masse in Bildpixeln von regal.png
-  // (Raum.REGAL). Bildebene: Leinwand (regal-oben/-unten, regal-wand), regal.png, Cover
-  // auf dem Brett, Such-Zettel. Textschicht: Brett-Text, Suchfeld und die Ruecken-Faecher
-  // (unskaliert, damit Name und Mini-Profilbild scharf bleiben; Lage = Bildpixel x --f
-  // der Regal-Ebene, gerundet wie .text-teil).
+  // --- Regal: Leinwand, Ausstellbrett, Plattenruecken ----------------------------------
+  // Alle Masse in Bildpixeln von regal.png (Raum.REGAL). Bildebene: Leinwand
+  // (regal-oben/-unten, regal-wand), regal.png, Cover auf dem Brett, Such-Zettel.
+  // Textschicht: Brett-Text, Suchfeld und die Ruecken-Faecher (unskaliert, damit Name
+  // und Mini-Profilbild scharf bleiben; Lage = Bildpixel x --f der Regal-Ebene,
+  // gerundet wie .text-teil). t.regal = diese Ebene (zeigeAnsicht, Karte).
   function baueRegalNeu() {
     const r = ebene('regal-ebene');
     r.e.classList.add('regal-neu');
     t.regalNeu = r;
+    t.regal = r;
     const L = Raum.REGAL_LEINWAND;
     const hoehe = Raum.BILD.hoehe;
     // Leinwand unter dem Regal: Streifen oben (y -64) und unten (y 192), Wand seitlich
@@ -597,7 +409,7 @@ window.HomeRaumDom = (function () {
         if (tafelOffen() || karteOffen()) return;
         e.preventDefault();
         e.stopPropagation();
-        fachBlaetternNeu(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
+        fachBlaettern(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
       }, { passive: false });
       // Tab auf einen Ruecken ausserhalb des Fensters: der Browser wuerde das Fach per
       // scrollLeft verschieben; stattdessen per fachFenster in Sicht holen.
@@ -748,7 +560,8 @@ window.HomeRaumDom = (function () {
       p.style.setProperty('--y', y);
     });
   }
-  function fachBlaetternNeu(art, richtung) {
+  // Mausrad und home.js (↑/↓ ohne Live-Platten): art 'live' | 'unten'.
+  function fachBlaettern(art, richtung) {
     const f = faecherNeu[art];
     if (!f || !f.box) return;
     f.start = Raum.fachFenster(f.anzahl, -1, Raum.REGAL.faecher[art].b, f.start + (richtung > 0 ? 1 : -1),
@@ -796,165 +609,21 @@ window.HomeRaumDom = (function () {
     zeichneFachNeu('unten', b.unten || [], s);
   }
 
-  // --- Regal: vordere Platte und Zettel ---------------------------------------------------
-  let vornLogin = null;
-  function zeichneVornHuelle(k) {
-    const login = k ? k.login + '|' + (k.avatar || '') : null;
-    if (login === vornLogin) return;
-    vornLogin = login;
-    t.vornHuelle.replaceChildren();
-    if (k) t.vornHuelle.appendChild(huelle(k));
-  }
-
-  function punkteZeile(punkte) {
-    const z = el('div', 'zettel-punkte');
-    z.title = 'Kanalpunkte';
-    const s = punkte.symbol;
-    z.appendChild(bildEl(s && s.url ? s.url : '../themes/cozy/symbol-muenze.png', 'zettel-punkte-symbol'));
-    z.appendChild(el('span', null, Number(punkte.balance || 0).toLocaleString('de-DE')));
-    return z;
-  }
-
-  // Zeilen, die in den vorderen Zettel passen (Raum.zettelZeilen, Bildschirm-Pixel).
-  function zettelPlatz() {
-    return Raum.zettelZeilen((VORN_ZETTEL.h - ZETTEL_RAND_OBEN - ZETTEL_RAND) * skal.faktor,
-      Raum.schriftPx(skal.faktor));
-  }
-
-  // Zeilen: Status · Zuschauer, Name, Titel, Spiel, Laufzeit, Kanalpunkte, Knoepfe
-  // (je eine Zeile, einzeilig mit "…"); fehlt Hoehe, entfallen zuerst Laufzeit,
-  // dann Kanalpunkte (zettelPlatz).
-  function zeichneZettel(s, h) {
-    const z = t.zettelText;
-    const k = s.kanal;
-    const fokus = merkeFokus(z, 'id');
-    const platz = zettelPlatz();
-    t.zettelPlatz = platz.platz;
-    z.replaceChildren();
-    if (!k) {
-      if (s.leerText) z.appendChild(el('div', 'zettel-leer', s.leerText));
-      return;
-    }
-    const status = el('div', 'zettel-status');
-    let lauf = '';
-    if (s.modus === 'live') {
-      lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
-      status.textContent = ['● LIVE', k.viewersLabel ? k.viewersLabel + ' Zuschauer' : ''].filter(Boolean).join(' · ');
-    } else if (s.modus === 'markiert') status.textContent = 'gerade offline gegangen';
-    else status.textContent = k.error ? 'Status nicht abrufbar' : 'offline';
-    const kanal = el('div', 'zettel-name', name(k));
-    if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
-    z.append(status, kanal);
-    const an = s.modus !== 'offline';
-    if (an && k.title && platz.titel) z.appendChild(el('div', 'zettel-titel', k.title));
-    if (an && k.game && platz.spiel) z.appendChild(el('div', 'zettel-spiel', k.game));
-    if (lauf && platz.laufzeit) z.appendChild(el('div', 'zettel-laufzeit', lauf));
-    if (an && s.punkte && platz.punkte) z.appendChild(punkteZeile(s.punkte));
-    const knoepfe = el('div', 'zettel-knoepfe');
-    const stern = knopf('zettel-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
-      k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
-    stern.dataset.id = 'stern';
-    knoepfe.appendChild(stern);
-    if (s.modus === 'live') {
-      const auf = knopf('zettel-knopf', 'Auflegen', 'Stream laden', () => ruf(h, 'laden', k.login));
-      auf.dataset.id = 'laden';
-      knoepfe.appendChild(auf);
-    }
-    const vods = knopf('zettel-knopf', 'VODs', 'VODs ansehen', () => ruf(h, 'vods', k));
-    vods.dataset.id = 'vods';
-    knoepfe.appendChild(vods);
-    z.appendChild(knoepfe);
-    stelleFokusHer(z, 'id', fokus);
-  }
-
-  // --- Regal: grosse Huelle mit VODs auf der Rueckseite -------------------------
+  // --- Karte: VOD-Vorschaubild ---------------------------------------------------
   function vodBild(url, c) {
     if (!url) return;
     const img = new Image();
     img.decoding = 'async';
     img.addEventListener('load', () => {
-      // mittig auf 32:9 zuschneiden, in Canvas-Groesse zeichnen (CSS vergroessert scharfkantig)
+      // mittig auf die Form der Canvas zuschneiden (64x36, 16:9), in Canvas-Groesse
+      // zeichnen (CSS vergroessert scharfkantig)
       const w = img.naturalWidth;
-      const hoch = Math.min(img.naturalHeight, w * c.height / c.width); // Form der Canvas (64x18 oder 64x36)
+      const hoch = Math.min(img.naturalHeight, w * c.height / c.width);
       const g = c.getContext('2d');
       g.imageSmoothingEnabled = true;
       g.drawImage(img, 0, (img.naturalHeight - hoch) / 2, w, hoch, 0, 0, c.width, c.height);
     });
     img.src = url;
-  }
-
-  // Grosse Huelle: herausnehmen und umdrehen (neuer Kanal), sonst nur die Liste
-  // neu, wenn sich ihr Inhalt aendert (Scrollstand bleibt sonst stehen).
-  function zeichneGross(s, h) {
-    const k = s.kanal;
-    const r = k ? s.rueckseite : null;
-    t.grossH = h;
-    t.grossK = k;
-    if (!r) {
-      aus(t.gross, true);
-      t.grossKarte.classList.remove('gedreht');
-      t.grossLogin = null;
-      t.grossSchluessel = null;
-      t.grossListe.replaceChildren();
-      return;
-    }
-    if (t.grossLogin !== k.login) {
-      t.grossLogin = k.login;
-      t.grossFenster.replaceChildren();
-      profilbild(k, t.grossFenster, GROSS_FENSTER);
-      t.grossKarte.classList.remove('gedreht');
-      aus(t.gross, false);
-      void t.grossKarte.offsetWidth; // Vorderseite festschreiben, sonst kein Umdrehen
-      t.grossKarte.classList.add('gedreht');
-    }
-    zeichneVodListe(r);
-  }
-
-  // Rueckseite: alle geladenen VODs untereinander, senkrecht scrollbar
-  // (Mausrad nativ, ↑/↓ ueber vodsScrollen); "Alle VODs" (mehr) am Ende ab 24.
-  function zeichneVodListe(r) {
-    const k = t.grossK;
-    const schluessel = [k.login, r.status, (r.vods || []).map((v) => v.id).join(','), r.mehr ? 1 : 0].join('|');
-    if (t.grossSchluessel === schluessel) return;
-    t.grossSchluessel = schluessel;
-    const fokus = merkeFokus(t.gross, 'id');
-    const liste = t.grossListe;
-    liste.replaceChildren();
-    liste.scrollTop = 0;
-    const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[r.status];
-    if (status) {
-      liste.appendChild(el('div', 'gross-status', status));
-      stelleFokusHer(t.gross, 'id', fokus);
-      return;
-    }
-    for (const v of r.vods || []) {
-      const b = knopf('gross-vod', null, null, () => ruf(t.grossH, 'vod', v.id));
-      b.title = [v.title, v.lengthLabel, v.publishedLabel, v.viewsLabel ? v.viewsLabel + ' Aufrufe' : ''].filter(Boolean).join(' · ');
-      b.dataset.id = 'vod-' + v.id;
-      const c = document.createElement('canvas');
-      c.width = 64;
-      c.height = 18;
-      vodBild(v.thumb, c);
-      const text = el('span', 'gross-vod-text');
-      text.append(el('span', 'gross-vod-titel', v.title || 'VOD'),
-        el('span', 'gross-vod-info', [v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ')));
-      b.append(c, text);
-      liste.appendChild(b);
-    }
-    if (r.mehr) {
-      const mehr = knopf('gross-mehr', 'Alle VODs', 'Alle VODs in der Liste', () => ruf(t.grossH, 'mehr', t.grossK));
-      mehr.dataset.id = 'mehr';
-      liste.appendChild(mehr);
-    }
-    stelleFokusHer(t.gross, 'id', fokus);
-  }
-
-  // ↑/↓ bei herausgenommener Platte: Liste scrollen statt zuruecklegen (home.js).
-  function vodsScrollen(richtung) {
-    if (!grossOffen()) return false;
-    const eine = t.grossListe.querySelector('.gross-vod');
-    t.grossListe.scrollBy({ top: (richtung > 0 ? 1 : -1) * (eine ? eine.offsetHeight : 24) });
-    return true;
   }
 
   // --- Regal: Karte zeichnen ----------------------------------------------------
@@ -1137,23 +806,6 @@ window.HomeRaumDom = (function () {
     return true;
   }
 
-  function zeichneBuehne(stand, h) {
-    if (!wirt) return;
-    const s = stand || {};
-    const k = s.kanal || null;
-    t.vornStand = s;
-    t.buehneH = h;
-    const gedreht = !!k && !!s.rueckseite;
-    t.vorn.classList.toggle('ladend', !!s.ladend);
-    t.vorn.classList.toggle('offline', !!k && s.modus === 'offline');
-    // herausgenommen: Huelle und Platte fehlen im Fach, der Zettel bleibt
-    aus(t.vornHuelle, !k || gedreht);
-    aus(t.vornPlatte, !k || gedreht);
-    zeichneVornHuelle(k);
-    zeichneZettel(s, h);
-    zeichneGross(s, h);
-  }
-
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
   // Kamera je Abschnitt: auf den Plattenspieler (ablauf-spieler), dann der
   // gruene Bildschirm fuellt das Fenster (ablauf-zoom); sonst keine (null).
@@ -1227,9 +879,7 @@ window.HomeRaumDom = (function () {
     if (!wirt) return;
     versteckeTafel();
     t.tafel.dataset.art = art;
-    const titel = art === 'vods' ? document.getElementById('home-title') : null;
-    if (titel) leihe(titel, t.tafelTitel);
-    else t.tafelTitel.textContent = TAFEL_TITEL[art] || String(art || '');
+    t.tafelTitel.textContent = TAFEL_TITEL[art] || String(art || '');
     if (inhalt) leihe(inhalt, t.tafelInhalt);
     aus(t.tafel, false);
   }
@@ -1322,9 +972,8 @@ window.HomeRaumDom = (function () {
   }
 
   return {
-    init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
+    init, zeigeAnsicht, ansicht, zeichneRegal, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
-    zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
-    zeichneRegal,
+    zeigeSchild, setzeTv, neuAusrichten, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
   };
 })();

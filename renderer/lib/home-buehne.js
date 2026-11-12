@@ -1,5 +1,6 @@
-// DOM-freier Zustand der Home-Buehne (Platten-Reihe, Blaettern, Mausrad,
-// Vorschau-URL, Regal-Eintraege, Ablauf beim Auflegen). UMD wie chat-ui.js: laeuft im Browser
+// DOM-freier Zustand von Home (Regal-Belegung, VOD-Nachladen, Karten-Zustand,
+// Vorschau-URL, Ablauf beim Auflegen; createBuehne/createRad sind seit dem neuen
+// Regal ungenutzt). UMD wie chat-ui.js: laeuft im Browser
 // (<script>, globales HomeBuehne) und unter Node -> testbar.
 
 (function (root, factory) {
@@ -173,27 +174,6 @@
     return null;
   }
 
-  // Staender unten (Runde 2): ohne Suche alle Live-CDs, dann die Offline-
-  // Favoriten; mit Suche Live-, Offline- und Twitch-Treffer, jeder Kanal einmal.
-  function staenderEintraege(o) {
-    const opt = o || {};
-    const gesehen = new Set();
-    const out = [];
-    const dazu = (liste, art) => (liste || []).forEach((kanal) => {
-      if (!kanal || gesehen.has(kanal.login)) return;
-      gesehen.add(kanal.login);
-      out.push({ kanal, art });
-    });
-    dazu(opt.live, 'live');
-    if (opt.suche) {
-      dazu(opt.offlineTreffer, 'offline');
-      dazu(opt.twitchTreffer, 'twitch');
-    } else {
-      dazu(opt.offlineFavoriten, 'offline');
-    }
-    return out;
-  }
-
   // ---- Regal neu (Plan docs/superpowers/plans/2026-11-11-regal-neu.md, Task 2) ----
   // Reine Logik fuer Regal-Belegung, VOD-Nachladen und Karten-Zustand.
 
@@ -311,5 +291,5 @@
     return api;
   }
 
-  return { createBuehne, createRad, vorschauUrl, tvVorschau, staenderEintraege, createLaufwerk, regalBelegung, VODS, vodLimit, vodsZusammen, laufendesVod, herausgenommenStand };
+  return { createBuehne, createRad, vorschauUrl, tvVorschau, createLaufwerk, regalBelegung, VODS, vodLimit, vodsZusammen, laufendesVod, herausgenommenStand };
 });

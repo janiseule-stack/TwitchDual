@@ -38,7 +38,6 @@ const MASSE = {
   'hover-bild.png': [40, 62],
   'platte-dreht.png': [432, 50],
   'huelle-gross-vorn.png': [128, 128],
-  'huelle-gross-rueck.png': [128, 128],
   'schild-live.png': [32, 19],
   'schild-vod.png': [32, 19],
   'schild-aus.png': [32, 19],
@@ -292,7 +291,17 @@ test('schrift/RaumKlar.ttf: vorhanden, TrueType-Kennung', () => {
 const QUELLEN = path.join(__dirname, '..', 'tools', 'raum-quellen');
 const imRechteck = (x, y, r) => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
 
-for (const [name, loch] of [['huelle-gross-vorn.png', [32, 32, 65, 65]], ['huelle-gross-rueck.png', [19, 30, 90, 70]]]) {
+// Regal neu (Task 9b): alte Rueckseite (karte-rueck.png ersetzt sie) und kleine Lampe sind weg.
+test('huelle-gross-rueck.png und lampe-klein.png samt Quellen entfallen', () => {
+  for (const p of [path.join(DIR, 'huelle-gross-rueck.png'), path.join(DIR, 'lampe-klein.png'),
+    path.join(QUELLEN, 'huelle-gross-rueck.png'), path.join(QUELLEN, 'lampe-klein-roh.png')]) {
+    assert.ok(!fs.existsSync(p), p);
+  }
+  const py = fs.readFileSync(path.join(__dirname, '..', 'tools', 'raum-bilder.py'), 'utf8');
+  assert.ok(!py.includes('HUELLE_GROSS_LISTE') && !py.includes('huelle-gross-rueck'));
+});
+
+for (const [name, loch] of [['huelle-gross-vorn.png', [32, 32, 65, 65]]]) {
   test(`${name}: im Rechteck ${loch.join(',')} durchsichtig, sonst gleich der PixelLab-Quelle`, () => {
     const a = dekodiere(lade(name));
     const q = dekodiere(fs.readFileSync(path.join(QUELLEN, name)));
@@ -325,9 +334,6 @@ test('huelle-gross-vorn: das Fenster ist genau die cremefarbene Innenflaeche der
     }
   }
   assert.strictEqual(n, 65 * 65);
-  const r = dekodiere(fs.readFileSync(path.join(QUELLEN, 'huelle-gross-rueck.png')));
-  const rq = dekodiere(fs.readFileSync(path.join(__dirname, '..', 'renderer', 'themes', 'cozy', 'entwuerfe', 'gross', 'rueck-2.png')));
-  assert.ok(r.px.equals(rq.px), 'Quelle = Janis\' Wahl rueck-2.png');
 });
 
 // Schild in der Leiste (Janis 11.11.2026): Gitter weg, eingebauter Leuchtkasten.

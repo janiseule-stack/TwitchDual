@@ -57,9 +57,7 @@
 }
 #home.im-ablauf .raum-name { display: none; }
 
-/* --- Regal: Faecher mit Huellen --------------------------------------------- */
-.fach { position: absolute; overflow: hidden; }
-.fach-reihe { position: absolute; inset: 0; transition: transform .2s; }
+/* --- Regal: Huellen (Cover auf dem Brett) ------------------------------------ */
 .huelle { position: absolute; width: 40px; height: 40px; }
 .huelle-fenster { position: absolute; overflow: hidden; }
 .huelle-fenster canvas { display: block; width: 100%; height: 100%; }
@@ -68,11 +66,7 @@
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   font-family: var(--schrift-pixel); font-size: 18px; line-height: 1; color: var(--text);
 }
-.fach .huelle { cursor: pointer; outline: none; transition: transform .15s; }
-.fach .huelle.gewaehlt { transform: translateY(-3px); }
-.fach .huelle:focus-visible { outline: 1px solid var(--accent); outline-offset: 0; }
-.huelle.offline .huelle-fenster, .vorn.offline .vorn-huelle .huelle-fenster { filter: grayscale(1) brightness(.85); }
-.huelle-lampe { position: absolute; left: 27px; top: 2px; width: 11px; height: 8px; pointer-events: none; }
+.huelle.offline .huelle-fenster { filter: grayscale(1) brightness(.85); }
 .huelle-stern {
   position: absolute; right: 1px; bottom: 1px; width: 10px; height: 10px; padding: 0;
   border: 0; background: none; cursor: pointer; opacity: 0;
@@ -80,101 +74,14 @@
 }
 .huelle:hover .huelle-stern, .huelle:focus-within .huelle-stern, .huelle-stern.an { opacity: 1; }
 
-/* --- Regal: vordere Platte, Zettel, Rueckseite --------------------------------- */
-.vorn > * { position: absolute; }
-.vorn-huelle > .huelle { left: 0; top: 0; }
-.vorn.ladend .vorn-zettel { animation: raum-puls 1.2s steps(2) infinite; }
+/* --- Regal: Zettel (Such-Zettel, Tafel) ----------------------------------------- */
 .zettel {
   position: absolute; box-sizing: border-box;
   border-style: solid; border-color: transparent; border-width: 6px;
   border-image: url('../themes/cozy/zettel.png') 6 fill / 6px / 0 stretch;
   image-rendering: pixelated;
 }
-/* zettel.png ist oben 9 Bildpixel leer (Kante bei 9-10, Papier ab 12): oben 12
-   schneiden, damit die Kante fest sitzt und der Text darunter beginnt
-   (home-raum-dom.js ZETTEL_RAND_OBEN). */
-.zettel.vorn-zettel {
-  border-width: 12px 6px 6px;
-  border-image: url('../themes/cozy/zettel.png') 12 6 6 fill / 12px 6px 6px / 0 stretch;
-}
-
-/* je Zeile genau eine Zeilenhoehe (Raum.zettelZeilen zaehlt so), einzeilig mit "…" */
-.zettel-text {
-  display: flex; flex-direction: column; gap: 0; overflow: hidden; color: var(--zettel-tinte);
-}
-.zettel-text > div {
-  flex: none; height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.zettel-name .haken { margin-left: .3em; }
-.zettel-punkte { display: flex; align-items: center; gap: .25em; }
-.zettel-punkte-symbol { width: 1em; height: 1em; image-rendering: pixelated; }
-.zettel-knoepfe { display: flex; gap: .7em; margin-top: auto; }
-.zettel-knopf, .gross-mehr {
-  font: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0;
-  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-}
-.zettel-knopf.stern { text-decoration: none; }
 .stern.an { color: var(--accent); }
-.zettel-knopf:hover, .gross-mehr:hover { color: var(--accent); }
-.zettel-knopf:focus-visible, .gross-mehr:focus-visible { outline: 1px dashed currentColor; }
-.zettel-text > .zettel-leer { white-space: normal; height: auto; flex: 1 1 auto; }
-
-/* --- Regal: grosse Huelle mit VODs (Platte herausgenommen) ----------------------
-   huelle-gross-vorn/-rueck.png (PixelLab 128x128) in ganzzahliger Vergroesserung
-   --n; Lage innen = Bildpixel x --n (--x/--y/--b/--h wie in der Textschicht).
-   Umdrehen: rotateY mit Vorder- und Rueckseite, 400 ms (Animationen aus: sofort). */
-.gross-platz {
-  position: absolute; inset: 0; z-index: 3;
-  background: rgb(18 5 5 / .55);
-}
-.gross {
-  position: absolute; width: calc(128px * var(--n, 2)); height: calc(128px * var(--n, 2));
-  perspective: calc(512px * var(--n, 2));
-}
-.gross-karte {
-  position: absolute; inset: 0; transform-style: preserve-3d;
-  transition: transform 400ms ease-in-out;
-}
-.gross-karte.gedreht { transform: rotateY(180deg); }
-.gross-seite { position: absolute; inset: 0; backface-visibility: hidden; }
-.gross-rueck { transform: rotateY(180deg); }
-.gross-bild {
-  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
-  image-rendering: pixelated; pointer-events: none; user-select: none;
-}
-.gross-teil {
-  position: absolute; box-sizing: border-box;
-  left: calc(var(--x) * var(--n, 2) * 1px); top: calc(var(--y) * var(--n, 2) * 1px);
-  width: calc(var(--b) * var(--n, 2) * 1px); height: calc(var(--h) * var(--n, 2) * 1px);
-}
-.gross-fenster { overflow: hidden; }
-.gross-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
-.gross-fenster .huelle-buchstabe { font-size: var(--raum-schrift-gross); }
-.gross-zu { position: absolute; top: 0; right: -40px; }
-
-.gross-liste {
-  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none;
-  display: flex; flex-direction: column; gap: calc(var(--raum-schrift) / 2);
-  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
-  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
-  scrollbar-width: thin; scrollbar-color: var(--text) transparent;
-}
-.gross-vod {
-  flex: none; display: flex; align-items: center; gap: .5em; width: 100%; min-width: 0;
-  padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer; outline: none;
-  font: inherit; color: inherit; text-align: left;
-}
-.gross-vod canvas {
-  flex: none; width: calc(64px * var(--vod-k, 1)); height: calc(18px * var(--vod-k, 1));
-  image-rendering: pixelated;
-}
-.gross-vod-text { display: flex; flex-direction: column; gap: .25em; min-width: 0; }
-.gross-vod-titel, .gross-vod-info { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gross-vod-info { color: var(--muted); }
-.gross-vod:hover, .gross-vod:focus-visible { color: var(--accent); }
-.gross-vod:hover canvas, .gross-vod:focus-visible canvas { filter: brightness(1.3); }
-.gross-mehr { flex: none; align-self: center; }
-.gross-status { margin: auto; text-align: center; }
 
 /* --- Karte (Regal neu): grosse Platte, doppelt so breit wie hoch -------------------
    Vorn links die Huelle (huelle-gross-vorn.png, Fenster mal --karte-n), rechts die
@@ -361,7 +268,7 @@
   writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   line-height: 1; color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
 }
-/* Laden: die gewaehlte Platte pulsiert (wie frueher .vorn.ladend) */
+/* Laden: die gewaehlte Platte pulsiert */
 .regal-neu.ladend .gewaehlt { animation: raum-puls 1.2s steps(2) infinite; }
 
 /* --- Kopf, Tafel, Ablauf ----------------------------------------------------------- */
@@ -401,8 +308,6 @@
 #home.im-ablauf #raum-ebene { z-index: 2; opacity: 0; transition: opacity 500ms linear; }
 #home.im-ablauf #raum-ebene .raum-textschicht { visibility: hidden; }
 #home.ablauf-raum #raum-ebene { opacity: 1; }
-/* Grosse Huelle (VODs) liegt im Regal: waehrend des Ablaufs weg, danach wie vorher */
-#home.im-ablauf .gross-platz { display: none; }
 #home.ablauf-spieler #raum-ebene .raum-bildebene { transition: transform 1200ms ease-in-out; }
 #home.ablauf-zoom #raum-ebene .raum-bildebene { transition: transform 2000ms ease-in-out; }
 /* Drehende Platte: platte-dreht.png (8 Bilder je 54x50) in Bildpixeln; die

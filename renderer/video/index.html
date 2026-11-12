@@ -210,11 +210,10 @@
   <!-- Home-Overlay: Raum und Regal (home-raum-dom.js baut beide Ansichten,
        die Knoepfe-Leiste, die Tafel und den Ablauf davor ein). ✕/← haengt
        HomeRaumDom.init in #home-knoepfe um, die Suchzeile in den Such-Zettel;
-       #home-title, #auth-bar und #home-vod-view erscheinen nur in der Tafel. -->
+       #auth-bar erscheint nur in der Tafel. -->
   <div id="home" class="hidden">
     <button id="home-back" class="hidden" title="Zurück">←</button>
     <button id="home-close" title="Schließen">✕</button>
-    <span id="home-title">Home</span>
 
     <div id="auth-bar">
       <span id="auth-state">Nicht angemeldet</span>
@@ -222,20 +221,14 @@
       <button id="auth-logout" type="button" class="hidden">Abmelden</button>
     </div>
 
-    <!-- Behaelter der Regal-Ansicht: sichtbar, solange "Alle VODs" zu ist
-         (daran haengt der 60-s-Refresh). Die Suchzeile wandert in den Such-Zettel. -->
+    <!-- Die Suchzeile wandert in den Such-Zettel des Regals. -->
     <div id="home-kanaele">
       <div id="home-such-zeile">
         <input id="home-suche" type="text" placeholder="Kanäle suchen (Name, Spiel, Titel) …" autocomplete="off" />
         <button id="refresh-btn" title="Aktualisieren">⟳</button>
       </div>
     </div>
-    <!-- Hinweiszeile: auch ueber der Tafel sichtbar (Ladefehler aus "Alle VODs") -->
     <div id="home-hinweis" class="empty hidden"></div>
-
-    <div id="home-vod-view" class="hidden">
-      <div id="vod-list"></div>
-    </div>
 
     <div id="home-version"></div>
   </div>

@@ -8,9 +8,10 @@ test('Konstanten: Bildgroesse, Reihenfolge und Namen der Flaechen', () => {
   assert.deepStrictEqual(R.FLAECHEN.map((f) => f.name), ['Plattenspieler', 'Fernseher', 'Konto', 'Licht', 'Platten']);
   assert.deepStrictEqual(R.HUELLE, { kante: 40, abstand: 4 });
   assert.deepStrictEqual(R.TELLER, { x: 284, y: 113 });
-  assert.deepStrictEqual(R.FACH.live, { x: 114, y: 19, b: 175, h: 46 });
-  assert.deepStrictEqual(R.FACH.offline, { x: 114, y: 80, b: 175, h: 43 });
-  assert.deepStrictEqual(R.FACH.vorn, { x: 114, y: 138, b: 175, h: 52 });
+});
+
+test('Regal neu (Task 9b): altes Fach, Zettel-Zeilen und grosse Huelle entfallen', () => {
+  for (const alt of ['FACH', 'zettelZeilen', 'grossKante']) assert.ok(!(alt in R), alt);
 });
 
 test('TV_ECKEN: vier Ecken im Bildschirmbereich', () => {
@@ -370,38 +371,3 @@ test('randPx: ganze Bildschirm-Pixel, mindestens 1', () => {
   assert.ok(Number.isInteger(R.randPx(6.9375, 6)));
 });
 
-test('zettelZeilen: zuerst entfaellt die Laufzeit, dann die Kanalpunkte', () => {
-  assert.deepStrictEqual(R.zettelZeilen(84, 12), { platz: 7, titel: true, spiel: true, punkte: true, laufzeit: true });
-  assert.deepStrictEqual(R.zettelZeilen(72, 12), { platz: 6, titel: true, spiel: true, punkte: true, laufzeit: false });
-  assert.deepStrictEqual(R.zettelZeilen(60, 12), { platz: 5, titel: true, spiel: true, punkte: false, laufzeit: false });
-  assert.deepStrictEqual(R.zettelZeilen(59, 12), { platz: 4, titel: true, spiel: false, punkte: false, laufzeit: false });
-  assert.strictEqual(R.zettelZeilen(100, 0).platz, 0);
-});
-
-test('grossKante: ganzzahliges Vielfaches von 128 in 70 % der Fensterhoehe', () => {
-  assert.strictEqual(R.grossKante(800), 512);
-  assert.strictEqual(R.grossKante(1332), 896);
-  assert.strictEqual(R.grossKante(384), 256);
-  assert.strictEqual(R.grossKante(100), 128);
-  assert.strictEqual(R.grossKante(1332, 1397), 896);
-  assert.strictEqual(R.grossKante(1332, 700), 512); // Breite begrenzt: (700 - 96) / 128 = 4
-  assert.strictEqual(R.grossKante(800, 100), 128);
-  for (let h = 200; h < 2000; h += 37) {
-    const k = R.grossKante(h);
-    assert.strictEqual(k % 128, 0);
-    if (k > 128) assert.ok(k <= h * 0.7 && k + 128 > h * 0.7, 'h ' + h);
-  }
-});
-
-test('zettelZeilen: vorderer Zettel (Innenhoehe 48 - 12 - 6 = 30 Bildpixel) zeigt bei jedem Faktor >= 2 die Pflichtzeilen', () => {
-  for (let f = 2; f <= 12; f += 1 / 16) {
-    const zeile = R.schriftPx(f);
-    const innen = 30 * f;
-    const z = R.zettelZeilen(innen, zeile);
-    // Status, Name, Titel, Spiel, Knoepfe
-    assert.ok(z.platz >= 5 && z.titel && z.spiel, 'f ' + f);
-    // was gezeigt wird, passt senkrecht: Zeilenhoehe x Zeilen <= Innenhoehe
-    const zeilen = 5 + (z.punkte ? 1 : 0) + (z.laufzeit ? 1 : 0);
-    assert.ok(zeilen * zeile <= innen + 1e-9, 'f ' + f);
-  }
-});

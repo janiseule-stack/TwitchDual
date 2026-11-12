@@ -23,10 +23,13 @@ test('home-raum-dom.js setzt window.HomeRaumDom', () => {
 
 test('home-raum-dom.js: alle Namen der Schnittstelle stehen im return', () => {
   const r = schnittstelle();
-  const namen = ['init', 'zeigeAnsicht', 'ansicht', 'zeichneBuehne', 'zeichneStaender', 'fachBlaettern',
-    'zeigeAblauf', 'versteckeAblauf', 'zeigeTafel', 'versteckeTafel', 'tafelOffen', 'zeigeSchild',
+  const namen = ['init', 'zeigeAnsicht', 'ansicht', 'zeichneRegal', 'zeichneKarte', 'kartenScrollen', 'karteOffen',
+    'fachBlaettern', 'zeigeAblauf', 'versteckeAblauf', 'zeigeTafel', 'versteckeTafel', 'tafelOffen', 'zeigeSchild',
     'setzeTv', 'neuAusrichten'];
   for (const n of namen) assert.ok(new RegExp('\\b' + n + '\\b').test(r), n);
+  for (const alt of ['zeichneBuehne', 'zeichneStaender', 'vodsScrollen', 'fachBlaetternNeu']) {
+    assert.ok(!new RegExp('\\b' + alt + '\\b').test(r), alt);
+  }
 });
 
 test('home-raum-dom.js: keine alte CD-Darstellung', () => {
@@ -43,12 +46,13 @@ test('home-raum-dom.js: eigene Bilder nur aus ../themes/cozy/', () => {
   assert.ok(bilder.length > 0);
   // '.png' allein: Endung der zusammengesetzten Hover-Namen (unten geprueft)
   for (const b of bilder) assert.ok(/^['"]\.\.\/themes\/cozy\/[a-z0-9-]+\.png['"]$/.test(b) || b === "'.png'", b);
-  for (const n of ['raum-tv-aus.png', 'regal.png', 'huelle.png', 'huelle-gross-vorn.png', 'huelle-gross-rueck.png', 'platte-vorn.png', 'zettel.png', 'lampe-klein.png']) {
+  for (const n of ['raum-tv-aus.png', 'regal.png', 'regal-wand.png', 'huelle.png', 'huelle-gross-vorn.png', 'karte.png', 'zettel.png']) {
     assert.ok(js.includes(n) || css.includes(n), n);
   }
   assert.ok(js.includes("'../themes/cozy/hover-' + f.id + '.png'"), 'Hover-Bilder');
   assert.ok(!js.includes('lampe-rot.png'));
-  assert.ok(/\.huelle-lampe\s*\{[^}]*width:\s*11px;[^}]*height:\s*8px/.test(css), 'Lampe 11x8 in Bildkoordinaten');
+  assert.ok(!js.includes('lampe-klein.png') && !css.includes('lampe-klein.png') && !css.includes('.huelle-lampe'));
+  assert.ok(!js.includes('huelle-gross-rueck.png') && !js.includes('platte-vorn.png'));
   assert.ok(!/https?:/.test(js));
 });
 
@@ -70,8 +74,9 @@ test('home-raum-dom.js: Profilbild mit error-Zweig und Anfangsbuchstabe', () => 
   assert.ok(/charAt\(0\)|\[0\]/.test(js) && js.includes('toUpperCase'));
 });
 
-test('home-raum-dom.js: VOD-Vorschau als Canvas 64x18 (doppelt so fein)', () => {
-  assert.ok(/width\s*=\s*64;/.test(js) && /height\s*=\s*18;/.test(js));
+test('home-raum-dom.js: VOD-Vorschau als Canvas 64x36 (16:9, nur noch die Karte)', () => {
+  assert.ok(/width\s*=\s*64;/.test(js) && /height\s*=\s*36;/.test(js));
+  assert.ok(!/height\s*=\s*18;/.test(js), 'alte 64x18-Liste entfaellt');
   assert.ok(!/width\s*=\s*32;/.test(js) && !/height\s*=\s*9;/.test(js));
 });
 
@@ -120,121 +125,104 @@ test('Text-Ebene des Raums ist waehrend des Ablaufs ausgeblendet', () => {
   assert.ok(/#home\.im-ablauf #raum-ebene \.raum-textschicht\s*\{[^}]*visibility:\s*hidden/.test(css));
 });
 
-test('Zettel: oben 12 geschnitten, Text beginnt unter der Kante, Zeilen nach Raum.zettelZeilen', () => {
-  assert.ok(/ZETTEL_RAND_OBEN\s*=\s*12;/.test(js));
-  assert.ok(js.includes('innen(VORN_ZETTEL, ZETTEL_RAND_OBEN)'));
-  assert.ok(/\.zettel\.vorn-zettel\s*\{[^}]*border-width:\s*12px 6px 6px;[^}]*zettel\.png'\)\s*12 6 6 fill \/ 12px 6px 6px/.test(css));
-  const p = rumpf(js, 'function zettelPlatz(');
-  assert.ok(p.includes('Raum.zettelZeilen((VORN_ZETTEL.h - ZETTEL_RAND_OBEN - ZETTEL_RAND) * skal.faktor'));
-  assert.ok(p.includes('Raum.schriftPx(skal.faktor)'));
-  const z = rumpf(js, 'function zeichneZettel(');
-  for (const b of ['platz.titel', 'platz.spiel', 'platz.laufzeit', 'platz.punkte']) assert.ok(z.includes(b), b);
-  assert.ok(/\.zettel-text > div\s*\{[^}]*height:\s*1em;[^}]*white-space:\s*nowrap;[^}]*text-overflow:\s*ellipsis/.test(css));
-  // Groesse aendert sich -> Zeilen neu
-  assert.ok(rumpf(js, 'function neuAusrichten(').includes('zeichneZettel(t.vornStand, t.buehneH)'));
+test('Vorderer Zettel entfaellt (die Karte zeigt die Infos)', () => {
+  assert.ok(!/VORN_ZETTEL|zettelPlatz|zettelZeilen/.test(js));
+  assert.ok(!/VORN_HUELLE|VORN_PLATTE|SUCH_ZETTEL|ZETTEL_RAND_OBEN/.test(js));
+  assert.ok(!/\.vorn-zettel|\.zettel-text|\.vorn\b/.test(css));
+  // ZETTEL_RAND und .zettel bleiben (Tafel, Such-Zettel)
+  assert.ok(/ZETTEL_RAND\s*=\s*6;/.test(js) && /\.zettel\s*\{/.test(css));
 });
 
-test('Doppelklick legt auf: Fach-Huelle (waehle, dann laden) und vordere Huelle', () => {
-  const f = rumpf(js, 'function baueFachPlatte(');
-  const d = f.indexOf("addEventListener('dblclick'");
-  assert.ok(d > -1);
-  const teil = f.slice(d);
-  assert.ok(teil.indexOf('waehle()') > -1 && teil.indexOf("ruf(t.buehneH, 'laden'") > teil.indexOf('waehle()'), 'waehle dann laden');
-  assert.ok(/e\.art !== 'live' \|\| !kj\.live/.test(teil), 'nur Live-Platten');
-  assert.ok(f.includes("p.addEventListener('click', waehle)"), 'Einfachklick bleibt waehlen');
-  const r = rumpf(js, 'function baueRegal(');
-  assert.ok(/t\.vornHuelle\.addEventListener\('dblclick'[\s\S]*?s\.modus === 'live'[\s\S]*?ruf\(t\.buehneH, 'laden', s\.kanal\.login\)/.test(r));
+test('Doppelklick legt auf: Cover, Ruecken (waehle, dann laden) und Karten-Huelle', () => {
+  const pruefe = (f, kopf) => {
+    const d = f.indexOf("addEventListener('dblclick'");
+    assert.ok(d > -1, kopf);
+    const teil = f.slice(d);
+    assert.ok(teil.indexOf('waehle()') > -1 && teil.indexOf("ruf(t.regalH, 'laden'") > teil.indexOf('waehle()'), kopf + ': waehle dann laden');
+    assert.ok(f.includes("p.addEventListener('click', waehle)"), kopf + ': Einfachklick bleibt waehlen');
+  };
+  pruefe(rumpf(js, 'function zeichneBrett('), 'Cover');
+  pruefe(rumpf(js, 'function baueRuecken('), 'Ruecken');
+  const k = rumpf(js, 'function baueKarte(');
+  assert.ok(/t\.karteHuelle\.addEventListener\('dblclick'[\s\S]*?s\.modus === 'live'[\s\S]*?t\.karteLaden\(s\.kanal\.login\)/.test(k));
   // keine zweite Lade-Logik
   assert.ok(!js.includes('submitLoad') && !js.includes('ladeWert'));
 });
 
-test('Fach: genau 4 ganze Huellen, Blaettern in ganzen Schritten, Anhebung bleibt im Fach', () => {
-  // Fachbreite 175: 4 * 40 + 3 * 4 = 172 <= 175 < 5 * 44 - 4
+test('Ruecken-Fach: Fenster per Raum.REGAL.ruecken, Blaettern in ganzen Schritten, Anhebung bleibt im Fach', () => {
   const R = require('../renderer/lib/raum.js');
-  for (const art of ['live', 'offline']) {
-    assert.strictEqual(R.fachFenster(10, 0, R.FACH[art].b, 0).sichtbar, 4, art);
-    // Huelle steht unten im Fach (y = h - 40); -3 px Anhebung darf nicht ueber 0
-    assert.ok(R.FACH[art].h - R.HUELLE.kante - 3 >= 0, art);
+  const teil = { kante: R.REGAL.ruecken.b, abstand: R.REGAL.ruecken.abstand };
+  for (const art of ['live', 'unten']) {
+    const f = R.REGAL.faecher[art];
+    assert.strictEqual(R.fachFenster(100, 0, f.b, 0, teil).sichtbar, Math.floor(f.b / R.REGAL.ruecken.b), art);
+    // Ruecken steht unten im Fach; 1 Bildpixel Anhebung bleibt im Fach
+    assert.ok(f.h - R.REGAL.ruecken.h - 1 >= 0, art);
   }
-  assert.ok(/translateX\(' \+ \(-f\.start \* \(Raum\.HUELLE\.kante \+ Raum\.HUELLE\.abstand\)\)/.test(js));
-  assert.ok(/\.fach \.huelle\.gewaehlt\s*\{\s*transform:\s*translateY\(-3px\)/.test(css));
+  const b = rumpf(js, 'function fachBlaettern(');
+  assert.ok(b.includes('Raum.REGAL.faecher[art].b') && b.includes('kante: Raum.REGAL.ruecken.b'));
+  assert.ok(/\.ruecken\.gewaehlt, \.ruecken\.vorschlag\s*\{\s*transform:\s*translateY/.test(css));
 });
 
-// --- Runde 2, Task 3b: Platte rausnehmen, VODs auf der Rueckseite -------------
-test('Grosse Huelle: PixelLab-Bilder vorn/hinten, Fenster und Liste aus Konstanten, ganzzahlig', () => {
+// --- Regal neu, Task 9b: Karte ersetzt die grosse Huelle --------------------------
+test('Karte ersetzt die grosse Huelle: Fenster aus GROSS_FENSTER, Masse aus Raum.kartenMasse, alte Teile weg', () => {
   assert.ok(/GROSS_FENSTER\s*=\s*\{\s*x:\s*32,\s*y:\s*32,\s*b:\s*65,\s*h:\s*65\s*\}/.test(js));
-  assert.ok(/GROSS_LISTE\s*=\s*\{\s*x:\s*21,\s*y:\s*31,\s*b:\s*86,\s*h:\s*68\s*\}/.test(js));
-  const b = rumpf(js, 'function baueGross(');
-  assert.ok(b.includes("'../themes/cozy/huelle-gross-vorn.png'") && b.includes("'../themes/cozy/huelle-gross-rueck.png'"));
+  assert.ok(!/GROSS_LISTE|GROSS_KANTE|grossOffen|\bt\.gross\b|t\.grossHuelle/.test(js));
+  assert.ok(!/function baueGross\(|function zeichneFach\(/.test(js));
+  assert.ok(!/function zeichneGross\(|function zeichneVodListe\(|function vodsScrollen\(/.test(js));
   // Profilbild in Fenstergroesse (65x65), nicht halbiert
-  assert.ok(rumpf(js, 'function zeichneGross(').includes('profilbild(k, t.grossFenster, GROSS_FENSTER)'));
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes('profilbild(k, t.karteFenster, GROSS_FENSTER)'));
   const n = rumpf(js, 'function neuAusrichten(');
-  assert.ok(n.includes('Raum.grossKante(wirt.clientHeight, wirt.clientWidth)'));
-  assert.ok(n.includes("setProperty('--n', n)"));
-  assert.ok(/Math\.round\(\(wirt\.clientWidth - kante\) \/ 2\)/.test(n) && /Math\.round\(\(wirt\.clientHeight - kante\) \/ 2\)/.test(n), 'mittig auf ganzen Pixeln');
-  assert.ok(/\.gross\s*\{[^}]*width:\s*calc\(128px \* var\(--n, 2\)\)/.test(css));
-  assert.ok(/\.gross-bild\s*\{[^}]*image-rendering:\s*pixelated/.test(css));
+  assert.ok(!n.includes('Raum.grossKante') && !n.includes("'--n'") && !n.includes("'--vod-k'"));
+  assert.ok(n.includes('Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(!/\.gross[\s{.,-]/.test(css), 'kein .gross*-CSS mehr');
+  assert.ok(!/\.huelle-lampe|\.vorn-zettel|\.zettel-text/.test(css));
 });
 
-test('Grosse Huelle dreht sich um: rotateY, Vorder- und Rueckseite, 400 ms, Animationen aus sofort', () => {
-  assert.ok(/\.gross-karte\s*\{[^}]*transform-style:\s*preserve-3d;[^}]*transition:\s*transform 400ms/.test(css));
-  assert.ok(/\.gross-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
-  assert.ok(/\.gross-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
-  assert.ok(/\.gross-rueck\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
-  const z = rumpf(js, 'function zeichneGross(');
-  const weg = z.indexOf("classList.remove('gedreht')", z.indexOf('t.grossLogin !== k.login'));
-  const reflow = z.indexOf('void t.grossKarte.offsetWidth');
-  const dreh = z.indexOf("classList.add('gedreht')");
-  assert.ok(weg > -1 && reflow > weg && dreh > reflow, 'Vorderseite festschreiben, dann umdrehen');
+test('Karte dreht sich um: rotateY, Vorder- und Rueckseite, 400 ms, Animationen aus sofort', () => {
+  assert.ok(/\.karte-karte\s*\{[^}]*transform-style:\s*preserve-3d;[^}]*transition:\s*transform 400ms/.test(css));
+  assert.ok(/\.karte-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+  assert.ok(/\.karte-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
+  assert.ok(/\.karte-rueck\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
   assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none/.test(css));
 });
 
-test('Rueckseite: scrollbare Liste aller VODs, Klick -> vod, Alle VODs (mehr) am Ende, keine Seiten', () => {
-  const l = rumpf(js, 'function zeichneVodListe(');
-  assert.ok(/for \(const v of r\.vods \|\| \[\]\)/.test(l), 'alle VODs, nicht nur eine Seite');
-  assert.ok(l.includes("ruf(t.grossH, 'vod', v.id)"));
-  assert.ok(l.includes("'gross-vod-titel'") && l.includes('v.publishedLabel, v.lengthLabel'));
-  assert.ok(l.includes('if (r.mehr)') && l.includes("ruf(t.grossH, 'mehr', t.grossK)"));
+test('Rueckseite der Karte: ↑/↓ scrollen die Liste (home.js fragt zuerst kartenScrollen), keine Seiten', () => {
   assert.ok(!/JE_SEITE|VOD_PLAETZE|'vodSeite'|r\.seite/.test(js), 'Seiten-Logik entfaellt');
-  assert.ok(/\.gross-liste\s*\{[^}]*overflow-y:\s*auto/.test(css));
-  assert.ok(/\.gross-liste\s*\{[^}]*font-family:\s*var\(--schrift-pixel\);\s*font-size:\s*var\(--raum-schrift\)/.test(css));
-  // ↑/↓ scrollen die Liste (home.js fragt zuerst vodsScrollen)
-  const s = rumpf(js, 'function vodsScrollen(');
-  assert.ok(s.includes('grossOffen()') && s.includes('t.grossListe.scrollBy('));
-  assert.ok(/\bvodsScrollen\b/.test(schnittstelle()));
   const homeJs = lies('renderer/video/home.js');
   const sch = homeJs.slice(homeJs.indexOf('function schritt('), homeJs.indexOf('\n}', homeJs.indexOf('function schritt(')));
-  assert.ok(/^\s*if \(rueckseite && HomeRaumDom\.vodsScrollen\(r\)\) return;/m.test(sch));
-  assert.ok(sch.indexOf('vodsScrollen') < sch.indexOf('offlineAnsicht'), 'vor dem Schliessen');
+  assert.ok(/seite === 'rueck'[^\n]*HomeRaumDom\.kartenScrollen\(r\)/.test(sch), 'Rueckseite offen -> kartenScrollen');
+  assert.ok(sch.indexOf('kartenScrollen') < sch.indexOf('waehle('), 'vor dem Weiterblaettern');
+  assert.ok(sch.includes("[...b.brett.map((kanal) => ({ kanal, art: 'brett' })), ...b.live]"), 'Reihe = Brett, dann Live');
+  assert.ok(sch.includes("HomeRaumDom.fachBlaettern('unten', r)"), 'ohne Live-Platten das untere Fach');
 });
 
-test('Zuruecklegen: Klick daneben und ✕ rufen rueckseiteZu; Esc bleibt in home.js', () => {
-  const b = rumpf(js, 'function baueGross(');
-  assert.ok(/if \(e\.target === t\.gross\) ruf\(t\.grossH, 'rueckseiteZu'\)/.test(b), 'Klick daneben');
-  assert.ok(/knopf\('pixel-knopf k-zu gross-zu', '✕', [^,]+, \(\) => ruf\(t\.grossH, 'rueckseiteZu'\)\)/.test(b), '✕');
+test('Zuruecklegen: Klick daneben und ✕ rufen zuruecklegen; Esc-Kette in home.js', () => {
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(/if \(e\.target === t\.karteWurzel && t\.karteZu\) t\.karteZu\(\)/.test(b), 'Klick daneben');
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes("t.karteZu = () => ruf(h, 'zuruecklegen')"));
   const homeJs = lies('renderer/video/home.js');
-  assert.ok(homeJs.includes('else if (rueckseite) { rueckseite = null; renderHome(); }'), 'Esc-Kette');
-  assert.ok(homeJs.includes('rueckseiteZu: () => { rueckseite = null; renderHome(); }'));
-  // home.js gibt die ganze geladene Liste weiter
-  assert.ok(homeJs.includes('rueckseite: g.kanal ? rueckseite : null'));
+  const z = rumpfOben(homeJs, 'function zurueckSchritt(');
+  const reihe = ['tafelOffen()', "seite === 'rueck'", 'herausgenommen', 'raumPasst()'].map((s) => z.indexOf(s));
+  assert.ok(reihe[0] > -1 && reihe.every((x, i) => i === 0 || x > reihe[i - 1]), 'Tafel > Rueckseite > Karte > Raum');
+  // Rueckseite einer offline Platte: Esc legt gleich zurueck
+  assert.ok(/seite === 'rueck' && herausgenommen && gezeigt\(\)\.modus !== 'offline'/.test(z));
+  const k = rumpfOben(homeJs, 'function kannZurueck(');
+  for (const s of ['tafelOffen()', 'herausgenommen', 'raumPasst()']) assert.ok(k.includes(s), s);
 });
 
 test('Alte gekachelte Rueckseite im Buecherfach ist weg (samt CSS)', () => {
   for (const alt of ['vorn-rueck', 'rueck-text', 'rueck-vod', 'rueck-knopf', 'rueck-links', 'rueck-fuss', 'huelle-rueck.png', 't.rueck']) {
     assert.ok(!js.includes(alt) && !css.includes(alt), alt);
   }
-  // herausgenommen: Huelle und Platte fehlen im Fach
-  const z = rumpf(js, 'function zeichneBuehne(');
-  assert.ok(z.includes('aus(t.vornHuelle, !k || gedreht)') && z.includes('aus(t.vornPlatte, !k || gedreht)'));
-  assert.ok(z.includes('zeichneGross(s, h)'));
 });
 
-test('home-raum-dom.js: Handler-Namen der alten Buehne bleiben', () => {
-  for (const h of ['laden', 'stern', 'vods', 'rueckseiteZu', 'vod', 'mehr', 'waehle']) {
+test('home-raum-dom.js: Handler-Namen von Regal und Karte', () => {
+  for (const h of ['laden', 'stern', 'umdrehen', 'zuruecklegen', 'vod', 'mehrVods', 'waehle']) {
     assert.ok(js.includes("'" + h + "'"), h);
   }
-  // vodSeite bleibt als Schnittstelle in home.js, die Liste blaettert nicht mehr
-  assert.ok(lies('renderer/video/home.js').includes('vodSeite:'));
+  for (const alt of ["'rueckseiteZu'", "'vods'", "'mehr'", 'zeichneBuehne', 'zeichneStaender', 'baueFachPlatte']) {
+    assert.ok(!js.includes(alt), alt);
+  }
 });
 
 test('home-raum-dom.js: Mausrad blaettert nicht bei offener Tafel', () => {
@@ -244,15 +232,23 @@ test('home-raum-dom.js: Mausrad blaettert nicht bei offener Tafel', () => {
 });
 
 test('home-raum-dom.js: neuer Fach-Inhalt holt die gewaehlte Platte in Sicht', () => {
-  assert.ok(/const umgebaut = fach\.schluessel !== schluessel/.test(js));
-  assert.ok(/neu = index >= 0 && \(gewaehlt !== fach\.gewaehlt \|\| umgebaut\)/.test(js));
+  const z = rumpf(js, 'function zeichneFachNeu(');
+  assert.ok(/const umgebaut = fach\.schluessel !== schluessel/.test(z));
+  assert.ok(/neu = ziel >= 0 && \(zielLogin !== fach\.gewaehlt \|\| umgebaut\)/.test(z));
 });
 
 test('home-raum-dom.js: Fokus im Fach setzt scrollLeft zurueck und blaettert per fachFenster', () => {
   const i = js.indexOf("'focusin'");
   assert.ok(i > -1);
   const teil = js.slice(i, i + 500);
-  assert.ok(teil.includes('scrollLeft = 0') && teil.includes('Raum.fachFenster') && teil.includes('zeigeFach('));
+  assert.ok(teil.includes('scrollLeft = 0') && teil.includes('Raum.fachFenster') && teil.includes('zeigeFachNeu('));
+});
+
+test('home-raum-dom.js: altes Fach (Raum.FACH) ist ganz weg', () => {
+  assert.ok(!js.includes('Raum.FACH'));
+  assert.ok(!/function baueGross\(|function zeichneFach\(/.test(js));
+  assert.ok(!/const faecher = \{|function zeigeFach\(|function baueRegal\(\)/.test(js));
+  assert.ok(!/\.fach\b|\.fach-reihe/.test(css));
 });
 
 test('home-raum.css: keine Verlaeufe, kein Blur, Ebenen pixelgenau', () => {
@@ -291,10 +287,13 @@ test('index.html: alte Buehne raus, gebliebene Elemente da', () => {
   for (const id of ['home-head', 'home-namen', 'home-buehne', 'cd-huelle', 'cd-info', 'cd-laufwerk', 'home-staender']) {
     assert.ok(!html.includes('id="' + id + '"'), id);
   }
-  for (const id of ['home-close', 'home-back', 'home-title', 'home-kanaele', 'home-such-zeile', 'home-suche',
-    'refresh-btn', 'home-hinweis', 'home-vod-view', 'vod-list', 'auth-bar', 'home-version']) {
+  for (const id of ['home-close', 'home-back', 'home-kanaele', 'home-such-zeile', 'home-suche',
+    'refresh-btn', 'home-hinweis', 'auth-bar', 'home-version']) {
     assert.ok(html.includes('id="' + id + '"'), id);
   }
+  // "Alle VODs" entfaellt (Regal neu, Task 9b)
+  for (const id of ['home-title', 'home-vod-view', 'vod-list']) assert.ok(!html.includes('id="' + id + '"'), id);
+  assert.ok(!html.includes('Alle VODs'));
 });
 
 test('home-buehne-dom.js ist geloescht', () => {
@@ -309,12 +308,14 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   const i = homeJs.indexOf('HomeRaumDom.init({');
   assert.ok(i > -1);
   const initOpt = homeJs.slice(i, homeJs.indexOf('});', i));
-  for (const n of ['beiFlaeche', 'beiSchliessen', 'beiZurueck', 'beiTafelZu']) assert.ok(new RegExp('\\b' + n + '\\b').test(initOpt), n);
+  for (const n of ['beiFlaeche', 'beiSchliessen', 'beiZurueck']) assert.ok(new RegExp('\\b' + n + '\\b').test(initOpt), n);
+  assert.ok(!initOpt.includes('showKanaeleView'));
   assert.ok(homeJs.includes('Raum.passtAlsRaum('));
   assert.ok(/mindestMs:\s*5200/.test(homeJs));
   assert.ok(/HomeRaumDom\.zeigeAblauf\([^)]*\(\)\s*=>\s*laufwerk\.ueberspringen\(\)\)/.test(homeJs));
   assert.ok(homeJs.includes('HomeRaumDom.versteckeAblauf()'));
-  assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern('offline'"));
+  assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern('unten'"));
+  assert.ok(!homeJs.includes("fachBlaettern('offline'"));
   assert.ok(homeJs.includes('HomeRaumDom.setzeTv('));
   assert.ok(homeJs.includes('HomeRaumDom.neuAusrichten()'));
   assert.ok(/addEventListener\('resize'/.test(homeJs));
@@ -333,8 +334,9 @@ test('home.js: Schliessen-Wege', () => {
   const lw = homeJs.indexOf('async function ladeWert(');
   assert.ok(/if \(ok\) \{[^}]*closeHome\(\)/.test(homeJs.slice(lw, homeJs.indexOf('\n}', lw))));
   assert.ok(/onLoad\(\(\) => \{ zeigeSchliessKnoepfe\(\); if \(!laufwerk\.laeuft\) closeHome\(\); \}\)/.test(homeJs));
-  // VOD-Karte laedt ueber ladeWert (kein eigenes submitLoad + closeHome)
-  assert.ok(homeJs.includes('ladeWert(v.id, null)'));
+  // VOD auf der Karte laedt ueber ladeWert (kein eigenes submitLoad + closeHome)
+  const h = homeJs.slice(homeJs.indexOf('const karteHandler'), homeJs.indexOf('};', homeJs.indexOf('const karteHandler')));
+  assert.ok(/\bvod: \(id\) => ladeWert\(id, /.test(h));
   assert.strictEqual((homeJs.match(/^(?!\s*\/\/).*twitchDual\.submitLoad\(/gm) || []).length, 1);
 });
 
@@ -352,7 +354,9 @@ test('video.js: window.laeuftEtwas, home.js fragt nur diese Auskunft', () => {
 test('home.js: Klick im Raum, Ansichten und Tasten', () => {
   for (const f of ["'regal'", "'fernseher'", "'plattenspieler'", "'bild'", "'lampe'"]) assert.ok(homeJs.includes(f), f);
   assert.ok(homeJs.includes("zeigeSchild('Nichts geladen')"));
-  assert.ok(homeJs.includes("zeigeTafel('konto'") && homeJs.includes("zeigeTafel('licht'") && homeJs.includes("zeigeTafel('vods'"));
+  assert.ok(homeJs.includes("zeigeTafel('konto'") && homeJs.includes("zeigeTafel('licht'"));
+  assert.ok(!homeJs.includes("zeigeTafel('vods'"));
+  assert.ok(!/TAFEL_TITEL\s*=\s*\{[^}]*vods/.test(js) && !js.includes("art === 'vods'"));
   assert.ok(homeJs.includes('saveThemePrefs({ animationen'));
   assert.ok(homeJs.includes('Weitere Einstellungen: ⚙ im Chat'));
   assert.ok(homeJs.includes('HomeRaumDom.tafelOffen()'));
@@ -365,9 +369,99 @@ test('home.css: nur noch Home-Grundregeln, keine Verlaeufe, kein Blur', () => {
   for (const alt of ['cd-', 'namen-', '.album', 'staender', 'lw-', 'inlay-', '#home-head', '#home-buehne']) {
     assert.ok(!homeCss.includes(alt), alt);
   }
-  for (const bleibt of ['#home {', '#home-vod-view', '.vod', '#auth-bar', '.empty', '#home-hinweis', '#home-version', '.hidden']) {
+  for (const bleibt of ['#home {', '#auth-bar', '.empty', '#home-hinweis', '#home-version', '.hidden']) {
     assert.ok(homeCss.includes(bleibt), bleibt);
   }
+  // "Alle VODs" entfaellt samt CSS
+  assert.ok(!homeCss.includes('#home-vod-view') && !/\.vod\b/.test(homeCss) && !homeCss.includes('#home-title'));
+});
+
+// --- Regal neu, Task 9b: home.js schaltet um --------------------------------------
+const homeRumpf = (kopf) => {
+  const s = homeJs.indexOf(kopf);
+  return s < 0 ? '' : homeJs.slice(s, homeJs.indexOf('\n}', s));
+};
+
+test('home.js nutzt keine Buehne und kein "Alle VODs" mehr', () => {
+  assert.ok(!homeJs.includes('createBuehne'));
+  assert.ok(!/openVods|buildVodCard|channelVods\([^)]*100\)/.test(homeJs));
+  for (const alt of ['showVodView', 'showKanaeleView', 'emptyMsg', '$vodView', '$vodList', '$homeTitle', 'VODS_MAX',
+    'vodSeite', 'buehnenHandler', 'staenderHandler', 'wendeSucheAn', 'function reihe(', 'mitStern',
+    'oeffnenAusstehend', 'offlineAnsicht', 'function loginVon(', 'zeichneBuehne', 'zeichneStaender', 'staenderEintraege',
+    'huellenText', 'vodsScrollen']) {
+    assert.ok(!homeJs.includes(alt), alt);
+  }
+  assert.ok(!/\brueckseite\b/.test(homeJs), 'rueckseite entfaellt (vods.login)');
+});
+
+test('home.js: Zustand herausgenommen/seite/vods, gezeigt() nie null', () => {
+  assert.ok(/let herausgenommen = null;/.test(homeJs));
+  assert.ok(/let seite = 'vorn';/.test(homeJs));
+  assert.ok(/let vods = null;/.test(homeJs));
+  const g = homeRumpf('function gezeigt(');
+  assert.ok(g.includes("HomeBuehne.herausgenommenStand(herausgenommen, kanaele) || { kanal: null, modus: 'live' }"));
+  const b = homeRumpf('function belegung(');
+  assert.ok(b.includes('HomeBuehne.regalBelegung({'));
+  assert.ok(b.includes('nadel: nadel()') && b.includes('suche: !!nadel()'));
+  assert.ok(b.includes('plaetze: Raum.fachFenster(99, -1, Raum.REGAL.brett.b, 0).sichtbar'));
+  assert.ok(!/nadel: nadel[,\s}]/.test(homeJs), 'nadel ist eine Funktion: immer nadel()');
+  // der vod-Handler liest den Kanal der Karte, nicht gezeigt()
+  assert.ok(!homeJs.includes('gezeigt().kanal'));
+});
+
+test('home.js: openHome setzt herausgenommen = null und vods = null', () => {
+  const o = homeRumpf('function openHome(');
+  assert.ok(o.includes('herausgenommen = null;') && o.includes('vods = null;'));
+});
+
+test('home.js: waehle - twitch+live laedt sofort, offline zeigt die Rueckseite und laedt VODs', () => {
+  const w = homeRumpf('function waehle(');
+  assert.ok(/art === 'twitch' && k\.live\) \{?\s*ladeWert\(k\.login, k\)/.test(w), 'twitch+live -> ladeWert');
+  assert.ok(w.includes('herausgenommen = { login: k.login, art, kanal: k }'));
+  assert.ok(w.includes("seite = k.live ? 'vorn' : 'rueck'"));
+  assert.ok(/if \(seite === 'rueck'\) ladeVods\(/.test(w), 'offline laedt die VODs sofort');
+});
+
+test('home.js: VODs laden mit Laufnummer, Nachladen nur einmal gleichzeitig', () => {
+  const l = homeRumpf('function ladeVods(');
+  assert.ok(l.includes('window.twitchDual.channelVods(login, limit)'));
+  assert.ok(/nr !== vodsNr|vodsNr !== nr/.test(l), 'verspaetete Antworten verworfen');
+  assert.ok(l.includes('HomeBuehne.vodsZusammen(') && l.includes('HomeBuehne.vodLimit(') && l.includes('HomeBuehne.laufendesVod('));
+  const m = homeRumpf('function mehrVods(');
+  assert.ok(/!vods \|\| vods\.laedtNach \|\| !vods\.weitere/.test(m));
+  const setzen = m.indexOf('vods.laedtNach = true');
+  assert.ok(setzen > -1 && setzen < m.indexOf('ladeVods('), 'laedtNach synchron vor der Anfrage');
+});
+
+test('home.js: Enter - vordere aus herausgenommen (live) oder bester Treffer', () => {
+  const v = homeRumpf('function vordere(');
+  assert.ok(v.includes("g.modus === 'live'") && v.includes('herausgenommen'));
+  assert.ok(v.includes('besterTreffer()'));
+  const b = homeRumpf('function besterTreffer(');
+  assert.ok(b.includes('HomeListe.besterTreffer([...b.brett, ...b.live.map((e) => e.kanal)], nadel())'));
+  assert.ok(/vordere: vordere\(\)/.test(homeJs), 'enterZiel bekommt vordere()');
+});
+
+test('home.js: Refresh haengt nicht mehr an $kanaeleView', () => {
+  assert.ok(!homeJs.includes('$kanaeleView'));
+  assert.ok(/setInterval\(\(\) => \{\s*if \(!\$home\.classList\.contains\('hidden'\)\) ladeKanaele\(\);/.test(homeJs));
+});
+
+test('home.js: Suche tippen und Anmelden/Abmelden legen die Karte zurueck', () => {
+  assert.ok(homeRumpf('function sucheGetippt(').includes('legeZurueck()'));
+  assert.ok(homeRumpf('function renderAuth(').includes('legeZurueck()'));
+  const z = homeRumpf('function legeZurueck(');
+  assert.ok(z.includes('herausgenommen = null') && z.includes('vods = null'));
+});
+
+test('home.js: renderHome zeichnet Regal, Karte und Fernseher', () => {
+  const r = homeRumpf('function renderHome(');
+  assert.ok(r.includes('const b = belegung();') && r.includes('HomeRaumDom.zeichneRegal(b, '));
+  assert.ok(r.includes('brettText(b)') && r.includes('besterTreffer(b)'));
+  assert.ok(r.includes('HomeRaumDom.zeichneKarte('));
+  assert.ok(r.includes('zeichneTv()'));
+  assert.ok(homeJs.includes('function brettText('));
+  assert.ok(homeJs.includes('Kein Live-Treffer – unten in den Fächern'));
 });
 
 // --- Task 5: Auflegen-Ablauf und Fernseher-Bild ---------------------------------
@@ -447,8 +541,9 @@ test('Kamera: Plattenspieler im Abschnitt spieler, Fernseher im Zoom, sonst Ruhe
   assert.ok(r.indexOf('ablauf-zoom') < r.indexOf('ablauf-spieler'), 'Zoom geht vor (beide Klassen gesetzt)');
 });
 
-test('Grosse Huelle ist waehrend des Ablaufs ausgeblendet', () => {
-  assert.ok(/#home\.im-ablauf \.gross-platz\s*\{[^}]*display:\s*none/.test(css));
+test('Karte ist waehrend des Ablaufs ausgeblendet (die alte grosse Huelle gibt es nicht mehr)', () => {
+  assert.ok(/#home\.im-ablauf \.karte-platz\s*\{[^}]*display:\s*none/.test(css));
+  assert.ok(!css.includes('.gross-platz'));
 });
 
 test('Ablauf: Klick oder Taste auf #home-ablauf ruft beiUeberspringen', () => {
@@ -490,7 +585,8 @@ test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt 
   assert.ok(/\.raum-wand\s*\{[^}]*left:\s*-80px[^}]*width:\s*504px[^}]*height:\s*192px/.test(css));
   const n = rumpf(js, 'function neuAusrichten(');
   assert.ok(n.includes('skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN)'));
-  assert.ok(/r === t\.raum \? skalRaum : skal/.test(n), 'Raum-Ebene mit skalRaum, Regal mit skal');
+  assert.ok(/const s = skalRaum;/.test(n), 'Raum-Ebene mit skalRaum');
+  assert.ok(n.includes('richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight)'), 'Regal mit eigener Skalierung');
   assert.ok(rumpf(js, 'function baueRaum(').includes('Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum)'), 'Klicks im Raum');
 });
 
@@ -617,10 +713,12 @@ test('Renderer nennt die alte CD-Buehne nicht mehr', () => {
 });
 
 // --- Schluss-Fixes Runde 2: Doppelklick, Fake-Fett, ganze Pixel -----------------
-test('Doppelklick: grosse Huelle und Ablauf ignorieren den zweiten Klick (detail > 1)', () => {
-  const g = rumpf(js, 'function baueGross(');
+test('Doppelklick: Karte und Ablauf ignorieren den zweiten Klick (detail > 1)', () => {
+  const g = rumpf(js, 'function baueKarte(');
   const gk = g.indexOf("addEventListener('click'");
-  assert.ok(gk >= 0 && g.indexOf('e.detail > 1', gk) > gk && g.indexOf('e.detail > 1', gk) < g.indexOf("rueckseiteZu')", gk));
+  assert.ok(gk >= 0 && g.indexOf('e.detail > 1', gk) > gk && g.indexOf('e.detail > 1', gk) < g.indexOf('t.karteZu()', gk));
+  // zuruecklegen ist der Handler hinter t.karteZu
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes("ruf(h, 'zuruecklegen')"));
   const a = rumpf(js, 'function baueAblauf(');
   const w = a.indexOf('const weiter = (e) => {');
   assert.ok(w >= 0);
@@ -707,13 +805,13 @@ test('Karte: baueKarte nutzt huelle-gross-vorn, karte.png und karte-rueck.png; i
   assert.strictEqual((js.match(/'karte-platz[ ']/g) || []).length, 1);
 });
 
-test('Karte: neuAusrichten setzt die Kartenmasse, die alten Zeilen bleiben', () => {
+test('Karte: neuAusrichten setzt die Kartenmasse, die alten Zeilen der grossen Huelle sind weg', () => {
   const n = rumpf(js, 'function neuAusrichten(');
   assert.ok(n.includes('Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight)'));
   for (const v of ['--karte-b', '--karte-h', '--karte-n', '--karte-schrift', '--karte-schrift-klein', '--karte-vod-k']) {
     assert.ok(n.includes("'" + v + "'"), v);
   }
-  assert.ok(n.includes('Raum.grossKante('));
+  assert.ok(!n.includes('Raum.grossKante('));
 });
 
 test('Karte: zeichneKarte kennt alle Handler (laden, stern, umdrehen, zuruecklegen, vod, mehrVods)', () => {
@@ -846,7 +944,7 @@ test('Regal neu: zeichneRegal in der Schnittstelle', () => {
   assert.ok(/\bzeichneRegal\b/.test(schnittstelle()));
 });
 
-test('Regal neu: baueRegalNeu legt oben/unten, Wand und dann das Regal-Bild; init ruft es noch nicht', () => {
+test('Regal neu: baueRegalNeu legt oben/unten, Wand und dann das Regal-Bild; init ruft es (Task 9b)', () => {
   const b = regalNeu();
   assert.ok(b.length > 0, 'baueRegalNeu');
   const i = (n) => b.indexOf("'../themes/cozy/" + n + "'");
@@ -854,9 +952,12 @@ test('Regal neu: baueRegalNeu legt oben/unten, Wand und dann das Regal-Bild; ini
   assert.ok(i('regal-wand.png') < i('regal.png'), 'Wand vor Regal');
   assert.ok(i('regal-oben.png') < i('regal.png') && i('regal-unten.png') < i('regal.png'), 'Streifen unter dem Regal');
   assert.ok(b.includes('Raum.REGAL_LEINWAND'), 'Lage der Streifen aus der Leinwand');
-  assert.ok(!rumpf(js, 'function init(').includes('baueRegalNeu'), 'bis 9b unverdrahtet');
-  // die alte Regal-Ansicht bleibt
-  assert.ok(rumpf(js, 'function init(').includes('baueRegal()'));
+  const i0 = rumpf(js, 'function init(');
+  assert.ok(i0.includes('baueRegalNeu()'), 'verdrahtet');
+  assert.ok(!/baueRegal\(\)/.test(i0), 'altes Regal nicht mehr');
+  // t.regal ist die neue Ebene, die Karte haengt an ihr
+  assert.ok(/t\.regal = t\.regalNeu/.test(js) || /t\.regal = r;/.test(regalNeu()));
+  assert.ok(i0.includes('t.regal.e.appendChild(baueKarte())'));
 });
 
 test('Regal neu: richteRegalNeuAus nutzt Raum.skalierungRegal(w, h)', () => {
@@ -867,13 +968,13 @@ test('Regal neu: richteRegalNeuAus nutzt Raum.skalierungRegal(w, h)', () => {
 });
 
 test('Regal neu: neuer Code nutzt Raum.REGAL.faecher, nicht Raum.FACH', () => {
-  for (const kopf of ['function zeichneRegal(', 'function fachBlaetternNeu(', 'function baueRegalNeu(', 'function zeichneFachNeu(', 'function zeigeFachNeu(']) {
+  for (const kopf of ['function zeichneRegal(', 'function fachBlaettern(', 'function baueRegalNeu(', 'function zeichneFachNeu(', 'function zeigeFachNeu(']) {
     const r = rumpf(js, kopf);
     assert.ok(r.length > 0, kopf);
     assert.ok(!r.includes('Raum.FACH'), kopf);
   }
   assert.ok(regalNeu().includes('Raum.REGAL.faecher'));
-  assert.ok(rumpf(js, 'function fachBlaetternNeu(').includes('Raum.REGAL.faecher'));
+  assert.ok(rumpf(js, 'function fachBlaettern(').includes('Raum.REGAL.faecher'));
 });
 
 test('Regal neu: Cover per huelle() auf dem Brett, Live-Punkt als CSS (rund), kein live-zeichen.png', () => {
@@ -899,7 +1000,7 @@ test('Regal neu: Ruecken in der Textschicht, Bild je Art, Name laengs, Blaettern
   assert.ok(/r\.text\.(append|appendChild)\([^)]*fach/.test(regalNeu()) || /r\.text\.(append|appendChild)\(box\)/.test(regalNeu()), 'Faecher in der Textschicht');
   assert.ok(/\.ruecken-name\s*\{[^}]*writing-mode:\s*vertical-rl/.test(css));
   const teil = /Raum\.fachFenster\([^;]*kante: Raum\.REGAL\.ruecken\.b, abstand: Raum\.REGAL\.ruecken\.abstand/;
-  assert.ok(teil.test(rumpf(js, 'function fachBlaetternNeu(')), 'Blaettern');
+  assert.ok(teil.test(rumpf(js, 'function fachBlaettern(')), 'Blaettern');
   assert.ok(teil.test(rumpf(js, 'function zeichneFachNeu(')), 'Umbau');
   assert.ok(teil.test(regalNeu()), 'focusin');
 });
@@ -931,11 +1032,12 @@ test('Regal neu: Mausrad blaettert nicht bei offener Tafel oder Karte', () => {
   assert.ok(i > -1);
   const teil = b.slice(i, i + 300);
   assert.ok(teil.includes('tafelOffen()') && teil.includes('karteOffen()'));
-  assert.ok(teil.includes('fachBlaetternNeu('));
+  assert.ok(teil.includes('fachBlaettern('));
 });
 
-test('Regal neu: eigene Namen (faecherNeu, t.plattenRuecken), alter Weg bleibt', () => {
+test('Regal neu: eigene Namen (faecherNeu, t.plattenRuecken), alter Weg ist weg (Task 9b)', () => {
   assert.ok(/const faecherNeu = \{/.test(js));
   assert.ok(js.includes('t.plattenRuecken'));
-  for (const alt of ['function baueRegal(', 'function zeichneFach(', 'function zeigeFach(', 'function fachBlaettern(']) assert.ok(js.includes(alt), alt);
+  for (const alt of ['function baueRegal(', 'function zeichneFach(', 'function zeigeFach(', 'fachBlaetternNeu']) assert.ok(!js.includes(alt), alt);
+  assert.ok(/function fachBlaettern\(art, richtung\)/.test(js));
 });
