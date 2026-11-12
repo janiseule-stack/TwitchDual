@@ -333,12 +333,81 @@ test('zuBild: rechnet Fenster- in Bildkoordinaten', () => {
   assert.deepStrictEqual(R.zuBild(12 + 4 * 100 + 3, 16 + 4 * 50 + 3, { faktor: 4, links: 12, oben: 16 }), { x: 100, y: 50 });
 });
 
-test('kameraZiel: Rechteck fuellt das Fenster deckend', () => {
-  const z = R.kameraZiel({ x: 206, y: 52, b: 27, h: 38 }, 1400, 800);
-  assert.deepStrictEqual(z, { faktor: 52, x: -10714, y: -3292 });
-  assert.ok(z.faktor * 27 >= 1400 && z.faktor * 38 >= 800);
-  assert.ok(Math.abs(z.x + (206 + 13.5) * z.faktor - 700) < 1);
-  assert.ok(Math.abs(z.y + (52 + 19) * z.faktor - 400) < 1);
+// --- Auflegen neu (Plan 2026-11-13-auflegen-neu, Task 1): Kamera-Lagen und Fixpunkt ---
+// Lage = { faktor, x, y } wie translate(x, y) scale(faktor), Ursprung 0 0.
+const ABLAUF_GROESSEN = [...GROESSEN, [700, 900], [3000, 500], [800, 1400]];
+const aufSchirm = (L, r) => ({ x: L.x + r.x * L.faktor, y: L.y + r.y * L.faktor, b: r.b * L.faktor, h: r.h * L.faktor });
+const innen = (p, r) => p.x >= r.x - 1 && p.x <= r.x + r.b + 1 && p.y >= r.y - 1 && p.y <= r.y + r.h + 1;
+
+test('kameraZiel gibt es nicht mehr (ganzzahliger Zoom entfaellt)', () => {
+  assert.strictEqual(R.kameraZiel, undefined);
+  assert.strictEqual(R.SPIELER_ANTEIL, 0.5);
+});
+
+test('lageRuhe: Raum-Skalierung mit Holzwand als Lage', () => {
+  for (const [w, h] of ABLAUF_GROESSEN) {
+    const s = R.skalierung(w, h, R.RAUM_RAHMEN);
+    assert.deepStrictEqual(R.lageRuhe(w, h), { faktor: s.faktor, x: s.links, y: s.oben });
+  }
+});
+
+test('lageSpieler: Plattenspieler ganz im Fenster, ~50 % hoch, keine leeren Raender', () => {
+  const P = R.PLATTENSPIELER_RECHTECK;
+  for (const [w, h] of ABLAUF_GROESSEN) {
+    const name = w + 'x' + h;
+    const ruhe = R.lageRuhe(w, h);
+    const L = R.lageSpieler(w, h);
+    const r = aufSchirm(L, P);
+    assert.ok(r.x >= -1 && r.y >= -1 && r.x + r.b <= w + 1 && r.y + r.h <= h + 1, name + ': ganz im Fenster');
+    if (Math.abs(r.h - 0.5 * h) > 1) {
+      assert.ok(r.h < 0.5 * h && L.faktor >= ruhe.faktor, name + ': nur verkleinert, nie unter Ruhe');
+    }
+    // sichtbarer Ausschnitt in Bildpixeln innerhalb Holzwand x -80..424, y 0..192
+    const links = -L.x / L.faktor, oben = -L.y / L.faktor;
+    assert.ok(links >= R.RAUM_RAHMEN.x - 0.5 && links + w / L.faktor <= R.RAUM_RAHMEN.x + R.RAUM_RAHMEN.b + 0.5, name + ': waagerecht');
+    assert.ok(oben >= -0.5 && oben + h / L.faktor <= R.BILD.hoehe + 0.5, name + ': senkrecht');
+  }
+  // typisches Fenster: genau die Haelfte
+  const L = R.lageSpieler(1920, 1030);
+  assert.ok(Math.abs(P.h * L.faktor - 515) <= 1);
+});
+
+test('lageTv: TV-Bildschirm deckt das Fenster', () => {
+  for (const [w, h] of ABLAUF_GROESSEN) {
+    const r = aufSchirm(R.lageTv(w, h), R.TV_RECHTECK);
+    assert.ok(r.x <= 1 && r.y <= 1 && r.x + r.b >= w - 1 && r.y + r.h >= h - 1, w + 'x' + h);
+  }
+});
+
+test('fixpunkt: liegt im Gegenstand (nichts wandert seitlich)', () => {
+  for (const [w, h] of ABLAUF_GROESSEN) {
+    const name = w + 'x' + h;
+    const ruhe = R.lageRuhe(w, h);
+    const spielerRuhe = aufSchirm(ruhe, R.PLATTENSPIELER_RECHTECK);
+    // hochkante Fenster: Plattenspieler ragt schon in Ruhe hinaus -> dort darf es schieben (Janis 13.11.)
+    const hochkant = spielerRuhe.x < -1 || spielerRuhe.x + spielerRuhe.b > w + 1;
+    assert.strictEqual(hochkant, h > w, name + ': nur hochkante Fenster sind Ausnahmen');
+    const spieler = R.lageSpieler(w, h);
+    const fs = R.fixpunkt(ruhe, spieler);
+    // 3000x500: Ruhe zeigt den Spieler schon halb so hoch wie das Fenster -> Kamera steht (gleiche Lage)
+    const steht = spieler.faktor === ruhe.faktor && spieler.x === ruhe.x && spieler.y === ruhe.y;
+    if (!hochkant && !steht) assert.ok(fs && innen(fs, spielerRuhe), name + ': im Plattenspieler');
+    const ft = R.fixpunkt(ruhe, R.lageTv(w, h));
+    assert.ok(ft && innen(ft, aufSchirm(ruhe, R.TV_RECHTECK)), name + ': im Fernseher');
+  }
+});
+
+test('fixpunkt: bleibt bei gleichmaessiger Zwischenlage stehen, null bei gleichem Faktor', () => {
+  const a = R.lageRuhe(1920, 1030);
+  const b = R.lageSpieler(1920, 1030);
+  const F = R.fixpunkt(a, b);
+  const P = { x: (F.x - a.x) / a.faktor, y: (F.y - a.y) / a.faktor };
+  for (const p of [0, 0.25, 0.5, 0.75, 1]) {
+    const f = a.faktor + (b.faktor - a.faktor) * p;
+    const x = a.x + (b.x - a.x) * p, y = a.y + (b.y - a.y) * p;
+    assert.ok(Math.abs(x + P.x * f - F.x) < 1e-6 && Math.abs(y + P.y * f - F.y) < 1e-6, 'p ' + p);
+  }
+  assert.strictEqual(R.fixpunkt(a, a), null);
 });
 
 // Janis 13.11.: Wechsel Raum <-> Regal ohne seitliches Wandern, zwei Arten zum Vergleichen.

@@ -20,9 +20,9 @@ window.HomeRaumDom = (function () {
   const GROSS_FENSTER = { x: 32, y: 32, b: 65, h: 65 };
   const SCHILD_MS = 2000;
   const TAFEL_TITEL = { konto: 'Konto', licht: 'Licht' };
-  // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
-  // Summe 5200 ms = mindestMs in home.js.
-  const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
+  // Auflegen (Plan 2026-11-13-auflegen-neu): Dauer je Abschnitt (gleich den
+  // Uebergaengen in home-raum.css). Summe 7900 ms = mindestMs in home.js.
+  const ABLAUF_MS = { raum: 500, spieler: 1500, auflegen: 1200, zurueck: 1500, an: 700, zeigen: 500, tv: 2000 };
   // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Zoom an Ort und
   // Stelle, mit der Einstellung "Pixel-Uebergang" (data-uebergang="pixel", Janis
   // 13.11.) die Pixel-Blende. Dauer gleich den Uebergaengen in home-raum.css, Klassen an #home.
@@ -1002,22 +1002,24 @@ window.HomeRaumDom = (function () {
   }
 
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
-  // Kamera je Abschnitt: auf den Plattenspieler (ablauf-spieler), dann der
-  // gruene Bildschirm fuellt das Fenster (ablauf-zoom); sonst keine (null, Ruhelage).
+  // Kamera je Abschnitt (Raum.lage*): sanft zum Plattenspieler (ablauf-spieler), in
+  // den Fernseher (ablauf-tv); sonst keine (null, Ruhelage). Die Ziel-Lagen sind so
+  // gerechnet, dass die Fahrt um einen Punkt im Gegenstand zoomt statt zu schieben.
   function kameraZiel() {
     const k = wirt.classList;
-    const ziel = k.contains('ablauf-zoom') ? Raum.TV_RECHTECK
-      : k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null;
-    return ziel ? Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight) : null;
+    if (k.contains('ablauf-tv')) return Raum.lageTv(wirt.clientWidth, wirt.clientHeight);
+    if (k.contains('ablauf-spieler')) return Raum.lageSpieler(wirt.clientWidth, wirt.clientHeight);
+    return null;
   }
   // Naechster Abschnitt nach ms (seit Beginn des Ablaufs).
   function abschnitt(ms, f) { ablaufTimer.push(setTimeout(f, ms)); }
 
-  // Auflegen: Regal blendet zum Raum (ablauf-raum, 500 ms), Kamera faehrt zum
-  // Plattenspieler (ablauf-spieler, 1200 ms), die Platte dreht sich
-  // (ablauf-dreht, 1500 ms, dreht weiter bis zum Ende), Schwenk und Zoom in den
-  // Fernseher (ablauf-zoom, 2000 ms). Die Uebergaenge stehen in
-  // home-raum.css; home.js steuert die Mindestdauer (5200 ms).
+  // Auflegen (Janis 13.11.): Regal blendet zum Raum (ablauf-raum), Kamera zoomt sanft
+  // zum Plattenspieler (ablauf-spieler), die Platte wird aufgelegt und dreht
+  // (ablauf-dreht, dreht bis zum Ende), Kamera zoomt zurueck auf den Raum
+  // (ablauf-zurueck), der Fernseher flackert an (ablauf-an, vorher verborgen), kurz
+  // zeigen, dann in den Fernseher (ablauf-tv). Dauern: ABLAUF_MS; Uebergaenge in
+  // home-raum.css; home.js steuert die Mindestdauer (7900 ms).
   function zeigeAblauf(kanal, beiUeberspringen) {
     if (!wirt) return;
     versteckeAblauf();
@@ -1031,16 +1033,25 @@ window.HomeRaumDom = (function () {
     void t.raum.e.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
     wirt.classList.add('ablauf-raum');
     const m = ABLAUF_MS;
+    const k = wirt.classList;
     abschnitt(m.raum, () => {
-      wirt.classList.add('ablauf-spieler');
+      k.add('ablauf-spieler');
       neuAusrichten();
     });
     abschnitt(m.raum + m.spieler, () => {
       aus(t.dreht, false);
-      wirt.classList.add('ablauf-dreht');
+      k.add('ablauf-dreht');
     });
-    abschnitt(m.raum + m.spieler + m.dreht, () => {
-      wirt.classList.add('ablauf-zoom');
+    abschnitt(m.raum + m.spieler + m.auflegen, () => {
+      k.remove('ablauf-spieler'); // Kamera zurueck in die Ruhelage
+      k.add('ablauf-zurueck');
+      neuAusrichten();
+    });
+    abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck, () => {
+      k.add('ablauf-an'); // Fernseher flackert an (CSS)
+    });
+    abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck + m.an + m.zeigen, () => {
+      k.add('ablauf-tv');
       neuAusrichten();
     });
   }
@@ -1051,7 +1062,7 @@ window.HomeRaumDom = (function () {
     ablaufTimer.forEach((x) => clearTimeout(x));
     ablaufTimer = [];
     // Mit den Klassen faellt auch der Uebergang weg: Ruecksprung ohne Animation.
-    wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-spieler', 'ablauf-dreht', 'ablauf-zoom');
+    wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-spieler', 'ablauf-dreht', 'ablauf-zurueck', 'ablauf-an', 'ablauf-tv');
     aus(t.dreht, !spielt);
     aus(t.ablauf, true);
     zeigeAnsicht(aktuell); // Raum/Regal wie vorher, ruft neuAusrichten()

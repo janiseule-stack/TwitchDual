@@ -173,14 +173,69 @@
     };
   }
 
-  // Verschiebung und Vergroesserung, bei der das Rechteck das Fenster deckend fuellt.
-  function kameraZiel(rechteck, fensterBreite, fensterHoehe) {
-    const faktor = Math.ceil(Math.max(fensterBreite / rechteck.b, fensterHoehe / rechteck.h));
-    return {
-      faktor,
-      x: Math.round(fensterBreite / 2 - (rechteck.x + rechteck.b / 2) * faktor),
-      y: Math.round(fensterHoehe / 2 - (rechteck.y + rechteck.h / 2) * faktor),
-    };
+  // --- Auflegen (Plan 2026-11-13-auflegen-neu): Kamera-Lagen der Raum-Bildebene ---
+  // Lage = { faktor, x, y } wie translate(x px, y px) scale(faktor), Ursprung 0 0.
+  // Eine CSS-Transition zwischen zwei Lagen haelt deren Fixpunkt (fixpunkt) fest; die
+  // Ziel-Lagen sind so gewaehlt, dass er im Gegenstand liegt: es wird gezoomt, nicht geschoben.
+  const SPIELER_ANTEIL = 0.5; // Plattenspieler-Hoehe als Anteil der Fensterhoehe
+
+  function lageRuhe(fensterBreite, fensterHoehe) {
+    const s = skalierung(fensterBreite, fensterHoehe, RAUM_RAHMEN);
+    return { faktor: s.faktor, x: s.links, y: s.oben };
+  }
+
+  // Zulaessiger Bereich fuer die Verschiebung einer Achse bei Faktor f: der Gegenstand
+  // (von..bis in Bildpixeln) ganz im Fenster (0..n), der sichtbare Ausschnitt im Bild (min..max).
+  function spanne(f, n, von, bis, min, max) {
+    return { lo: Math.max(-von * f, n - max * f), hi: Math.min(n - bis * f, -min * f) };
+  }
+
+  // Sanft zum Plattenspieler: Zoom um seine Mitte (sie bleibt stehen), so wenig wie
+  // noetig verschoben, damit er ganz im Fenster und der Ausschnitt im Bild bleibt.
+  // Passt das nicht oder laege der Fixpunkt der Fahrt dadurch ausserhalb des
+  // Plattenspielers (schmale Fenster: er steht am rechten Rand), kleinerer Faktor
+  // (nie unter der Ruhelage).
+  function lageSpieler(fensterBreite, fensterHoehe) {
+    const w = zahl(fensterBreite), h = zahl(fensterHoehe);
+    const ruhe = lageRuhe(w, h);
+    const P = PLATTENSPIELER_RECHTECK;
+    const mx = P.x + P.b / 2, my = P.y + P.h / 2;
+    const cx = ruhe.x + mx * ruhe.faktor, cy = ruhe.y + my * ruhe.faktor;
+    const klemme2 = (v, s) => Math.min(s.hi, Math.max(s.lo, v));
+    // Plattenspieler in Ruhelage am Bildschirm (der Fixpunkt muss darin liegen). Ragt er
+    // schon in Ruhe aus dem Fenster (hochkante Fenster, Janis 13.11.: „niemand hat das
+    // hochkant“), darf die Fahrt schieben: nur „ganz im Fenster“ zaehlt.
+    const r = { x: ruhe.x + P.x * ruhe.faktor, y: ruhe.y + P.y * ruhe.faktor, b: P.b * ruhe.faktor, h: P.h * ruhe.faktor };
+    const sichtbar = r.x >= -1 && r.y >= -1 && r.x + r.b <= w + 1 && r.y + r.h <= h + 1;
+    let f = Math.max(ruhe.faktor, (SPIELER_ANTEIL * h) / P.h);
+    for (;;) {
+      const sx = spanne(f, w, P.x, P.x + P.b, RAUM_RAHMEN.x, RAUM_RAHMEN.x + RAUM_RAHMEN.b);
+      const sy = spanne(f, h, P.y, P.y + P.h, 0, BILD.hoehe);
+      if (sx.lo <= sx.hi && sy.lo <= sy.hi) {
+        const lage = { faktor: f, x: klemme2(cx - mx * f, sx), y: klemme2(cy - my * f, sy) };
+        const F = fixpunkt(ruhe, lage);
+        if (!sichtbar || (F && F.x >= r.x && F.x <= r.x + r.b && F.y >= r.y && F.y <= r.y + r.h)) return lage;
+      }
+      if (f <= ruhe.faktor) return ruhe;
+      f = Math.max(ruhe.faktor, f * 0.98);
+    }
+  }
+
+  // In den Fernseher: der Bildschirm deckt das Fenster (Faktor nicht gerundet), mittig.
+  function lageTv(fensterBreite, fensterHoehe) {
+    const w = zahl(fensterBreite), h = zahl(fensterHoehe);
+    const T = TV_RECHTECK;
+    const faktor = Math.max(w / T.b, h / T.h);
+    return { faktor, x: w / 2 - (T.x + T.b / 2) * faktor, y: h / 2 - (T.y + T.h / 2) * faktor };
+  }
+
+  // Bildschirmpunkt, der bei der Fahrt von Lage a nach Lage b stehen bleibt (null bei
+  // gleichem Faktor: reine Verschiebung).
+  function fixpunkt(a, b) {
+    const d = a.faktor - b.faktor;
+    if (Math.abs(d) < 1e-12) return null;
+    const px = (b.x - a.x) / d, py = (b.y - a.y) / d;
+    return { x: a.faktor * px + a.x, y: a.faktor * py + a.y };
   }
 
   // Wechsel Raum <-> Regal, zwei Arten zum Vergleichen (Janis 13.11.): nichts darf
@@ -262,5 +317,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });

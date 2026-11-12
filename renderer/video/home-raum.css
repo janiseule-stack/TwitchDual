@@ -323,9 +323,11 @@
 .tafel-inhalt { overflow: auto; min-height: 0; }
 
 /* Auflegen: durchsichtige Fangschicht fuer Klick/Taste, Text unten. Ablauf in
-   vier Klassen an #home (home-raum-dom.js, ABLAUF_MS): Raum blendet ueber das
-   Regal (500ms), Kamera faehrt zum Plattenspieler (1200ms), Platte dreht sich
-   (1500ms, dreht weiter), Schwenk und Zoom in den Fernseher (2000ms). */
+   Klassen an #home (home-raum-dom.js, ABLAUF_MS): Raum blendet ueber das Regal
+   (500ms), Kamera zoomt zum Plattenspieler (1500ms), Platte aufgelegt (1200ms,
+   dreht weiter), Kamera zurueck auf den Raum (1500ms), Fernseher flackert an
+   (700ms), kurz zeigen (500ms), in den Fernseher (2000ms). Die Ziel-Lagen
+   (Raum.lage*) zoomen um einen Punkt im Gegenstand statt zu schieben. */
 #home-ablauf {
   position: absolute; inset: 0; z-index: 6; outline: none; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
@@ -338,8 +340,21 @@
 #home.im-ablauf #raum-ebene { z-index: 2; opacity: 0; transition: opacity 500ms linear; }
 #home.im-ablauf #raum-ebene .raum-textschicht { visibility: hidden; }
 #home.ablauf-raum #raum-ebene { opacity: 1; }
-#home.ablauf-spieler #raum-ebene .raum-bildebene { transition: transform 1200ms ease-in-out; }
-#home.ablauf-zoom #raum-ebene .raum-bildebene { transition: transform 2000ms ease-in-out; }
+#home.ablauf-spieler #raum-ebene .raum-bildebene { transition: transform 1500ms ease-in-out; }
+#home.ablauf-zurueck #raum-ebene .raum-bildebene { transition: transform 1500ms ease-in-out; }
+#home.ablauf-tv #raum-ebene .raum-bildebene { transition: transform 2000ms ease-in; }
+/* Fernseher: im Ablauf aus (raum-tv-aus.png darunter), bis er anflackert; harte
+   Schritte ohne Ueberblendung, am Ende an */
+#home.im-ablauf:not(.ablauf-an):not(.ablauf-tv) .raum-tv { visibility: hidden; }
+#home.ablauf-an .raum-tv { animation: raum-tv-an 700ms steps(1) 1 both; }
+@keyframes raum-tv-an {
+  0% { visibility: visible; }
+  11% { visibility: hidden; }
+  20% { visibility: visible; }
+  29% { visibility: hidden; }
+  46% { visibility: visible; }
+  100% { visibility: visible; }
+}
 /* Drehende Platte: platte-dreht.png (8 Bilder je 54x50) in Bildpixeln; die
    Bildebene vergroessert sie mit. ~10 Bilder/s: 8 Bilder in 800ms, steps(8). */
 .ablauf-dreht-platte {

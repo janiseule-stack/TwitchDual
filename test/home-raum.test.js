@@ -336,7 +336,7 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   assert.ok(!homeJs.includes('beiZurueck') && !js.includes('beiZurueck'), 'Zurueck laeuft ueber das Schild (Task 9e)');
   assert.ok(!initOpt.includes('showKanaeleView'));
   assert.ok(homeJs.includes('Raum.passtAlsRaum('));
-  assert.ok(/mindestMs:\s*5200/.test(homeJs));
+  assert.ok(/mindestMs:\s*7900/.test(homeJs), 'Auflegen neu: Summe ABLAUF_MS');
   assert.ok(/HomeRaumDom\.zeigeAblauf\([^)]*\(\)\s*=>\s*laufwerk\.ueberspringen\(\)\)/.test(homeJs));
   assert.ok(homeJs.includes('HomeRaumDom.versteckeAblauf()'));
   assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern('unten'"));
@@ -512,34 +512,49 @@ function ablaufMs() {
   return Function('return ' + m[1])();
 }
 
-test('Ablauf: Phasenlaengen 500/1200/1500/2000, Summe 5200 = mindestMs in home.js', () => {
+// --- Auflegen neu (Plan 2026-11-13-auflegen-neu, Task 2) ---
+test('Ablauf: Abschnitte 500/1500/1200/1500/700/500/2000, Summe 7900 = mindestMs in home.js', () => {
   const m = ablaufMs();
-  assert.deepStrictEqual(m, { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 });
-  const summe = m.raum + m.spieler + m.dreht + m.zoom;
-  assert.strictEqual(summe, 5200);
+  assert.deepStrictEqual(m, { raum: 500, spieler: 1500, auflegen: 1200, zurueck: 1500, an: 700, zeigen: 500, tv: 2000 });
+  const summe = Object.values(m).reduce((a, b) => a + b, 0);
+  assert.strictEqual(summe, 7900);
   assert.ok(new RegExp('mindestMs:\\s*' + summe + '\\b').test(homeJs));
 });
 
-test('zeigeAblauf: Klassen ablauf-raum, -spieler, -dreht, -zoom nacheinander zu den Phasengrenzen', () => {
+test('zeigeAblauf: raum -> spieler -> dreht -> zurueck (ohne spieler) -> an -> tv zu den Abschnittsgrenzen', () => {
   const r = rumpf(js, 'function zeigeAblauf(');
   assert.ok(r.length > 0);
-  const reihe = ["'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zoom'"].map((k) => r.indexOf(k));
+  const reihe = ["'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zurueck'", "'ablauf-an'", "'ablauf-tv'"].map((k) => r.indexOf(k));
   assert.ok(reihe[0] > -1 && reihe.every((x, i) => i === 0 || x > reihe[i - 1]), 'Reihenfolge');
-  assert.ok(r.includes('abschnitt(m.raum, ()'), 'spieler nach raum');
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler, ()'), 'dreht nach raum+spieler');
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.dreht, ()'), 'zoom nach raum+spieler+dreht');
+  assert.ok(r.includes('abschnitt(m.raum, ()'), 'spieler');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler, ()'), 'dreht');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen, ()'), 'zurueck');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck, ()'), 'an');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck + m.an + m.zeigen, ()'), 'tv');
+  const zur = r.slice(r.indexOf("'ablauf-zurueck'") - 120, r.indexOf("'ablauf-zurueck'") + 80);
+  assert.ok(zur.includes(".remove('ablauf-spieler')"), 'beim Zurueck faellt spieler weg');
   assert.ok(/function abschnitt\(ms, f\) \{ ablaufTimer\.push\(setTimeout\(f, ms\)\); \}/.test(js));
   assert.ok(r.includes('aus(t.dreht, false)'), 'Sprite an');
-  assert.strictEqual((r.match(/neuAusrichten\(\)/g) || []).length, 2, 'Kamera bei spieler und zoom');
+  assert.strictEqual((r.match(/neuAusrichten\(\)/g) || []).length, 3, 'Kamera bei spieler, zurueck und tv');
 });
 
-test('CSS: Uebergaenge passen zu den Phasen, Zoom-Regel steht nach der Spieler-Regel', () => {
-  const m = ablaufMs();
+test('CSS: Kamera-Uebergaenge je Abschnitt, tv-Regel zuletzt', () => {
   assert.ok(/#home\.im-ablauf #raum-ebene\s*\{[^}]*transition:\s*opacity 500ms/.test(css));
-  const sp = css.search(new RegExp('#home\\.ablauf-spieler #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.spieler + 'ms'));
-  const zo = css.search(new RegExp('#home\\.ablauf-zoom #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.zoom + 'ms'));
-  assert.ok(sp > -1 && zo > sp, 'zoom gewinnt (gleiche Spezifitaet, spaeter)');
+  const sp = css.search(/#home\.ablauf-spieler #raum-ebene \.raum-bildebene\s*\{[^}]*transition:\s*transform 1500ms ease-in-out/);
+  const zu = css.search(/#home\.ablauf-zurueck #raum-ebene \.raum-bildebene\s*\{[^}]*transition:\s*transform 1500ms ease-in-out/);
+  const tv = css.search(/#home\.ablauf-tv #raum-ebene \.raum-bildebene\s*\{[^}]*transition:\s*transform 2000ms ease-in/);
+  assert.ok(sp > -1 && zu > -1 && tv > sp && tv > zu, 'tv gewinnt (gleiche Spezifitaet, spaeter)');
+  assert.ok(!css.includes('ablauf-zoom') && !js.includes('ablauf-zoom'), 'alter Abschnitt weg');
   assert.ok(!css.includes('2500ms') && !css.includes('ablauf-flug') && !css.includes('ablauf-platte'));
+});
+
+test('CSS: Fernseher im Ablauf erst aus, flackert dann an (harte Schritte)', () => {
+  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
+  assert.ok(/#home\.ablauf-an \.raum-tv\s*\{\s*animation:\s*raum-tv-an 700ms steps\(1\) 1 both;\s*\}/.test(css));
+  const k = /@keyframes raum-tv-an\s*\{([\s\S]*?)\n\}/.exec(css);
+  assert.ok(k, 'keyframes');
+  assert.ok((k[1].match(/visibility:\s*hidden/g) || []).length >= 2, 'mindestens zweimal aus');
+  assert.ok(/100%\s*\{\s*visibility:\s*visible;\s*\}/.test(k[1]), 'am Ende an');
 });
 
 test('Drehende Platte: platte-dreht.png als Sprite an (258, 82), 8 Bilder je 54x50, steps(8), ~10 Bilder/s', () => {
@@ -559,11 +574,14 @@ test('Drehende Platte: platte-dreht.png als Sprite an (258, 82), 8 Bilder je 54x
   assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/platte-dreht.png')));
 });
 
-test('Kamera: Plattenspieler im Abschnitt spieler, Fernseher im Zoom, sonst Ruhelage', () => {
+test('Kamera: lageSpieler im Abschnitt spieler, lageTv im Abschnitt tv, sonst Ruhelage', () => {
   const r = rumpf(js, 'function kameraZiel(');
-  assert.ok(r.includes("k.contains('ablauf-zoom') ? Raum.TV_RECHTECK"));
-  assert.ok(r.includes("k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null"));
-  assert.ok(r.indexOf('ablauf-zoom') < r.indexOf('ablauf-spieler'), 'Zoom geht vor (beide Klassen gesetzt)');
+  assert.ok(r.includes("k.contains('ablauf-tv')") && r.includes('Raum.lageTv(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(r.includes("k.contains('ablauf-spieler')") && r.includes('Raum.lageSpieler(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(r.indexOf("'ablauf-tv'") < r.indexOf("'ablauf-spieler'"), 'tv geht vor');
+  assert.ok(!js.includes('Raum.kameraZiel'), 'ganzzahliger Zoom entfaellt');
+  // Groessenwechsel im Ablauf: neuAusrichten nimmt die Lage des laufenden Abschnitts
+  assert.ok(rumpf(js, 'function neuAusrichten(').includes('const kamera = kameraZiel();'));
 });
 
 test('Karte ist waehrend des Ablaufs ausgeblendet (die alte grosse Huelle gibt es nicht mehr)', () => {
@@ -581,7 +599,7 @@ test('Ablauf: Klick oder Taste auf #home-ablauf ruft beiUeberspringen', () => {
 test('versteckeAblauf raeumt Klassen, Timer, Sprite und Kamera weg', () => {
   const r = rumpf(js, 'function versteckeAblauf(');
   assert.ok(r.includes('clearTimeout('));
-  for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zoom'"]) assert.ok(r.includes(k), k);
+  for (const k of ["'im-ablauf'", "'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zurueck'", "'ablauf-an'", "'ablauf-tv'"]) assert.ok(r.includes(k), k);
   assert.ok(r.includes('aus(t.dreht, !spielt)'), 'Sprite aus, ausser es laeuft gerade etwas');
   assert.ok(r.includes('zeigeAnsicht(aktuell)'), 'Ansicht und Kamera zurueck (ruft neuAusrichten)');
   assert.ok(r.indexOf('classList.remove(') < r.indexOf('zeigeAnsicht(aktuell)'), 'Klassen weg vor der Ruhelage');
@@ -663,22 +681,6 @@ test('Fliegende Platte entfaellt samt CSS', () => {
   assert.ok(!css.includes('ablauf-flug') && !css.includes('--dx'));
 });
 
-test('Kamera-Ziele (ganzzahliger Faktor) decken das Fenster und bleiben im Bild', () => {
-  const R = require('../renderer/lib/raum.js');
-  for (const [w, h] of [[688, 384], [1397, 1332], [1920, 1080], [2560, 1440], [800, 1400], [3000, 500]]) {
-    const cover = R.skalierung(w, h).faktor;
-    for (const rect of [R.PLATTENSPIELER_RECHTECK, R.TV_RECHTECK]) {
-      const z = R.kameraZiel(rect, w, h);
-      assert.ok(Number.isInteger(z.faktor) && z.faktor > cover, 'naeher als die Ruhelage');
-      // sichtbarer Ausschnitt in Bildpixeln liegt innerhalb des Rechtecks (+1 px Rundung)
-      const links = -z.x / z.faktor, oben = -z.y / z.faktor;
-      const rechts = links + w / z.faktor, unten = oben + h / z.faktor;
-      assert.ok(links >= rect.x - 1 && rechts <= rect.x + rect.b + 1, w + 'x' + h + ' waagerecht');
-      assert.ok(oben >= rect.y - 1 && unten <= rect.y + rect.h + 1, w + 'x' + h + ' senkrecht');
-    }
-  }
-});
-
 test('setzeTv: Vorschau verpixelt, affin auf TV_ECKEN, Maske per destination-in, kein getImageData', () => {
   assert.ok(!js.includes('getImageData'));
   assert.ok(js.includes('../themes/cozy/raum-tv-maske.png'));
@@ -701,20 +703,22 @@ test('setzeTv: bloesser Adresswechsel (?t=) leert die Canvas nicht, Kanalwechsel
   assert.ok(/nr === tvNr/.test(r), 'veraltete Ladungen verworfen');
 });
 
-test('Fernseher-Rechteck kommt aus Raum.TV_RECHTECK', () => {
-  assert.ok(js.includes('? Raum.TV_RECHTECK') && js.includes('Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight)'));
+test('Fernseher-Masse kommen aus raum.js, nicht als Zahlen in home-raum-dom.js', () => {
   assert.ok(!/x:\s*206,\s*y:\s*52/.test(js));
 });
 
-test('home.js: Auflegen zeigt den neuen Kanal im Fernseher (live) oder schaltet ihn aus', () => {
+test('home.js: Auflegen legt das neue Bild in den (noch verborgenen) Fernseher - live Vorschau, VOD Vorschaubild, sonst aus', () => {
   const lw = homeJs.indexOf('async function ladeWert(');
   const r = homeJs.slice(lw, homeJs.indexOf('\n}', lw));
   const tv = r.indexOf('HomeRaumDom.setzeTv(');
   assert.ok(tv > -1, 'setzeTv in ladeWert');
-  assert.ok(tv < r.indexOf('HomeRaumDom.zeigeAblauf('), 'vor dem Ablauf');
+  assert.ok(tv < r.indexOf('HomeRaumDom.zeigeAblauf('), 'vor dem Ablauf (CSS verbirgt es bis ablauf-an)');
   assert.ok(r.includes('HomeBuehne.vorschauUrl(kanal.login, Date.now())'));
-  assert.ok(/\{ vorschauUrl: [^}]*\} : null\)/.test(r), 'offline/VOD: Fernseher aus (null)');
   assert.ok(/wert === kanal\.login/.test(r) && /!kanal\.offline/.test(r));
+  assert.ok(r.includes('vodVorschau(wert)'), 'VOD: Vorschaubild aus der Liste');
+  const v = rumpfOben(homeJs, 'function vodVorschau(');
+  assert.ok(v.includes('vods && vods.liste') && v.includes('v.id === id') && /\.thumb \|\| null/.test(v));
+  assert.ok(/\{ vorschauUrl: \w+ \} : null\)/.test(r), 'ohne Bild: Fernseher aus (null)');
 });
 
 test('home.css: Hinweiszeile und Version weichen im Ablauf', () => {

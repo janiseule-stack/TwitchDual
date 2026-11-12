@@ -33,10 +33,10 @@ let laufendeSuche = null;  // { text, fertig: Promise, erledigt } der Twitch-Suc
 let enterLaeuft = false;   // Enter wartet gerade auf die Twitch-Suche
 let ladenLaeuft = false;   // submitLoad aus Home laeuft
 let escZaehler = 0;        // Esc-Druecke (wartendes Enter verwirft sich danach)
-// Ablauf beim Auflegen: Animation (mind. 5,2 s, per Klick/Taste
-// ueberspringbar) und Laden laufen parallel.
+// Ablauf beim Auflegen: Animation (mind. 7,9 s = Summe ABLAUF_MS in
+// home-raum-dom.js, per Klick/Taste ueberspringbar) und Laden laufen parallel.
 const laufwerk = HomeBuehne.createLaufwerk({
-  mindestMs: 5200,
+  mindestMs: 7900,
   jetzt: Date.now,
   setzeTimer: (f, ms) => setTimeout(f, ms),
   loescheTimer: (t) => clearTimeout(t),
@@ -251,6 +251,11 @@ function effekteAus() { return document.documentElement.dataset.animationen === 
 new MutationObserver(() => {
   if (!$home.classList.contains('hidden')) HomeRaumDom.leben(!effekteAus());
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-animationen'] });
+// Vorschaubild eines VODs aus der geladenen Liste der Karte (null: unbekannt/ohne Bild).
+function vodVorschau(id) {
+  const treffer = vods && vods.liste ? vods.liste.find((v) => v.id === id) : null;
+  return treffer ? treffer.thumb || null : null;
+}
 async function ladeWert(wert, kanal) {
   if (ladenLaeuft || laufwerk.laeuft) return; // Doppelklick / Enter waehrend des Ladens
   ladenLaeuft = true;
@@ -258,10 +263,12 @@ async function ladeWert(wert, kanal) {
   let ende = null;
   const fertig = new Promise((r) => { ende = r; });
   if (mitLaufwerk) {
-    // Fernseher zeigt schon den neuen Kanal (live) oder ist aus (offline/VOD).
+    // Neues Bild in den Fernseher: live die Vorschau, VOD sein Vorschaubild, sonst
+    // aus. Im Ablauf ist es verborgen, bis der Fernseher anflackert (home-raum.css).
     // Schlaegt das Laden fehl, setzt der naechste renderHome den laufenden Stream zurueck.
-    HomeRaumDom.setzeTv(kanal.login && wert === kanal.login && !kanal.offline
-      ? { vorschauUrl: HomeBuehne.vorschauUrl(kanal.login, Date.now()) } : null);
+    const tvBild = kanal.login && wert === kanal.login && !kanal.offline
+      ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : vodVorschau(wert);
+    HomeRaumDom.setzeTv(tvBild ? { vorschauUrl: tvBild } : null);
     laufwerk.start((ok) => ende(ok));
     HomeRaumDom.zeigeAblauf(kanal, () => laufwerk.ueberspringen());
   }
