@@ -339,16 +339,19 @@ const ABLAUF_GROESSEN = [...GROESSEN, [700, 900], [3000, 500], [800, 1400]];
 const aufSchirm = (L, r) => ({ x: L.x + r.x * L.faktor, y: L.y + r.y * L.faktor, b: r.b * L.faktor, h: r.h * L.faktor });
 const innen = (p, r) => p.x >= r.x - 1 && p.x <= r.x + r.b + 1 && p.y >= r.y - 1 && p.y <= r.y + r.h + 1;
 
-// Janis 13.11.: Kanalname auf dem Fernseher wie bei alten TVs. tvMatrix legt ein Feld von
-// TV_NAME_FELD (b x h, Bildpixel) affin auf die schraege Bildschirmflaeche (TV_ECKEN 0, 1, 3).
-test('tvMatrix: Ecken des Namensfelds landen auf TV_ECKEN', () => {
-  const [a, b, c, d, e, f] = R.tvMatrix();
-  const F = R.TV_NAME_FELD;
+// Janis 13.11.: Kanalname als Laufschrift vorne an der Plattenspieler-Kiste (nicht auf dem
+// TV). laufMatrix legt das Feld LAUF_FELD (b x h) affin auf das schraege Frontband
+// (LAUF_ECKEN: oben links, oben rechts, unten links; am Bild ausgemessen).
+test('laufMatrix: Ecken des Laufschrift-Felds landen auf LAUF_ECKEN', () => {
+  assert.deepStrictEqual(R.LAUF_ECKEN, [{ x: 262, y: 122 }, { x: 287, y: 133 }, { x: 262, y: 127 }]);
+  const [a, b, c, d, e, f] = R.laufMatrix();
+  const F = R.LAUF_FELD;
   const bild = (x, y) => ({ x: a * x + c * y + e, y: b * x + d * y + f });
-  const E = R.TV_ECKEN;
-  for (const [p, q] of [[bild(0, 0), E[0]], [bild(F.b, 0), E[1]], [bild(0, F.h), E[3]]]) {
+  const E = R.LAUF_ECKEN;
+  for (const [p, q] of [[bild(0, 0), E[0]], [bild(F.b, 0), E[1]], [bild(0, F.h), E[2]]]) {
     assert.ok(Math.abs(p.x - q.x) < 1e-9 && Math.abs(p.y - q.y) < 1e-9, JSON.stringify(p));
   }
+  assert.strictEqual(R.tvMatrix, undefined, 'Name auf dem TV entfaellt');
 });
 
 test('kameraZiel gibt es nicht mehr (ganzzahliger Zoom entfaellt)', () => {

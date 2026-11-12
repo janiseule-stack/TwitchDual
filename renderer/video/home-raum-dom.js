@@ -183,11 +183,6 @@ window.HomeRaumDom = (function () {
     t.tv.width = Raum.BILD.breite;
     t.tv.height = Raum.BILD.hoehe;
     r.bild.appendChild(t.tv);
-    // Kanalname auf dem Bildschirm wie bei alten TVs (Janis 13.11.), schraeg wie die
-    // Bildschirmflaeche; setzeTv/zeigeTvName fuellen ihn.
-    t.tvName = el('div', 'raum-tv-name raum-aus');
-    t.tvName.style.transform = 'matrix(' + Raum.tvMatrix().join(', ') + ')';
-    r.bild.appendChild(t.tvName);
     // Hover: PixelLab-Ausschnitt des Gegenstands in Form, aufgehellt (home-raum.css).
     t.hover = {};
     for (const f of Raum.FLAECHEN) {
@@ -202,6 +197,13 @@ window.HomeRaumDom = (function () {
     // die Ebene vergroessert es mit (kein Bild-Bluten bei krummem Faktor).
     t.dreht = lage(el('div', 'ablauf-dreht-platte raum-aus'), DREHT);
     r.bild.appendChild(t.dreht);
+    // Laufschrift mit dem Kanalnamen vorne an der Plattenspieler-Kiste (Janis 13.11.),
+    // schraeg wie das Frontband (Raum.laufMatrix); setzeTv/zeigeLaufschrift fuellen sie.
+    t.lauf = el('div', 'raum-laufschrift raum-aus');
+    t.lauf.style.transform = 'matrix(' + Raum.laufMatrix().join(', ') + ')';
+    t.laufText = el('span', 'laufschrift-text');
+    t.lauf.appendChild(t.laufText);
+    r.bild.appendChild(t.lauf);
     // Name des Gegenstands bzw. Hinweis (zeigeSchild): klein unten mittig, unskaliert.
     t.name = el('div', 'raum-name raum-aus');
     r.e.appendChild(t.name);
@@ -1149,20 +1151,25 @@ window.HomeRaumDom = (function () {
     g.drawImage(tvMaske, 0, 0);
     g.globalCompositeOperation = 'source-over';
   }
-  // Name des Kanals auf dem Fernseher: o = { name, live } oder null (leer, verborgen).
-  function zeigeTvName(o) {
+  // Laufschrift am Plattenspieler: o = { name, live } oder null (leer, verborgen). Der
+  // Text steht zweimal hintereinander; CSS schiebt um eine Kopie (-50 %): nahtlose Schleife.
+  function zeigeLaufschrift(o) {
     const text = o && o.name ? String(o.name) : '';
-    t.tvName.replaceChildren();
+    t.laufText.replaceChildren();
     if (text) {
-      if (o.live) t.tvName.append(el('span', 'tv-name-punkt', '●'), ' ');
-      t.tvName.append(text);
+      for (let i = 0; i < 2; i++) {
+        const stueck = el('span', 'lauf-stueck');
+        if (o.live) stueck.append(el('span', 'lauf-punkt', '●'), ' ');
+        stueck.append(text);
+        t.laufText.appendChild(stueck);
+      }
     }
-    aus(t.tvName, !text);
+    aus(t.lauf, !text);
   }
-  // o = { vorschauUrl, name, live } oder null (Fernseher aus).
+  // o = { vorschauUrl, name, live } oder null (Fernseher aus, keine Laufschrift).
   function setzeTv(o) {
     const url = (o && o.vorschauUrl) || null;
-    if (wirt) zeigeTvName(url ? o : null);
+    if (wirt) zeigeLaufschrift(url ? o : null);
     if (!wirt || url === tvVorschau) return; // gleiche Adresse: Bild steht schon
     tvVorschau = url;
     const nr = ++tvNr;

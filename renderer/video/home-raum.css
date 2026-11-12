@@ -27,17 +27,23 @@
 .raum-bildebene img, .raum-bildebene canvas { image-rendering: pixelated; }
 .raum-bild { position: absolute; left: 0; top: 0; width: 344px; height: 192px; user-select: none; }
 .raum-tv { position: absolute; }
-/* Kanalname auf dem Fernseher (Janis 13.11.): Feld 24x26 Bildpixel (Raum.TV_NAME_FELD),
-   per matrix (home-raum-dom.js) schraeg auf den Bildschirm gelegt; skaliert mit der
-   Bildebene, helle Pixel-Schrift mit dunkler Kante oben links, roter Punkt bei live */
-.raum-tv-name {
-  position: absolute; left: 0; top: 0; width: 24px; height: 26px; transform-origin: 0 0;
-  box-sizing: border-box; padding: 1.5px 1.5px 0; pointer-events: none;
-  font-family: var(--schrift-pixel); font-size: 4px; line-height: 1;
+/* Laufschrift am Plattenspieler (Janis 13.11.): Feld 25x5 Bildpixel (Raum.LAUF_FELD),
+   per matrix (home-raum-dom.js) schraeg aufs Frontband der Kiste gelegt, skaliert mit
+   der Bildebene. Nur Schrift: hell mit dunkler Kante, roter Punkt bei live; der Text
+   steht zweimal da und laeuft endlos von rechts nach links. */
+.raum-laufschrift {
+  position: absolute; left: 0; top: 0; width: 25px; height: 5px; transform-origin: 0 0;
+  overflow: hidden; pointer-events: none;
+  font-family: var(--schrift-pixel); font-size: 4px; line-height: 5px;
   color: rgb(244 234 213); text-shadow: .5px .5px 0 rgb(18 5 5);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tv-name-punkt { color: rgb(220 40 32); }
+.laufschrift-text {
+  display: inline-flex; white-space: nowrap;
+  animation: raum-laufschrift 9000ms linear infinite;
+}
+.lauf-stueck { padding-right: 12px; }
+.lauf-punkt { color: rgb(220 40 32); }
+@keyframes raum-laufschrift { to { transform: translateX(-50%); } }
 /* Holzwand (PixelLab) hinter dem Raum: 504x192, der Raum liegt bei x=80 */
 .raum-wand { position: absolute; left: -80px; top: 0; width: 504px; height: 192px; user-select: none; }
 
@@ -356,10 +362,10 @@
 #home.ablauf-tv #raum-ebene .raum-bildebene { transition: transform 2000ms ease-in; }
 /* Fernseher: im Ablauf aus (raum-tv-aus.png darunter), bis er anflackert; harte
    Schritte ohne Ueberblendung, am Ende an */
-#home.im-ablauf:not(.ablauf-an):not(.ablauf-tv) .raum-tv,
-#home.im-ablauf:not(.ablauf-an):not(.ablauf-tv) .raum-tv-name { visibility: hidden; }
-#home.ablauf-an .raum-tv,
-#home.ablauf-an .raum-tv-name { animation: raum-tv-an 700ms steps(1) 1 both; }
+#home.im-ablauf:not(.ablauf-an):not(.ablauf-tv) .raum-tv { visibility: hidden; }
+#home.ablauf-an .raum-tv { animation: raum-tv-an 700ms steps(1) 1 both; }
+/* Laufschrift erst, wenn die Platte aufgelegt ist */
+#home.im-ablauf:not(.ablauf-dreht) .raum-laufschrift { visibility: hidden; }
 @keyframes raum-tv-an {
   0% { visibility: visible; }
   11% { visibility: hidden; }

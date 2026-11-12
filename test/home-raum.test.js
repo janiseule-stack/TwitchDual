@@ -549,9 +549,8 @@ test('CSS: Kamera-Uebergaenge je Abschnitt, tv-Regel zuletzt', () => {
 });
 
 test('CSS: Fernseher im Ablauf erst aus, flackert dann an (harte Schritte)', () => {
-  // Bild und Kanalname teilen sich die Regeln (Test "Fernseher zeigt den Kanalnamen")
-  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv,[^{]*\{\s*visibility:\s*hidden;\s*\}/.test(css));
-  assert.ok(/#home\.ablauf-an \.raum-tv,[^{]*\{\s*animation:\s*raum-tv-an 700ms steps\(1\) 1 both;\s*\}/.test(css));
+  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
+  assert.ok(/#home\.ablauf-an \.raum-tv\s*\{\s*animation:\s*raum-tv-an 700ms steps\(1\) 1 both;\s*\}/.test(css));
   const k = /@keyframes raum-tv-an\s*\{([\s\S]*?)\n\}/.exec(css);
   assert.ok(k, 'keyframes');
   assert.ok((k[1].match(/visibility:\s*hidden/g) || []).length >= 2, 'mindestens zweimal aus');
@@ -716,21 +715,26 @@ test('zeichneTv ruht waehrend des Auflegens, der Fehlerweg setzt den Fernseher z
   assert.ok(fehler.includes('zeichneTv();'), 'Fehler: Fernseher zurueck auf das Laufende');
 });
 
-test('Fernseher zeigt den Kanalnamen wie ein altes TV (Janis 13.11.)', () => {
+test('Laufschrift mit dem Kanalnamen vorne am Plattenspieler (Janis 13.11.)', () => {
   const b = rumpf(js, 'function baueRaum(');
-  assert.ok(b.includes("t.tvName = el('div', 'raum-tv-name raum-aus')"));
-  assert.ok(b.indexOf('r.bild.appendChild(t.tvName)') > b.indexOf('r.bild.appendChild(t.tv)'), 'ueber dem Bild, in der skalierten Bildebene');
-  assert.ok(b.includes("'matrix(' + Raum.tvMatrix().join(', ') + ')'"), 'schraeg wie der Bildschirm');
+  assert.ok(b.includes("t.lauf = el('div', 'raum-laufschrift raum-aus')"));
+  assert.ok(b.includes("t.laufText = el('span', 'laufschrift-text')"));
+  assert.ok(b.includes("'matrix(' + Raum.laufMatrix().join(', ') + ')'"), 'schraeg wie die Front');
+  assert.ok(b.indexOf('r.bild.appendChild(t.lauf)') > b.indexOf('r.bild.appendChild(t.dreht)'), 'in der skalierten Bildebene, ueber der Platte');
+  assert.ok(!/tvName|zeigeTvName|raum-tv-name/.test(js + css), 'Name auf dem TV entfaellt');
   const s = rumpf(js, 'function setzeTv(');
-  assert.ok(s.indexOf('zeigeTvName(url ? o : null)') > -1 && s.indexOf('zeigeTvName(url ? o : null)') < s.indexOf('url === tvVorschau'), 'Name auch bei gleichem Bild');
-  const z = rumpf(js, 'function zeigeTvName(');
-  assert.ok(z.includes("el('span', 'tv-name-punkt', '●')") && z.includes('o.live'), 'roter Punkt bei live');
-  assert.ok(z.includes("aus(t.tvName, !text)"));
-  // CSS: Feld in Bildpixeln, im Ablauf verborgen bis zum Anflackern und flackert mit
-  assert.ok(/\.raum-tv-name\s*\{[^}]*width:\s*24px[^}]*height:\s*26px[^}]*transform-origin:\s*0 0/.test(css));
-  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv,\s*#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv-name\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
-  assert.ok(/#home\.ablauf-an \.raum-tv,\s*#home\.ablauf-an \.raum-tv-name\s*\{\s*animation:\s*raum-tv-an/.test(css));
-  assert.ok(/\.tv-name-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)/.test(css));
+  assert.ok(s.indexOf('zeigeLaufschrift(url ? o : null)') > -1 && s.indexOf('zeigeLaufschrift(url ? o : null)') < s.indexOf('url === tvVorschau'), 'Name auch bei gleichem Bild');
+  const z = rumpf(js, 'function zeigeLaufschrift(');
+  assert.ok(z.includes("el('span', 'lauf-punkt', '●')") && z.includes('o.live'), 'roter Punkt bei live');
+  assert.ok(z.includes('for (let i = 0; i < 2; i++)'), 'zweimal hintereinander: nahtlose Schleife');
+  assert.ok(z.includes('aus(t.lauf, !text)'));
+  // CSS: Feld 25x5 Bildpixel, Text laeuft endlos von rechts nach links (-50 % = eine Kopie)
+  assert.ok(/\.raum-laufschrift\s*\{[^}]*width:\s*25px[^}]*height:\s*5px[^}]*transform-origin:\s*0 0[^}]*overflow:\s*hidden/.test(css));
+  assert.ok(/\.laufschrift-text\s*\{[^}]*animation:\s*raum-laufschrift \d+ms linear infinite/.test(css));
+  assert.ok(/@keyframes raum-laufschrift\s*\{\s*to\s*\{\s*transform:\s*translateX\(-50%\);\s*\}\s*\}/.test(css));
+  assert.ok(/\.lauf-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)/.test(css));
+  // Auflegen: erst sichtbar, wenn die Platte aufgelegt ist
+  assert.ok(/#home\.im-ablauf:not\(\.ablauf-dreht\) \.raum-laufschrift\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
   // home.js: Name beim Auflegen und im Ruhezustand
   const lw = homeJs.indexOf('async function ladeWert(');
   const r = homeJs.slice(lw, homeJs.indexOf('\n}', lw));

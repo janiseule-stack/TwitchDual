@@ -29,13 +29,18 @@
   // Rechteck um den Bildschirm: Ziel der Kamera beim Auflegen.
   const TV_RECHTECK = Object.freeze({ x: 206, y: 52, b: 27, h: 38 });
 
-  // Kanalname auf dem Fernseher (Janis 13.11., wie bei alten TVs): Feld b x h in
-  // Bildpixeln, per matrix(a, b, c, d, e, f) affin auf die schraege Bildschirmflaeche
-  // (TV_ECKEN 0 oben links, 1 oben rechts, 3 unten links).
-  const TV_NAME_FELD = Object.freeze({ b: 24, h: 26 });
-  function tvMatrix() {
-    const [p0, p1, , p3] = TV_ECKEN;
-    const F = TV_NAME_FELD;
+  // Laufschrift mit dem Kanalnamen vorne an der Plattenspieler-Kiste (Janis 13.11.):
+  // schraeges Frontband unter der orangen Kante, am Bild ausgemessen (oben links,
+  // oben rechts, unten links). Feld b x h, per matrix(a, b, c, d, e, f) aufs Band gelegt.
+  const LAUF_ECKEN = Object.freeze([
+    Object.freeze({ x: 262, y: 122 }),
+    Object.freeze({ x: 287, y: 133 }),
+    Object.freeze({ x: 262, y: 127 }),
+  ]);
+  const LAUF_FELD = Object.freeze({ b: 25, h: 5 });
+  function laufMatrix() {
+    const [p0, p1, p3] = LAUF_ECKEN;
+    const F = LAUF_FELD;
     return [(p1.x - p0.x) / F.b, (p1.y - p0.y) / F.b, (p3.x - p0.x) / F.h, (p3.y - p0.y) / F.h, p0.x, p0.y];
   }
 
@@ -327,5 +332,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, TV_NAME_FELD, tvMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, LAUF_ECKEN, LAUF_FELD, laufMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });
