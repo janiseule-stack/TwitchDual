@@ -155,7 +155,12 @@ test('Doppelklick legt auf: Cover, Ruecken (waehle, dann laden) und Karten-Huell
   // Der erste Klick nimmt die Platte heraus, die Karte liegt sofort darueber: der
   // Doppelklick landet auf .karte-platz und legt dort die Live-Platte auf.
   assert.ok(/t\.karteWurzel\.addEventListener\('dblclick', \(e\) => \{\s*const s = t\.karteStand;\s*if \(e\.target === t\.karteWurzel && s && s\.kanal && s\.modus === 'live' && t\.karteLaden\) t\.karteLaden\(s\.kanal\.login\);/.test(k), 'Doppelklick auf den Platz der Karte');
-  assert.ok(/t\.karteHuelle\.addEventListener\('dblclick'[\s\S]*?s\.modus === 'live'[\s\S]*?t\.karteLaden\(s\.kanal\.login\)/.test(k));
+  // Janis 13.11.: ein Klick auf die grosse Huelle (Profilbild) legt die Live-Platte auf;
+  // der zweite Klick eines Doppelklicks laedt nicht doppelt (ladeWert sperrt).
+  assert.ok(/t\.karteHuelle\.addEventListener\('click'[\s\S]*?s\.modus === 'live'[\s\S]*?t\.karteLaden\(s\.kanal\.login\)/.test(k));
+  assert.ok(!/t\.karteHuelle\.addEventListener\('dblclick'/.test(k), 'kein zweiter Weg ueber dblclick');
+  assert.ok(/\.karte-vorn\.live \.karte-huelle\s*\{[^}]*cursor:\s*pointer/.test(css), 'Hand nur bei Live-Platten');
+  assert.ok(rumpf(js, 'function zeichneKarteVorn(').includes("vornSeite.classList.toggle('live', s.modus === 'live')"));
   // keine zweite Lade-Logik
   assert.ok(!js.includes('submitLoad') && !js.includes('ladeWert'));
 });

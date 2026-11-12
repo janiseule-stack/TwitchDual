@@ -260,8 +260,10 @@ window.HomeRaumDom = (function () {
     t.karteHuelle = el('div', 'karte-huelle');
     t.karteFenster = textLage(el('div', 'karte-teil karte-fenster'), GROSS_FENSTER);
     t.karteHuelle.append(t.karteFenster, bildEl('../themes/cozy/huelle-gross-vorn.png', 'karte-bild'));
-    // Doppelklick auf die Huelle legt auf (wie der Knopf "Auflegen")
-    t.karteHuelle.addEventListener('dblclick', () => {
+    // Klick auf die Huelle (Profilbild) legt die Live-Platte auf, wie der Knopf
+    // "Auflegen" (Janis 13.11.); ein Doppelklick laedt nicht doppelt (home.js sperrt).
+    t.karteVornSeite = vorn;
+    t.karteHuelle.addEventListener('click', () => {
       const s = t.karteStand;
       if (s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
     });
@@ -842,6 +844,8 @@ window.HomeRaumDom = (function () {
     const z = t.karteInfo;
     const fokus = merkeFokus(z, 'id');
     z.replaceChildren();
+    const vornSeite = t.karteVornSeite;
+    vornSeite.classList.toggle('live', s.modus === 'live'); // Huelle klickbar (CSS)
     const an = s.modus !== 'offline';
     let lauf = '';
     let status = null;

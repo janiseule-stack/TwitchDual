@@ -118,6 +118,9 @@
   position: absolute; left: 0; top: 0; overflow: hidden;
   width: calc(128px * var(--karte-n, 2)); height: calc(128px * var(--karte-n, 2));
 }
+/* Live-Platte: Klick auf die Huelle legt auf (home-raum-dom.js), Hand + Aufhellen */
+.karte-vorn.live .karte-huelle { cursor: pointer; }
+.karte-vorn.live .karte-huelle:hover { filter: brightness(1.15); }
 .karte-bild {
   position: absolute; pointer-events: none; user-select: none; image-rendering: pixelated;
   left: calc(-9px * var(--karte-s)); top: calc(-9px * var(--karte-s));
