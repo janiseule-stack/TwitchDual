@@ -728,8 +728,8 @@ test('Laufschrift mit dem Kanalnamen vorne am Plattenspieler (Janis 13.11.)', ()
   assert.ok(z.includes("el('span', 'lauf-punkt', '●')") && z.includes('o.live'), 'roter Punkt bei live');
   assert.ok(z.includes('for (let i = 0; i < 2; i++)'), 'zweimal hintereinander: nahtlose Schleife');
   assert.ok(z.includes('aus(t.lauf, !text)'));
-  // CSS: Feld 25x5 Bildpixel, Text laeuft endlos von rechts nach links (-50 % = eine Kopie)
-  assert.ok(/\.raum-laufschrift\s*\{[^}]*width:\s*25px[^}]*height:\s*5px[^}]*transform-origin:\s*0 0[^}]*overflow:\s*hidden/.test(css));
+  // CSS: Feld 18x4 Bildpixel (Raum.LAUF_FELD), Text laeuft endlos von rechts nach links (-50 % = eine Kopie)
+  assert.ok(/\.raum-laufschrift\s*\{[^}]*width:\s*18px[^}]*height:\s*4px[^}]*transform-origin:\s*0 0[^}]*overflow:\s*hidden/.test(css));
   assert.ok(/\.laufschrift-text\s*\{[^}]*animation:\s*raum-laufschrift \d+ms linear infinite/.test(css));
   assert.ok(/@keyframes raum-laufschrift\s*\{\s*to\s*\{\s*transform:\s*translateX\(-50%\);\s*\}\s*\}/.test(css));
   assert.ok(/\.lauf-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)/.test(css));

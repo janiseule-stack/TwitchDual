@@ -29,15 +29,15 @@
   // Rechteck um den Bildschirm: Ziel der Kamera beim Auflegen.
   const TV_RECHTECK = Object.freeze({ x: 206, y: 52, b: 27, h: 38 });
 
-  // Laufschrift mit dem Kanalnamen vorne an der Plattenspieler-Kiste (Janis 13.11.):
-  // schraeges Frontband unter der orangen Kante, am Bild ausgemessen (oben links,
-  // oben rechts, unten links). Feld b x h, per matrix(a, b, c, d, e, f) aufs Band gelegt.
+  // Laufschrift mit dem Kanalnamen vorne auf dem Plattenspieler (Janis 13.11.): dunkle
+  // schraege Front des Geraets unter dem Teller, am Bild ausgemessen (oben links,
+  // oben rechts, unten links). Feld b x h, per matrix(a, b, c, d, e, f) auf die Front gelegt.
   const LAUF_ECKEN = Object.freeze([
-    Object.freeze({ x: 262, y: 122 }),
-    Object.freeze({ x: 287, y: 133 }),
-    Object.freeze({ x: 262, y: 127 }),
+    Object.freeze({ x: 264, y: 114 }),
+    Object.freeze({ x: 282, y: 122 }),
+    Object.freeze({ x: 264, y: 118 }),
   ]);
-  const LAUF_FELD = Object.freeze({ b: 25, h: 5 });
+  const LAUF_FELD = Object.freeze({ b: 18, h: 4 });
   function laufMatrix() {
     const [p0, p1, p3] = LAUF_ECKEN;
     const F = LAUF_FELD;

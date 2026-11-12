@@ -27,14 +27,14 @@
 .raum-bildebene img, .raum-bildebene canvas { image-rendering: pixelated; }
 .raum-bild { position: absolute; left: 0; top: 0; width: 344px; height: 192px; user-select: none; }
 .raum-tv { position: absolute; }
-/* Laufschrift am Plattenspieler (Janis 13.11.): Feld 25x5 Bildpixel (Raum.LAUF_FELD),
-   per matrix (home-raum-dom.js) schraeg aufs Frontband der Kiste gelegt, skaliert mit
-   der Bildebene. Nur Schrift: hell mit dunkler Kante, roter Punkt bei live; der Text
+/* Laufschrift auf dem Plattenspieler (Janis 13.11.): Feld 18x4 Bildpixel (Raum.LAUF_FELD),
+   per matrix (home-raum-dom.js) schraeg auf die dunkle Front des Geraets gelegt, skaliert
+   mit der Bildebene. Nur Schrift: hell mit dunkler Kante, roter Punkt bei live; der Text
    steht zweimal da und laeuft endlos von rechts nach links. */
 .raum-laufschrift {
-  position: absolute; left: 0; top: 0; width: 25px; height: 5px; transform-origin: 0 0;
+  position: absolute; left: 0; top: 0; width: 18px; height: 4px; transform-origin: 0 0;
   overflow: hidden; pointer-events: none;
-  font-family: var(--schrift-pixel); font-size: 4px; line-height: 5px;
+  font-family: var(--schrift-pixel); font-size: 3.5px; line-height: 4px;
   color: rgb(244 234 213); text-shadow: .5px .5px 0 rgb(18 5 5);
 }
 .laufschrift-text {

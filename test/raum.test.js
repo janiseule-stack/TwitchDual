@@ -339,11 +339,13 @@ const ABLAUF_GROESSEN = [...GROESSEN, [700, 900], [3000, 500], [800, 1400]];
 const aufSchirm = (L, r) => ({ x: L.x + r.x * L.faktor, y: L.y + r.y * L.faktor, b: r.b * L.faktor, h: r.h * L.faktor });
 const innen = (p, r) => p.x >= r.x - 1 && p.x <= r.x + r.b + 1 && p.y >= r.y - 1 && p.y <= r.y + r.h + 1;
 
-// Janis 13.11.: Kanalname als Laufschrift vorne an der Plattenspieler-Kiste (nicht auf dem
-// TV). laufMatrix legt das Feld LAUF_FELD (b x h) affin auf das schraege Frontband
-// (LAUF_ECKEN: oben links, oben rechts, unten links; am Bild ausgemessen).
+// Janis 13.11.: Kanalname als Laufschrift vorne auf dem Plattenspieler selbst (dunkle
+// Front unter dem Teller, nicht das Moebel darunter). laufMatrix legt das Feld LAUF_FELD
+// (b x h) affin auf die schraege Front (LAUF_ECKEN: oben links, oben rechts, unten links;
+// am Bild ausgemessen).
 test('laufMatrix: Ecken des Laufschrift-Felds landen auf LAUF_ECKEN', () => {
-  assert.deepStrictEqual(R.LAUF_ECKEN, [{ x: 262, y: 122 }, { x: 287, y: 133 }, { x: 262, y: 127 }]);
+  assert.deepStrictEqual(R.LAUF_ECKEN, [{ x: 264, y: 114 }, { x: 282, y: 122 }, { x: 264, y: 118 }]);
+  assert.deepStrictEqual(R.LAUF_FELD, { b: 18, h: 4 });
   const [a, b, c, d, e, f] = R.laufMatrix();
   const F = R.LAUF_FELD;
   const bild = (x, y) => ({ x: a * x + c * y + e, y: b * x + d * y + f });
