@@ -154,7 +154,15 @@ test('Doppelklick legt auf: Cover, Ruecken (waehle, dann laden) und Karten-Huell
   const k = rumpf(js, 'function baueKarte(');
   // Der erste Klick nimmt die Platte heraus, die Karte liegt sofort darueber: der
   // Doppelklick landet auf .karte-platz und legt dort die Live-Platte auf.
-  assert.ok(/t\.karteWurzel\.addEventListener\('dblclick', \(e\) => \{\s*const s = t\.karteStand;\s*if \(e\.target === t\.karteWurzel && s && s\.kanal && s\.modus === 'live' && t\.karteLaden\) t\.karteLaden\(s\.kanal\.login\);/.test(k), 'Doppelklick auf den Platz der Karte');
+  // Janis 13.11.: Doppelklick auf Cover 2/3 landete mit dem zweiten Klick auf der Info-Seite
+  // der eben geoeffneten Karte (nachgerechnet fuer alle Groessen) und lud nichts. Hat der
+  // erste Klick die Karte geoeffnet (karteFrisch), gehoert der zweite zum Doppelklick:
+  // er loest nichts auf der Karte aus (Capture, stopPropagation) und der dblclick laedt.
+  assert.ok(/t\.karteWurzel\.addEventListener\('click', \(e\) => \{\s*if \(e\.detail > 1 && t\.karteFrisch\) \{ e\.stopPropagation\(\); e\.preventDefault\(\); return; \}\s*t\.karteFrisch = false;\s*\}, true\);/.test(k), 'zweiter Klick geschluckt, jeder einzelne Klick beendet "frisch"');
+  assert.ok(/t\.karteWurzel\.addEventListener\('dblclick', \(e\) => \{\s*const frisch = t\.karteFrisch;\s*t\.karteFrisch = false;\s*const s = t\.karteStand;\s*if \(\(frisch \|\| e\.target === t\.karteWurzel\) && s && s\.kanal && s\.modus === 'live' && t\.karteLaden\) t\.karteLaden\(s\.kanal\.login\);/.test(k));
+  const zk = rumpf(js, 'function zeichneKarte(');
+  const neu = zk.slice(zk.indexOf('if (t.karteLogin !== k.login) {'));
+  assert.ok(neu.indexOf('t.karteFrisch = true') > -1 && neu.indexOf('t.karteFrisch = true') < neu.indexOf('} else {'), 'nur beim Herausnehmen einer neuen Platte');
   // Janis 13.11.: ein Klick auf die grosse Huelle (Profilbild) legt die Live-Platte auf;
   // der zweite Klick eines Doppelklicks laedt nicht doppelt (ladeWert sperrt).
   assert.ok(/t\.karteHuelle\.addEventListener\('click'[\s\S]*?s\.modus === 'live'[\s\S]*?t\.karteLaden\(s\.kanal\.login\)/.test(k));

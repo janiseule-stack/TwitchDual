@@ -247,11 +247,21 @@ window.HomeRaumDom = (function () {
       if (e.target === t.karteWurzel && t.karteZu) t.karteZu();
     });
     // Doppelklick auf Cover/Ruecken: der erste Klick nimmt die Platte heraus, die Karte
-    // liegt sofort darueber und bekommt den Doppelklick -> Live-Platte auflegen. (War die
-    // Karte einer anderen Platte offen, hat der erste Klick sie zurueckgelegt: kein Stand.)
+    // liegt sofort darueber und bekommt den zweiten Klick - je nach Cover auf Huelle,
+    // Info-Seite oder Platz. Hat der erste Klick die Karte geoeffnet (karteFrisch,
+    // zeichneKarte), gehoert der zweite Klick zum Doppelklick: er loest auf der Karte
+    // nichts aus (Capture), und der dblclick legt die Live-Platte auf. Jeder einzelne
+    // Klick beendet "frisch". (War die Karte einer anderen Platte offen, hat der erste
+    // Klick sie zurueckgelegt: kein Stand.)
+    t.karteWurzel.addEventListener('click', (e) => {
+      if (e.detail > 1 && t.karteFrisch) { e.stopPropagation(); e.preventDefault(); return; }
+      t.karteFrisch = false;
+    }, true);
     t.karteWurzel.addEventListener('dblclick', (e) => {
+      const frisch = t.karteFrisch;
+      t.karteFrisch = false;
       const s = t.karteStand;
-      if (e.target === t.karteWurzel && s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
+      if ((frisch || e.target === t.karteWurzel) && s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
     });
     t.karte = el('div', 'karte');
     t.karteKarte = el('div', 'karte-karte');
@@ -808,6 +818,7 @@ window.HomeRaumDom = (function () {
     if (t.karteLogin !== k.login) {
       // neu herausgenommen; steht sie schon auf der Rueckseite, ohne Drehen einblenden
       t.karteLogin = k.login;
+      t.karteFrisch = true; // ein zweiter Klick gleich danach gehoert zum Doppelklick (baueKarte)
       t.karteKv = null;
       t.karteFenster.replaceChildren();
       profilbild(k, t.karteFenster, GROSS_FENSTER);
