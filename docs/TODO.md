@@ -52,13 +52,11 @@ Alle Optik-Festlegungen sind Claudes Vorschlag.
    aufliegt; Bild → Tafel „Konto“; Stehlampe → Tafel „Licht“ (Animationen,
    „Weitere Einstellungen: ⚙ im Chat“).
 4. Hover: vier helle Pixel-Winkel an den Ecken der Fläche + Holzschild mit Namen.
-5. Regal: oben Live-Platten (★ zuerst), Mitte Offline-Favoriten bzw.
-   Such-Treffer; Hüllen 40×40 mit verpixeltem Profilbild, Live mit Lämpchen,
-   Offline entsättigt; Fächer blättern per Mausrad und Auswahl.
-6. Gewählte Platte vorn im Bücherfach in 1× (Hülle, Platte 18 px versetzt
-   dahinter), daneben der Zettel (9-Slice) mit Kanal, Titel, Spiel,
-   Zuschauern, Laufzeit, Punkten, ★, „Auflegen“, „VODs“; „VODs“ dreht auf die
-   Rückseite mit 2×2 VOD-Bildern und Blättern.
+5. (Ersetzt durch „Regal neu“ unten.) Regal: oben Live-Platten (★ zuerst),
+   Mitte Offline-Favoriten bzw. Such-Treffer; Hüllen 40×40 mit verpixeltem
+   Profilbild; Fächer blättern per Mausrad und Auswahl.
+6. (Ersetzt durch „Regal neu“ unten.) Gewählte Platte vorn im Bücherfach in
+   1× mit Zettel; „VODs“ dreht auf die Rückseite mit 2×2 VOD-Bildern.
 7. Suchfeld auf einem Papierzettel oben am Regal (mit ⟳).
 8. Auflegen-Ablauf (nur mit Kanal und Animationen an): Raum blendet über das
    Regal (500 ms), Kamera fährt zum Plattenspieler, die Platte dreht sich
@@ -69,7 +67,8 @@ Alle Optik-Festlegungen sind Claudes Vorschlag.
    schräge Bildschirmfläche gelegt, mit `raum-tv-maske.png` beschnitten;
    sonst `raum-tv-aus.png`. Das Grün aus `raum.png` ist nie zu sehen.
 10. Entfallen: CD-Hülle, CD, Laufwerk, Ständer, Riesen-Namen, `cdWechsel`;
-    „Alle VODs“ bleibt als Tafel.
+    „Alle VODs“ ist ebenfalls entfallen: die Rückseite der großen Karte mit
+    der endlosen VOD-Liste ersetzt sie (Regal neu).
 11. Kopfzeile entfällt: ✕ und ← als Pixel-Knöpfe oben rechts, `#home-version`
     bleibt unten rechts.
 
@@ -109,14 +108,8 @@ Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
    Fernseher (2000 ms); mindestens 5200 ms, Klick/Taste überspringt. Die
    fliegende Platte entfällt. Große Hülle ist im Ablauf ausgeblendet.
 
-- Offene Optik-Fragen für Janis (Runde 2):
-  - Rückseite der großen Hülle ist bis auf ihre Linien durchsichtig: die
-    VOD-Liste steht auf dem abgedunkelten Regal, nicht auf Papier.
-  - Platzhalter-Balken aus `rueck-2` ausgestanzt.
-  - Laufzeit und Kanalpunkte stehen je in einer eigenen Zeile.
-  - Kanalname nicht mehr fett.
-  - ✕ rechts neben der großen Hülle.
-  - Hintergrund hinter der großen Hülle abgedunkelt.
+- Offene Optik-Fragen für Janis (Runde 2; große Hülle/Rückseite sind durch
+  „Regal neu“ ersetzt, die Punkte dazu gelten dort neu):
   - Name des Gegenstands 56 px über dem unteren Rand.
   - LIVE-/VOD-Schild in 1× (2× passt nicht in die Lautsprecher-Fläche).
   - Klick auf eine Offline-Hülle öffnet jetzt die große Hülle.
@@ -138,6 +131,38 @@ Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
   kleinere Dinge“ – alles erst **nach Etappe 3** gesammelt verbessern.
 - **Nächster Schritt:** Etappe 3 (Animationen), danach eine gesammelte
   Verbesserungsrunde mit den Punkten oben.
+
+### Regal neu (gebaut 12.11., wartet auf Janis' Abnahme in der App)
+
+Plan: `docs/superpowers/plans/2026-11-11-regal-neu.md`. Stand: Tasks 1–9d
+gebaut auf `feat/cozy-raum`, **nicht released, nicht gemergt**. Regal-Nahbild
+mit Plattenrücken (Live / Favorit / offline / fremd), große Karte mit
+Rückseite und endloser VOD-Liste („● läuft“ oben), Kamerafahrt + Überblendung
+Raum ↔ Regal, Rücken-Schrift nach Rückenart. Screenshots (alle 6 Größen) in
+`_ANSCHAUEN`: `30-regal-*`, `31-karte-*`, `32-rueckseite-*`.
+
+- Offene Optik-Fragen für Janis:
+  - Schriftgrößen der Karte (`kartenMasse.schrift`).
+  - Rot und Lage des Live-Punkts (`regal.json` `livePunkt`).
+  - Mini-Profilbild und Name auf den Rücken (`regal.json` `ruecken.fenster`/`name`).
+  - Mausrad im Fach: 1 Rücken pro Raste, passt die Schrittweite?
+  - Der 29. Rücken ragt 4 px angeschnitten ins Fach.
+  - Leeres Brett ohne Hinweistext, wenn Live-Kanäle nur in den Fächern liegen.
+  - Naht-Pfosten oben im erweiterten Regalbild glätten (PixelLab, ~10
+    Generationen) und ggf. das Bild verbreitern, damit der Ultrawide weniger
+    zoomt (~40 Generationen).
+  - Gefühl des Übergangs Raum ↔ Regal (450 ms Fahrt + 250 ms Blende).
+  - Reihenfolge der Favoriten-Rücken (vorne im Live-Fach).
+  - ↑/↓ ohne Karte nimmt die erste Live-Platte heraus.
+  - „● läuft“-Markierung beim laufenden VOD.
+- Nächste Schritte:
+  1. Auflege-Animation neu (Janis' Punkt 9): Platte auf, rauszoomen, Video im
+     TV, reinzoomen. Während der Auflege-Folge eines VODs bleibt der
+     Fernseher aus.
+  2. Punkt 12: Schrift bei Lampe/Konto.
+  3. Chat-Wand später.
+- PixelLab: 219 Generationen für Regal neu verbraucht; das Kontingent
+  erneuert sich am 10.12.2026.
 
 ### Etappe 3 – Leben (eingebaut 11.11., wartet auf Janis' Urteil)
 
