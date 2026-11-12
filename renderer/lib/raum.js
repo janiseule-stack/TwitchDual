@@ -183,30 +183,29 @@
     };
   }
 
-  // Weicher Wechsel Raum <-> Regal (Task 9e): das Nahbild waechst aus dem Regal.
-  // Start- bzw. Endlage der Regal-Ebene als translate(dx, dy) scale(s) mit Ursprung
-  // 0 0: Das Regal der Nahansicht (regal.png x REGAL_RAHMEN von..bis, y 0..192, Lage
-  // aus skalierungRegal) liegt mit seiner Mitte auf dem Regal im Raum (HOVER.regal
-  // mit der Raum-Skalierung RAUM_RAHMEN). Gleichmaessig nach der Hoehe skaliert,
-  // weil beide Rechtecke verschiedene Seitenverhaeltnisse haben (sonst gestaucht).
-  function regalWachsen(fensterBreite, fensterHoehe) {
-    const raum = skalierung(fensterBreite, fensterHoehe, RAUM_RAHMEN);
-    const nah = skalierungRegal(fensterBreite, fensterHoehe);
+  // Wechsel Raum <-> Regal, zwei Arten zum Vergleichen (Janis 13.11.): nichts darf
+  // seitlich wandern.
+  // Zoom an Ort und Stelle: Die Raum-Ebene vergroessert sich um ZOOM_ORT.raum um die
+  // Mitte des Raum-Regals (der Punkt bleibt stehen), das Nahbild kommt am Ende aus
+  // ZOOM_ORT.nah um die Fenstermitte auf volle Groesse. Je translate(dx, dy) scale(s),
+  // Ursprung 0 0.
+  const ZOOM_ORT = { raum: 2.5, nah: 0.9 };
+  function zoomUm(px, py, s) { return { s, dx: px * (1 - s), dy: py * (1 - s) }; }
+  function zoomAmOrt(fensterBreite, fensterHoehe) {
+    const b = zahl(fensterBreite), h = zahl(fensterHoehe);
+    const raum = skalierung(b, h, RAUM_RAHMEN);
     const H = HOVER.regal;
-    const s = (H.h * raum.faktor) / (BILD.hoehe * nah.faktor);
-    const raumX = raum.links + (H.x + H.b / 2) * raum.faktor;
-    const raumY = raum.oben + (H.y + H.h / 2) * raum.faktor;
-    const nahX = nah.links + REGAL_RAHMEN.mitte * nah.faktor;
-    const nahY = nah.oben + (BILD.hoehe / 2) * nah.faktor;
-    return { s, dx: raumX - s * nahX, dy: raumY - s * nahY };
+    return {
+      raum: zoomUm(raum.links + (H.x + H.b / 2) * raum.faktor, raum.oben + (H.y + H.h / 2) * raum.faktor, ZOOM_ORT.raum),
+      nah: zoomUm(b / 2, h / 2, ZOOM_ORT.nah),
+    };
   }
 
-  // Raum zoomt mit (Janis 12.11., Variante 1): Umkehrung von regalWachsen. Lage der
-  // Raum-Ebene (translate(dx, dy) scale(s), Ursprung 0 0), bei der das Raum-Regal
-  // genau auf dem Nahbild-Regal liegt. Beide Ebenen im Gleichschritt = Kamerafahrt.
-  function raumZoomRegal(fensterBreite, fensterHoehe) {
-    const w = regalWachsen(fensterBreite, fensterHoehe);
-    return { s: 1 / w.s, dx: -w.dx / w.s, dy: -w.dy / w.s };
+  // Pixel-Blende: Kantenlaengen der Pixel-Stufen in Bildschirm-Pixeln, 1, 2, 4 und 8
+  // Raum-Pixel gross (mindestens 2 px, aufsteigend).
+  function pixelStufen(faktor) {
+    const f = zahl(faktor) || 1;
+    return [1, 2, 4, 8].map((n) => Math.max(2, Math.round(n * f)));
   }
 
   // Wie viele Huellen passen ins Fach, und kleinster Verschub von start, der die gewaehlte zeigt.
@@ -263,5 +262,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, regalWachsen, raumZoomRegal, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });

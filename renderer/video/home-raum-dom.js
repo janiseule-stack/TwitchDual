@@ -23,10 +23,12 @@ window.HomeRaumDom = (function () {
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
   // Summe 5200 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
-  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Kamerafahrt, Raum
-  // zoomt aufs Regal und das Nahbild waechst im Gleichschritt mit (gleich den
-  // Uebergaengen in home-raum.css), Klassen an #home.
+  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre), zwei Arten zum
+  // Vergleichen (Janis 13.11., F8 schaltet um): 'zoom' = Zoom an Ort und Stelle,
+  // 'pixel' = Pixel-Blende. Dauer gleich den Uebergaengen in home-raum.css, Klassen an #home.
   const FAHRT_MS = 700;
+  const FAHRT_ARTEN = ['zoom', 'pixel'];
+  const PIXEL_SCHRITT_MS = FAHRT_MS / 8; // 4 Stufen hin, 4 zurueck
   const FAHRT_KLASSEN = ['fahrt', 'fahrt-hin', 'fahrt-zurueck', 'fahrt-leer'];
   // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
   // Ursprung wie Raum.HOVER.plattenspieler.
@@ -47,6 +49,8 @@ window.HomeRaumDom = (function () {
   let fahrtNr = 0; // Laufnummer der Fahrt: alte Timer tun nichts mehr
   let fahrtZiel = null; // Ansicht, zu der die laufende Fahrt geht (null: keine)
   let fahrtTimer = [];
+  let fahrtArt = 'zoom';
+  let pixelFilter = []; // SVG-Filter der Pixel-Blende, je Stufe { flood, tile, dilate }
   let tvNr = 0; // verwirft verspaetete Vorschau-Bilder
   let tvMaske = null;
   let tafelLeihe = []; // umgehaengte Elemente: { el, eltern, danach }
@@ -341,7 +345,7 @@ window.HomeRaumDom = (function () {
     opt = o || {};
     wirt = opt.wirt || document.getElementById('home');
     wirt.classList.add('raum-home');
-    wirt.prepend(baueRaum(), baueRegalNeu(), baueKnoepfe(), baueTafel(), baueAblauf());
+    wirt.prepend(baueRaum(), baueRegalNeu(), baueKnoepfe(), baueTafel(), baueAblauf(), bauePixelFilter());
     t.regal.e.appendChild(baueKarte());
     aus(t.dreht, !spielt);
     zeigeAnsicht('raum');
@@ -379,29 +383,40 @@ window.HomeRaumDom = (function () {
     fahrtTimer.forEach((x) => clearTimeout(x));
     fahrtTimer = [];
     if (wirt) wirt.classList.remove(...FAHRT_KLASSEN);
-    if (t.regal) t.regal.e.style.transform = '';
-    if (t.raum) t.raum.e.style.transform = '';
+    for (const x of [t.regal, t.raum]) {
+      if (!x) continue;
+      x.e.style.transform = '';
+      x.e.style.filter = '';
+    }
   }
   function fahrtSchritt(nr, ms, f) { fahrtTimer.push(setTimeout(() => { if (nr === fahrtNr) f(); }, ms)); }
 
-  // Kamerafahrt Raum <-> Regal (Janis 12.11., Variante 1): Die ganze Raum-Ebene zoomt
-  // aufs Regal (Raum.raumZoomRegal), die Regal-Ebene waechst im Gleichschritt vom
-  // Raum-Regal auf volle Groesse (Raum.regalWachsen), beide FAHRT_MS ease-in-out.
-  // Hin: Das Nahbild blendet erst im letzten Drittel ein; danach Raum verborgen. Es
-  // ist ab Beginn eingeblendet (durchsichtig), damit das Suchfeld den Fokus nehmen kann.
-  // Zurueck: Raum startet herangezoomt unter dem Regal und zoomt heraus, das Nahbild
-  // schrumpft mit und blendet im ersten Drittel aus; danach Regal verborgen,
-  // Transforms zurueck (stoppeFahrt). Uebergaenge: home-raum.css.
+  // Art des Wechsels umschalten (F8 in home.js), gibt die neue Art zurueck.
+  function wechsleFahrtArt() {
+    fahrtArt = FAHRT_ARTEN[(FAHRT_ARTEN.indexOf(fahrtArt) + 1) % FAHRT_ARTEN.length];
+    return fahrtArt;
+  }
+
   function fahre(ziel) {
+    fahrtZiel = ziel;
+    zeigeHover(null);
+    if (fahrtArt === 'pixel') fahrePixel(ziel);
+    else fahreZoom(ziel);
+  }
+
+  // Zoom an Ort und Stelle (Raum.zoomAmOrt): Die Raum-Ebene vergroessert sich um die
+  // Mitte des Raum-Regals (nichts wandert seitlich), das Nahbild kommt im letzten
+  // Drittel um die Fenstermitte leicht wachsend dazu; danach Raum verborgen. Das
+  // Regal ist ab Beginn eingeblendet (durchsichtig), damit das Suchfeld den Fokus
+  // nehmen kann. Zurueck umgekehrt: Raum startet herangezoomt unter dem Regal, das
+  // Nahbild blendet im ersten Drittel aus. Uebergaenge: home-raum.css.
+  function fahreZoom(ziel) {
     const nr = fahrtNr;
     const k = wirt.classList;
     const e = t.regal.e;
-    const w = Raum.regalWachsen(wirt.clientWidth, wirt.clientHeight);
-    const klein = 'translate(' + w.dx + 'px, ' + w.dy + 'px) scale(' + w.s + ')';
-    const z = Raum.raumZoomRegal(wirt.clientWidth, wirt.clientHeight);
-    const gross = 'translate(' + z.dx + 'px, ' + z.dy + 'px) scale(' + z.s + ')';
-    fahrtZiel = ziel;
-    zeigeHover(null);
+    const z = Raum.zoomAmOrt(wirt.clientWidth, wirt.clientHeight);
+    const klein = 'translate(' + z.nah.dx + 'px, ' + z.nah.dy + 'px) scale(' + z.nah.s + ')';
+    const gross = 'translate(' + z.raum.dx + 'px, ' + z.raum.dy + 'px) scale(' + z.raum.s + ')';
     if (ziel === 'regal') {
       k.add('fahrt', 'fahrt-leer');
       e.style.transform = klein;
@@ -428,6 +443,64 @@ window.HomeRaumDom = (function () {
         stoppeFahrt(); // Transform und Klassen zurueck (Regal schon verborgen)
       });
     }
+  }
+
+  // Pixel-Blende: Nichts bewegt sich. Die alte Ansicht wird in 4 Stufen grob
+  // (Raum.pixelStufen, SVG-Filter #raum-pix-0..3), bei der groebsten Stufe wechselt
+  // die Ansicht, die neue wird in 4 Stufen wieder scharf; je PIXEL_SCHRITT_MS.
+  // Hin ist das Regal ab Beginn eingeblendet (durchsichtig, Fokus des Suchfelds).
+  function fahrePixel(ziel) {
+    const nr = fahrtNr;
+    const k = wirt.classList;
+    const alt = ziel === 'regal' ? t.raum.e : t.regal.e;
+    const neu = ziel === 'regal' ? t.regal.e : t.raum.e;
+    setzePixelFilter(Raum.pixelStufen(skalRaum.faktor));
+    const pix = (x, i) => { x.style.filter = 'url(#raum-pix-' + i + ')'; };
+    k.add('fahrt');
+    if (ziel === 'regal') {
+      k.add('fahrt-leer'); // Regal durchsichtig bis zum Wechsel
+      aus(neu, false);
+    }
+    pix(alt, 0);
+    for (let i = 1; i < 4; i++) fahrtSchritt(nr, i * PIXEL_SCHRITT_MS, () => pix(alt, i));
+    fahrtSchritt(nr, 4 * PIXEL_SCHRITT_MS, () => {
+      pix(neu, 3);
+      aus(neu, false);
+      aus(alt, true);
+      k.remove('fahrt-leer');
+    });
+    for (let i = 2; i >= 0; i--) fahrtSchritt(nr, (7 - i) * PIXEL_SCHRITT_MS, () => pix(neu, i));
+    fahrtSchritt(nr, FAHRT_MS, () => stoppeFahrt());
+  }
+
+  // SVG-Filter der Pixel-Blende (einmal gebaut, Kantenlaengen je Fahrt neu):
+  // ein Punkt je Kachel (feFlood/feComposite/feTile) nimmt die Farbe des Bilds auf
+  // (feComposite in), feMorphology dilate macht daraus die ganze Kachel.
+  // Gebaut ueber den HTML-Parser (setzt den SVG-Namensraum selbst).
+  function bauePixelFilter() {
+    const filter = (i) => '<filter id="raum-pix-' + i + '" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">' +
+      '<feFlood width="1" height="1"/><feComposite/><feTile result="kacheln"/>' +
+      '<feComposite in="SourceGraphic" in2="kacheln" operator="in"/><feMorphology operator="dilate"/></filter>';
+    const box = el('div', 'raum-pixel-filter');
+    box.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'; // nicht display:none, sonst greifen die Filter nicht
+    box.innerHTML = '<svg width="0" height="0" aria-hidden="true" style="position:absolute">' +
+      [0, 1, 2, 3].map(filter).join('') + '</svg>';
+    pixelFilter = [0, 1, 2, 3].map((i) => {
+      const f = box.querySelector('#raum-pix-' + i);
+      return { flood: f.children[0], tile: f.children[1], dilate: f.children[4] };
+    });
+    return box;
+  }
+  function setzePixelFilter(stufen) {
+    pixelFilter.forEach((p, i) => {
+      const n = stufen[i];
+      const r = Math.floor(n / 2);
+      p.flood.setAttribute('x', r);
+      p.flood.setAttribute('y', r);
+      p.tile.setAttribute('width', n);
+      p.tile.setAttribute('height', n);
+      p.dilate.setAttribute('radius', r);
+    });
   }
 
   function neuAusrichten() {
@@ -1062,7 +1135,7 @@ window.HomeRaumDom = (function () {
   }
 
   return {
-    init, zeigeAnsicht, ansicht, zeichneRegal, fachBlaettern,
+    init, zeigeAnsicht, ansicht, wechsleFahrtArt, zeichneRegal, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
     zeigeSchild, setzeTv, neuAusrichten, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
   };

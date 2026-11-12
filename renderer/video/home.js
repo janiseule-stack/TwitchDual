@@ -618,6 +618,13 @@ window.addEventListener('resize', () => {
 document.addEventListener('keydown', (e) => {
   if ($home.classList.contains('hidden')) return;
   const tafel = HomeRaumDom.tafelOffen();
+  // F8: Art des Wechsels Raum <-> Regal umschalten (Vergleich fuer Janis, 13.11.)
+  if (e.key === 'F8') {
+    e.preventDefault();
+    const art = HomeRaumDom.wechsleFahrtArt();
+    HomeRaumDom.zeigeSchild('Übergang: ' + (art === 'pixel' ? 'Pixel-Blende' : 'Zoom'));
+    return;
+  }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     if (tafel || HomeRaumDom.ansicht() !== 'regal' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault(); // im Suchfeld sonst Cursor an Anfang/Ende

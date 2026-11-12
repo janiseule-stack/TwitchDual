@@ -341,52 +341,38 @@ test('kameraZiel: Rechteck fuellt das Fenster deckend', () => {
   assert.ok(Math.abs(z.y + (52 + 19) * z.faktor - 400) < 1);
 });
 
-// Task 9e: Das Nahbild waechst aus dem Regal. regalWachsen gibt die Start-Lage der
-// Regal-Ebene (translate(dx, dy) scale(s), Ursprung 0 0): das Regal der Nahansicht
-// liegt gleichmaessig skaliert (nach der Hoehe) mit seiner Mitte auf dem Raum-Regal.
-test('regalWachsen: Start-Regal deckt Hoehe und Mitte des Raum-Regals (±1 px)', () => {
+// Janis 13.11.: Wechsel Raum <-> Regal ohne seitliches Wandern, zwei Arten zum Vergleichen.
+// Zoom an Ort und Stelle: Die Mitte des Raum-Regals bleibt auf dem Bildschirm stehen,
+// das Nahbild waechst um die Fenstermitte (je translate(dx, dy) scale(s), Ursprung 0 0).
+test('zoomAmOrt: Regal-Mitte bleibt stehen, Nahbild um die Fenstermitte', () => {
   const H = R.HOVER.regal;
-  const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
   for (const [b, h] of [...GROESSEN, [700, 900]]) {
     const raum = R.skalierung(b, h, R.RAUM_RAHMEN);
-    const nah = R.skalierungRegal(b, h);
-    const w = R.regalWachsen(b, h);
+    const z = R.zoomAmOrt(b, h);
     const name = b + 'x' + h;
-    assert.ok(w.s > 0 && w.s <= 1.2, name + ': s ' + w.s);
-    const raumH = H.h * raum.faktor;
-    const raumMx = raum.links + (H.x + H.b / 2) * raum.faktor;
-    const raumMy = raum.oben + (H.y + H.h / 2) * raum.faktor;
-    const nahMx = nah.links + mitteX * nah.faktor;
-    const nahMy = nah.oben + 96 * nah.faktor;
-    assert.ok(Math.abs(w.s * 192 * nah.faktor - raumH) <= 1, name + ': Hoehe');
-    assert.ok(Math.abs(w.s * nahMx + w.dx - raumMx) <= 1, name + ': Mitte x');
-    assert.ok(Math.abs(w.s * nahMy + w.dy - raumMy) <= 1, name + ': Mitte y');
+    assert.strictEqual(z.raum.s, R.ZOOM_ORT.raum, name);
+    assert.ok(z.raum.s >= 2 && z.raum.s <= 3, name + ': 2- bis 3-fach');
+    const px = raum.links + (H.x + H.b / 2) * raum.faktor;
+    const py = raum.oben + (H.y + H.h / 2) * raum.faktor;
+    assert.ok(Math.abs(z.raum.s * px + z.raum.dx - px) < 1e-6, name + ': Mitte x steht');
+    assert.ok(Math.abs(z.raum.s * py + z.raum.dy - py) < 1e-6, name + ': Mitte y steht');
+    assert.ok(z.nah.s > 0.8 && z.nah.s < 1, name + ': Nahbild knapp kleiner');
+    assert.ok(Math.abs(z.nah.s * b / 2 + z.nah.dx - b / 2) < 1e-6, name + ': Fenstermitte x');
+    assert.ok(Math.abs(z.nah.s * h / 2 + z.nah.dy - h / 2) < 1e-6, name + ': Fenstermitte y');
   }
-  const gross = R.regalWachsen(2960, 1390);
-  assert.ok(Math.abs(gross.s - 0.78) < 0.02, 's ~0,78: ' + gross.s);
 });
 
-// Janis 12.11. (Variante 1): Der Raum zoomt mit. raumZoomRegal ist die Umkehrung von
-// regalWachsen: Die Raum-Ebene (Ursprung 0 0) legt das Raum-Regal auf das Nahbild-Regal,
-// beide Ebenen bewegen sich also im Gleichschritt wie eine Kamera.
-test('raumZoomRegal: Raum-Regal landet mit Hoehe und Mitte auf dem Nahbild-Regal (±1 px)', () => {
-  const H = R.HOVER.regal;
-  const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
+// Pixel-Blende: 4 Stufen, 1/2/4/8 Raum-Pixel, mindestens 2 px, aufsteigend.
+test('pixelStufen: 4 aufsteigende Stufen in Bildschirm-Pixeln', () => {
   for (const [b, h] of [...GROESSEN, [700, 900]]) {
-    const raum = R.skalierung(b, h, R.RAUM_RAHMEN);
-    const nah = R.skalierungRegal(b, h);
-    const z = R.raumZoomRegal(b, h);
-    const w = R.regalWachsen(b, h);
-    const name = b + 'x' + h;
-    assert.ok(Math.abs(z.s * w.s - 1) < 1e-9, name + ': Umkehrung');
-    const raumMx = raum.links + (H.x + H.b / 2) * raum.faktor;
-    const raumMy = raum.oben + (H.y + H.h / 2) * raum.faktor;
-    const nahMx = nah.links + mitteX * nah.faktor;
-    const nahMy = nah.oben + 96 * nah.faktor;
-    assert.ok(Math.abs(z.s * H.h * raum.faktor - 192 * nah.faktor) <= 1, name + ': Hoehe');
-    assert.ok(Math.abs(z.s * raumMx + z.dx - nahMx) <= 1, name + ': Mitte x');
-    assert.ok(Math.abs(z.s * raumMy + z.dy - nahMy) <= 1, name + ': Mitte y');
+    const f = R.skalierung(b, h, R.RAUM_RAHMEN).faktor;
+    const p = R.pixelStufen(f);
+    assert.strictEqual(p.length, 4);
+    assert.ok(p.every((n) => Number.isInteger(n) && n >= 2), b + 'x' + h + ': ' + p);
+    for (let i = 1; i < 4; i++) assert.ok(p[i] > p[i - 1], b + 'x' + h + ': aufsteigend ' + p);
   }
+  assert.deepStrictEqual(R.pixelStufen(7), [7, 14, 28, 56]);
+  assert.deepStrictEqual(R.pixelStufen(0), [2, 2, 4, 8]);
 });
 
 test('Task 9e: Kamera-Fahrt aufs Regal (kameraRegal) ist weg', () => {

@@ -337,18 +337,20 @@
 .raum-leben.ruht { animation: none; }
 @keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
 
-/* Kamerafahrt Raum <-> Regal (home-raum-dom.js fahre, FAHRT_MS): die Raum-Ebene
-   zoomt aufs Regal (Raum.raumZoomRegal), die Regal-Ebene waechst im Gleichschritt
-   vom Regal im Raum auf volle Groesse (Raum.regalWachsen), beide 700ms
-   ease-in-out. Hin blendet das Nahbild im letzten Drittel ein, zurueck im ersten
-   aus; fahrt-leer = durchsichtig. Waehrend der Fahrt kein Hover/Klick. */
+/* Wechsel Raum <-> Regal (home-raum-dom.js fahre, FAHRT_MS 700). Zoom an Ort und
+   Stelle (fahreZoom, Raum.zoomAmOrt): die Raum-Ebene vergroessert sich um die
+   Regal-Mitte (hin ease-in, zurueck ease-out); das Nahbild waechst im letzten
+   Drittel leicht und blendet ein, zurueck im ersten Drittel aus. Die Pixel-Blende
+   (fahrePixel) setzt nur SVG-Filter per JS, ohne Uebergaenge hier.
+   fahrt-leer = Regal durchsichtig. Waehrend der Fahrt kein Hover/Klick. */
 #home.fahrt #raum-ebene, #home.fahrt #raum-ebene *,
 #home.fahrt #regal-ebene, #home.fahrt #regal-ebene * { pointer-events: none !important; }
 #home.fahrt #raum-ebene .raum-textschicht { visibility: hidden; }
 #home.fahrt #regal-ebene, #home.fahrt #raum-ebene { transform-origin: 0 0; }
-#home.fahrt-hin #regal-ebene { transition: transform 700ms ease-in-out, opacity 230ms linear 470ms; }
-#home.fahrt-zurueck #regal-ebene { transition: transform 700ms ease-in-out, opacity 230ms linear; }
-#home.fahrt-hin #raum-ebene, #home.fahrt-zurueck #raum-ebene { transition: transform 700ms ease-in-out; }
+#home.fahrt-hin #regal-ebene { transition: transform 230ms ease-out 470ms, opacity 230ms linear 470ms; }
+#home.fahrt-zurueck #regal-ebene { transition: transform 230ms ease-in, opacity 230ms linear; }
+#home.fahrt-hin #raum-ebene { transition: transform 700ms ease-in; }
+#home.fahrt-zurueck #raum-ebene { transition: transform 700ms ease-out; }
 #home.fahrt-leer #regal-ebene { opacity: 0; }
 
 /* Animationen aus: alle Uebergaenge und Bewegungen im Raum stehen still. */
