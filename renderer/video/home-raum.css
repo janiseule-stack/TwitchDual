@@ -152,15 +152,37 @@
   color: var(--zettel-tinte);
 }
 .karte-info > div { flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Janis 13.11.: nur der Name gross, alles andere klein (--karte-schrift-klein) */
 .karte-info > .karte-titel {
-  font-size: var(--karte-schrift, 12px); white-space: normal;
+  white-space: normal;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   max-height: 2em;
 }
-.karte-info > .karte-status, .karte-info > .karte-name { padding-right: var(--karte-zu-platz); }
-.karte-info > .karte-spiel, .karte-info > .karte-zuschauer { font-size: var(--karte-schrift, 12px); }
+.karte-info > .karte-kopfzeile {
+  display: flex; align-items: baseline; gap: .7em; padding-right: var(--karte-zu-platz);
+}
+.karte-info > .karte-kopfzeile .karte-status { flex: none; }
+.karte-info > .karte-kopfzeile .karte-name {
+  font-size: var(--karte-schrift, 12px); min-width: 0; overflow: hidden; text-overflow: ellipsis;
+}
+/* Live-Vorschau: nimmt den freien Platz, hoechstens 16:9 der Innenbreite (Karte kante x
+   kante, Rand 10n ringsum); bei wenig Platz kleiner (mittig beschnitten) */
+.karte-info > .karte-vorschau {
+  flex: 1 1 0; min-height: 0;
+  max-height: calc((var(--karte-h) - 20px * var(--karte-n)) * 9 / 16);
+  background: var(--zettel-tinte); overflow: hidden;
+}
+.karte-vorschau canvas { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .karte-knoepfe, .karte-kopf { display: flex; align-items: center; gap: .7em; }
-.karte-info > .karte-knoepfe { margin-top: auto; overflow: visible; }
+.karte-info > .karte-knoepfe { margin-top: auto; overflow: visible; gap: .3333em; }
+/* Knoepfe aus knopf.png (32x32, Rand 8 als 9-Slice), Hoehe 32 Bildpixel in Schriftgroesse
+   (12 px -> 32 px, 24 px -> 64 px), helle Schrift */
+.karte-info .karte-knopf {
+  box-sizing: border-box; height: 2.6667em; padding: 0 .3333em;
+  border-style: solid; border-color: transparent; border-width: .6667em;
+  border-image: url('../themes/cozy/knopf.png') 8 fill / .6667em / 0 stretch;
+  image-rendering: pixelated; color: var(--text); text-decoration: none; line-height: 1;
+}
 .karte-knopf {
   font: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0;
   cursor: pointer; outline: none; text-decoration: underline; text-underline-offset: 2px;

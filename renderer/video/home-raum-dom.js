@@ -836,7 +836,8 @@ window.HomeRaumDom = (function () {
     zeichneKarteVods(stand.vods, k.login);
   }
 
-  // Vorderseite: Status, Name, Titel, Spiel, Zuschauer, Laufzeit und Kanalpunkte, Knoepfe.
+  // Vorderseite (Janis 13.11., Aufteilung 1): Kopfzeile (Status klein, Name gross),
+  // Live-Vorschau, Titel, Spiel, Zuschauer und Laufzeit, Kanalpunkte, unten die Knoepfe.
   function zeichneKarteVorn(s, k, h) {
     const z = t.karteInfo;
     const fokus = merkeFokus(z, 'id');
@@ -849,16 +850,21 @@ window.HomeRaumDom = (function () {
       lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
     } else if (s.modus === 'markiert') status = 'gerade offline gegangen';
     else status = k.error ? 'Status nicht abrufbar' : 'offline';
-    z.appendChild(el('div', 'karte-status', status));
-    const kanal = el('div', 'karte-name', name(k));
+    const kopf = el('div', 'karte-kopfzeile');
+    kopf.appendChild(el('span', 'karte-status', status));
+    const kanal = el('span', 'karte-name', name(k));
     if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
-    z.appendChild(kanal);
+    kopf.appendChild(kanal);
+    z.appendChild(kopf);
+    const bild = karteVorschau(k, s.modus);
+    if (bild) z.appendChild(bild);
     if (an && k.title) z.appendChild(el('div', 'karte-titel', k.title));
     if (an && k.game) z.appendChild(el('div', 'karte-spiel', k.game));
-    if (s.modus === 'live' && k.viewersLabel) z.appendChild(el('div', 'karte-zuschauer', k.viewersLabel + ' Zuschauer'));
+    const zahlen = s.modus === 'live'
+      ? [k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', lauf ? 'seit ' + lauf : ''].filter(Boolean).join(' · ') : '';
+    if (zahlen) z.appendChild(el('div', 'karte-zuschauer', zahlen));
     const punkte = an && s.punkte ? Number(s.punkte.balance || 0).toLocaleString('de-DE') + ' Punkte' : '';
-    const klein = [lauf, punkte].filter(Boolean).join(' · ');
-    if (klein) z.appendChild(el('div', 'karte-klein', klein));
+    if (punkte) z.appendChild(el('div', 'karte-klein', punkte));
     const knoepfe = el('div', 'karte-knoepfe');
     const stern = knopf('karte-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
@@ -874,6 +880,23 @@ window.HomeRaumDom = (function () {
     knoepfe.appendChild(vods);
     z.appendChild(knoepfe);
     stelleFokusHer(z, 'id', fokus);
+  }
+
+  // Live-Vorschau fuer die Vorderseite (wie im Fernseher): Canvas 160x90, scharfkantig
+  // vergroessert. Fuer dieselbe Platte bleibt die Canvas erhalten (die Karte wird oft
+  // neu gezeichnet, ein neues Bild wuerde jedes Mal kurz leer blinken).
+  function karteVorschau(k, modus) {
+    if (modus !== 'live' || typeof HomeBuehne === 'undefined') return null;
+    if (t.karteBild && t.karteBild.login === k.login) return t.karteBild.e;
+    const e = el('div', 'karte-vorschau');
+    const c = document.createElement('canvas');
+    c.width = 160;
+    c.height = 90;
+    e.appendChild(c);
+    const url = HomeBuehne.vorschauUrl(k.login, Date.now());
+    vodBild(url, c);
+    t.karteBild = { login: k.login, e };
+    return e;
   }
 
   function karteVodInfo(rest, laufend) {

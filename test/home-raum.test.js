@@ -896,8 +896,38 @@ test('Karte: Huelle fuellt die linke Haelfte (Bild 128/111 skaliert, Fenster mit
   // Platz fuer das ✕: Kopf der Rueckseite und erste Tafelzeilen enden davor (Rand 10n + Platz 10n > 2n + 16n)
   assert.ok(/--karte-zu-platz:\s*calc\(10px \* var\(--karte-n, 2\)\)/.test(regel('.karte')));
   assert.ok(/padding-right:\s*var\(--karte-zu-platz\)/.test(regel('.karte-kopf')));
-  assert.ok(/\.karte-info > \.karte-status,\s*\.karte-info > \.karte-name\s*\{\s*padding-right:\s*var\(--karte-zu-platz\)/.test(css));
+  assert.ok(/\.karte-info > \.karte-kopfzeile\s*\{[^}]*padding-right:\s*var\(--karte-zu-platz\)/.test(css));
   assert.ok(/\.karte-platz\s*\{[^}]*background:\s*rgb\(18 5 5 \/ \.55\)/.test(css), 'gleiche Abdunklung wie .gross-platz');
+});
+
+// Janis 13.11.: Info-Seite neu ohne neue Bilder - Raum Klar mit geordneten Groessen,
+// Vorschaubild oben (Aufteilung 1), echte Knoepfe aus knopf.png statt Links.
+test('Karte vorn: Kopfzeile (Status + Name gross), Live-Vorschau oben, Rest klein, Knoepfe unten', () => {
+  const v = rumpf(js, 'function zeichneKarteVorn(');
+  const p = (s) => { const i = v.indexOf(s); assert.ok(i > -1, s); return i; };
+  assert.ok(p("el('div', 'karte-kopfzeile')") < p('karteVorschau(k, s.modus)'), 'Kopfzeile vor dem Bild');
+  assert.ok(p('karteVorschau(k, s.modus)') < p("'karte-titel'"), 'Bild vor dem Titel');
+  assert.ok(p("'karte-titel'") < p("el('div', 'karte-knoepfe')"));
+  // Zuschauer und Laufzeit in einer Zeile, Punkte darunter
+  assert.ok(v.includes("[k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', lauf ? 'seit ' + lauf : '']"));
+  const b = rumpf(js, 'function karteVorschau(');
+  assert.ok(b.includes("modus !== 'live'") && b.includes('return null'), 'nur live');
+  assert.ok(b.includes('HomeBuehne.vorschauUrl(k.login, Date.now())'));
+  assert.ok(b.includes('t.karteBild') && b.includes('login === k.login'), 'gleiche Platte: Bild behalten (kein Flackern)');
+  assert.ok(b.includes('vodBild(url, c)'));
+});
+
+test('Karte vorn CSS: Name gross, Rest klein, Bild fuellt den Platz bis 16:9, Knoepfe aus knopf.png', () => {
+  const regel = (sel) => (new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.').replace(/>/g, '\\>') + '\\s*\\{([^}]*)\\}').exec(css) || [])[2] || '';
+  assert.ok(/font-size:\s*var\(--karte-schrift,/.test(regel('.karte-info > .karte-kopfzeile .karte-name')));
+  assert.ok(!/--karte-schrift,/.test(regel('.karte-info > .karte-titel')), 'Titel klein');
+  const bild = regel('.karte-info > .karte-vorschau');
+  assert.ok(/flex:\s*1 1 0/.test(bild) && /min-height:\s*0/.test(bild));
+  assert.ok(bild.includes('max-height: calc((var(--karte-h) - 20px * var(--karte-n)) * 9 / 16)'));
+  const k = regel('.karte-info .karte-knopf');
+  assert.ok(k.includes("border-image: url('../themes/cozy/knopf.png') 8 fill / .6667em / 0 stretch"));
+  assert.ok(/height:\s*2\.6667em/.test(k) && /color:\s*var\(--text\)/.test(k));
+  assert.ok(/text-decoration:\s*none/.test(k), 'keine unterstrichenen Links');
 });
 
 test('Karte: Klick daneben und ✕ legen zurueck (Doppelklick ignoriert), Doppelklick auf die Huelle legt auf', () => {
