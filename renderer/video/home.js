@@ -266,9 +266,10 @@ async function ladeWert(wert, kanal) {
     // Neues Bild in den Fernseher: live die Vorschau, VOD sein Vorschaubild, sonst
     // aus. Im Ablauf ist es verborgen, bis der Fernseher anflackert (home-raum.css).
     // Schlaegt das Laden fehl, setzt der naechste renderHome den laufenden Stream zurueck.
-    const tvBild = kanal.login && wert === kanal.login && !kanal.offline
-      ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : vodVorschau(wert);
-    HomeRaumDom.setzeTv(tvBild ? { vorschauUrl: tvBild } : null);
+    const istLive = !!(kanal.login && wert === kanal.login && !kanal.offline);
+    const tvBild = istLive ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : vodVorschau(wert);
+    const tvName = (kanal.displayName || kanal.login || '') + (istLive ? '' : ' · VOD');
+    HomeRaumDom.setzeTv(tvBild ? { vorschauUrl: tvBild, name: tvName, live: istLive } : null);
     laufwerk.start((ok) => ende(ok));
     HomeRaumDom.zeigeAblauf(kanal, () => laufwerk.ueberspringen());
   }
@@ -429,7 +430,7 @@ function zeichneTv() {
   if (ladenLaeuft || laufwerk.laeuft) return;
   const l = window.laeuftEtwas ? window.laeuftEtwas() : null;
   const url = HomeBuehne.tvVorschau(l, Date.now());
-  HomeRaumDom.setzeTv(url ? { vorschauUrl: url } : null);
+  HomeRaumDom.setzeTv(url ? { vorschauUrl: url, name: aufgelegt(), live: l.mode === 'live' } : null);
 }
 
 function renderHome() {

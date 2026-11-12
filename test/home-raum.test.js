@@ -549,8 +549,9 @@ test('CSS: Kamera-Uebergaenge je Abschnitt, tv-Regel zuletzt', () => {
 });
 
 test('CSS: Fernseher im Ablauf erst aus, flackert dann an (harte Schritte)', () => {
-  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
-  assert.ok(/#home\.ablauf-an \.raum-tv\s*\{\s*animation:\s*raum-tv-an 700ms steps\(1\) 1 both;\s*\}/.test(css));
+  // Bild und Kanalname teilen sich die Regeln (Test "Fernseher zeigt den Kanalnamen")
+  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv,[^{]*\{\s*visibility:\s*hidden;\s*\}/.test(css));
+  assert.ok(/#home\.ablauf-an \.raum-tv,[^{]*\{\s*animation:\s*raum-tv-an 700ms steps\(1\) 1 both;\s*\}/.test(css));
   const k = /@keyframes raum-tv-an\s*\{([\s\S]*?)\n\}/.exec(css);
   assert.ok(k, 'keyframes');
   assert.ok((k[1].match(/visibility:\s*hidden/g) || []).length >= 2, 'mindestens zweimal aus');
@@ -715,6 +716,29 @@ test('zeichneTv ruht waehrend des Auflegens, der Fehlerweg setzt den Fernseher z
   assert.ok(fehler.includes('zeichneTv();'), 'Fehler: Fernseher zurueck auf das Laufende');
 });
 
+test('Fernseher zeigt den Kanalnamen wie ein altes TV (Janis 13.11.)', () => {
+  const b = rumpf(js, 'function baueRaum(');
+  assert.ok(b.includes("t.tvName = el('div', 'raum-tv-name raum-aus')"));
+  assert.ok(b.indexOf('r.bild.appendChild(t.tvName)') > b.indexOf('r.bild.appendChild(t.tv)'), 'ueber dem Bild, in der skalierten Bildebene');
+  assert.ok(b.includes("'matrix(' + Raum.tvMatrix().join(', ') + ')'"), 'schraeg wie der Bildschirm');
+  const s = rumpf(js, 'function setzeTv(');
+  assert.ok(s.indexOf('zeigeTvName(url ? o : null)') > -1 && s.indexOf('zeigeTvName(url ? o : null)') < s.indexOf('url === tvVorschau'), 'Name auch bei gleichem Bild');
+  const z = rumpf(js, 'function zeigeTvName(');
+  assert.ok(z.includes("el('span', 'tv-name-punkt', '●')") && z.includes('o.live'), 'roter Punkt bei live');
+  assert.ok(z.includes("aus(t.tvName, !text)"));
+  // CSS: Feld in Bildpixeln, im Ablauf verborgen bis zum Anflackern und flackert mit
+  assert.ok(/\.raum-tv-name\s*\{[^}]*width:\s*24px[^}]*height:\s*26px[^}]*transform-origin:\s*0 0/.test(css));
+  assert.ok(/#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv,\s*#home\.im-ablauf:not\(\.ablauf-an\):not\(\.ablauf-tv\) \.raum-tv-name\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
+  assert.ok(/#home\.ablauf-an \.raum-tv,\s*#home\.ablauf-an \.raum-tv-name\s*\{\s*animation:\s*raum-tv-an/.test(css));
+  assert.ok(/\.tv-name-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)/.test(css));
+  // home.js: Name beim Auflegen und im Ruhezustand
+  const lw = homeJs.indexOf('async function ladeWert(');
+  const r = homeJs.slice(lw, homeJs.indexOf('\n}', lw));
+  assert.ok(r.includes('HomeRaumDom.setzeTv(tvBild ? { vorschauUrl: tvBild, name: tvName, live: istLive } : null)'));
+  const t = rumpfOben(homeJs, 'function zeichneTv(');
+  assert.ok(t.includes("{ vorschauUrl: url, name: aufgelegt(), live: l.mode === 'live' }"));
+});
+
 test('Fernseher-Masse kommen aus raum.js, nicht als Zahlen in home-raum-dom.js', () => {
   assert.ok(!/x:\s*206,\s*y:\s*52/.test(js));
 });
@@ -730,7 +754,7 @@ test('home.js: Auflegen legt das neue Bild in den (noch verborgenen) Fernseher -
   assert.ok(r.includes('vodVorschau(wert)'), 'VOD: Vorschaubild aus der Liste');
   const v = rumpfOben(homeJs, 'function vodVorschau(');
   assert.ok(v.includes('vods && vods.liste') && v.includes('v.id === id') && /\.thumb \|\| null/.test(v));
-  assert.ok(/\{ vorschauUrl: \w+ \} : null\)/.test(r), 'ohne Bild: Fernseher aus (null)');
+  assert.ok(/\{ vorschauUrl: \w+[^}]*\} : null\)/.test(r), 'ohne Bild: Fernseher aus (null)');
 });
 
 test('home.css: Hinweiszeile und Version weichen im Ablauf', () => {

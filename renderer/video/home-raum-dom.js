@@ -183,6 +183,11 @@ window.HomeRaumDom = (function () {
     t.tv.width = Raum.BILD.breite;
     t.tv.height = Raum.BILD.hoehe;
     r.bild.appendChild(t.tv);
+    // Kanalname auf dem Bildschirm wie bei alten TVs (Janis 13.11.), schraeg wie die
+    // Bildschirmflaeche; setzeTv/zeigeTvName fuellen ihn.
+    t.tvName = el('div', 'raum-tv-name raum-aus');
+    t.tvName.style.transform = 'matrix(' + Raum.tvMatrix().join(', ') + ')';
+    r.bild.appendChild(t.tvName);
     // Hover: PixelLab-Ausschnitt des Gegenstands in Form, aufgehellt (home-raum.css).
     t.hover = {};
     for (const f of Raum.FLAECHEN) {
@@ -1144,8 +1149,20 @@ window.HomeRaumDom = (function () {
     g.drawImage(tvMaske, 0, 0);
     g.globalCompositeOperation = 'source-over';
   }
+  // Name des Kanals auf dem Fernseher: o = { name, live } oder null (leer, verborgen).
+  function zeigeTvName(o) {
+    const text = o && o.name ? String(o.name) : '';
+    t.tvName.replaceChildren();
+    if (text) {
+      if (o.live) t.tvName.append(el('span', 'tv-name-punkt', '●'), ' ');
+      t.tvName.append(text);
+    }
+    aus(t.tvName, !text);
+  }
+  // o = { vorschauUrl, name, live } oder null (Fernseher aus).
   function setzeTv(o) {
     const url = (o && o.vorschauUrl) || null;
+    if (wirt) zeigeTvName(url ? o : null);
     if (!wirt || url === tvVorschau) return; // gleiche Adresse: Bild steht schon
     tvVorschau = url;
     const nr = ++tvNr;

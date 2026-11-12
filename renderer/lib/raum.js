@@ -29,6 +29,16 @@
   // Rechteck um den Bildschirm: Ziel der Kamera beim Auflegen.
   const TV_RECHTECK = Object.freeze({ x: 206, y: 52, b: 27, h: 38 });
 
+  // Kanalname auf dem Fernseher (Janis 13.11., wie bei alten TVs): Feld b x h in
+  // Bildpixeln, per matrix(a, b, c, d, e, f) affin auf die schraege Bildschirmflaeche
+  // (TV_ECKEN 0 oben links, 1 oben rechts, 3 unten links).
+  const TV_NAME_FELD = Object.freeze({ b: 24, h: 26 });
+  function tvMatrix() {
+    const [p0, p1, , p3] = TV_ECKEN;
+    const F = TV_NAME_FELD;
+    return [(p1.x - p0.x) / F.b, (p1.y - p0.y) / F.b, (p3.x - p0.x) / F.h, (p3.y - p0.y) / F.h, p0.x, p0.y];
+  }
+
   const TELLER = Object.freeze({ x: 284, y: 113 });
 
   const zahl = (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
@@ -317,5 +327,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, TV_NAME_FELD, tvMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });
