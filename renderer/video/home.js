@@ -284,6 +284,7 @@ async function ladeWert(wert, kanal) {
   if (ok) { $suche.value = ''; sucheGetippt(); closeHome(); return; }
   $hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen';
   $hinweis.classList.remove('hidden');
+  zeichneTv(); // Fernseher wieder auf das, was laeuft (nicht die fehlgeschlagene Quelle)
   // Der Ablauf hatte den Fokus und ist jetzt ausgeblendet: Fokus zurueck ins Suchfeld.
   if (HomeRaumDom.ansicht() === 'regal') $suche.focus();
 }
@@ -423,6 +424,9 @@ punkteAbruf.beiStand((login, s) => {
 // Fernseher im Raum: Vorschau des laufenden Live-Kanals oder Vorschaubild des
 // laufenden VODs (verpixelt wie live), sonst aus.
 function zeichneTv() {
+  // Waehrend des Auflegens gehoert der Fernseher dem Ablauf (ladeWert hat das neue
+  // Bild gesetzt); ein renderHome dazwischen darf es nicht ueberschreiben.
+  if (ladenLaeuft || laufwerk.laeuft) return;
   const l = window.laeuftEtwas ? window.laeuftEtwas() : null;
   const url = HomeBuehne.tvVorschau(l, Date.now());
   HomeRaumDom.setzeTv(url ? { vorschauUrl: url } : null);

@@ -703,6 +703,18 @@ test('setzeTv: bloesser Adresswechsel (?t=) leert die Canvas nicht, Kanalwechsel
   assert.ok(/nr === tvNr/.test(r), 'veraltete Ladungen verworfen');
 });
 
+// Abschlusspruefung 13.11.: renderHome (60-s-Timer, Punkte, VODs, Suche) darf das neue
+// Bild im Ablauf nicht mit der alten Quelle ueberschreiben; nach einem Fehler zeigt der
+// Fernseher wieder, was laeuft.
+test('zeichneTv ruht waehrend des Auflegens, der Fehlerweg setzt den Fernseher zurueck', () => {
+  const z = rumpfOben(homeJs, 'function zeichneTv(');
+  assert.ok(/^\s*if \(ladenLaeuft \|\| laufwerk\.laeuft\) return;/m.test(z), 'nichts tun, solange aufgelegt wird');
+  const lw = homeJs.indexOf('async function ladeWert(');
+  const r = homeJs.slice(lw, homeJs.indexOf('\n}', lw));
+  const fehler = r.slice(r.indexOf("$hinweis.textContent = (r && r.error) || 'Laden fehlgeschlagen'"));
+  assert.ok(fehler.includes('zeichneTv();'), 'Fehler: Fernseher zurueck auf das Laufende');
+});
+
 test('Fernseher-Masse kommen aus raum.js, nicht als Zahlen in home-raum-dom.js', () => {
   assert.ok(!/x:\s*206,\s*y:\s*52/.test(js));
 });
