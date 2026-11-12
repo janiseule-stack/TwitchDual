@@ -1093,22 +1093,33 @@ test('Fahrt: Animationen aus schaltet die Uebergaenge ab und wechselt sofort', (
   assert.ok(r.includes("'im-ablauf'"), 'nicht waehrend des Auflegens');
 });
 
-test('Fahrt: zwei Arten (Zoom an Ort, Pixel-Blende), F8 schaltet um, Abbruch setzt beide Ebenen zurueck', () => {
+test('Fahrt: Zoom an Ort als Standard, Pixel-Blende per Einstellung, Abbruch setzt beide Ebenen zurueck', () => {
   const r = rumpf(js, 'function kameraZiel(');
   assert.ok(!r.includes('fahrt') && !js.includes('Raum.kameraRegal'), 'die Bild-Kamera bleibt beim Ablauf');
   assert.ok(!js.includes('kameraZiel(Raum.HOVER.regal'));
   assert.ok(!/regalWachsen|raumZoomRegal/.test(js), 'verworfene Fahrten sind weg');
   const f = rumpf(js, 'function fahre(');
-  assert.ok(f.includes("fahrtArt === 'pixel'") && f.includes('fahrePixel(ziel)') && f.includes('fahreZoom(ziel)'));
+  assert.ok(f.includes("document.documentElement.dataset.uebergang === 'pixel'") && f.includes('fahrePixel(ziel)') && f.includes('fahreZoom(ziel)'));
   const z = rumpf(js, 'function fahreZoom(');
   assert.ok(z.includes('Raum.zoomAmOrt(wirt.clientWidth, wirt.clientHeight)'));
   assert.ok(!z.includes('neuAusrichten()') && !z.includes('t.raum.bild'), 'nur die ganze Raum-Ebene bewegt sich');
-  assert.ok(/const FAHRT_ARTEN = \['zoom', 'pixel'\];/.test(js) && /let fahrtArt = 'zoom';/.test(js));
-  assert.ok(/wechsleFahrtArt,/.test(js), 'exportiert');
-  assert.ok(/if \(e\.key === 'F8'\) \{[^}]*HomeRaumDom\.wechsleFahrtArt\(\)[^}]*HomeRaumDom\.zeigeSchild\(/.test(homeJs));
+  // Vergleichs-Taste F8 ist weg, die Einstellung steht in der Licht-Tafel (und im ⚙ des Chats)
+  assert.ok(!/wechsleFahrtArt|fahrtArt|'F8'/.test(js + homeJs));
+  assert.ok(homeJs.includes('saveThemePrefs({ pixelUebergang: $lichtPixel.checked })'));
+  assert.ok(homeJs.includes("$lichtPixel.checked = document.documentElement.dataset.uebergang === 'pixel'"));
   // jeder Abbruch setzt beide Ebenen zurueck (Transform und Pixel-Filter)
   const s = rumpf(js, 'function stoppeFahrt(');
   assert.ok(s.includes('[t.regal, t.raum]') && s.includes("x.e.style.transform = ''") && s.includes("x.e.style.filter = ''"));
+});
+
+test('Pixel-Uebergang: Video-Fenster setzt data-uebergang, Chat-⚙ hat den Schalter', () => {
+  const video = lies('renderer/video/video.js');
+  assert.ok(video.includes("document.documentElement.dataset.uebergang = p.pixelUebergang ? 'pixel' : 'zoom'"));
+  const chatHtml = lies('renderer/chat/index.html');
+  const chat = lies('renderer/chat/chat.js');
+  assert.ok(/<input type="checkbox" id="opt-pixel-uebergang" \/>/.test(chatHtml));
+  assert.ok(chat.includes('$optPixelUebergang.checked = themePrefs.pixelUebergang'));
+  assert.ok(chat.includes('saveThemePrefs({ pixelUebergang: $optPixelUebergang.checked })'));
 });
 
 test('Fahrt (Pixel-Blende): 4 Stufen grob, Wechsel bei der groebsten, 4 Stufen scharf, nichts bewegt sich', () => {

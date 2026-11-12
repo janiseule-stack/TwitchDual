@@ -564,9 +564,10 @@ function aufgelegt() {
   return k.displayName || k.login;
 }
 
-// Tafel "Licht": Schalter Animationen (wie im ⚙-Fenster des Chats).
+// Tafel "Licht": Schalter Animationen und Pixel-Uebergang (wie im ⚙-Fenster des Chats).
 let $licht = null;
 let $lichtAnimationen = null;
+let $lichtPixel = null;
 function lichtInhalt() {
   if (!$licht) {
     $licht = document.createElement('div');
@@ -578,11 +579,19 @@ function lichtInhalt() {
       window.twitchDual.saveThemePrefs({ animationen: $lichtAnimationen.checked });
     });
     zeile.append($lichtAnimationen, ' Animationen');
+    const zeilePixel = document.createElement('label');
+    $lichtPixel = document.createElement('input');
+    $lichtPixel.type = 'checkbox';
+    $lichtPixel.addEventListener('change', () => {
+      window.twitchDual.saveThemePrefs({ pixelUebergang: $lichtPixel.checked });
+    });
+    zeilePixel.append($lichtPixel, ' Pixel-Übergang');
     const satz = document.createElement('p');
     satz.textContent = 'Weitere Einstellungen: ⚙ im Chat';
-    $licht.append(zeile, satz);
+    $licht.append(zeile, zeilePixel, satz);
   }
   $lichtAnimationen.checked = !effekteAus();
+  $lichtPixel.checked = document.documentElement.dataset.uebergang === 'pixel';
   return $licht;
 }
 
@@ -618,13 +627,6 @@ window.addEventListener('resize', () => {
 document.addEventListener('keydown', (e) => {
   if ($home.classList.contains('hidden')) return;
   const tafel = HomeRaumDom.tafelOffen();
-  // F8: Art des Wechsels Raum <-> Regal umschalten (Vergleich fuer Janis, 13.11.)
-  if (e.key === 'F8') {
-    e.preventDefault();
-    const art = HomeRaumDom.wechsleFahrtArt();
-    HomeRaumDom.zeigeSchild('Übergang: ' + (art === 'pixel' ? 'Pixel-Blende' : 'Zoom'));
-    return;
-  }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     if (tafel || HomeRaumDom.ansicht() !== 'regal' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.preventDefault(); // im Suchfeld sonst Cursor an Anfang/Ende

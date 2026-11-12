@@ -9,7 +9,8 @@
     root.ThemeLib = factory();
   }
 })(typeof self !== 'undefined' ? self : this, function () {
-  const STANDARD_PREFS = Object.freeze({ chatAlpha: 100, animationen: true });
+  // pixelUebergang: Wechsel Raum <-> Regal als Pixel-Blende statt Zoom (Janis 13.11.)
+  const STANDARD_PREFS = Object.freeze({ chatAlpha: 100, animationen: true, pixelUebergang: false });
   const AKZENT = '#f9a650';   // = --accent in renderer/themes/cozy/farben.css
   const BALKEN = '#120505';   // = --bg; Flaeche ueber/unter dem Video
   // Zeichengleiche Kopie steht in preload.js (Sandbox: kein require);
@@ -55,25 +56,27 @@
     return null;
   }
 
-  // Store-Inhalt kann alt oder kaputt sein: nur die zwei bekannten Felder
+  // Store-Inhalt kann alt oder kaputt sein: nur die bekannten Felder
   // bleiben. Umzug: wer frueher effekte 'aus' hatte, behaelt Animationen aus,
   // solange kein echtes animationen-Feld gespeichert ist.
   function cleanThemePrefs(roh) {
     const p = roh && typeof roh === 'object' && !Array.isArray(roh) ? roh : {};
     const animationen = typeof p.animationen === 'boolean' ? p.animationen : p.effekte !== 'aus';
-    return { chatAlpha: clampAlpha(p.chatAlpha), animationen };
+    return { chatAlpha: clampAlpha(p.chatAlpha), animationen, pixelUebergang: p.pixelUebergang === true };
   }
 
-  // Teil-Updates (nur Deckkraft, nur Animationen) lassen das andere Feld stehen.
+  // Teil-Updates (nur ein Feld) lassen die anderen Felder stehen.
   function mergeThemePrefs(gespeichert, update) {
     const basis = cleanThemePrefs(gespeichert);
     const u = update && typeof update === 'object' && !Array.isArray(update) ? update : {};
     const neu = { ...basis };
     if ('chatAlpha' in u) neu.chatAlpha = u.chatAlpha;
     if ('animationen' in u) neu.animationen = u.animationen;
+    if ('pixelUebergang' in u) neu.pixelUebergang = u.pixelUebergang;
     const sauber = cleanThemePrefs(neu);
-    // ein kaputtes animationen im Update darf das Gespeicherte nicht umwerfen
+    // ein kaputtes Feld im Update darf das Gespeicherte nicht umwerfen
     if (typeof neu.animationen !== 'boolean') sauber.animationen = basis.animationen;
+    if (typeof neu.pixelUebergang !== 'boolean') sauber.pixelUebergang = basis.pixelUebergang;
     return sauber;
   }
 

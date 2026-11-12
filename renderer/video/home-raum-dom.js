@@ -23,11 +23,10 @@ window.HomeRaumDom = (function () {
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
   // Summe 5200 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
-  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre), zwei Arten zum
-  // Vergleichen (Janis 13.11., F8 schaltet um): 'zoom' = Zoom an Ort und Stelle,
-  // 'pixel' = Pixel-Blende. Dauer gleich den Uebergaengen in home-raum.css, Klassen an #home.
+  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Zoom an Ort und
+  // Stelle, mit der Einstellung "Pixel-Uebergang" (data-uebergang="pixel", Janis
+  // 13.11.) die Pixel-Blende. Dauer gleich den Uebergaengen in home-raum.css, Klassen an #home.
   const FAHRT_MS = 700;
-  const FAHRT_ARTEN = ['zoom', 'pixel'];
   const PIXEL_SCHRITT_MS = FAHRT_MS / 8; // 4 Stufen hin, 4 zurueck
   const FAHRT_KLASSEN = ['fahrt', 'fahrt-hin', 'fahrt-zurueck', 'fahrt-leer'];
   // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
@@ -49,7 +48,6 @@ window.HomeRaumDom = (function () {
   let fahrtNr = 0; // Laufnummer der Fahrt: alte Timer tun nichts mehr
   let fahrtZiel = null; // Ansicht, zu der die laufende Fahrt geht (null: keine)
   let fahrtTimer = [];
-  let fahrtArt = 'zoom';
   let pixelFilter = []; // SVG-Filter der Pixel-Blende, je Stufe { flood, tile, dilate }
   let tvNr = 0; // verwirft verspaetete Vorschau-Bilder
   let tvMaske = null;
@@ -391,16 +389,10 @@ window.HomeRaumDom = (function () {
   }
   function fahrtSchritt(nr, ms, f) { fahrtTimer.push(setTimeout(() => { if (nr === fahrtNr) f(); }, ms)); }
 
-  // Art des Wechsels umschalten (F8 in home.js), gibt die neue Art zurueck.
-  function wechsleFahrtArt() {
-    fahrtArt = FAHRT_ARTEN[(FAHRT_ARTEN.indexOf(fahrtArt) + 1) % FAHRT_ARTEN.length];
-    return fahrtArt;
-  }
-
   function fahre(ziel) {
     fahrtZiel = ziel;
     zeigeHover(null);
-    if (fahrtArt === 'pixel') fahrePixel(ziel);
+    if (document.documentElement.dataset.uebergang === 'pixel') fahrePixel(ziel);
     else fahreZoom(ziel);
   }
 
@@ -1135,7 +1127,7 @@ window.HomeRaumDom = (function () {
   }
 
   return {
-    init, zeigeAnsicht, ansicht, wechsleFahrtArt, zeichneRegal, fachBlaettern,
+    init, zeigeAnsicht, ansicht, zeichneRegal, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
     zeigeSchild, setzeTv, neuAusrichten, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
   };

@@ -70,14 +70,25 @@ test('onAirLabel: paused/idle -> null (dimmed, kein Label)', () => {
 const T = ThemeLib;
 test('cleanThemePrefs: leer/Muell -> Standard', () => {
   for (const roh of [null, undefined, 'x', 7, [], {}]) {
-    assert.deepStrictEqual(T.cleanThemePrefs(roh), { chatAlpha: 100, animationen: true });
+    assert.deepStrictEqual(T.cleanThemePrefs(roh), { chatAlpha: 100, animationen: true, pixelUebergang: false });
   }
+});
+// Janis 13.11.: Zoom ist Standard, die Pixel-Blende Raum <-> Regal gibt es als Einstellung.
+test('pixelUebergang: Standard aus, nur echte Booleans, Teil-Update laesst die anderen Felder stehen', () => {
+  assert.strictEqual(T.STANDARD_PREFS.pixelUebergang, false);
+  assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: true }).pixelUebergang, true);
+  assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: 'ja' }).pixelUebergang, false);
+  const g = { chatAlpha: 60, animationen: false, pixelUebergang: true };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false, pixelUebergang: true });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { pixelUebergang: false }), { chatAlpha: 60, animationen: false, pixelUebergang: false });
+  // kaputter Wert im Update wirft das Gespeicherte nicht um
+  assert.strictEqual(T.mergeThemePrefs(g, { pixelUebergang: 'nein' }).pixelUebergang, true);
 });
 test('cleanThemePrefs: alte Felder verschwinden, chatAlpha bleibt', () => {
   const alt = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'koi', effekte: 'normal',
     anpassungen: { 'koi:tusche': { akzent: '#112233' } }, variante: { koi: 'tusche' }, saat: { koi: 5 },
     gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' };
-  assert.deepStrictEqual(T.cleanThemePrefs(alt), { chatAlpha: 60, animationen: true });
+  assert.deepStrictEqual(T.cleanThemePrefs(alt), { chatAlpha: 60, animationen: true, pixelUebergang: false });
 });
 test('cleanThemePrefs: Umzug effekte aus -> animationen false', () => {
   assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus' }).animationen, false);
@@ -93,11 +104,11 @@ test('cleanThemePrefs: kaputte Deckkraft -> 100', () => {
   assert.strictEqual(T.cleanThemePrefs({ chatAlpha: -5 }).chatAlpha, 0);
 });
 test('mergeThemePrefs: Teil-Update laesst das andere Feld stehen', () => {
-  const g = { chatAlpha: 60, animationen: false };
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false });
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { chatAlpha: 60, animationen: true });
+  const g = { chatAlpha: 60, animationen: false, pixelUebergang: false };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false, pixelUebergang: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { chatAlpha: 60, animationen: true, pixelUebergang: false });
   assert.deepStrictEqual(T.mergeThemePrefs(g, null), g);
-  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { chatAlpha: 100, animationen: true });
+  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { chatAlpha: 100, animationen: true, pixelUebergang: false });
 });
 test('mergeThemePrefs: alter Store mit effekte aus + Update ohne animationen bleibt aus', () => {
   assert.strictEqual(T.mergeThemePrefs({ effekte: 'aus', chatAlpha: 100 }, { chatAlpha: 90 }).animationen, false);

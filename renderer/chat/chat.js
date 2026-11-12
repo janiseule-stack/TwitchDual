@@ -778,6 +778,7 @@ document.getElementById('head').addEventListener('dblclick', (e) => {
 const $alphaChat = document.getElementById('opt-alpha-chat');
 const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
 const $optAnimationen = document.getElementById('opt-animationen');
+const $optPixelUebergang = document.getElementById('opt-pixel-uebergang');
 
 let themePrefs = ThemeLib.cleanThemePrefs(null);
 
@@ -811,6 +812,7 @@ function applyTheme(prefs) {
   $alphaChat.value = themePrefs.chatAlpha;
   $alphaChatVal.textContent = themePrefs.chatAlpha + '%';
   $optAnimationen.checked = themePrefs.animationen;
+  $optPixelUebergang.checked = themePrefs.pixelUebergang;
 }
 
 window.twitchDual.getUiPrefs()
@@ -829,6 +831,9 @@ $alphaChat.addEventListener('change', () => {
 });
 $optAnimationen.addEventListener('change', () => {
   window.twitchDual.saveThemePrefs({ animationen: $optAnimationen.checked });
+});
+$optPixelUebergang.addEventListener('change', () => {
+  window.twitchDual.saveThemePrefs({ pixelUebergang: $optPixelUebergang.checked });
 });
 
 // On Air: live + spielt. Bis zum ersten 'playing' nach einem Load gilt

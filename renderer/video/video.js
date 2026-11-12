@@ -326,8 +326,11 @@ function sendeBalken() {
   }
 }
 // Animationen "aus" -> data-animationen="aus" (Home liest es beim Auflegen).
+// Pixel-Uebergang -> data-uebergang="pixel" (Home, Wechsel Raum <-> Regal), sonst "zoom".
 function applyTheme(prefs) {
-  document.documentElement.dataset.animationen = ThemeLib.cleanThemePrefs(prefs).animationen ? 'an' : 'aus';
+  const p = ThemeLib.cleanThemePrefs(prefs);
+  document.documentElement.dataset.animationen = p.animationen ? 'an' : 'aus';
+  document.documentElement.dataset.uebergang = p.pixelUebergang ? 'pixel' : 'zoom';
   sendeBalken();
 }
 
