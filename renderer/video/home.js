@@ -68,16 +68,18 @@ function schliesseTafel() {
   zeigeZurueckKnopf();
 }
 
-function zeigeRegal(fokus) {
-  HomeRaumDom.zeigeAnsicht('regal');
+// weich: Kamera-Fahrt und Blende zwischen Raum und Regal (HomeRaumDom, nur mit
+// Animationen); Home-Oeffnen, Strg+L und zu kleines Fenster wechseln sofort.
+function zeigeRegal(fokus, weich) {
+  HomeRaumDom.zeigeAnsicht('regal', weich);
   if (fokus) $suche.focus(); // direkt lostippen
   zeigeZurueckKnopf();
 }
-function zeigeRaum() {
+function zeigeRaum(weich) {
   // Fokus nicht in der versteckten Regal-Ansicht lassen (Tippen landet sonst dort)
   const a = document.activeElement;
   if (a && a !== document.body && $home.contains(a)) a.blur();
-  HomeRaumDom.zeigeAnsicht('raum');
+  HomeRaumDom.zeigeAnsicht('raum', weich);
   zeigeZurueckKnopf();
 }
 
@@ -96,7 +98,7 @@ function zurueckSchritt() {
   if (HomeRaumDom.tafelOffen()) schliesseTafel();
   else if (seite === 'rueck' && herausgenommen && gezeigt().modus !== 'offline') { seite = 'vorn'; renderHome(); }
   else if (herausgenommen) { legeZurueck(); renderHome(); }
-  else if (HomeRaumDom.ansicht() === 'regal' && raumPasst()) zeigeRaum();
+  else if (HomeRaumDom.ansicht() === 'regal' && raumPasst()) zeigeRaum(true);
   else return false;
   return true;
 }
@@ -577,7 +579,7 @@ function lichtInhalt() {
 }
 
 function beiFlaeche(id) {
-  if (id === 'regal') zeigeRegal(true);
+  if (id === 'regal') zeigeRegal(true, true);
   else if (id === 'fernseher') {
     if (window.laeuftEtwas && window.laeuftEtwas()) closeHomeResume();
     else HomeRaumDom.zeigeSchild('Nichts geladen');
@@ -623,7 +625,7 @@ document.addEventListener('keydown', (e) => {
   if (!tafel && HomeRaumDom.ansicht() === 'raum' && !e.ctrlKey && !e.altKey && !e.metaKey &&
       /^[\p{L}\p{N}]$/u.test(e.key)) {
     e.preventDefault();
-    zeigeRegal(true);
+    zeigeRegal(true, true);
     $suche.value = e.key;
     sucheGetippt();
   }

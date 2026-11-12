@@ -23,6 +23,10 @@ window.HomeRaumDom = (function () {
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
   // Summe 5200 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
+  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Kamera-Fahrt und
+  // Blende (gleich den Uebergaengen in home-raum.css), Klassen an #home.
+  const FAHRT_MS = { kamera: 450, blende: 250 };
+  const FAHRT_KLASSEN = ['fahrt', 'fahrt-regal', 'fahrt-kamera', 'fahrt-blende', 'fahrt-leer'];
   // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
   // Ursprung wie Raum.HOVER.plattenspieler.
   const DREHT = { x: 258, y: 82, b: 54, h: 50, bilder: 8 };
@@ -39,6 +43,9 @@ window.HomeRaumDom = (function () {
   let schildTimer = null;
   let ablaufRuf = null;
   let ablaufTimer = [];
+  let fahrtNr = 0; // Laufnummer der Fahrt: alte Timer tun nichts mehr
+  let fahrtZiel = null; // Ansicht, zu der die laufende Fahrt geht (null: keine)
+  let fahrtTimer = [];
   let tvNr = 0; // verwirft verspaetete Vorschau-Bilder
   let tvMaske = null;
   let tafelLeihe = []; // umgehaengte Elemente: { el, eltern, danach }
@@ -339,15 +346,79 @@ window.HomeRaumDom = (function () {
   }
 
   // --- Ansicht und Ausrichtung ------------------------------------------------------
-  function zeigeAnsicht(a) {
-    aktuell = a === 'regal' ? 'regal' : 'raum';
+  // weich: Kamera-Fahrt und Blende (fahre), nur mit Animationen und aus der sichtbaren
+  // Ansicht heraus. Laeuft die Fahrt schon dorthin, bleibt sie; jeder andere Wunsch
+  // beendet sie (Laufnummer) und wechselt sofort: der letzte Wunsch gewinnt.
+  function zeigeAnsicht(a, weich) {
+    const ziel = a === 'regal' ? 'regal' : 'raum';
+    if (wirt && weich && fahrtZiel === ziel) return;
+    const fahrt = !!wirt && !!weich && !fahrtZiel && ziel !== aktuell && kannFahren();
+    stoppeFahrt();
+    aktuell = ziel;
     if (!wirt) return;
+    if (fahrt) { fahre(ziel); return; }
     aus(t.raum.e, aktuell !== 'raum');
     aus(t.regal.e, aktuell !== 'regal');
     zeigeHover(null);
     neuAusrichten();
   }
   function ansicht() { return aktuell; }
+
+  // Fahrt nur mit Animationen, nicht im Ablauf, bei sichtbarem Home und sichtbarer Ansicht.
+  function kannFahren() {
+    const sichtbar = aktuell === 'raum' ? t.raum.e : t.regal.e;
+    return document.documentElement.dataset.animationen !== 'aus' &&
+      !wirt.classList.contains('im-ablauf') && wirt.clientWidth > 0 &&
+      !sichtbar.classList.contains('raum-aus');
+  }
+  function stoppeFahrt() {
+    fahrtNr += 1;
+    fahrtZiel = null;
+    fahrtTimer.forEach((x) => clearTimeout(x));
+    fahrtTimer = [];
+    if (wirt) wirt.classList.remove(...FAHRT_KLASSEN);
+  }
+  function fahrtSchritt(nr, ms, f) { fahrtTimer.push(setTimeout(() => { if (nr === fahrtNr) f(); }, ms)); }
+
+  // Hin: Kamera faehrt im Raum aufs Regal (450 ms), dann blendet das Regal ueber den
+  // Raum ein (250 ms); danach Raum verborgen, Kamera in Ruhelage. Das Regal liegt ab
+  // Beginn durchsichtig da (fahrt-leer), damit das Suchfeld den Fokus nehmen kann.
+  // Zurueck: Raum steht unter dem Regal auf der Kamera, das Regal blendet aus
+  // (250 ms), dann faehrt die Kamera zurueck (450 ms). Uebergaenge: home-raum.css.
+  function fahre(ziel) {
+    const nr = fahrtNr;
+    const m = FAHRT_MS;
+    const k = wirt.classList;
+    fahrtZiel = ziel;
+    zeigeHover(null);
+    if (ziel === 'regal') {
+      k.add('fahrt', 'fahrt-regal', 'fahrt-kamera', 'fahrt-leer');
+      aus(t.regal.e, false);
+      neuAusrichten(); // Kamera faehrt aufs Regal
+      fahrtSchritt(nr, m.kamera, () => {
+        k.add('fahrt-blende');
+        k.remove('fahrt-leer'); // Regal blendet ueber den Raum
+      });
+      fahrtSchritt(nr, m.kamera + m.blende, () => {
+        stoppeFahrt();
+        aus(t.raum.e, true);
+        neuAusrichten(); // Kamera zurueck in die Ruhelage (Raum verborgen)
+      });
+    } else {
+      k.add('fahrt', 'fahrt-regal');
+      aus(t.raum.e, false); // unter dem Regal, steht sofort auf der Kamera
+      neuAusrichten();
+      void t.regal.e.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
+      k.add('fahrt-blende', 'fahrt-leer'); // Regal blendet aus
+      fahrtSchritt(nr, m.blende, () => {
+        aus(t.regal.e, true);
+        k.remove('fahrt-blende', 'fahrt-leer', 'fahrt-regal');
+        k.add('fahrt-kamera');
+        neuAusrichten(); // Kamera faehrt zurueck in die Ruhelage
+      });
+      fahrtSchritt(nr, m.blende + m.kamera, () => stoppeFahrt());
+    }
+  }
 
   function neuAusrichten() {
     if (!wirt) return;
@@ -816,12 +887,14 @@ window.HomeRaumDom = (function () {
 
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
   // Kamera je Abschnitt: auf den Plattenspieler (ablauf-spieler), dann der
-  // gruene Bildschirm fuellt das Fenster (ablauf-zoom); sonst keine (null).
+  // gruene Bildschirm fuellt das Fenster (ablauf-zoom); beim weichen Wechsel
+  // (fahrt-regal) aufs Regal im Raum; sonst keine (null).
   function kameraZiel() {
     const k = wirt.classList;
     const ziel = k.contains('ablauf-zoom') ? Raum.TV_RECHTECK
       : k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null;
-    return ziel ? Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight) : null;
+    if (ziel) return Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight);
+    return k.contains('fahrt-regal') ? Raum.kameraZiel(Raum.HOVER.regal, wirt.clientWidth, wirt.clientHeight) : null;
   }
   // Naechster Abschnitt nach ms (seit Beginn des Ablaufs).
   function abschnitt(ms, f) { ablaufTimer.push(setTimeout(f, ms)); }

@@ -1046,3 +1046,84 @@ test('Regal neu: eigene Namen (faecherNeu, t.plattenRuecken), alter Weg ist weg 
   for (const alt of ['function baueRegal(', 'function zeichneFach(', 'function zeigeFach(', 'fachBlaetternNeu']) assert.ok(!js.includes(alt), alt);
   assert.ok(/function fachBlaettern\(art, richtung\)/.test(js));
 });
+
+// --- Task 9c: weicher Uebergang Raum <-> Regal ------------------------------------
+function fahrtMs() {
+  const m = /FAHRT_MS\s*=\s*(\{[^}]*\})/.exec(js);
+  assert.ok(m, 'FAHRT_MS');
+  return Function('return ' + m[1])();
+}
+
+test('Fahrt: Kamera 450 ms, Blende 250 ms (JS und CSS gleich)', () => {
+  const m = fahrtMs();
+  assert.deepStrictEqual(m, { kamera: 450, blende: 250 });
+  assert.ok(new RegExp('#home\\.fahrt-kamera #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.kamera + 'ms ease-in-out').test(css));
+  assert.ok(new RegExp('#home\\.fahrt-blende #regal-ebene\\s*\\{[^}]*transition:\\s*opacity ' + m.blende + 'ms').test(css));
+  assert.ok(/#home\.fahrt-leer #regal-ebene\s*\{[^}]*opacity:\s*0/.test(css));
+  // waehrend der Fahrt kein Hover/Klick in den Ebenen, Raum-Text wie im Ablauf verborgen
+  assert.ok(/#home\.fahrt #raum-ebene \*[^{]*\{[^}]*pointer-events:\s*none/.test(css));
+  assert.ok(/#home\.fahrt #regal-ebene \*[^{]*\{[^}]*pointer-events:\s*none/.test(css));
+  assert.ok(/#home\.fahrt #raum-ebene \.raum-textschicht\s*\{[^}]*visibility:\s*hidden/.test(css));
+});
+
+test('Fahrt: Animationen aus schaltet die Uebergaenge ab und wechselt sofort', () => {
+  // CSS: die Aus-Regel erfasst alles unter #home.raum-home (auch die Fahrt-Ebenen)
+  assert.ok(/html\[data-animationen="aus"\] #home\.raum-home \*[^{]*\{[^}]*transition:\s*none !important/.test(css));
+  // JS: ohne Animationen keine Fahrt (sofortiger Wechsel)
+  const r = rumpf(js, 'function kannFahren(');
+  assert.ok(r.includes("document.documentElement.dataset.animationen !== 'aus'"));
+  assert.ok(r.includes("'im-ablauf'"), 'nicht waehrend des Auflegens');
+});
+
+test('Fahrt: Kamera zielt auf Raum.HOVER.regal (wie der Ablauf ueber kameraZiel)', () => {
+  const r = rumpf(js, 'function kameraZiel(');
+  assert.ok(r.includes("k.contains('fahrt-regal')"));
+  assert.ok(r.includes('Raum.kameraZiel(Raum.HOVER.regal, wirt.clientWidth, wirt.clientHeight)'));
+});
+
+test('Fahrt: Laufnummer gegen Doppelstart, letzter Wunsch gewinnt', () => {
+  assert.ok(/let fahrtNr = 0;/.test(js));
+  const s = rumpf(js, 'function stoppeFahrt(');
+  assert.ok(s.includes('fahrtNr += 1') && s.includes('clearTimeout(') && s.includes('fahrtZiel = null'));
+  assert.ok(s.includes('FAHRT_KLASSEN'));
+  assert.ok(/function fahrtSchritt\(nr, ms, f\) \{[^}]*setTimeout\(\(\) => \{ if \(nr === fahrtNr\) f\(\); \}, ms\)/.test(js));
+  const z = rumpf(js, 'function zeigeAnsicht(');
+  assert.ok(/function zeigeAnsicht\(a, weich\)/.test(z));
+  assert.ok(z.includes('fahrtZiel === ziel) return'), 'gleiche Fahrt laeuft schon: nicht neu starten');
+  assert.ok(z.includes('!fahrtZiel'), 'andere Fahrt laeuft: sofort wechseln');
+  assert.ok(z.indexOf('stoppeFahrt()') > -1 && z.indexOf('stoppeFahrt()') < z.indexOf('fahre('), 'jede Ansicht beendet die laufende Fahrt');
+});
+
+test('Fahrt hin: Kamera, dann Blende ueber den Raum, dann Raum verborgen und Kamera zurueck', () => {
+  const r = rumpf(js, 'function fahre(');
+  const hin = r.slice(0, r.indexOf('} else {'));
+  assert.ok(hin.includes("k.add('fahrt', 'fahrt-regal', 'fahrt-kamera', 'fahrt-leer')"));
+  assert.ok(hin.indexOf('aus(t.regal.e, false)') < hin.indexOf('neuAusrichten()'), 'Regal da (Fokus), Kamera faehrt');
+  assert.ok(hin.includes('fahrtSchritt(nr, m.kamera, ()'));
+  assert.ok(hin.includes("k.add('fahrt-blende')") && hin.includes("k.remove('fahrt-leer')"));
+  const ende = hin.slice(hin.indexOf('fahrtSchritt(nr, m.kamera + m.blende, ()'));
+  assert.ok(ende.length > 0 && ende.includes('stoppeFahrt()') && ende.includes('aus(t.raum.e, true)') && ende.includes('neuAusrichten()'));
+});
+
+test('Fahrt zurueck: Raum steht auf der Kamera, Regal blendet aus, dann faehrt die Kamera zurueck', () => {
+  const r = rumpf(js, 'function fahre(');
+  const zur = r.slice(r.indexOf('} else {'));
+  assert.ok(zur.includes("k.add('fahrt', 'fahrt-regal')"));
+  assert.ok(zur.indexOf('aus(t.raum.e, false)') < zur.indexOf('void t.regal.e.offsetWidth'));
+  assert.ok(zur.indexOf('void t.regal.e.offsetWidth') < zur.indexOf("k.add('fahrt-blende', 'fahrt-leer')"));
+  const nach = zur.slice(zur.indexOf('fahrtSchritt(nr, m.blende, ()'));
+  assert.ok(nach.includes('aus(t.regal.e, true)') && nach.includes("k.add('fahrt-kamera')"));
+  assert.ok(nach.indexOf("'fahrt-regal'") < nach.indexOf('neuAusrichten()'), 'Kamera-Ziel weg, dann Ruhelage mit Uebergang');
+  assert.ok(zur.includes('fahrtSchritt(nr, m.blende + m.kamera, () => stoppeFahrt())'));
+});
+
+test('home.js: Klick aufs Regal und Zurueck fahren weich, Home-Oeffnen und Strg+L sofort', () => {
+  assert.ok(/function zeigeRegal\(fokus, weich\) \{\s*HomeRaumDom\.zeigeAnsicht\('regal', weich\);/.test(homeJs));
+  assert.ok(/function zeigeRaum\(weich\) \{/.test(homeJs) && homeJs.includes("HomeRaumDom.zeigeAnsicht('raum', weich);"));
+  assert.ok(homeJs.includes("if (id === 'regal') zeigeRegal(true, true);"));
+  const z = rumpfOben(homeJs, 'function zurueckSchritt(');
+  assert.ok(z.includes('zeigeRaum(true)'));
+  const o = rumpfOben(homeJs, 'function openHome(');
+  assert.ok(o.includes("if (ziel === 'regal' || !raumPasst()) zeigeRegal(true);") && o.includes('else zeigeRaum();'));
+  assert.ok(homeJs.includes('else { schliesseTafel(); zeigeRegal(false); }'), 'Strg+L bei offenem Home: sofort');
+});
