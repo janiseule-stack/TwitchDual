@@ -149,6 +149,39 @@ test('skalierung mit REGAL_RAHMEN: hochkant 700x900 und 500x1000 -> von..bis gan
   }
 });
 
+test('REGAL_LEINWAND: x -80, y -64, 504x320, eingefroren', () => {
+  assert.deepStrictEqual(R.REGAL_LEINWAND, { x: -80, y: -64, b: 504, h: 320 });
+  assert.ok(Object.isFrozen(R.REGAL_LEINWAND));
+});
+
+test('skalierungRegal: Regal (von..bis, 0..192) liegt ganz im Fenster, ganzzahlig', () => {
+  const rr = R.REGAL_RAHMEN;
+  for (const [b, h] of [...GROESSEN, [700, 900], [500, 1000]]) {
+    const s = R.skalierungRegal(b, h);
+    const id = b + 'x' + h;
+    assert.ok(Number.isInteger(s.links) && Number.isInteger(s.oben), id + ': ganzzahlig');
+    assert.ok(!Object.is(s.links, -0) && !Object.is(s.oben, -0), id + ': kein -0');
+    assert.ok(s.links + rr.von * s.faktor >= -1, id + ': Regal links');
+    assert.ok(s.links + rr.bis * s.faktor <= b + 1, id + ': Regal rechts');
+    assert.ok(s.oben >= -1, id + ': Regal oben');
+    assert.ok(s.oben + 192 * s.faktor <= h + 1, id + ': Regal unten');
+  }
+});
+
+test('skalierungRegal: Regal-Anteil an der Fensterhoehe', () => {
+  const anteil = (b, h) => 192 * R.skalierungRegal(b, h).faktor / h;
+  assert.ok(Math.abs(R.skalierungRegal(2960, 1390).faktor - 5.87) < 0.01);
+  assert.ok(Math.abs(anteil(2960, 1390) - 0.81) < 0.01);
+  assert.ok(Math.abs(anteil(1920, 1030) - 0.71) < 0.01);
+  assert.ok(Math.abs(anteil(900, 700) - 0.60) < 0.01);
+});
+
+test('skalierungRegal: 500x1000 hochkant -> dunkler Rand oben', () => {
+  const s = R.skalierungRegal(500, 1000);
+  assert.ok(s.oben > 0);
+  assert.ok(Math.abs(s.faktor - 2.5) < 1e-9);
+});
+
 test('kartenMasse auf der Groessenliste', () => {
   for (const [b, h] of GROESSEN) {
     const k = R.kartenMasse(b, h);

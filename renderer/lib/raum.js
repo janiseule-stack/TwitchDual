@@ -91,6 +91,32 @@
   }
   function zwischen(wert, min, max) { return Math.min(max, Math.max(min, wert)); }
 
+  // Regal-Leinwand: Regal-Bild (344x192) plus Wand seitlich und PixelLab-Streifen oben/unten.
+  const REGAL_LEINWAND = Object.freeze({ x: -80, y: -64, b: 504, h: 320 });
+
+  // Ein Achsen-Ursprung: Sichtbarer Ausschnitt s Bildpixel, Mitte m, Leinwand [min, min+gesamt],
+  // Muss-Bereich von..bis bleibt sichtbar. Ist s > gesamt, wird die Leinwand zentriert (Rand).
+  function achseRegal(s, m, min, gesamt, von, bis) {
+    if (s > gesamt) return min - (s - gesamt) / 2;
+    let l = zwischen(m - s / 2, min, min + gesamt - s);
+    l = zwischen(l, bis - s, von);
+    return l;
+  }
+
+  // Fuellt das Fenster mit der Regal-Leinwand, zeigt aber immer das ganze Regal.
+  function skalierungRegal(fensterBreite, fensterHoehe) {
+    const b = zahl(fensterBreite);
+    const h = zahl(fensterHoehe);
+    if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
+    const L = REGAL_LEINWAND;
+    const rr = REGAL_RAHMEN;
+    let faktor = Math.max(b / L.b, h / L.h);
+    faktor = Math.min(faktor, b / (rr.bis - rr.von), h / BILD.hoehe);
+    const l = achseRegal(b / faktor, rr.mitte, L.x, L.b, rr.von, rr.bis);
+    const t = achseRegal(h / faktor, BILD.hoehe / 2, L.y, L.h, 0, BILD.hoehe);
+    return { faktor, links: Math.round(-l * faktor) + 0, oben: Math.round(-t * faktor) + 0 };
+  }
+
   // Deckender Faktor (nicht ganzzahlig): der Raum ohne dunklen Rand (RAHMEN, volle
   // Hoehe) fuellt das Fenster, Ueberstand wird abgeschnitten. Waagerecht mittig auf
   // den Raum; passen alle Gegenstaende ins Fenster, so wenig verschoben, dass sie
@@ -228,5 +254,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL, TELLER, skalierung, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
+  return { BILD, FLAECHEN, FACH, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, zettelZeilen, grossKante, kartenMasse };
 });

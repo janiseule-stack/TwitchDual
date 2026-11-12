@@ -15,6 +15,8 @@ const MASSE = {
   'raum.png': [344, 192],
   'regal.png': [344, 192],
   'regal-wand.png': [504, 192],
+  'regal-oben.png': [504, 64],
+  'regal-unten.png': [504, 64],
   'ruecken-live.png': [RUECKEN.b, RUECKEN.h],
   'ruecken-favorit.png': [RUECKEN.b, RUECKEN.h],
   'ruecken-offline.png': [RUECKEN.b, RUECKEN.h],
@@ -669,7 +671,7 @@ for (const art of Object.keys(REGAL_JSON.rueckenFarben)) {
   });
 }
 
-for (const [name, quelle] of [['karte.png', 'karte.png'], ['karte-rueck.png', 'karte-rueck.png']]) {
+for (const [name, quelle] of [['karte.png', 'karte.png'], ['karte-rueck.png', 'karte-rueck.png'], ['regal-oben.png', 'regal-oben.png'], ['regal-unten.png', 'regal-unten.png']]) {
   test(`${name} = PixelLab-Quelle unveraendert`, () => {
     assert.ok(dekodiere(lade(name)).px.equals(quelleDatei(quelle).px));
   });

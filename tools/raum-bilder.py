@@ -445,6 +445,9 @@ def regal_bilder(ordner):
                 wp[x, y] = (p[0], p[1], p[2], 255)
     wand.save(os.path.join(ordner, "regal-wand.png"))
 
+    for streifen in ("regal-oben.png", "regal-unten.png"):
+        shutil.copyfile(os.path.join(QUELLEN, streifen), os.path.join(ordner, streifen))
+
     r = j["ruecken"]
     b = r["bild"]
     roh = quelle("ruecken.png").crop((b["x"], b["y"], b["x"] + b["b"], b["y"] + b["h"]))
