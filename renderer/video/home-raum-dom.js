@@ -519,6 +519,7 @@ window.HomeRaumDom = (function () {
     const r = t.regalNeu;
     r.e.style.setProperty('--f', f);
     r.e.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
+    r.e.style.setProperty('--ruecken-schrift', Raum.rueckenSchrift(f) + 'px');
     r.bild.style.transform = 'translate(' + skalRegal.links + 'px, ' + skalRegal.oben + 'px) scale(' + f + ')';
     r.text.style.left = Math.round(skalRegal.links) + 'px';
     r.text.style.top = Math.round(skalRegal.oben) + 'px';

@@ -17,6 +17,14 @@ function schnittstelle() {
   return js.slice(start, js.indexOf('}', start));
 }
 
+test('Ruecken-Schrift: Groesse aus Variable, dunkel auf hellen Ruecken, ohne Schatten', () => {
+  assert.ok(js.includes("setProperty('--ruecken-schrift', Raum.rueckenSchrift(f) + 'px')"));
+  const name = css.match(/\.ruecken-name \{[^}]*\}/)[0];
+  assert.ok(name.includes('font-size: var(--ruecken-schrift'));
+  assert.ok(!/text-shadow/.test(name));
+  assert.ok(/\.ruecken\.r-live \.ruecken-name, \.ruecken\.r-favorit \.ruecken-name \{ color: var\(--zettel-tinte\); \}/.test(css));
+});
+
 test('home-raum-dom.js setzt window.HomeRaumDom', () => {
   assert.ok(/window\.HomeRaumDom\s*=\s*\(function/.test(js));
 });

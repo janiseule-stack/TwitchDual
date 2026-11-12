@@ -222,6 +222,13 @@
     return 12 * Math.max(1, Math.round((zahl(faktor) * b) / 12));
   }
 
+  // Schrift des Ruecken-Namens: groesstes Vielfaches von 12 px, das in die Namensspalte
+  // (REGAL.ruecken.name.b Bildpixel x Faktor) passt, mindestens 12.
+  function rueckenSchrift(faktor) {
+    const spalte = zahl(faktor) * REGAL.ruecken.name.b;
+    return 12 * Math.max(1, Math.floor(spalte / 12));
+  }
+
   // Rahmenbreite in ganzen Bildschirm-Pixeln (Bildpixel x Faktor, mindestens 1).
   function randPx(faktor, bildPixel) {
     return Math.max(1, Math.round(zahl(faktor) * zahl(bildPixel)));
@@ -247,5 +254,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, kameraRegal, fachFenster, schriftPx, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, kameraRegal, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });

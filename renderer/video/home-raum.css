@@ -266,8 +266,10 @@
 .ruecken.r-offline .ruecken-fenster { filter: grayscale(1) brightness(.85); }
 .ruecken-name {
   writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  line-height: 1; color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+  line-height: 1; font-size: var(--ruecken-schrift, 12px); color: var(--text);
 }
+/* Helle Ruecken: dunkle Schrift (kein Umriss, kein Schatten) */
+.ruecken.r-live .ruecken-name, .ruecken.r-favorit .ruecken-name { color: var(--zettel-tinte); }
 /* Laden: die gewaehlte Platte pulsiert */
 .regal-neu.ladend .gewaehlt { animation: raum-puls 1.2s steps(2) infinite; }
 

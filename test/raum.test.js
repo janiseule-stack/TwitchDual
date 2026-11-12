@@ -380,6 +380,20 @@ test('schriftPx: Vielfache von 12 (12 x round(f / 3), mindestens 12)', () => {
   for (let f = 0.5; f < 12; f += 0.0625) assert.strictEqual(R.schriftPx(f) % 12, 0, 'f ' + f);
 });
 
+test('rueckenSchrift: groesstes Vielfaches von 12 in der Namensspalte, mindestens 12', () => {
+  const erwartet = [24, 12, 12, 12, 12, 12];
+  GROESSEN.forEach(([w, h], i) => {
+    const px = R.rueckenSchrift(R.skalierungRegal(w, h).faktor);
+    assert.strictEqual(px, erwartet[i], w + 'x' + h);
+    assert.strictEqual(px % 12, 0);
+  });
+  assert.strictEqual(R.rueckenSchrift(5), 24); // 25 -> 24
+  assert.strictEqual(R.rueckenSchrift(7), 24); // 35 -> 24
+  assert.strictEqual(R.rueckenSchrift(7.2), 36); // 36
+  assert.strictEqual(R.rueckenSchrift(0.5), 12);
+  assert.strictEqual(R.rueckenSchrift(NaN), 12);
+});
+
 test('randPx: ganze Bildschirm-Pixel, mindestens 1', () => {
   assert.strictEqual(R.randPx(25 / 6, 6), 25);
   assert.strictEqual(R.randPx(2, 6), 12);
