@@ -366,6 +366,29 @@ test('regalWachsen: Start-Regal deckt Hoehe und Mitte des Raum-Regals (±1 px)',
   assert.ok(Math.abs(gross.s - 0.78) < 0.02, 's ~0,78: ' + gross.s);
 });
 
+// Janis 12.11. (Variante 1): Der Raum zoomt mit. raumZoomRegal ist die Umkehrung von
+// regalWachsen: Die Raum-Ebene (Ursprung 0 0) legt das Raum-Regal auf das Nahbild-Regal,
+// beide Ebenen bewegen sich also im Gleichschritt wie eine Kamera.
+test('raumZoomRegal: Raum-Regal landet mit Hoehe und Mitte auf dem Nahbild-Regal (±1 px)', () => {
+  const H = R.HOVER.regal;
+  const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
+  for (const [b, h] of [...GROESSEN, [700, 900]]) {
+    const raum = R.skalierung(b, h, R.RAUM_RAHMEN);
+    const nah = R.skalierungRegal(b, h);
+    const z = R.raumZoomRegal(b, h);
+    const w = R.regalWachsen(b, h);
+    const name = b + 'x' + h;
+    assert.ok(Math.abs(z.s * w.s - 1) < 1e-9, name + ': Umkehrung');
+    const raumMx = raum.links + (H.x + H.b / 2) * raum.faktor;
+    const raumMy = raum.oben + (H.y + H.h / 2) * raum.faktor;
+    const nahMx = nah.links + mitteX * nah.faktor;
+    const nahMy = nah.oben + 96 * nah.faktor;
+    assert.ok(Math.abs(z.s * H.h * raum.faktor - 192 * nah.faktor) <= 1, name + ': Hoehe');
+    assert.ok(Math.abs(z.s * raumMx + z.dx - nahMx) <= 1, name + ': Mitte x');
+    assert.ok(Math.abs(z.s * raumMy + z.dy - nahMy) <= 1, name + ': Mitte y');
+  }
+});
+
 test('Task 9e: Kamera-Fahrt aufs Regal (kameraRegal) ist weg', () => {
   assert.ok(!('kameraRegal' in R));
 });

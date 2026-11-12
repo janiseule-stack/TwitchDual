@@ -23,10 +23,10 @@ window.HomeRaumDom = (function () {
   // Auflegen: Dauer je Abschnitt (gleich den Uebergaengen in home-raum.css).
   // Summe 5200 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1200, dreht: 1500, zoom: 2000 };
-  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): das Nahbild waechst
-  // aus dem Regal bzw. schrumpft hinein (gleich den Uebergaengen in home-raum.css),
-  // Klassen an #home.
-  const FAHRT_MS = 450;
+  // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Kamerafahrt, Raum
+  // zoomt aufs Regal und das Nahbild waechst im Gleichschritt mit (gleich den
+  // Uebergaengen in home-raum.css), Klassen an #home.
+  const FAHRT_MS = 700;
   const FAHRT_KLASSEN = ['fahrt', 'fahrt-hin', 'fahrt-zurueck', 'fahrt-leer'];
   // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
   // Ursprung wie Raum.HOVER.plattenspieler.
@@ -380,23 +380,26 @@ window.HomeRaumDom = (function () {
     fahrtTimer = [];
     if (wirt) wirt.classList.remove(...FAHRT_KLASSEN);
     if (t.regal) t.regal.e.style.transform = '';
+    if (t.raum) t.raum.e.style.transform = '';
   }
   function fahrtSchritt(nr, ms, f) { fahrtTimer.push(setTimeout(() => { if (nr === fahrtNr) f(); }, ms)); }
 
-  // Das Nahbild waechst aus dem Regal (Task 9e); der Raum bewegt sich nicht.
-  // Hin: Die Regal-Ebene startet durchsichtig und klein genau auf dem Regal im Raum
-  // (Raum.regalWachsen) und waechst in FAHRT_MS (ease-out) auf volle Groesse und
-  // Deckkraft; danach Raum verborgen. Sie ist ab Beginn eingeblendet, damit das
-  // Suchfeld den Fokus nehmen kann.
-  // Zurueck: Raum sichtbar darunter, die Regal-Ebene schrumpft in FAHRT_MS (ease-in)
-  // auf das Raum-Regal und blendet aus; danach Regal verborgen, Transform zurueck
-  // (stoppeFahrt). Uebergaenge: home-raum.css.
+  // Kamerafahrt Raum <-> Regal (Janis 12.11., Variante 1): Die ganze Raum-Ebene zoomt
+  // aufs Regal (Raum.raumZoomRegal), die Regal-Ebene waechst im Gleichschritt vom
+  // Raum-Regal auf volle Groesse (Raum.regalWachsen), beide FAHRT_MS ease-in-out.
+  // Hin: Das Nahbild blendet erst im letzten Drittel ein; danach Raum verborgen. Es
+  // ist ab Beginn eingeblendet (durchsichtig), damit das Suchfeld den Fokus nehmen kann.
+  // Zurueck: Raum startet herangezoomt unter dem Regal und zoomt heraus, das Nahbild
+  // schrumpft mit und blendet im ersten Drittel aus; danach Regal verborgen,
+  // Transforms zurueck (stoppeFahrt). Uebergaenge: home-raum.css.
   function fahre(ziel) {
     const nr = fahrtNr;
     const k = wirt.classList;
     const e = t.regal.e;
     const w = Raum.regalWachsen(wirt.clientWidth, wirt.clientHeight);
     const klein = 'translate(' + w.dx + 'px, ' + w.dy + 'px) scale(' + w.s + ')';
+    const z = Raum.raumZoomRegal(wirt.clientWidth, wirt.clientHeight);
+    const gross = 'translate(' + z.dx + 'px, ' + z.dy + 'px) scale(' + z.s + ')';
     fahrtZiel = ziel;
     zeigeHover(null);
     if (ziel === 'regal') {
@@ -407,16 +410,19 @@ window.HomeRaumDom = (function () {
       k.add('fahrt-hin');
       k.remove('fahrt-leer');
       e.style.transform = '';
+      t.raum.e.style.transform = gross;
       fahrtSchritt(nr, FAHRT_MS, () => {
-        stoppeFahrt();
         aus(t.raum.e, true);
+        stoppeFahrt(); // Raum erst verbergen, dann Transform zurueck
       });
     } else {
       k.add('fahrt');
-      aus(t.raum.e, false); // unter dem Regal, in Ruhelage
+      t.raum.e.style.transform = gross; // herangezoomt unter dem Regal
+      aus(t.raum.e, false);
       void e.offsetWidth;
       k.add('fahrt-zurueck', 'fahrt-leer');
       e.style.transform = klein;
+      t.raum.e.style.transform = '';
       fahrtSchritt(nr, FAHRT_MS, () => {
         aus(e, true);
         stoppeFahrt(); // Transform und Klassen zurueck (Regal schon verborgen)

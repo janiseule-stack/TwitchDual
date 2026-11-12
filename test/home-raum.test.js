@@ -1067,12 +1067,13 @@ function fahrtMs() {
   return Number(m[1]);
 }
 
-test('Fahrt: Regal-Ebene waechst 450 ms ease-out bzw. schrumpft 450 ms ease-in (JS und CSS gleich)', () => {
+test('Fahrt: Raum und Regal fahren 700 ms ease-in-out im Gleichschritt, Regal blendet im letzten Drittel ein bzw. im ersten aus', () => {
   const m = fahrtMs();
-  assert.strictEqual(m, 450);
-  assert.ok(new RegExp('#home\\.fahrt-hin #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-out, opacity ' + m + 'ms ease-out').test(css));
-  assert.ok(new RegExp('#home\\.fahrt-zurueck #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-in, opacity ' + m + 'ms ease-in').test(css));
-  assert.ok(/#home\.fahrt #regal-ebene\s*\{[^}]*transform-origin:\s*0 0/.test(css));
+  assert.strictEqual(m, 700);
+  assert.ok(new RegExp('#home\\.fahrt-hin #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-in-out, opacity 230ms linear 470ms').test(css));
+  assert.ok(new RegExp('#home\\.fahrt-zurueck #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-in-out, opacity 230ms linear;').test(css));
+  assert.ok(new RegExp('#home\\.fahrt-hin #raum-ebene,\\s*#home\\.fahrt-zurueck #raum-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-in-out').test(css));
+  assert.ok(/#home\.fahrt #regal-ebene,\s*#home\.fahrt #raum-ebene\s*\{[^}]*transform-origin:\s*0 0/.test(css));
   assert.ok(/#home\.fahrt-leer #regal-ebene\s*\{[^}]*opacity:\s*0/.test(css));
   // keine Raum-Kamera mehr beim Regal-Wechsel
   assert.ok(!/fahrt-kamera|fahrt-blende|fahrt-regal/.test(css + js));
@@ -1091,16 +1092,19 @@ test('Fahrt: Animationen aus schaltet die Uebergaenge ab und wechselt sofort', (
   assert.ok(r.includes("'im-ablauf'"), 'nicht waehrend des Auflegens');
 });
 
-test('Fahrt: Raum-Kamera bleibt stehen, Start-Lage des Regals aus Raum.regalWachsen', () => {
+test('Fahrt: Raum-Ebene zoomt mit (Raum.raumZoomRegal), Start-Lage des Regals aus Raum.regalWachsen', () => {
   const r = rumpf(js, 'function kameraZiel(');
-  assert.ok(!r.includes('fahrt') && !js.includes('Raum.kameraRegal'), 'nur noch der Ablauf bewegt die Raum-Kamera');
+  assert.ok(!r.includes('fahrt') && !js.includes('Raum.kameraRegal'), 'die Bild-Kamera bleibt beim Ablauf');
   assert.ok(!js.includes('kameraZiel(Raum.HOVER.regal'));
   const f = rumpf(js, 'function fahre(');
   assert.ok(f.includes('Raum.regalWachsen(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(f.includes('Raum.raumZoomRegal(wirt.clientWidth, wirt.clientHeight)'));
   assert.ok(f.includes("'translate(' + w.dx + 'px, ' + w.dy + 'px) scale(' + w.s + ')'"));
-  assert.ok(!f.includes('neuAusrichten()') && !f.includes('t.raum.bild'), 'Raum-Ebene bewegt sich nicht');
-  // jeder Abbruch setzt die Regal-Ebene zurueck
-  assert.ok(rumpf(js, 'function stoppeFahrt(').includes("t.regal.e.style.transform = ''"));
+  assert.ok(f.includes("'translate(' + z.dx + 'px, ' + z.dy + 'px) scale(' + z.s + ')'"));
+  assert.ok(!f.includes('neuAusrichten()') && !f.includes('t.raum.bild'), 'nur die ganze Raum-Ebene bewegt sich');
+  // jeder Abbruch setzt beide Ebenen zurueck
+  const s = rumpf(js, 'function stoppeFahrt(');
+  assert.ok(s.includes("t.regal.e.style.transform = ''") && s.includes("t.raum.e.style.transform = ''"));
 });
 
 test('Fahrt: Laufnummer gegen Doppelstart, letzter Wunsch gewinnt', () => {
@@ -1125,6 +1129,7 @@ test('Fahrt hin: Regal startet klein und durchsichtig auf dem Raum-Regal, waechs
   assert.ok(p('aus(e, false)') < p('void e.offsetWidth'), 'Regal da (Fokus), Startzustand festschreiben');
   assert.ok(p('void e.offsetWidth') < p("k.add('fahrt-hin')"));
   assert.ok(p("k.add('fahrt-hin')") < p("k.remove('fahrt-leer')") && p("k.remove('fahrt-leer')") < p("e.style.transform = ''"));
+  assert.ok(p("k.add('fahrt-hin')") < p('t.raum.e.style.transform = gross'), 'Raum zoomt erst mit Uebergang');
   const ende = hin.slice(p('fahrtSchritt(nr, FAHRT_MS, ()'));
   assert.ok(ende.includes('stoppeFahrt()') && ende.includes('aus(t.raum.e, true)'));
 });
@@ -1133,10 +1138,12 @@ test('Fahrt zurueck: Raum sichtbar darunter, Regal schrumpft aufs Raum-Regal und
   const r = rumpf(js, 'function fahre(');
   const zur = r.slice(r.indexOf('} else {'));
   const p = (s) => { const i = zur.indexOf(s); assert.ok(i > -1, s); return i; };
-  assert.ok(p("k.add('fahrt')") < p('aus(t.raum.e, false)'));
+  assert.ok(p("k.add('fahrt')") < p('t.raum.e.style.transform = gross'), 'Raum startet herangezoomt');
+  assert.ok(p('t.raum.e.style.transform = gross') < p('aus(t.raum.e, false)'));
   assert.ok(p('aus(t.raum.e, false)') < p('void e.offsetWidth'));
   assert.ok(p('void e.offsetWidth') < p("k.add('fahrt-zurueck', 'fahrt-leer')"));
   assert.ok(p("k.add('fahrt-zurueck', 'fahrt-leer')") < p('e.style.transform = klein'));
+  assert.ok(p("k.add('fahrt-zurueck', 'fahrt-leer')") < p("t.raum.e.style.transform = ''"), 'Raum zoomt mit Uebergang heraus');
   const nach = zur.slice(p('fahrtSchritt(nr, FAHRT_MS, ()'));
   assert.ok(nach.indexOf('aus(e, true)') > -1 && nach.indexOf('aus(e, true)') < nach.indexOf('stoppeFahrt()'), 'erst verbergen, dann Transform zuruecksetzen');
 });

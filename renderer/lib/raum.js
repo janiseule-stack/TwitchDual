@@ -201,6 +201,14 @@
     return { s, dx: raumX - s * nahX, dy: raumY - s * nahY };
   }
 
+  // Raum zoomt mit (Janis 12.11., Variante 1): Umkehrung von regalWachsen. Lage der
+  // Raum-Ebene (translate(dx, dy) scale(s), Ursprung 0 0), bei der das Raum-Regal
+  // genau auf dem Nahbild-Regal liegt. Beide Ebenen im Gleichschritt = Kamerafahrt.
+  function raumZoomRegal(fensterBreite, fensterHoehe) {
+    const w = regalWachsen(fensterBreite, fensterHoehe);
+    return { s: 1 / w.s, dx: -w.dx / w.s, dy: -w.dy / w.s };
+  }
+
   // Wie viele Huellen passen ins Fach, und kleinster Verschub von start, der die gewaehlte zeigt.
   // teil = { kante, abstand } eines Teils im Fach (Standard: Huelle).
   function fachFenster(anzahl, gewaehltIndex, fachBreite, start, teil = HUELLE) {
@@ -255,5 +263,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, regalWachsen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, regalWachsen, raumZoomRegal, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });
