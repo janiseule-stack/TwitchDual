@@ -1151,16 +1151,14 @@ window.HomeRaumDom = (function () {
     g.drawImage(tvMaske, 0, 0);
     g.globalCompositeOperation = 'source-over';
   }
-  // Laufschrift am Plattenspieler: o = { name, live } oder null (leer, verborgen). Der
+  // Laufschrift am Plattenspieler: o = { name } oder null (leer, verborgen). Der
   // Text steht zweimal hintereinander; CSS schiebt um eine Kopie (-50 %): nahtlose Schleife.
   function zeigeLaufschrift(o) {
     const text = o && o.name ? String(o.name) : '';
     t.laufText.replaceChildren();
     if (text) {
       for (let i = 0; i < 2; i++) {
-        const stueck = el('span', 'lauf-stueck');
-        if (o.live) stueck.append(el('span', 'lauf-punkt', '●'), ' ');
-        stueck.append(text);
+        const stueck = el('span', 'lauf-stueck', text); // ohne roten Punkt (Janis 13.11.)
         t.laufText.appendChild(stueck);
       }
     }

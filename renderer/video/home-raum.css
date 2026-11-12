@@ -29,7 +29,7 @@
 .raum-tv { position: absolute; }
 /* Laufschrift auf dem Plattenspieler (Janis 13.11.): Feld 18x4 Bildpixel (Raum.LAUF_FELD),
    per matrix (home-raum-dom.js) schraeg auf die dunkle Front des Geraets gelegt, skaliert
-   mit der Bildebene. Nur Schrift: hell mit dunkler Kante, roter Punkt bei live; der Text
+   mit der Bildebene. Nur Schrift: hell mit dunkler Kante, ohne Punkt; der Text
    steht zweimal da und laeuft endlos von rechts nach links. */
 .raum-laufschrift {
   position: absolute; left: 0; top: 0; width: 18px; height: 4px; transform-origin: 0 0;
@@ -42,7 +42,6 @@
   animation: raum-laufschrift 9000ms linear infinite;
 }
 .lauf-stueck { padding-right: 12px; }
-.lauf-punkt { color: rgb(220 40 32); }
 @keyframes raum-laufschrift { to { transform: translateX(-50%); } }
 /* Holzwand (PixelLab) hinter dem Raum: 504x192, der Raum liegt bei x=80 */
 .raum-wand { position: absolute; left: -80px; top: 0; width: 504px; height: 192px; user-select: none; }

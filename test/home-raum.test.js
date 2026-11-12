@@ -725,14 +725,13 @@ test('Laufschrift mit dem Kanalnamen vorne am Plattenspieler (Janis 13.11.)', ()
   const s = rumpf(js, 'function setzeTv(');
   assert.ok(s.indexOf('zeigeLaufschrift(url ? o : null)') > -1 && s.indexOf('zeigeLaufschrift(url ? o : null)') < s.indexOf('url === tvVorschau'), 'Name auch bei gleichem Bild');
   const z = rumpf(js, 'function zeigeLaufschrift(');
-  assert.ok(z.includes("el('span', 'lauf-punkt', '●')") && z.includes('o.live'), 'roter Punkt bei live');
+  assert.ok(!z.includes('lauf-punkt') && !css.includes('.lauf-punkt'), 'ohne roten Punkt (Janis 13.11.)');
   assert.ok(z.includes('for (let i = 0; i < 2; i++)'), 'zweimal hintereinander: nahtlose Schleife');
   assert.ok(z.includes('aus(t.lauf, !text)'));
   // CSS: Feld 18x4 Bildpixel (Raum.LAUF_FELD), Text laeuft endlos von rechts nach links (-50 % = eine Kopie)
   assert.ok(/\.raum-laufschrift\s*\{[^}]*width:\s*18px[^}]*height:\s*4px[^}]*transform-origin:\s*0 0[^}]*overflow:\s*hidden/.test(css));
   assert.ok(/\.laufschrift-text\s*\{[^}]*animation:\s*raum-laufschrift \d+ms linear infinite/.test(css));
   assert.ok(/@keyframes raum-laufschrift\s*\{\s*to\s*\{\s*transform:\s*translateX\(-50%\);\s*\}\s*\}/.test(css));
-  assert.ok(/\.lauf-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)/.test(css));
   // Auflegen: erst sichtbar, wenn die Platte aufgelegt ist
   assert.ok(/#home\.im-ablauf:not\(\.ablauf-dreht\) \.raum-laufschrift\s*\{\s*visibility:\s*hidden;\s*\}/.test(css));
   // home.js: Name beim Auflegen und im Ruhezustand
