@@ -64,8 +64,9 @@ und Stelle**: ein Punkt bleibt stehen, alles andere wird darum größer.
 
 Jede Abbildung „Rechteck A im Bild soll auf Rechteck Z am Bildschirm“ mit gleichmäßiger
 Skalierung `k ≠ 1` hat genau einen **Fixpunkt** F (der Punkt, der dabei stehen bleibt).
-Heute interpoliert CSS `translate` und `scale` getrennt linear – dadurch wandert der
-Fixpunkt mit, und es wirkt wie Schieben. Neu:
+(Korrektur nach der Abschlussprüfung: CSS interpoliert `translate` und `scale` mit
+derselben Kurve, der Fixpunkt bleibt dabei stehen. Das Schieben kam daher, dass er heute
+weit weg vom Gegenstand liegt, z. B. Spieler → TV bei fast gleichem Faktor.) Neu:
 
 - Für jede Kamerafahrt von Lage L1 nach L2 (je `{ faktor, x, y }` der `.raum-bildebene`)
   den Fixpunkt F am Bildschirm ausrechnen und die Fahrt so animieren, dass F während der
