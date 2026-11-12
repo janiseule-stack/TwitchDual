@@ -156,9 +156,22 @@ Raum ↔ Regal, Rücken-Schrift nach Rückenart. Screenshots (alle 6 Größen) i
   - ↑/↓ ohne Karte nimmt die erste Live-Platte heraus.
   - „● läuft“-Markierung beim laufenden VOD.
 - Nächste Schritte:
-  1. Auflege-Animation neu (Janis' Punkt 9): Platte auf, rauszoomen, Video im
-     TV, reinzoomen. Während der Auflege-Folge eines VODs bleibt der
-     Fernseher aus.
+  1. ~~Auflege-Animation neu (Janis' Punkt 9)~~ gebaut 13.11. (Spec
+     `docs/superpowers/specs/2026-11-13-auflegen-neu-design.md`, Plan
+     `docs/superpowers/plans/2026-11-13-auflegen-neu.md`): sanft zum
+     Plattenspieler (50 % Fensterhöhe), Platte auf, zurück zum Raum, TV flackert
+     an (live Vorschau, VOD Vorschaubild), rein in den TV; 7,9 s, Klick/Taste
+     überspringt. Jede Fahrt zoomt um einen Punkt im Gegenstand (kein Schieben),
+     außer in hochkanten Fenstern. Offene Optik-Fragen für Janis: Dauern
+     (`ABLAUF_MS`), Zoomstärke (`Raum.SPIELER_ANTEIL` 0,5), Flacker-Muster
+     (`@keyframes raum-tv-an`).
+  - Ebenfalls 13.11.: Regal-Übergang = Zoom an Ort (Standard), Pixel-Blende als
+    Einstellung „Pixel-Übergang“ (⚙ im Chat, Licht-Tafel); Karte vorn neu
+    (Name groß, Live-Vorschau, Knöpfe aus `knopf.png`, roter blinkender
+    Live-Punkt); Klick auf die große Hülle legt auf; Doppelklick im Regal legt
+    auf, auch wenn der zweite Klick auf der Karte landet.
+  - Offen: Licht-Tafel und Kopf der Rückseite haben noch die alte Optik
+    (Janis: „potthässlich“).
   2. Punkt 12: Schrift bei Lampe/Konto.
   3. Chat-Wand später.
 - PixelLab: 219 Generationen für Regal neu verbraucht; das Kontingent
