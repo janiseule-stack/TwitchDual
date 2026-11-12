@@ -915,6 +915,10 @@ test('Karte vorn: Kopfzeile (Status + Name gross), Live-Vorschau oben, Rest klei
   assert.ok(b.includes('HomeBuehne.vorschauUrl(k.login, Date.now())'));
   assert.ok(b.includes('t.karteBild') && b.includes('login === k.login'), 'gleiche Platte: Bild behalten (kein Flackern)');
   assert.ok(b.includes('vodBild(url, c)'));
+  // Live-Punkt rot und blinkend (Janis 13.11.), eigener Span vor "LIVE"
+  assert.ok(v.includes("st.append(el('span', 'karte-live-punkt', '●'), ' LIVE')"));
+  assert.ok(/\.karte-live-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)[^}]*animation:\s*karte-blinken 1s steps\(1\) infinite/.test(css), 'gleiches Rot wie der Live-Punkt im Regal');
+  assert.ok(/@keyframes karte-blinken\s*\{\s*50%\s*\{\s*opacity:\s*0;\s*\}\s*\}/.test(css));
 });
 
 test('Karte vorn CSS: Name gross, Rest klein, Bild fuellt den Platz bis 16:9, Knoepfe aus knopf.png', () => {

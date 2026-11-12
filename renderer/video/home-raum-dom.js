@@ -844,14 +844,16 @@ window.HomeRaumDom = (function () {
     z.replaceChildren();
     const an = s.modus !== 'offline';
     let lauf = '';
-    let status;
+    let status = null;
     if (s.modus === 'live') {
-      status = '● LIVE';
       lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
     } else if (s.modus === 'markiert') status = 'gerade offline gegangen';
     else status = k.error ? 'Status nicht abrufbar' : 'offline';
     const kopf = el('div', 'karte-kopfzeile');
-    kopf.appendChild(el('span', 'karte-status', status));
+    const st = el('span', 'karte-status', status);
+    // live: roter, blinkender Punkt (CSS .karte-live-punkt)
+    if (s.modus === 'live') st.append(el('span', 'karte-live-punkt', '●'), ' LIVE');
+    kopf.appendChild(st);
     const kanal = el('span', 'karte-name', name(k));
     if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
     kopf.appendChild(kanal);

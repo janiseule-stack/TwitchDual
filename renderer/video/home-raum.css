@@ -162,6 +162,9 @@
   display: flex; align-items: baseline; gap: .7em; padding-right: var(--karte-zu-platz);
 }
 .karte-info > .karte-kopfzeile .karte-status { flex: none; }
+/* Live-Punkt: Rot wie .live-punkt im Regal, blinkt hart an/aus (Janis 13.11.) */
+.karte-live-punkt { color: rgb(220 40 32); animation: karte-blinken 1s steps(1) infinite; }
+@keyframes karte-blinken { 50% { opacity: 0; } }
 .karte-info > .karte-kopfzeile .karte-name {
   font-size: var(--karte-schrift, 12px); min-width: 0; overflow: hidden; text-overflow: ellipsis;
 }
