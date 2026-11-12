@@ -183,6 +183,23 @@
     };
   }
 
+  // Kamera fuer den weichen Wechsel Raum <-> Regal: das Regal im Raum (HOVER.regal)
+  // liegt genau auf dem Bildschirm-Rechteck des Regals der Nahansicht (skalierungRegal,
+  // regal.png volle Hoehe, Mitte x = REGAL_RAHMEN von..bis, y = halbe Hoehe).
+  // Faktor nicht gerundet (transform darf krumm sein), Verschiebung in ganzen Pixeln.
+  function kameraRegal(fensterBreite, fensterHoehe) {
+    const s = skalierungRegal(fensterBreite, fensterHoehe);
+    const H = HOVER.regal;
+    const faktor = (BILD.hoehe * s.faktor) / H.h;
+    const mitteX = s.links + ((REGAL_RAHMEN.von + REGAL_RAHMEN.bis) / 2) * s.faktor;
+    const mitteY = s.oben + (BILD.hoehe / 2) * s.faktor;
+    return {
+      faktor,
+      x: Math.round(mitteX - (H.x + H.b / 2) * faktor) + 0,
+      y: Math.round(mitteY - (H.y + H.h / 2) * faktor) + 0,
+    };
+  }
+
   // Wie viele Huellen passen ins Fach, und kleinster Verschub von start, der die gewaehlte zeigt.
   // teil = { kante, abstand } eines Teils im Fach (Standard: Huelle).
   function fachFenster(anzahl, gewaehltIndex, fachBreite, start, teil = HUELLE) {
@@ -230,5 +247,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, fachFenster, schriftPx, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, kameraRegal, fachFenster, schriftPx, randPx, kartenMasse };
 });

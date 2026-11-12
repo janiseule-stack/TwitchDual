@@ -341,6 +341,22 @@ test('kameraZiel: Rechteck fuellt das Fenster deckend', () => {
   assert.ok(Math.abs(z.y + (52 + 19) * z.faktor - 400) < 1);
 });
 
+// Task 9c Fix K-1: Kamera der Fahrt legt das Regal im Raum genau auf das Regal der Nahansicht.
+test('kameraRegal: Regal im Raum deckt sich mit dem Regal der Nahansicht (±1 px)', () => {
+  const H = R.HOVER.regal;
+  for (const [b, h] of GROESSEN) {
+    const s = R.skalierungRegal(b, h);
+    const k = R.kameraRegal(b, h);
+    assert.ok(Number.isInteger(k.x) && Number.isInteger(k.y), b + 'x' + h + ': ganze Pixel');
+    assert.ok(Math.abs(H.h * k.faktor - 192 * s.faktor) <= 1, b + 'x' + h + ': Hoehe');
+    const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
+    assert.ok(Math.abs(k.x + (H.x + H.b / 2) * k.faktor - (s.links + mitteX * s.faktor)) <= 1, b + 'x' + h + ': Mitte x');
+    assert.ok(Math.abs(k.y + (H.y + H.h / 2) * k.faktor - (s.oben + 96 * s.faktor)) <= 1, b + 'x' + h + ': Mitte y');
+  }
+  const gross = R.kameraRegal(2960, 1390);
+  assert.ok(Math.abs(gross.faktor - 9.3) < 0.1, 'Faktor ~9,3 statt 39: ' + gross.faktor);
+});
+
 test('fachFenster: gewaehlte Huelle ist immer sichtbar', () => {
   assert.deepStrictEqual(R.fachFenster(30, 0, 175, 0), { start: 0, sichtbar: 4 });
   assert.deepStrictEqual(R.fachFenster(30, 9, 175, 0), { start: 6, sichtbar: 4 });

@@ -1075,10 +1075,11 @@ test('Fahrt: Animationen aus schaltet die Uebergaenge ab und wechselt sofort', (
   assert.ok(r.includes("'im-ablauf'"), 'nicht waehrend des Auflegens');
 });
 
-test('Fahrt: Kamera zielt auf Raum.HOVER.regal (wie der Ablauf ueber kameraZiel)', () => {
+test('Fahrt: Kamera legt das Regal im Raum aufs Regal der Nahansicht (Raum.kameraRegal, kein Ueberzoomen)', () => {
   const r = rumpf(js, 'function kameraZiel(');
   assert.ok(r.includes("k.contains('fahrt-regal')"));
-  assert.ok(r.includes('Raum.kameraZiel(Raum.HOVER.regal, wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(r.includes('Raum.kameraRegal(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(!js.includes('kameraZiel(Raum.HOVER.regal'), 'deckendes Fuellen zoomt zu weit (K-1)');
 });
 
 test('Fahrt: Laufnummer gegen Doppelstart, letzter Wunsch gewinnt', () => {

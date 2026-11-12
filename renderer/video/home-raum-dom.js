@@ -888,13 +888,13 @@ window.HomeRaumDom = (function () {
   // --- Ablauf, Tafel, Schild, Fernseher --------------------------------------------------
   // Kamera je Abschnitt: auf den Plattenspieler (ablauf-spieler), dann der
   // gruene Bildschirm fuellt das Fenster (ablauf-zoom); beim weichen Wechsel
-  // (fahrt-regal) aufs Regal im Raum; sonst keine (null).
+  // (fahrt-regal) liegt das Regal im Raum auf dem Regal der Nahansicht; sonst keine (null).
   function kameraZiel() {
     const k = wirt.classList;
     const ziel = k.contains('ablauf-zoom') ? Raum.TV_RECHTECK
       : k.contains('ablauf-spieler') ? Raum.PLATTENSPIELER_RECHTECK : null;
     if (ziel) return Raum.kameraZiel(ziel, wirt.clientWidth, wirt.clientHeight);
-    return k.contains('fahrt-regal') ? Raum.kameraZiel(Raum.HOVER.regal, wirt.clientWidth, wirt.clientHeight) : null;
+    return k.contains('fahrt-regal') ? Raum.kameraRegal(wirt.clientWidth, wirt.clientHeight) : null;
   }
   // Naechster Abschnitt nach ms (seit Beginn des Ablaufs).
   function abschnitt(ms, f) { ablaufTimer.push(setTimeout(f, ms)); }
