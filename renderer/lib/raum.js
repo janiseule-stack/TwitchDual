@@ -183,21 +183,22 @@
     };
   }
 
-  // Kamera fuer den weichen Wechsel Raum <-> Regal: das Regal im Raum (HOVER.regal)
-  // liegt genau auf dem Bildschirm-Rechteck des Regals der Nahansicht (skalierungRegal,
-  // regal.png volle Hoehe, Mitte x = REGAL_RAHMEN von..bis, y = halbe Hoehe).
-  // Faktor nicht gerundet (transform darf krumm sein), Verschiebung in ganzen Pixeln.
-  function kameraRegal(fensterBreite, fensterHoehe) {
-    const s = skalierungRegal(fensterBreite, fensterHoehe);
+  // Weicher Wechsel Raum <-> Regal (Task 9e): das Nahbild waechst aus dem Regal.
+  // Start- bzw. Endlage der Regal-Ebene als translate(dx, dy) scale(s) mit Ursprung
+  // 0 0: Das Regal der Nahansicht (regal.png x REGAL_RAHMEN von..bis, y 0..192, Lage
+  // aus skalierungRegal) liegt mit seiner Mitte auf dem Regal im Raum (HOVER.regal
+  // mit der Raum-Skalierung RAUM_RAHMEN). Gleichmaessig nach der Hoehe skaliert,
+  // weil beide Rechtecke verschiedene Seitenverhaeltnisse haben (sonst gestaucht).
+  function regalWachsen(fensterBreite, fensterHoehe) {
+    const raum = skalierung(fensterBreite, fensterHoehe, RAUM_RAHMEN);
+    const nah = skalierungRegal(fensterBreite, fensterHoehe);
     const H = HOVER.regal;
-    const faktor = (BILD.hoehe * s.faktor) / H.h;
-    const mitteX = s.links + ((REGAL_RAHMEN.von + REGAL_RAHMEN.bis) / 2) * s.faktor;
-    const mitteY = s.oben + (BILD.hoehe / 2) * s.faktor;
-    return {
-      faktor,
-      x: Math.round(mitteX - (H.x + H.b / 2) * faktor) + 0,
-      y: Math.round(mitteY - (H.y + H.h / 2) * faktor) + 0,
-    };
+    const s = (H.h * raum.faktor) / (BILD.hoehe * nah.faktor);
+    const raumX = raum.links + (H.x + H.b / 2) * raum.faktor;
+    const raumY = raum.oben + (H.y + H.h / 2) * raum.faktor;
+    const nahX = nah.links + REGAL_RAHMEN.mitte * nah.faktor;
+    const nahY = nah.oben + (BILD.hoehe / 2) * nah.faktor;
+    return { s, dx: raumX - s * nahX, dy: raumY - s * nahY };
   }
 
   // Wie viele Huellen passen ins Fach, und kleinster Verschub von start, der die gewaehlte zeigt.
@@ -254,5 +255,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, kameraRegal, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, kameraZiel, regalWachsen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
 });

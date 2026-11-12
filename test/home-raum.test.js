@@ -298,7 +298,7 @@ test('index.html: alte Buehne raus, gebliebene Elemente da', () => {
   for (const id of ['home-head', 'home-namen', 'home-buehne', 'cd-huelle', 'cd-info', 'cd-laufwerk', 'home-staender']) {
     assert.ok(!html.includes('id="' + id + '"'), id);
   }
-  for (const id of ['home-close', 'home-back', 'home-kanaele', 'home-such-zeile', 'home-suche',
+  for (const id of ['home-close', 'home-kanaele', 'home-such-zeile', 'home-suche',
     'refresh-btn', 'home-hinweis', 'auth-bar', 'home-version']) {
     assert.ok(html.includes('id="' + id + '"'), id);
   }
@@ -319,7 +319,8 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   const i = homeJs.indexOf('HomeRaumDom.init({');
   assert.ok(i > -1);
   const initOpt = homeJs.slice(i, homeJs.indexOf('});', i));
-  for (const n of ['beiFlaeche', 'beiSchliessen', 'beiZurueck']) assert.ok(new RegExp('\\b' + n + '\\b').test(initOpt), n);
+  for (const n of ['beiFlaeche', 'beiSchliessen']) assert.ok(new RegExp('\\b' + n + '\\b').test(initOpt), n);
+  assert.ok(!homeJs.includes('beiZurueck') && !js.includes('beiZurueck'), 'Zurueck laeuft ueber das Schild (Task 9e)');
   assert.ok(!initOpt.includes('showKanaeleView'));
   assert.ok(homeJs.includes('Raum.passtAlsRaum('));
   assert.ok(/mindestMs:\s*5200/.test(homeJs));
@@ -330,8 +331,8 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   assert.ok(homeJs.includes('HomeRaumDom.setzeTv('));
   assert.ok(homeJs.includes('HomeRaumDom.neuAusrichten()'));
   assert.ok(/addEventListener\('resize'/.test(homeJs));
-  // ✕ und ← nur ueber init (sonst feuert alles doppelt)
-  assert.ok(!/\$homeClose\.addEventListener|\$homeBack\.addEventListener/.test(homeJs));
+  // ✕ nur ueber init (sonst feuert alles doppelt)
+  assert.ok(!/\$homeClose\.addEventListener/.test(homeJs));
 });
 
 test('home.js: Schliessen-Wege', () => {
@@ -601,10 +602,14 @@ test('Holzwand hinter dem Raum: eigene Skalierung mit RAUM_RAHMEN, Regal bleibt 
   assert.ok(rumpf(js, 'function baueRaum(').includes('Raum.zuBild(e.clientX - box.left, e.clientY - box.top, skalRaum)'), 'Klicks im Raum');
 });
 
-test('Schild links ist der Weg ins Home: Klick oeffnet bzw. kehrt zum Stream zurueck', () => {
+test('Schild links ist der Weg ins Home: Klick oeffnet, im Home ein Schritt zurueck (wie Esc), sonst zum Stream', () => {
   const homeJs = lies('renderer/video/home.js');
   assert.ok(homeJs.includes("const $homeBtn = document.getElementById('onair-bar')"));
-  assert.ok(/\$homeBtn\.addEventListener\('click', \(\) => \{\s*if \(\$home\.classList\.contains\('hidden'\)\) openHome\(\);\s*else closeHomeResume\(\);/.test(homeJs));
+  const i = homeJs.indexOf("$homeBtn.addEventListener('click'");
+  assert.ok(i > -1);
+  const klick = homeJs.slice(i, homeJs.indexOf('});', i));
+  assert.ok(/if \(\$home\.classList\.contains\('hidden'\)\) \{ openHome\(\); return; \}/.test(klick));
+  assert.ok(klick.includes('escZaehler += 1') && klick.includes('if (!zurueckSchritt()) closeHomeResume();'), 'gleiche Kette wie Esc');
   const video = lies('renderer/video/video.js');
   const u = rumpf(video, 'function updateOnAir(');
   assert.ok(u.includes("classList.toggle('leer', !onAirMode)"), 'ohne Quelle leer und nicht klickbar');
@@ -1055,19 +1060,22 @@ test('Regal neu: eigene Namen (faecherNeu, t.plattenRuecken), alter Weg ist weg 
   assert.ok(/function fachBlaettern\(art, richtung\)/.test(js));
 });
 
-// --- Task 9c: weicher Uebergang Raum <-> Regal ------------------------------------
+// --- Task 9c/9e: weicher Uebergang Raum <-> Regal (Nahbild waechst aus dem Regal) ---
 function fahrtMs() {
-  const m = /FAHRT_MS\s*=\s*(\{[^}]*\})/.exec(js);
+  const m = /const FAHRT_MS = (\d+);/.exec(js);
   assert.ok(m, 'FAHRT_MS');
-  return Function('return ' + m[1])();
+  return Number(m[1]);
 }
 
-test('Fahrt: Kamera 450 ms, Blende 250 ms (JS und CSS gleich)', () => {
+test('Fahrt: Regal-Ebene waechst 450 ms ease-out bzw. schrumpft 450 ms ease-in (JS und CSS gleich)', () => {
   const m = fahrtMs();
-  assert.deepStrictEqual(m, { kamera: 450, blende: 250 });
-  assert.ok(new RegExp('#home\\.fahrt-kamera #raum-ebene \\.raum-bildebene\\s*\\{[^}]*transition:\\s*transform ' + m.kamera + 'ms ease-in-out').test(css));
-  assert.ok(new RegExp('#home\\.fahrt-blende #regal-ebene\\s*\\{[^}]*transition:\\s*opacity ' + m.blende + 'ms').test(css));
+  assert.strictEqual(m, 450);
+  assert.ok(new RegExp('#home\\.fahrt-hin #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-out, opacity ' + m + 'ms ease-out').test(css));
+  assert.ok(new RegExp('#home\\.fahrt-zurueck #regal-ebene\\s*\\{[^}]*transition:\\s*transform ' + m + 'ms ease-in, opacity ' + m + 'ms ease-in').test(css));
+  assert.ok(/#home\.fahrt #regal-ebene\s*\{[^}]*transform-origin:\s*0 0/.test(css));
   assert.ok(/#home\.fahrt-leer #regal-ebene\s*\{[^}]*opacity:\s*0/.test(css));
+  // keine Raum-Kamera mehr beim Regal-Wechsel
+  assert.ok(!/fahrt-kamera|fahrt-blende|fahrt-regal/.test(css + js));
   // waehrend der Fahrt kein Hover/Klick in den Ebenen, Raum-Text wie im Ablauf verborgen
   assert.ok(/#home\.fahrt #raum-ebene \*[^{]*\{[^}]*pointer-events:\s*none/.test(css));
   assert.ok(/#home\.fahrt #regal-ebene \*[^{]*\{[^}]*pointer-events:\s*none/.test(css));
@@ -1083,11 +1091,16 @@ test('Fahrt: Animationen aus schaltet die Uebergaenge ab und wechselt sofort', (
   assert.ok(r.includes("'im-ablauf'"), 'nicht waehrend des Auflegens');
 });
 
-test('Fahrt: Kamera legt das Regal im Raum aufs Regal der Nahansicht (Raum.kameraRegal, kein Ueberzoomen)', () => {
+test('Fahrt: Raum-Kamera bleibt stehen, Start-Lage des Regals aus Raum.regalWachsen', () => {
   const r = rumpf(js, 'function kameraZiel(');
-  assert.ok(r.includes("k.contains('fahrt-regal')"));
-  assert.ok(r.includes('Raum.kameraRegal(wirt.clientWidth, wirt.clientHeight)'));
-  assert.ok(!js.includes('kameraZiel(Raum.HOVER.regal'), 'deckendes Fuellen zoomt zu weit (K-1)');
+  assert.ok(!r.includes('fahrt') && !js.includes('Raum.kameraRegal'), 'nur noch der Ablauf bewegt die Raum-Kamera');
+  assert.ok(!js.includes('kameraZiel(Raum.HOVER.regal'));
+  const f = rumpf(js, 'function fahre(');
+  assert.ok(f.includes('Raum.regalWachsen(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(f.includes("'translate(' + w.dx + 'px, ' + w.dy + 'px) scale(' + w.s + ')'"));
+  assert.ok(!f.includes('neuAusrichten()') && !f.includes('t.raum.bild'), 'Raum-Ebene bewegt sich nicht');
+  // jeder Abbruch setzt die Regal-Ebene zurueck
+  assert.ok(rumpf(js, 'function stoppeFahrt(').includes("t.regal.e.style.transform = ''"));
 });
 
 test('Fahrt: Laufnummer gegen Doppelstart, letzter Wunsch gewinnt', () => {
@@ -1103,27 +1116,29 @@ test('Fahrt: Laufnummer gegen Doppelstart, letzter Wunsch gewinnt', () => {
   assert.ok(z.indexOf('stoppeFahrt()') > -1 && z.indexOf('stoppeFahrt()') < z.indexOf('fahre('), 'jede Ansicht beendet die laufende Fahrt');
 });
 
-test('Fahrt hin: Kamera, dann Blende ueber den Raum, dann Raum verborgen und Kamera zurueck', () => {
+test('Fahrt hin: Regal startet klein und durchsichtig auf dem Raum-Regal, waechst auf volle Groesse, dann Raum verborgen', () => {
   const r = rumpf(js, 'function fahre(');
   const hin = r.slice(0, r.indexOf('} else {'));
-  assert.ok(hin.includes("k.add('fahrt', 'fahrt-regal', 'fahrt-kamera', 'fahrt-leer')"));
-  assert.ok(hin.indexOf('aus(t.regal.e, false)') < hin.indexOf('neuAusrichten()'), 'Regal da (Fokus), Kamera faehrt');
-  assert.ok(hin.includes('fahrtSchritt(nr, m.kamera, ()'));
-  assert.ok(hin.includes("k.add('fahrt-blende')") && hin.includes("k.remove('fahrt-leer')"));
-  const ende = hin.slice(hin.indexOf('fahrtSchritt(nr, m.kamera + m.blende, ()'));
-  assert.ok(ende.length > 0 && ende.includes('stoppeFahrt()') && ende.includes('aus(t.raum.e, true)') && ende.includes('neuAusrichten()'));
+  const p = (s) => { const i = hin.indexOf(s); assert.ok(i > -1, s); return i; };
+  assert.ok(p("k.add('fahrt', 'fahrt-leer')") < p('e.style.transform = klein'));
+  assert.ok(p('e.style.transform = klein') < p('aus(e, false)'), 'Startlage vor dem Einblenden');
+  assert.ok(p('aus(e, false)') < p('void e.offsetWidth'), 'Regal da (Fokus), Startzustand festschreiben');
+  assert.ok(p('void e.offsetWidth') < p("k.add('fahrt-hin')"));
+  assert.ok(p("k.add('fahrt-hin')") < p("k.remove('fahrt-leer')") && p("k.remove('fahrt-leer')") < p("e.style.transform = ''"));
+  const ende = hin.slice(p('fahrtSchritt(nr, FAHRT_MS, ()'));
+  assert.ok(ende.includes('stoppeFahrt()') && ende.includes('aus(t.raum.e, true)'));
 });
 
-test('Fahrt zurueck: Raum steht auf der Kamera, Regal blendet aus, dann faehrt die Kamera zurueck', () => {
+test('Fahrt zurueck: Raum sichtbar darunter, Regal schrumpft aufs Raum-Regal und blendet aus, dann verborgen', () => {
   const r = rumpf(js, 'function fahre(');
   const zur = r.slice(r.indexOf('} else {'));
-  assert.ok(zur.includes("k.add('fahrt', 'fahrt-regal')"));
-  assert.ok(zur.indexOf('aus(t.raum.e, false)') < zur.indexOf('void t.regal.e.offsetWidth'));
-  assert.ok(zur.indexOf('void t.regal.e.offsetWidth') < zur.indexOf("k.add('fahrt-blende', 'fahrt-leer')"));
-  const nach = zur.slice(zur.indexOf('fahrtSchritt(nr, m.blende, ()'));
-  assert.ok(nach.includes('aus(t.regal.e, true)') && nach.includes("k.add('fahrt-kamera')"));
-  assert.ok(nach.indexOf("'fahrt-regal'") < nach.indexOf('neuAusrichten()'), 'Kamera-Ziel weg, dann Ruhelage mit Uebergang');
-  assert.ok(zur.includes('fahrtSchritt(nr, m.blende + m.kamera, () => stoppeFahrt())'));
+  const p = (s) => { const i = zur.indexOf(s); assert.ok(i > -1, s); return i; };
+  assert.ok(p("k.add('fahrt')") < p('aus(t.raum.e, false)'));
+  assert.ok(p('aus(t.raum.e, false)') < p('void e.offsetWidth'));
+  assert.ok(p('void e.offsetWidth') < p("k.add('fahrt-zurueck', 'fahrt-leer')"));
+  assert.ok(p("k.add('fahrt-zurueck', 'fahrt-leer')") < p('e.style.transform = klein'));
+  const nach = zur.slice(p('fahrtSchritt(nr, FAHRT_MS, ()'));
+  assert.ok(nach.indexOf('aus(e, true)') > -1 && nach.indexOf('aus(e, true)') < nach.indexOf('stoppeFahrt()'), 'erst verbergen, dann Transform zuruecksetzen');
 });
 
 test('home.js: Klick aufs Regal und Zurueck fahren weich, Home-Oeffnen und Strg+L sofort', () => {
@@ -1135,4 +1150,25 @@ test('home.js: Klick aufs Regal und Zurueck fahren weich, Home-Oeffnen und Strg+
   const o = rumpfOben(homeJs, 'function openHome(');
   assert.ok(o.includes("if (ziel === 'regal' || !raumPasst()) zeigeRegal(true);") && o.includes('else zeigeRaum();'));
   assert.ok(homeJs.includes('else { schliesseTafel(); zeigeRegal(false); }'), 'Strg+L bei offenem Home: sofort');
+});
+
+// --- Task 9e Teil B: Zurueck ueber das Schild oben links ------------------------------
+test('Task 9e: #home-back ist weg (HTML, home.js, home-raum-dom.js, CSS)', () => {
+  for (const [name, q] of [['index.html', html], ['home.js', homeJs], ['home-raum-dom.js', js], ['home-raum.css', css], ['home.css', homeCss]]) {
+    assert.ok(!q.includes('home-back') && !q.includes('$homeBack'), name);
+  }
+  assert.ok(!homeJs.includes('zeigeZurueckKnopf'));
+});
+
+test('Task 9e: Schild zeigt im Home bei kannZurueck den Pfeil (Klasse zurueck), auch ohne Quelle klickbar', () => {
+  const z = rumpfOben(homeJs, 'function zeigeZurueckSchild(');
+  assert.ok(z.includes("!$home.classList.contains('hidden') && kannZurueck()"));
+  assert.ok(z.includes("$homeBtn.classList.toggle('zurueck', zurueck)"));
+  // closeHome nimmt den Pfeil wieder weg
+  assert.ok(rumpfOben(homeJs, 'function closeHome(').includes('zeigeZurueckSchild()'));
+  // .leer sperrt nur ohne zurueck; Pfeil auch ohne Hover
+  const stil = html.slice(html.indexOf('#onair-bar {'), html.indexOf('#status, #si-oben'));
+  assert.ok(/#onair-bar\.leer:not\(\.zurueck\)\s*\{[^}]*pointer-events:\s*none/.test(stil));
+  assert.ok(!/#onair-bar\.leer\s*\{/.test(stil), 'keine Sperre, die zurueck uebergeht');
+  assert.ok(/#onair-bar\.zurueck #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(stil));
 });

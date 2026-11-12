@@ -88,21 +88,24 @@
     /* Schild ganz links auf dem Gehaeuse (Janis 11.11.2026, statt Gitter und ☰):
        PixelLab-Leuchtkasten 32x19 doppelt gross (wie die Leiste), immer zu sehen.
        LIVE/VOD leuchtet, solange etwas geladen ist (auch bei Pause); leer = aus und
-       nicht klickbar. Hover: animierter Pfeil nach links, Klick -> Home. */
+       nicht klickbar. Hover: animierter Pfeil nach links, Klick -> Home.
+       Im Home mit Zurueck (home.js, Klasse .zurueck, Task 9e): Pfeil immer zu
+       sehen und klickbar, auch leer; Klick = ein Schritt zurueck wie Esc. */
     #bar { position: relative; }
     #onair-bar {
       position: absolute; left: -82px; top: 50%; width: 64px; height: 38px;
       margin: -19px 0 0 0; padding: 0; border: 0; background: none; cursor: pointer;
       -webkit-app-region: no-drag;
     }
-    #onair-bar.leer { cursor: default; pointer-events: none; }
+    #onair-bar.leer:not(.zurueck) { cursor: default; pointer-events: none; }
     #oa-label { display: block; width: 64px; height: 38px; image-rendering: pixelated; }
     #oa-pfeil {
       display: none; position: absolute; left: 0; top: 0; width: 64px; height: 38px;
       background: url('../themes/cozy/schild-pfeil.png') 0 0 / 512px 38px no-repeat;
       image-rendering: pixelated; animation: oa-pfeil 1000ms steps(8) infinite;
     }
-    #onair-bar:not(.leer):hover #oa-pfeil, #onair-bar:not(.leer):focus-visible #oa-pfeil { display: block; }
+    #onair-bar:not(.leer):hover #oa-pfeil, #onair-bar:not(.leer):focus-visible #oa-pfeil,
+    #onair-bar.zurueck #oa-pfeil { display: block; }
     @keyframes oa-pfeil { to { background-position: -512px 0; } }
     html[data-animationen="aus"] #oa-pfeil { animation: none; }
     #status, #si-oben { font-family: var(--schrift-pixel); }
@@ -208,11 +211,10 @@
   </div>
 
   <!-- Home-Overlay: Raum und Regal (home-raum-dom.js baut beide Ansichten,
-       die Knoepfe-Leiste, die Tafel und den Ablauf davor ein). ✕/← haengt
+       die Knoepfe-Leiste, die Tafel und den Ablauf davor ein). ✕ haengt
        HomeRaumDom.init in #home-knoepfe um, die Suchzeile in den Such-Zettel;
        #auth-bar erscheint nur in der Tafel. -->
   <div id="home" class="hidden">
-    <button id="home-back" class="hidden" title="Zurück">←</button>
     <button id="home-close" title="Schließen">✕</button>
 
     <div id="auth-bar">

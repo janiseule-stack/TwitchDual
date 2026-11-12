@@ -10,8 +10,7 @@
 // Auswahl ruft window.twitchDual.submitLoad(...) auf -> laedt beide Fenster.
 
 const $home = document.getElementById('home');
-const $homeBtn = document.getElementById('onair-bar'); // Schild links in der Leiste
-const $homeBack = document.getElementById('home-back');
+const $homeBtn = document.getElementById('onair-bar'); // Schild links in der Leiste (auch Zurueck)
 const $suche = document.getElementById('home-suche');
 const $refreshBtn = document.getElementById('refresh-btn');
 const $hinweis = document.getElementById('home-hinweis');
@@ -65,22 +64,22 @@ function raumPasst() { return Raum.passtAlsRaum($home.clientWidth, $home.clientH
 
 function schliesseTafel() {
   HomeRaumDom.versteckeTafel();
-  zeigeZurueckKnopf();
+  zeigeZurueckSchild();
 }
 
-// weich: Kamera-Fahrt und Blende zwischen Raum und Regal (HomeRaumDom, nur mit
+// weich: Nahbild waechst aus dem Regal bzw. schrumpft hinein (HomeRaumDom, nur mit
 // Animationen); Home-Oeffnen, Strg+L und zu kleines Fenster wechseln sofort.
 function zeigeRegal(fokus, weich) {
   HomeRaumDom.zeigeAnsicht('regal', weich);
   if (fokus) $suche.focus(); // direkt lostippen
-  zeigeZurueckKnopf();
+  zeigeZurueckSchild();
 }
 function zeigeRaum(weich) {
   // Fokus nicht in der versteckten Regal-Ansicht lassen (Tippen landet sonst dort)
   const a = document.activeElement;
   if (a && a !== document.body && $home.contains(a)) a.blur();
   HomeRaumDom.zeigeAnsicht('raum', weich);
-  zeigeZurueckKnopf();
+  zeigeZurueckSchild();
 }
 
 // Karte zuruecklegen (ohne Zeichnen; der Aufrufer zeichnet).
@@ -106,8 +105,13 @@ function kannZurueck() {
   return HomeRaumDom.tafelOffen() || !!herausgenommen ||
     (HomeRaumDom.ansicht() === 'regal' && raumPasst());
 }
-function zeigeZurueckKnopf() {
-  $homeBack.classList.toggle('hidden', $home.classList.contains('hidden') || !kannZurueck());
+// Zurueck geht ueber das Schild oben links (Janis 12.11., Task 9e): Ist Home offen
+// und gibt es ein Zurueck, zeigt es den PixelLab-Pfeil auch ohne Hover und ist
+// klickbar, auch ohne Quelle (CSS: #onair-bar.zurueck in index.html).
+function zeigeZurueckSchild() {
+  const zurueck = !$home.classList.contains('hidden') && kannZurueck();
+  $homeBtn.classList.toggle('zurueck', zurueck);
+  $homeBtn.title = zurueck ? 'Zurück' : 'Home';
 }
 
 // Ziel: 'regal' (Strg+L, Klick auf die Stream-Infos) oder Raum (Start,
@@ -146,6 +150,7 @@ function closeHome() {
   HomeRaumDom.leben(false);
   $home.classList.add('hidden');
   document.body.classList.remove('home-offen');
+  zeigeZurueckSchild(); // Pfeil am Schild weg
   getSelection().removeAllRanges(); // keine Markierung ueber dem Stream liegen lassen
   punkteAbruf.vorne(null); // keine Punkte-Abfrage fuer ein geschlossenes Home
 }
@@ -441,7 +446,7 @@ function renderHome() {
   } : null, karteHandler);
   zeichneTv();
   renderHinweis();
-  zeigeZurueckKnopf();
+  zeigeZurueckSchild();
 }
 
 // „Noch keine Kanäle …“ steht ueber dem Brett (brettText), nicht hier.
@@ -499,9 +504,12 @@ async function sternUmschalten(ch) {
 }
 
 // --- Events ---------------------------------------------------------------
+// Schild: Home zu -> oeffnen. Home offen -> ein Schritt zurueck wie Esc
+// (zurueckSchritt); gibt es keinen, wie bisher zurueck zum Stream (closeHomeResume).
 $homeBtn.addEventListener('click', () => {
-  if ($home.classList.contains('hidden')) openHome();
-  else closeHomeResume();
+  if ($home.classList.contains('hidden')) { openHome(); return; }
+  escZaehler += 1; // bricht ein wartendes Enter ab (wie Esc)
+  if (!zurueckSchritt()) closeHomeResume();
 });
 $refreshBtn.addEventListener('click', ladeKanaele);
 $suche.addEventListener('input', sucheGetippt);
@@ -586,14 +594,13 @@ function beiFlaeche(id) {
   } else if (id === 'plattenspieler') HomeRaumDom.zeigeSchild(aufgelegt() || 'Leer');
   else if (id === 'bild') HomeRaumDom.zeigeTafel('konto', $authBar);
   else if (id === 'lampe') HomeRaumDom.zeigeTafel('licht', lichtInhalt());
-  zeigeZurueckKnopf();
+  zeigeZurueckSchild();
 }
 
 HomeRaumDom.init({
   beiFlaeche,
   beiSchliessen: closeHomeResume,
-  beiZurueck: zurueckSchritt,
-  beiTafelZu: zeigeZurueckKnopf, // ✕ der Tafel: Zurueck-Knopf nachziehen
+  beiTafelZu: zeigeZurueckSchild, // ✕ der Tafel: Pfeil am Schild nachziehen
 });
 
 window.addEventListener('resize', () => {
@@ -601,7 +608,7 @@ window.addEventListener('resize', () => {
   HomeRaumDom.neuAusrichten();
   // Fenster zu klein fuer den Raum: Regal (ohne Fokus zu stehlen)
   if (HomeRaumDom.ansicht() === 'raum' && !raumPasst()) zeigeRegal(false);
-  else zeigeZurueckKnopf();
+  else zeigeZurueckSchild();
 });
 
 // Tasten auf Home: ↑/↓ in der Regal-Ansicht (schritt; nicht bei offener Tafel);

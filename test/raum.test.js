@@ -341,20 +341,33 @@ test('kameraZiel: Rechteck fuellt das Fenster deckend', () => {
   assert.ok(Math.abs(z.y + (52 + 19) * z.faktor - 400) < 1);
 });
 
-// Task 9c Fix K-1: Kamera der Fahrt legt das Regal im Raum genau auf das Regal der Nahansicht.
-test('kameraRegal: Regal im Raum deckt sich mit dem Regal der Nahansicht (±1 px)', () => {
+// Task 9e: Das Nahbild waechst aus dem Regal. regalWachsen gibt die Start-Lage der
+// Regal-Ebene (translate(dx, dy) scale(s), Ursprung 0 0): das Regal der Nahansicht
+// liegt gleichmaessig skaliert (nach der Hoehe) mit seiner Mitte auf dem Raum-Regal.
+test('regalWachsen: Start-Regal deckt Hoehe und Mitte des Raum-Regals (±1 px)', () => {
   const H = R.HOVER.regal;
-  for (const [b, h] of GROESSEN) {
-    const s = R.skalierungRegal(b, h);
-    const k = R.kameraRegal(b, h);
-    assert.ok(Number.isInteger(k.x) && Number.isInteger(k.y), b + 'x' + h + ': ganze Pixel');
-    assert.ok(Math.abs(H.h * k.faktor - 192 * s.faktor) <= 1, b + 'x' + h + ': Hoehe');
-    const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
-    assert.ok(Math.abs(k.x + (H.x + H.b / 2) * k.faktor - (s.links + mitteX * s.faktor)) <= 1, b + 'x' + h + ': Mitte x');
-    assert.ok(Math.abs(k.y + (H.y + H.h / 2) * k.faktor - (s.oben + 96 * s.faktor)) <= 1, b + 'x' + h + ': Mitte y');
+  const mitteX = (R.REGAL_RAHMEN.von + R.REGAL_RAHMEN.bis) / 2;
+  for (const [b, h] of [...GROESSEN, [700, 900]]) {
+    const raum = R.skalierung(b, h, R.RAUM_RAHMEN);
+    const nah = R.skalierungRegal(b, h);
+    const w = R.regalWachsen(b, h);
+    const name = b + 'x' + h;
+    assert.ok(w.s > 0 && w.s <= 1.2, name + ': s ' + w.s);
+    const raumH = H.h * raum.faktor;
+    const raumMx = raum.links + (H.x + H.b / 2) * raum.faktor;
+    const raumMy = raum.oben + (H.y + H.h / 2) * raum.faktor;
+    const nahMx = nah.links + mitteX * nah.faktor;
+    const nahMy = nah.oben + 96 * nah.faktor;
+    assert.ok(Math.abs(w.s * 192 * nah.faktor - raumH) <= 1, name + ': Hoehe');
+    assert.ok(Math.abs(w.s * nahMx + w.dx - raumMx) <= 1, name + ': Mitte x');
+    assert.ok(Math.abs(w.s * nahMy + w.dy - raumMy) <= 1, name + ': Mitte y');
   }
-  const gross = R.kameraRegal(2960, 1390);
-  assert.ok(Math.abs(gross.faktor - 9.3) < 0.1, 'Faktor ~9,3 statt 39: ' + gross.faktor);
+  const gross = R.regalWachsen(2960, 1390);
+  assert.ok(Math.abs(gross.s - 0.78) < 0.02, 's ~0,78: ' + gross.s);
+});
+
+test('Task 9e: Kamera-Fahrt aufs Regal (kameraRegal) ist weg', () => {
+  assert.ok(!('kameraRegal' in R));
 });
 
 test('fachFenster: gewaehlte Huelle ist immer sichtbar', () => {

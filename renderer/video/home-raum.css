@@ -337,15 +337,17 @@
 .raum-leben.ruht { animation: none; }
 @keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
 
-/* Weicher Wechsel Raum <-> Regal (home-raum-dom.js fahre, FAHRT_MS): die Raum-
-   Kamera faehrt aufs Regal (fahrt-regal = Ziel, fahrt-kamera = 450ms), das Regal
-   blendet darueber ein bzw. aus (fahrt-blende = 250ms, fahrt-leer = durchsichtig).
-   Waehrend der Fahrt kein Hover/Klick in den Ebenen. */
+/* Weicher Wechsel Raum <-> Regal (home-raum-dom.js fahre, FAHRT_MS): der Raum
+   steht still, die Regal-Ebene waechst vom Regal im Raum auf volle Groesse
+   (fahrt-hin, 450ms ease-out) bzw. schrumpft dorthin zurueck (fahrt-zurueck,
+   450ms ease-in); Lage per transform aus Raum.regalWachsen, fahrt-leer =
+   durchsichtig. Waehrend der Fahrt kein Hover/Klick in den Ebenen. */
 #home.fahrt #raum-ebene, #home.fahrt #raum-ebene *,
 #home.fahrt #regal-ebene, #home.fahrt #regal-ebene * { pointer-events: none !important; }
 #home.fahrt #raum-ebene .raum-textschicht { visibility: hidden; }
-#home.fahrt-kamera #raum-ebene .raum-bildebene { transition: transform 450ms ease-in-out; }
-#home.fahrt-blende #regal-ebene { transition: opacity 250ms linear; }
+#home.fahrt #regal-ebene { transform-origin: 0 0; }
+#home.fahrt-hin #regal-ebene { transition: transform 450ms ease-out, opacity 450ms ease-out; }
+#home.fahrt-zurueck #regal-ebene { transition: transform 450ms ease-in, opacity 450ms ease-in; }
 #home.fahrt-leer #regal-ebene { opacity: 0; }
 
 /* Animationen aus: alle Uebergaenge und Bewegungen im Raum stehen still. */
