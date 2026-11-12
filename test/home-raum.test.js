@@ -144,6 +144,9 @@ test('Doppelklick legt auf: Cover, Ruecken (waehle, dann laden) und Karten-Huell
   pruefe(rumpf(js, 'function zeichneBrett('), 'Cover');
   pruefe(rumpf(js, 'function baueRuecken('), 'Ruecken');
   const k = rumpf(js, 'function baueKarte(');
+  // Der erste Klick nimmt die Platte heraus, die Karte liegt sofort darueber: der
+  // Doppelklick landet auf .karte-platz und legt dort die Live-Platte auf.
+  assert.ok(/t\.karteWurzel\.addEventListener\('dblclick', \(e\) => \{\s*const s = t\.karteStand;\s*if \(e\.target === t\.karteWurzel && s && s\.kanal && s\.modus === 'live' && t\.karteLaden\) t\.karteLaden\(s\.kanal\.login\);/.test(k), 'Doppelklick auf den Platz der Karte');
   assert.ok(/t\.karteHuelle\.addEventListener\('dblclick'[\s\S]*?s\.modus === 'live'[\s\S]*?t\.karteLaden\(s\.kanal\.login\)/.test(k));
   // keine zweite Lade-Logik
   assert.ok(!js.includes('submitLoad') && !js.includes('ladeWert'));
@@ -819,6 +822,8 @@ test('Karte: zeichneKarte kennt alle Handler (laden, stern, umdrehen, zurueckleg
   assert.ok(z.length > 0);
   for (const h of ['laden', 'stern', 'umdrehen', 'zuruecklegen', 'vod', 'mehrVods']) assert.ok(z.includes("'" + h + "'"), h);
   assert.ok(/stand\.seite === 'rueck'/.test(z));
+  // "Vorderseite" auf der Rueckseite auch fuer markierte Platten (nur offline nicht)
+  assert.ok(/if \(stand\.modus !== 'offline'\) \{\s*const vorn = knopf\('karte-knopf', 'Vorderseite'/.test(z));
 });
 
 test('Karte: Vorschau-Canvas 64x36 links in jeder Zeile, Zeilen nur ueber eine Funktion (auch beim Anhaengen)', () => {

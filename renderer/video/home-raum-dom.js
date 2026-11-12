@@ -236,6 +236,13 @@ window.HomeRaumDom = (function () {
       if (e.detail > 1) return; // Doppelklick: der zweite Klick trifft die eben geoeffnete Karte
       if (e.target === t.karteWurzel && t.karteZu) t.karteZu();
     });
+    // Doppelklick auf Cover/Ruecken: der erste Klick nimmt die Platte heraus, die Karte
+    // liegt sofort darueber und bekommt den Doppelklick -> Live-Platte auflegen. (War die
+    // Karte einer anderen Platte offen, hat der erste Klick sie zurueckgelegt: kein Stand.)
+    t.karteWurzel.addEventListener('dblclick', (e) => {
+      const s = t.karteStand;
+      if (e.target === t.karteWurzel && s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
+    });
     t.karte = el('div', 'karte');
     t.karteKarte = el('div', 'karte-karte');
     // Vorderseite: Huelle links, Infotafel rechts
@@ -672,7 +679,8 @@ window.HomeRaumDom = (function () {
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
     stern.dataset.id = 'stern-rueck';
     t.karteKopf.appendChild(stern);
-    if (stand.modus === 'live') {
+    // "Vorderseite" fuer live und markiert (gerade offline gegangen), nicht fuer offline
+    if (stand.modus !== 'offline') {
       const vorn = knopf('karte-knopf', 'Vorderseite', 'Karte umdrehen', () => ruf(h, 'umdrehen'));
       vorn.dataset.id = 'vorderseite';
       t.karteKopf.appendChild(vorn);
