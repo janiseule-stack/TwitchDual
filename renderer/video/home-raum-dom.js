@@ -43,6 +43,7 @@ window.HomeRaumDom = (function () {
   let opt = {};
   let skal = { faktor: 1, links: 0, oben: 0 }; // Regal-Ansicht (Zettel, Schrift)
   let skalRaum = skal; // Raum-Ansicht samt Holzwand (Raum.RAUM_RAHMEN)
+  let skalRegal = skal; // Regal neu samt Leinwand (Raum.skalierungRegal)
   let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
@@ -57,6 +58,11 @@ window.HomeRaumDom = (function () {
   const faecher = {
     live: { start: 0, anzahl: 0, gewaehlt: null },
     offline: { start: 0, anzahl: 0, gewaehlt: null },
+  };
+  // Regal neu (Task 9a, bis 9b unverdrahtet): Ruecken-Faecher unter dem Ausstellbrett.
+  const faecherNeu = {
+    live: { start: 0, anzahl: 0, gewaehlt: null },
+    unten: { start: 0, anzahl: 0, gewaehlt: null },
   };
 
   // --- Helfer -------------------------------------------------------------------
@@ -556,6 +562,238 @@ window.HomeRaumDom = (function () {
     const liste = eintraege || [];
     zeichneFach('live', liste.filter((e) => e.art === 'live'), gewaehlt, h);
     zeichneFach('offline', liste.filter((e) => e.art !== 'live'), gewaehlt, h);
+  }
+
+  // --- Regal neu (Task 9a): Leinwand, Ausstellbrett, Plattenruecken ---------------------
+  // Baustein neben dem alten Regal: init ruft baueRegalNeu erst ab Task 9b auf (dann
+  // ersetzt es baueRegal, richteRegalNeuAus die Regal-Zeilen in neuAusrichten und
+  // fachBlaetternNeu das alte fachBlaettern). Alle Masse in Bildpixeln von regal.png
+  // (Raum.REGAL). Bildebene: Leinwand (regal-oben/-unten, regal-wand), regal.png, Cover
+  // auf dem Brett, Such-Zettel. Textschicht: Brett-Text, Suchfeld und die Ruecken-Faecher
+  // (unskaliert, damit Name und Mini-Profilbild scharf bleiben; Lage = Bildpixel x --f
+  // der Regal-Ebene, gerundet wie .text-teil).
+  function baueRegalNeu() {
+    const r = ebene('regal-ebene');
+    r.e.classList.add('regal-neu');
+    t.regalNeu = r;
+    const L = Raum.REGAL_LEINWAND;
+    const hoehe = Raum.BILD.hoehe;
+    // Leinwand unter dem Regal: Streifen oben (y -64) und unten (y 192), Wand seitlich
+    r.bild.append(
+      lage(bildEl('../themes/cozy/regal-oben.png', 'regal-leinwand'), { x: L.x, y: L.y, b: L.b, h: -L.y }),
+      lage(bildEl('../themes/cozy/regal-unten.png', 'regal-leinwand'), { x: L.x, y: hoehe, b: L.b, h: L.y + L.h - hoehe }),
+      lage(bildEl('../themes/cozy/regal-wand.png', 'regal-leinwand'), { x: L.x, y: 0, b: L.b, h: hoehe }),
+      bildEl('../themes/cozy/regal.png', 'raum-bild'));
+    t.brett = lage(el('div', 'brett-neu'), Raum.REGAL.brett);
+    r.bild.append(t.brett, lage(el('div', 'zettel such-zettel'), Raum.REGAL.such));
+    t.brettText = textLage(el('div', 'text-teil brett-text raum-aus'), Raum.REGAL.brett);
+    t.suchPlatzNeu = textLage(el('div', 'text-teil such-platz'), innen(Raum.REGAL.such));
+    r.text.append(t.brettText, t.suchPlatzNeu);
+    t.plattenRuecken = {};
+    for (const art of ['live', 'unten']) {
+      const fach = Raum.REGAL.faecher[art];
+      const box = textLage(el('div', 'text-teil ruecken-fach ruecken-fach-' + art), fach);
+      box.addEventListener('wheel', (e) => {
+        if (tafelOffen() || karteOffen()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        fachBlaetternNeu(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
+      }, { passive: false });
+      // Tab auf einen Ruecken ausserhalb des Fensters: der Browser wuerde das Fach per
+      // scrollLeft verschieben; stattdessen per fachFenster in Sicht holen.
+      box.addEventListener('focusin', (e) => {
+        box.scrollLeft = 0;
+        const p = e.target.closest('.ruecken');
+        const i = p ? Array.prototype.indexOf.call(box.children, p) : -1;
+        if (i < 0) return;
+        const f = faecherNeu[art];
+        f.start = Raum.fachFenster(f.anzahl, i, fach.b, f.start,
+          { kante: Raum.REGAL.ruecken.b, abstand: Raum.REGAL.ruecken.abstand }).start;
+        zeigeFachNeu(art);
+      });
+      faecherNeu[art].box = box;
+      t.plattenRuecken[art] = box;
+      r.text.appendChild(box);
+    }
+    const such = document.getElementById('home-such-zeile');
+    if (such) t.suchPlatzNeu.appendChild(such);
+    return r.e;
+  }
+
+  // Skalierung der Regal-Ebene (Leinwand fuellt das Fenster, Regal immer ganz). Eigener
+  // Faktor --f und eigene Schrift an der Ebene, damit die Textschicht zur Bildebene passt.
+  function richteRegalNeuAus(w, h) {
+    if (!t.regalNeu) return;
+    skalRegal = Raum.skalierungRegal(w, h);
+    const f = skalRegal.faktor;
+    const r = t.regalNeu;
+    r.e.style.setProperty('--f', f);
+    r.e.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
+    r.bild.style.transform = 'translate(' + skalRegal.links + 'px, ' + skalRegal.oben + 'px) scale(' + f + ')';
+    r.text.style.left = Math.round(skalRegal.links) + 'px';
+    r.text.style.top = Math.round(skalRegal.oben) + 'px';
+    r.text.style.width = Raum.BILD.breite * f + 'px';
+    r.text.style.height = Raum.BILD.hoehe * f + 'px';
+  }
+
+  // gewaehlt (herausgenommen) und vorschlag (bester Treffer fuer Enter) heben die Platte an.
+  function markiere(box, s) {
+    for (const p of box.children) {
+      const login = p.dataset.login;
+      p.classList.toggle('gewaehlt', !!login && login === s.gewaehlt);
+      p.classList.toggle('vorschlag', !!login && login === s.vorschlag && login !== s.gewaehlt);
+    }
+  }
+
+  // Ausstellbrett: Live-Favoriten als Cover nebeneinander, auf der Unterkante stehend.
+  // Das Brett blaettert nicht (regalBelegung gibt hoechstens so viele, wie Platz haben).
+  function zeichneBrett(liste, s) {
+    const B = Raum.REGAL.brett;
+    t.brettKanal = new Map(liste.map((k) => [k.login, k]));
+    const schluessel = liste.map((k) => [k.login, name(k), k.avatar || '', k.favorit ? 1 : 0, k.live ? 1 : 0].join('|')).join('\n');
+    if (t.brettSchluessel !== schluessel) {
+      t.brettSchluessel = schluessel;
+      const fokus = merkeFokus(t.brett, 'login');
+      t.brett.replaceChildren();
+      liste.forEach((k, i) => {
+        const jetzt = () => t.brettKanal.get(k.login) || k;
+        const p = huelle(k, 'brett-platte' + (k.live ? ' ist-live' : ' offline'));
+        lage(p, { x: i * (Raum.HUELLE.kante + Raum.HUELLE.abstand), y: B.h - Raum.HUELLE.kante });
+        p.tabIndex = 0;
+        p.setAttribute('role', 'button');
+        p.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
+        p.dataset.login = k.login;
+        p.dataset.art = 'brett';
+        const waehle = () => ruf(t.regalH, 'waehle', jetzt(), 'brett');
+        p.addEventListener('click', waehle);
+        // Doppelklick: waehlen und sofort auflegen (nur live)
+        p.addEventListener('dblclick', (ev) => {
+          if (ev.target.closest('.huelle-stern')) return;
+          const kj = jetzt();
+          if (!kj.live) return;
+          waehle();
+          ruf(t.regalH, 'laden', kj.login);
+        });
+        p.addEventListener('keydown', (ev) => {
+          if (ev.target !== p || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          waehle();
+        });
+        if (k.live) {
+          const P = Raum.REGAL.livePunkt.cover;
+          p.appendChild(lage(el('div', 'live-punkt'), { x: P.x, y: P.y, b: P.d, h: P.d }));
+        }
+        p.appendChild(knopf('huelle-stern stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
+          k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(t.regalH, 'stern', jetzt())));
+        t.brett.appendChild(p);
+      });
+      stelleFokusHer(t.brett, 'login', fokus);
+    }
+    // Leeres Brett: Hinweis als Text ueber dem Brett
+    const text = liste.length ? '' : String(s.brettText || '');
+    t.brettText.textContent = text;
+    aus(t.brettText, !text);
+    markiere(t.brett, s);
+  }
+
+  // Ein Plattenruecken: ruecken-<art>.png (CSS), Mini-Profilbild, Name laengs, Live-Punkt.
+  // Lage im Fach setzt zeigeFachNeu (--x/--y in Bildpixeln).
+  function baueRuecken(fach, e) {
+    const k = e.kanal;
+    const jetzt = () => fach.kanal.get(e.art + '|' + k.login) || k;
+    const p = textLage(el('div', 'ruecken r-' + e.art), { x: 0, y: 0, b: Raum.REGAL.ruecken.b, h: Raum.REGAL.ruecken.h });
+    p.tabIndex = 0;
+    p.setAttribute('role', 'button');
+    p.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
+    p.dataset.login = k.login;
+    p.dataset.art = e.art;
+    const fenster = textLage(el('div', 'ruecken-stueck ruecken-fenster'), Raum.REGAL.ruecken.fenster);
+    profilbild(k, fenster, Raum.REGAL.ruecken.fenster);
+    const schrift = textLage(el('div', 'ruecken-stueck ruecken-name', name(k)), Raum.REGAL.ruecken.name);
+    p.append(fenster, schrift);
+    if (k.live) {
+      // ueber punkte: der ausgeschriebene Pfad enthielte einen verbotenen Teilstring (Plan)
+      const punkte = Raum.REGAL.livePunkt;
+      const P = punkte.ruecken;
+      p.appendChild(textLage(el('div', 'ruecken-stueck live-punkt'), { x: P.x, y: P.y, b: P.d, h: P.d }));
+    }
+    const waehle = () => ruf(t.regalH, 'waehle', jetzt(), e.art);
+    p.addEventListener('click', waehle);
+    // Doppelklick legt auf: nur Live-Ruecken (live, favorit); ein fremder Twitch-Treffer
+    // laedt schon beim Waehlen (home.js, Task 9b), offline hat kein Auflegen.
+    p.addEventListener('dblclick', () => {
+      const kj = jetzt();
+      if (e.art === 'twitch' || !kj.live) return;
+      waehle();
+      ruf(t.regalH, 'laden', kj.login);
+    });
+    p.addEventListener('keydown', (ev) => {
+      if (ev.target !== p || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      waehle();
+    });
+    return p;
+  }
+
+  // Lage der Ruecken: sichtbar sind die ab start (ueberstehende schneidet das Fach ab).
+  function zeigeFachNeu(art) {
+    const f = faecherNeu[art];
+    if (!f.box) return;
+    const r = Raum.REGAL.ruecken;
+    const y = Raum.REGAL.faecher[art].h - r.h; // auf dem Fachboden stehend
+    Array.prototype.forEach.call(f.box.children, (p, i) => {
+      p.style.setProperty('--x', (i - f.start) * (r.b + r.abstand));
+      p.style.setProperty('--y', y);
+    });
+  }
+  function fachBlaetternNeu(art, richtung) {
+    const f = faecherNeu[art];
+    if (!f || !f.box) return;
+    f.start = Raum.fachFenster(f.anzahl, -1, Raum.REGAL.faecher[art].b, f.start + (richtung > 0 ? 1 : -1),
+      { kante: Raum.REGAL.ruecken.b, abstand: Raum.REGAL.ruecken.abstand }).start;
+    zeigeFachNeu(art);
+  }
+
+  function zeichneFachNeu(art, liste, s) {
+    const fach = faecherNeu[art];
+    fach.kanal = new Map(liste.map((e) => [e.art + '|' + e.kanal.login, e.kanal]));
+    const schluessel = liste.map((e) => [e.art, e.kanal.login, name(e.kanal), e.kanal.avatar || '',
+      e.kanal.live ? 1 : 0, e.kanal.game || ''].join('|')).join('\n');
+    const umgebaut = fach.schluessel !== schluessel;
+    if (umgebaut) {
+      fach.schluessel = schluessel;
+      const fokus = merkeFokus(fach.box, 'login');
+      fach.box.replaceChildren();
+      for (const e of liste) fach.box.appendChild(baueRuecken(fach, e));
+      stelleFokusHer(fach.box, 'login', fokus);
+    }
+    fach.anzahl = liste.length;
+    markiere(fach.box, s);
+    // Die gewaehlte Platte (sonst der Vorschlag) kommt bei neuer Auswahl oder neuem
+    // Fach-Inhalt in Sicht; sonst bleibt der Stand vom Mausrad (nur geklemmt).
+    let ziel = liste.findIndex((e) => e.kanal.login === s.gewaehlt);
+    if (ziel < 0) ziel = liste.findIndex((e) => e.kanal.login === s.vorschlag);
+    const zielLogin = ziel >= 0 ? liste[ziel].kanal.login : null;
+    const neu = ziel >= 0 && (zielLogin !== fach.gewaehlt || umgebaut);
+    fach.gewaehlt = zielLogin;
+    fach.start = Raum.fachFenster(fach.anzahl, neu ? ziel : -1, Raum.REGAL.faecher[art].b, fach.start,
+      { kante: Raum.REGAL.ruecken.b, abstand: Raum.REGAL.ruecken.abstand }).start;
+    zeigeFachNeu(art);
+  }
+
+  // belegung = HomeBuehne.regalBelegung(...) { brett, live, unten }; stand = { gewaehlt,
+  // vorschlag, brettText, ladend }; Handler h.waehle(kanal, art), h.laden(login), h.stern(kanal).
+  function zeichneRegal(belegung, stand, h) {
+    if (!wirt || !t.regalNeu) return;
+    const b = belegung || {};
+    const s = stand || {};
+    t.regalH = h;
+    t.regalNeu.e.classList.toggle('ladend', !!s.ladend);
+    zeichneBrett(b.brett || [], s);
+    zeichneFachNeu('live', b.live || [], s);
+    zeichneFachNeu('unten', b.unten || [], s);
   }
 
   // --- Regal: vordere Platte und Zettel ---------------------------------------------------
@@ -1087,5 +1325,6 @@ window.HomeRaumDom = (function () {
     init, zeigeAnsicht, ansicht, zeichneBuehne, zeichneStaender, fachBlaettern,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
     zeigeSchild, setzeTv, neuAusrichten, vodsScrollen, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
+    zeichneRegal,
   };
 })();

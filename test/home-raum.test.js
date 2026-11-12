@@ -838,3 +838,104 @@ test('tools/home-groessen.js: Ansichten karte und rueckseite mit Beispieldaten, 
   assert.ok(g.includes('zeichneKarte(null, {})'));
   assert.ok(g.includes('beispiel'));
 });
+
+// --- Regal neu, Task 9a: Wand, Ausstellbrett, Plattenruecken (Baustein, noch unverdrahtet) ---
+const regalNeu = () => rumpf(js, 'function baueRegalNeu(');
+
+test('Regal neu: zeichneRegal in der Schnittstelle', () => {
+  assert.ok(/\bzeichneRegal\b/.test(schnittstelle()));
+});
+
+test('Regal neu: baueRegalNeu legt oben/unten, Wand und dann das Regal-Bild; init ruft es noch nicht', () => {
+  const b = regalNeu();
+  assert.ok(b.length > 0, 'baueRegalNeu');
+  const i = (n) => b.indexOf("'../themes/cozy/" + n + "'");
+  for (const n of ['regal-oben.png', 'regal-unten.png', 'regal-wand.png', 'regal.png']) assert.ok(i(n) > -1, n);
+  assert.ok(i('regal-wand.png') < i('regal.png'), 'Wand vor Regal');
+  assert.ok(i('regal-oben.png') < i('regal.png') && i('regal-unten.png') < i('regal.png'), 'Streifen unter dem Regal');
+  assert.ok(b.includes('Raum.REGAL_LEINWAND'), 'Lage der Streifen aus der Leinwand');
+  assert.ok(!rumpf(js, 'function init(').includes('baueRegalNeu'), 'bis 9b unverdrahtet');
+  // die alte Regal-Ansicht bleibt
+  assert.ok(rumpf(js, 'function init(').includes('baueRegal()'));
+});
+
+test('Regal neu: richteRegalNeuAus nutzt Raum.skalierungRegal(w, h)', () => {
+  const r = rumpf(js, 'function richteRegalNeuAus(');
+  assert.ok(r.includes('Raum.skalierungRegal(w, h)'));
+  assert.ok(!r.includes('Raum.skalierung('), 'nicht die alte Skalierung');
+  assert.ok(r.includes("setProperty('--f'"), 'eigener Faktor fuer die Textschicht');
+});
+
+test('Regal neu: neuer Code nutzt Raum.REGAL.faecher, nicht Raum.FACH', () => {
+  for (const kopf of ['function zeichneRegal(', 'function fachBlaetternNeu(', 'function baueRegalNeu(', 'function zeichneFachNeu(', 'function zeigeFachNeu(']) {
+    const r = rumpf(js, kopf);
+    assert.ok(r.length > 0, kopf);
+    assert.ok(!r.includes('Raum.FACH'), kopf);
+  }
+  assert.ok(regalNeu().includes('Raum.REGAL.faecher'));
+  assert.ok(rumpf(js, 'function fachBlaetternNeu(').includes('Raum.REGAL.faecher'));
+});
+
+test('Regal neu: Cover per huelle() auf dem Brett, Live-Punkt als CSS (rund), kein live-zeichen.png', () => {
+  const z = rumpf(js, 'function zeichneBrett(');
+  assert.ok(z.includes('huelle('), 'Cover = huelle()');
+  assert.ok(z.includes('Raum.REGAL.brett'));
+  assert.ok(z.includes('Raum.REGAL.livePunkt.cover'));
+  assert.ok(/ruf\(t\.regalH, 'waehle', jetzt\(\), 'brett'\)/.test(z), "Klick waehlt mit 'brett'");
+  assert.ok(js.includes("'live-punkt'"));
+  assert.ok(/\.live-punkt\s*\{[^}]*border-radius:\s*50%/.test(css));
+  assert.ok(!js.includes('live-zeichen.png') && !css.includes('live-zeichen.png'));
+});
+
+test('Regal neu: Ruecken in der Textschicht, Bild je Art, Name laengs, Blaettern per fachFenster mit REGAL.ruecken', () => {
+  for (const art of ['live', 'favorit', 'offline', 'twitch']) {
+    assert.ok(css.includes("url('../themes/cozy/ruecken-" + art + ".png')"), art);
+  }
+  const ru = rumpf(js, 'function baueRuecken(');
+  assert.ok(ru.includes("'ruecken r-' + e.art"), 'Klasse je Art');
+  assert.ok(ru.includes('Raum.REGAL.ruecken.fenster') && ru.includes('Raum.REGAL.ruecken.name'));
+  assert.ok(ru.includes('profilbild(k, fenster'), 'Mini-Profilbild');
+  assert.ok(/const punkte = Raum\.REGAL\.livePunkt;\s*const P = punkte\.ruecken;/.test(ru), 'Live-Punkt am Ruecken');
+  assert.ok(/r\.text\.(append|appendChild)\([^)]*fach/.test(regalNeu()) || /r\.text\.(append|appendChild)\(box\)/.test(regalNeu()), 'Faecher in der Textschicht');
+  assert.ok(/\.ruecken-name\s*\{[^}]*writing-mode:\s*vertical-rl/.test(css));
+  const teil = /Raum\.fachFenster\([^;]*kante: Raum\.REGAL\.ruecken\.b, abstand: Raum\.REGAL\.ruecken\.abstand/;
+  assert.ok(teil.test(rumpf(js, 'function fachBlaetternNeu(')), 'Blaettern');
+  assert.ok(teil.test(rumpf(js, 'function zeichneFachNeu(')), 'Umbau');
+  assert.ok(teil.test(regalNeu()), 'focusin');
+});
+
+test('Regal neu: Doppelklick auf einen Ruecken legt nur Live auf, nie twitch', () => {
+  const ru = rumpf(js, 'function baueRuecken(');
+  const d = ru.indexOf("addEventListener('dblclick'");
+  assert.ok(d > -1);
+  const teil = ru.slice(d);
+  assert.ok(/e\.art === 'twitch' \|\| !kj\.live/.test(teil));
+  assert.ok(teil.indexOf("ruf(t.regalH, 'laden'") > -1);
+});
+
+test('Regal neu: CSS der Ruecken pixelgenau, ohne Verlauf; Hover/Fokus nur heller/angehoben', () => {
+  const a = css.indexOf('/* --- Regal neu');
+  assert.ok(a > -1);
+  const teil = css.slice(a, css.indexOf('/* ---', a + 10));
+  assert.ok(/\.ruecken\s*\{[^}]*image-rendering:\s*pixelated/.test(teil));
+  assert.ok(/\.ruecken\s*\{[^}]*background-size:\s*100% 100%/.test(teil));
+  assert.ok(!/gradient/.test(teil));
+  assert.ok(!/box-shadow|outline:\s*\d|border-color:\s*var\(--accent|background:\s*var\(--accent/.test(teil));
+  assert.ok(!/:hover[^{]*\{[^}]*color:/.test(teil), 'Hover nicht per Farbe');
+  assert.ok(/:hover[^{]*\{[^}]*brightness/.test(teil));
+});
+
+test('Regal neu: Mausrad blaettert nicht bei offener Tafel oder Karte', () => {
+  const b = regalNeu();
+  const i = b.indexOf("'wheel'");
+  assert.ok(i > -1);
+  const teil = b.slice(i, i + 300);
+  assert.ok(teil.includes('tafelOffen()') && teil.includes('karteOffen()'));
+  assert.ok(teil.includes('fachBlaetternNeu('));
+});
+
+test('Regal neu: eigene Namen (faecherNeu, t.plattenRuecken), alter Weg bleibt', () => {
+  assert.ok(/const faecherNeu = \{/.test(js));
+  assert.ok(js.includes('t.plattenRuecken'));
+  for (const alt of ['function baueRegal(', 'function zeichneFach(', 'function zeigeFach(', 'function fachBlaettern(']) assert.ok(js.includes(alt), alt);
+});

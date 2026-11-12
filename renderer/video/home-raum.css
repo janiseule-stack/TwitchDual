@@ -313,6 +313,57 @@
   font: inherit; color: var(--zettel-tinte);
 }
 
+/* --- Regal neu (Task 9a): Leinwand, Ausstellbrett, Plattenruecken ------------------
+   Bildebene: regal-oben/-unten und regal-wand (PixelLab, 504 breit ab x -80) unter
+   regal.png, Cover (huelle.png) auf dem Brett. Textschicht mit eigenem --f der
+   Regal-Ebene (richteRegalNeuAus): Ruecken-Faecher; Ruecken = ruecken-<art>.png (6x40,
+   auf 100 % gestreckt, scharfkantig) mit Mini-Profilbild und Name laengs. Lage =
+   Bildpixel x --f auf ganze Bildschirm-Pixel gerundet. Live-Punkt per CSS (Janis'
+   Ausnahme: rund, rot, keine Verlaeufe). Hover/Fokus nur heller; gewaehlt und
+   Vorschlag angehoben. */
+.regal-leinwand { position: absolute; user-select: none; }
+.brett-neu { position: absolute; }
+.brett-neu .huelle { cursor: pointer; outline: none; transition: transform .15s; }
+.brett-neu .huelle.gewaehlt, .brett-neu .huelle.vorschlag { transform: translateY(-3px); }
+.brett-neu .huelle:hover, .brett-neu .huelle:focus-visible { filter: brightness(1.3); }
+.live-punkt { position: absolute; border-radius: 50%; background: rgb(220 40 32); pointer-events: none; }
+.brett-text {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+}
+.ruecken-fach { overflow: hidden; }
+.ruecken {
+  position: absolute; box-sizing: border-box; cursor: pointer; outline: none;
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  /* Breite aus beiden gerundeten Kanten: die Ruecken schliessen ohne Luecke aneinander */
+  width: calc(round(calc((var(--x) + var(--b)) * var(--f) * 1px), 1px) - round(calc(var(--x) * var(--f) * 1px), 1px));
+  height: round(calc(var(--h) * var(--f) * 1px), 1px);
+  background-repeat: no-repeat; background-position: 0 0; background-size: 100% 100%;
+  image-rendering: pixelated;
+  transition: transform .15s;
+}
+.ruecken.r-live { background-image: url('../themes/cozy/ruecken-live.png'); }
+.ruecken.r-favorit { background-image: url('../themes/cozy/ruecken-favorit.png'); }
+.ruecken.r-offline { background-image: url('../themes/cozy/ruecken-offline.png'); }
+.ruecken.r-twitch { background-image: url('../themes/cozy/ruecken-twitch.png'); }
+.ruecken:hover, .ruecken:focus-visible { filter: brightness(1.3); }
+.ruecken.gewaehlt, .ruecken.vorschlag { transform: translateY(round(calc(-1 * var(--f) * 1px), 1px)); }
+.ruecken-stueck {
+  position: absolute; box-sizing: border-box;
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  width: round(calc(var(--b) * var(--f) * 1px), 1px); height: round(calc(var(--h) * var(--f) * 1px), 1px);
+}
+.ruecken-fenster { overflow: hidden; }
+.ruecken-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.ruecken-fenster .huelle-buchstabe { font-size: var(--raum-schrift); }
+.ruecken.r-offline .ruecken-fenster { filter: grayscale(1) brightness(.85); }
+.ruecken-name {
+  writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1; color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+}
+/* Laden: die gewaehlte Platte pulsiert (wie frueher .vorn.ladend) */
+.regal-neu.ladend .gewaehlt { animation: raum-puls 1.2s steps(2) infinite; }
+
 /* --- Kopf, Tafel, Ablauf ----------------------------------------------------------- */
 #home-knoepfe { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; gap: 4px; }
 
