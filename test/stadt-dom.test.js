@@ -91,20 +91,24 @@ test('baue: Bildebene mit Grundbild, Ebenen in fester Reihenfolge', () => {
   const { ebene } = aufbau();
   assert.ok(ebene.classList.contains('stadt-bildebene'));
   assert.ok(ebene.style.backgroundImage.includes('p/stadt.png'));
-  const reihe = ebene.kinder.map((e) => e.className.split(' ')[0]);
-  // Regen am Himmel hinter den Haeusern, Regen auf der Strasse vor den Figuren
-  assert.deepStrictEqual(reihe, ['stadt-blitz', 'stadt-regen', 'stadt-fenster-ebene', 'stadt-strasse', 'stadt-regen', 'stadt-dunkel']);
-  assert.ok(ebene.kinder[1].classList.contains('himmel') && ebene.kinder[4].classList.contains('strasse'));
-  assert.ok(ebene.kinder[0].style.backgroundImage.includes('p/stadt-himmel-blitz.png'));
-  assert.ok(ebene.kinder[1].style.backgroundImage.includes('p/stadt-regen-himmel.png'));
-  assert.ok(ebene.kinder[4].style.backgroundImage.includes('p/stadt-regen-strasse.png'));
-  for (const r of [ebene.kinder[1], ebene.kinder[4]]) {
+  const n = S.blitzWolken.length;
+  const reihe = ebene.kinder.slice(n).map((e) => e.className.split(' ')[0]);
+  // je leuchtende Wolke eine Blitz-Ebene, Regen am Himmel hinter den Haeusern, Regen auf der Strasse vor den Figuren
+  assert.deepStrictEqual(reihe, ['stadt-regen', 'stadt-fenster-ebene', 'stadt-strasse', 'stadt-regen', 'stadt-dunkel']);
+  S.blitzWolken.forEach((w, i) => {
+    assert.ok(ebene.kinder[i].classList.contains('stadt-blitz'));
+    assert.ok(ebene.kinder[i].style.backgroundImage.includes('p/' + w.datei));
+  });
+  assert.ok(ebene.kinder[n].classList.contains('himmel') && ebene.kinder[n + 3].classList.contains('strasse'));
+  assert.ok(ebene.kinder[n].style.backgroundImage.includes('p/stadt-regen-himmel.png'));
+  assert.ok(ebene.kinder[n + 3].style.backgroundImage.includes('p/stadt-regen-strasse.png'));
+  for (const r of [ebene.kinder[n], ebene.kinder[n + 3]]) {
     assert.strictEqual(r.style.props['--bilder'], String(S.regen.bilder));
     assert.strictEqual(r.style.props['--dauer'], S.regen.bilder * S.regen.msProBild + 'ms');
     assert.strictEqual(r.style.props['--sb'], S.bild.b * S.regen.bilder + 'px');
   }
   // Abdunkeln nur ueber Himmel + Haeusern, nicht ueber dem Strassenband
-  assert.strictEqual(ebene.kinder[5].style.height, S.ebenen.strasse.y + 'px');
+  assert.strictEqual(ebene.kinder[n + 4].style.height, S.ebenen.strasse.y + 'px');
 });
 
 test('Fensterlichter: Ausschnitte aus stadt-haeuser-licht.png an stadt.json.fenster, Anteil nach Uhrzeit', () => {
@@ -149,17 +153,49 @@ test('richteAus: Masse aus Stadt.masse als CSS-Variablen, Band-Hoehe, bei jedem 
   }
 });
 
+const blitzEbenen = (ebene) => ebene.kinder.filter((k) => k.classList.contains('stadt-blitz'));
+const sichtVon = (b, h) => {
+  const m = Stadt.masse(b, h);
+  const links = -m.links / m.faktor;
+  return { links, rechts: links + b / m.faktor, oben: -m.oben / m.faktor };
+};
+
 test('Blitz nur auf der Himmel-Ebene, Mitte dunkelt dabei staerker ab, hoechstens 300 ms', () => {
-  const { uhr, stadt, wirt, teil } = aufbau();
-  const blitz = teil('stadt-blitz');
+  const { uhr, stadt, wirt, ebene } = aufbau();
   stadt.an();
   const normal = Number(wirt.style.props['--stadt-dunkel']);
   uhr.vor(5000);
-  assert.ok(blitz.classList.contains('an'), 'Blitz an');
+  const an = blitzEbenen(ebene).filter((k) => k.classList.contains('an'));
+  assert.strictEqual(an.length, 1, 'genau eine Wolke leuchtet');
   assert.ok(Number(wirt.style.props['--stadt-dunkel']) > normal, 'staerker abgedunkelt');
   uhr.vor(300);
-  assert.ok(!blitz.classList.contains('an'), 'Blitz nach <= 300 ms aus');
+  assert.ok(!blitzEbenen(ebene).some((k) => k.classList.contains('an')), 'Blitz nach <= 300 ms aus');
   assert.strictEqual(Number(wirt.style.props['--stadt-dunkel']), normal);
+});
+
+test('Blitz im sichtbaren Ausschnitt: es leuchtet die Wolke aus Stadt.blitzZiel, Strahl dort (Janis 13.11.)', () => {
+  for (const [b, h] of [[1397, 903], [480, 1153], [900, 675]]) {
+    const { stadt, ebene } = aufbau();
+    stadt.an();
+    stadt.richteAus(b, h);
+    stadt.blitz();
+    const ziel = Stadt.blitzZiel(sichtVon(b, h), () => 0.5);
+    const an = blitzEbenen(ebene).map((k, i) => (k.classList.contains('an') ? i : -1)).filter((i) => i > -1);
+    assert.deepStrictEqual(an, [ziel.wolke], b + 'x' + h);
+    const st = ebene.kinder.find((k) => k.classList.contains('stadt-strahl'));
+    assert.strictEqual(st.style.left, Math.round(ziel.x) + 'px', b + 'x' + h);
+  }
+});
+
+test('Blitz ohne sichtbaren Himmel: keine Wolke, kein Strahl, kein Abdunkeln', () => {
+  const { stadt, wirt, ebene } = aufbau();
+  stadt.an();
+  stadt.richteAus(1397, 143);
+  const normal = wirt.style.props['--stadt-dunkel'];
+  stadt.blitz();
+  assert.ok(!blitzEbenen(ebene).some((k) => k.classList.contains('an')));
+  assert.strictEqual(ebene.kinder.filter((k) => k.classList.contains('stadt-strahl')).length, 0);
+  assert.strictEqual(wirt.style.props['--stadt-dunkel'], normal);
 });
 
 test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei aus() sofort', () => {
@@ -174,7 +210,7 @@ test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei au
   assert.strictEqual(st.style.props['--bilder'], String(S.strahl.bilder));
   assert.strictEqual(st.style.props['--dauer'], S.strahl.bilder * S.strahl.msProBild + 'ms');
   const x = parseFloat(st.style.left);
-  const w = S.blitzWolke;
+  const w = S.blitzWolken[blitzEbenen(ebene).findIndex((k) => k.classList.contains('an'))];
   assert.ok(x >= w.x && x + S.strahl.b <= w.x + w.b, 'kommt aus der leuchtenden Wolke: x ' + x);
   uhr.vor(S.strahl.bilder * S.strahl.msProBild + 10);
   assert.strictEqual(strahlen().length, 0, 'nach dem Abspielen weg');
@@ -185,21 +221,24 @@ test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei au
 });
 
 test('blitz(): Blitz sofort auf Knopfdruck (Ausprobieren), aber nicht bei Animationen aus', () => {
-  const { uhr, stadt, ebene, teil } = aufbau();
+  const { uhr, stadt, ebene } = aufbau();
+  const leuchtet = () => blitzEbenen(ebene).some((k) => k.classList.contains('an'));
   stadt.blitz();
-  assert.ok(!teil('stadt-blitz').classList.contains('an'), 'aus: kein Blitz');
+  assert.ok(!leuchtet(), 'aus: kein Blitz');
   stadt.an();
   stadt.blitz();
-  assert.ok(teil('stadt-blitz').classList.contains('an'));
+  assert.ok(leuchtet());
   assert.strictEqual(ebene.kinder.filter((k) => k.classList.contains('stadt-strahl')).length, 1);
   uhr.vor(300);
-  assert.ok(!teil('stadt-blitz').classList.contains('an'));
+  assert.ok(!leuchtet());
 });
 
 test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abgedunkelter Kopie', () => {
   let z = 0;
   const werte = [0.1, 0.9, 0.5]; // Periode 3: Passant und Auto kommen beide vor
-  const { uhr, stadt, teil } = aufbau({ zufall: () => werte[z++ % 3] });
+  // nur Regen: Blitze wuerden Zufallszahlen verbrauchen und die Periode verschieben
+  const regen = { naechste: () => ({ phase: 'regen', blitzInMs: null, wechselInMs: 1e9 }) };
+  const { uhr, stadt, teil } = aufbau({ zufall: () => werte[z++ % 3], gewitter: regen });
   const strasse = teil('stadt-strasse');
   const gesehen = [];
   const anhaengen = strasse.appendChild;
@@ -355,22 +394,22 @@ test('aboFenster bei laufenden Animationen: nacheinander', () => {
 });
 
 test('aus() mitten im Gewitter und Raid: Blitz weg, Figuren weg, Timer leer, Abo-Fenster bleiben (Review Focus 5)', async () => {
-  const { uhr, stadt, wirt, teil } = aufbau();
+  const { uhr, stadt, wirt, teil, ebene } = aufbau();
   const strasse = teil('stadt-strasse');
-  const blitz = teil('stadt-blitz');
+  const leuchtet = () => blitzEbenen(ebene).some((k) => k.classList.contains('an'));
   stadt.an();
   stadt.aboFenster(2);
   uhr.vor(5000); // Blitz laeuft
-  assert.ok(blitz.classList.contains('an'));
+  assert.ok(leuchtet());
   const p = stadt.raid(Stadt.raidPlan(80));
   stadt.aus();
   await p;
-  assert.ok(!blitz.classList.contains('an'));
+  assert.ok(!leuchtet());
   assert.strictEqual(strasse.kinder.length, 0);
   assert.strictEqual(teil('stadt-fenster-ebene').kinder.filter((d) => d.classList.contains('abo')).length, 2);
   const normal = wirt.style.props['--stadt-dunkel'];
   uhr.vor(60000);
-  assert.ok(!blitz.classList.contains('an'), 'kein neuer Blitz');
+  assert.ok(!leuchtet(), 'kein neuer Blitz');
   assert.strictEqual(strasse.kinder.length, 0, 'kein neues Leben');
   assert.strictEqual(wirt.style.props['--stadt-dunkel'], normal);
 });

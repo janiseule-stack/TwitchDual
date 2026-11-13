@@ -58,8 +58,12 @@
       r.style.setProperty('--sb', px(S.bild.b * S.regen.bilder));
       return r;
     }
-    const blitz = neu('stadt-blitz', ebene);
-    blitz.style.backgroundImage = url(pfad, 'stadt-himmel-blitz.png');
+    // je leuchtende Wolke eine Ebene; ein Blitz zeigt genau eine davon
+    const wolken = S.blitzWolken.map((w) => {
+      const d = neu('stadt-blitz', ebene);
+      d.style.backgroundImage = url(pfad, w.datei);
+      return d;
+    });
     regenEbene('himmel', S.regen.dateien[0]);
     const fensterEbene = neu('stadt-fenster-ebene', ebene);
     const strasse = neu('stadt-strasse', ebene);
@@ -130,7 +134,7 @@
     let blitzTimer = null;
     function blitzAus() {
       if (blitzTimer !== null) { clearT(blitzTimer); blitzTimer = null; }
-      blitz.classList.remove('an');
+      for (const w of wolken) w.classList.remove('an');
       wirt.style.setProperty('--stadt-dunkel', String(DUNKEL));
     }
     // Blitz-Strahl (PixelLab-Effekt): kommt aus der leuchtenden Wolke und zuckt in die Skyline
@@ -140,14 +144,11 @@
       if (strahlTimer !== null) { clearT(strahlTimer); strahlTimer = null; }
       if (strahlEl) { strahlEl.remove(); strahlEl = null; }
     }
-    function strahl() {
+    function strahl(x) {
       strahlWeg();
       const R = S.strahl;
-      const W = S.blitzWolke;
-      const von = W.x;
-      const bis = W.x + W.b - R.b;
       const el = neu('stadt-strahl', ebene);
-      el.style.left = px(Math.round(von + zufall() * (bis - von)));
+      el.style.left = px(Math.round(x));
       el.style.top = px(R.y);
       el.style.width = px(R.b);
       el.style.height = px(R.h);
@@ -164,13 +165,16 @@
       if (regie.darf('himmel')) blitzJetzt();
       wetterTakt();
     }
-    // Ein Blitz: Wolke leuchtet (<= 300 ms), Mitte dunkelt staerker ab, Strahl zuckt
+    // Ein Blitz: eine sichtbare Wolke leuchtet (<= 300 ms), Mitte dunkelt staerker ab,
+    // Strahl zuckt aus ihr. Ist kein Himmel zu sehen, faellt der Blitz aus.
     function blitzJetzt() {
       if (!laeuft) return;
-      if (blitzTimer !== null) clearT(blitzTimer);
+      const ziel = Stadt.blitzZiel({ links: sichtLinks, rechts: sichtLinks + sichtBreite, oben: sichtOben }, zufall);
+      if (!ziel) return;
+      blitzAus();
       regie.belegt('himmel', BLITZ_MS);
-      strahl();
-      blitz.classList.add('an');
+      strahl(ziel.x);
+      wolken[ziel.wolke].classList.add('an');
       wirt.style.setProperty('--stadt-dunkel', String(DUNKEL_BLITZ));
       blitzTimer = setT(() => { blitzTimer = null; blitzAus(); }, BLITZ_MS);
     }
@@ -184,6 +188,7 @@
     // --- Strasse: Passanten, Autos, Raid ---------------------------------------------
     let sichtLinks = 0;
     let sichtBreite = S.bild.b;
+    let sichtOben = 0;
     const unterwegs = new Set(); // { el, timer }
 
     function weg(u) {
@@ -342,6 +347,7 @@
       if (breite > 0 && m.faktor > 0) {
         sichtLinks = -m.links / m.faktor;
         sichtBreite = breite / m.faktor;
+        sichtOben = -m.oben / m.faktor;
       }
     }
 

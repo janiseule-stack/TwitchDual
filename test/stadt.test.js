@@ -153,3 +153,55 @@ test('raidDauer waechst mit der Strassenbreite und deckt den ganzen Weg (Review 
   }
   assert.ok(Stadt.raidDauer(Stadt.raidPlan(250), 344) >= Stadt.raidDauer(Stadt.raidPlan(5), 344) + 2000);
 });
+
+// Janis 13.11.: „ich meine dass mans nicht sieht“ – Blitz nur aus einer Wolke, die im
+// sichtbaren Ausschnitt liegt; Strahl beginnt im sichtbaren Teil der Wolke.
+const sichtFuer = (b, h) => {
+  const m = Stadt.masse(b, h);
+  const links = -m.links / m.faktor;
+  return { links, rechts: links + b / m.faktor, oben: -m.oben / m.faktor };
+};
+const sichtAnteil = (w, s) => {
+  const bx = Math.max(0, Math.min(w.x + w.b, s.rechts) - Math.max(w.x, s.links));
+  const hy = Math.max(0, w.y + w.h - Math.max(w.y, s.oben));
+  return (bx * Math.min(hy, w.h)) / (w.b * w.h);
+};
+
+test('blitzWolken: mehrere leuchtende Wolken, jede breit genug, Strahl beginnt in jeder', () => {
+  const S = Stadt.STADT;
+  assert.ok(Object.isFrozen(S.blitzWolken) && S.blitzWolken.length >= 3, '2-3 verschiedene Wolken');
+  for (const w of S.blitzWolken) {
+    assert.ok(/^stadt-himmel-blitz-[a-z]+\.png$/.test(w.datei), w.datei);
+    assert.ok(w.b >= S.strahl.b && w.h > 0);
+    assert.ok(S.strahl.y >= w.y && S.strahl.y <= w.y + w.h, 'Strahl beginnt in ' + w.datei);
+  }
+});
+
+test('blitzZiel: nur gut sichtbare Wolken, Strahl im sichtbaren Teil der Wolke', () => {
+  const S = Stadt.STADT;
+  const R = S.strahl;
+  for (const [b, h] of [[1397, 903], [480, 1153], [400, 1111], [900, 675], [344, 277]]) {
+    const s = sichtFuer(b, h);
+    const gute = S.blitzWolken.map((w, i) => i).filter((i) => sichtAnteil(S.blitzWolken[i], s) >= Stadt.WOLKE_SICHTBAR);
+    assert.ok(gute.length >= 1, b + 'x' + h + ': mindestens eine Wolke sichtbar');
+    const gewaehlt = new Set();
+    for (let k = 0; k < 20; k++) {
+      const z = Stadt.blitzZiel(s, () => k / 20);
+      assert.ok(z, b + 'x' + h);
+      assert.ok(gute.includes(z.wolke), b + 'x' + h + ': Wolke ' + z.wolke + ' kaum sichtbar');
+      gewaehlt.add(z.wolke);
+      const w = S.blitzWolken[z.wolke];
+      const von = Math.max(w.x, s.links);
+      const bis = Math.min(w.x + w.b, s.rechts);
+      if (bis - von >= R.b) assert.ok(z.x >= von - 0.5 && z.x + R.b <= bis + 0.5, b + 'x' + h + ': x ' + z.x);
+      else assert.ok(Math.abs(z.x + R.b / 2 - (von + bis) / 2) <= 1, 'mittig im sichtbaren Teil');
+    }
+    assert.deepStrictEqual([...gewaehlt].sort(), gute.slice().sort(), b + 'x' + h + ': alle sichtbaren kommen dran');
+  }
+});
+
+test('blitzZiel: kein Himmel zu sehen -> kein Blitz (null)', () => {
+  for (const [b, h] of [[1397, 353], [1397, 143], [2560, 871]]) {
+    assert.strictEqual(Stadt.blitzZiel(sichtFuer(b, h), () => 0.5), null, b + 'x' + h);
+  }
+});

@@ -43,7 +43,12 @@
       dateien: Object.freeze(['stadt-regen-himmel.png', 'stadt-regen-strasse.png']),
     }),
     strahl: Object.freeze({ b: 38, h: 69, bilder: 14, msProBild: 50, y: 50 }),
-    blitzWolke: Object.freeze({ x: 196, y: 32, b: 118, h: 42 }),
+    blitzWolken: Object.freeze([
+      Object.freeze({ x: 196, y: 32, b: 118, h: 42, datei: 'stadt-himmel-blitz-rechts.png' }),
+      Object.freeze({ x: 16, y: 24, b: 120, h: 50, datei: 'stadt-himmel-blitz-links.png' }),
+      Object.freeze({ x: 92, y: 14, b: 115, h: 65, datei: 'stadt-himmel-blitz-mitte.png' }),
+      Object.freeze({ x: 24, y: 38, b: 172, h: 67, datei: 'stadt-himmel-blitz-tief.png' }),
+    ]),
     gehwegY: 251,
     fahrbahnY: 272,
   });
@@ -86,6 +91,31 @@
     const faktor = Math.max(b / B.b, h / B.h);
     const strasseH = Math.min(Math.round(S.h * faktor), Math.floor(h / 2));
     return { faktor, links: (b - B.b * faktor) / 2, oben: h - B.h * faktor, strasseH };
+  }
+
+  // Ab diesem Anteil (Flaeche) gilt eine leuchtende Wolke als sichtbar.
+  const WOLKE_SICHTBAR = 0.5;
+
+  // Blitz (Janis 13.11.: „dass mans nicht sieht“): eine der Wolken, die im sichtbaren
+  // Ausschnitt liegen, zufaellig; der Strahl beginnt im sichtbaren Teil dieser Wolke.
+  // sicht = { links, rechts, oben } in Bildpixeln (unten ist immer der Bildrand).
+  // -> { wolke: Index in STADT.blitzWolken, x } oder null (kein Himmel zu sehen).
+  function blitzZiel(sicht, zufall = Math.random) {
+    const R = STADT.strahl;
+    const gute = [];
+    STADT.blitzWolken.forEach((w, i) => {
+      const b = Math.max(0, Math.min(w.x + w.b, sicht.rechts) - Math.max(w.x, sicht.links));
+      const h = Math.max(0, w.y + w.h - Math.max(w.y, sicht.oben));
+      if ((b * Math.min(h, w.h)) / (w.b * w.h) >= WOLKE_SICHTBAR) gute.push(i);
+    });
+    if (!gute.length) return null;
+    const i = gute[Math.min(gute.length - 1, Math.floor(zufall() * gute.length))];
+    const w = STADT.blitzWolken[i];
+    const von = Math.max(w.x, sicht.links);
+    const bis = Math.min(w.x + w.b, sicht.rechts);
+    // schmaler als der Strahl: mittig in den sichtbaren Teil
+    const x = bis - von >= R.b ? von + zufall() * (bis - von - R.b) : (von + bis - R.b) / 2;
+    return { wolke: i, x };
   }
 
   function lichtAnteil(stunde) {
@@ -175,7 +205,7 @@
   }
 
   return {
-    STADT, LICHT_NACH_STUNDE, GEWITTER, BUDGET, RAID_ABSTAND, BUS_HALT_MS,
+    STADT, LICHT_NACH_STUNDE, GEWITTER, BUDGET, RAID_ABSTAND, BUS_HALT_MS, WOLKE_SICHTBAR, blitzZiel,
     masse, lichtAnteil, aboFenster, gewitter, regisseur, raidPlan, raidDauer,
   };
 });

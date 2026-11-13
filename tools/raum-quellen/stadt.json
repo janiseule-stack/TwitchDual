@@ -498,12 +498,36 @@
     "msProBild": 50,
     "y": 50
   },
-  "blitzWolke": {
-    "x": 196,
-    "y": 32,
-    "b": 118,
-    "h": 42
-  },
+  "blitzWolken": [
+    {
+      "x": 196,
+      "y": 32,
+      "b": 118,
+      "h": 42,
+      "datei": "stadt-himmel-blitz-rechts.png"
+    },
+    {
+      "x": 16,
+      "y": 24,
+      "b": 120,
+      "h": 50,
+      "datei": "stadt-himmel-blitz-links.png"
+    },
+    {
+      "x": 92,
+      "y": 14,
+      "b": 115,
+      "h": 65,
+      "datei": "stadt-himmel-blitz-mitte.png"
+    },
+    {
+      "x": 24,
+      "y": 38,
+      "b": 172,
+      "h": 67,
+      "datei": "stadt-himmel-blitz-tief.png"
+    }
+  ],
   "gehwegY": 251,
   "fahrbahnY": 272
 }

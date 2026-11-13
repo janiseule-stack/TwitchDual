@@ -41,6 +41,10 @@ FIGUR_PX_PRO_BILD = 2
 PASSANTEN = ("a", "b", "c", "d", "e", "f", "g")
 # Blitz-Strahl (vfx_workbench „TwitchDual Stadt-Blitz“, blitz-vfx/): Oberkante im Bild, endet in der Skyline
 STRAHL_Y = 50
+# Leuchtende Wolken (PixelLab-Inpaint auf dem Grundbild, je eine Blitz-Ebene). Janis 13.11.:
+# mehrere, damit bei jeder Chat-Groesse eine zu sehen ist (tief = fuer 1397x1332, wo oben
+# 55 Bildpixel fehlen; mitte = fuer den schmalen Chat neben dem Vollbild-Video).
+WOLKEN = ("rechts", "links", "mitte", "tief")
 # Kleinste Fensterflaeche (Bildpixel je Seite)
 FENSTER_MINDEST = 2
 
@@ -159,19 +163,26 @@ def strahl_streifen(quellen, ziel):
 def main(quellen, ziel, json_pfad):
     grund = lade(quellen, "grund.png")
     licht = lade(quellen, "haeuser-licht.png")
-    blitz = lade(quellen, "himmel-blitz.png")
     w, h = grund.size
-    if licht.size != (w, h) or blitz.size != (w, h):
+    if licht.size != (w, h):
         raise SystemExit("Stadt-Ebenen haben unterschiedliche Masse")
 
     fenster = fenster_finden(grund, licht)
     for f in fenster:
         if f["y"] < HIMMEL_BIS:
             raise SystemExit("Fenster im Himmel: %r" % f)
-    blitz_ebene = nur_unterschied(grund, blitz)
-    box = blitz_ebene.getbbox()
-    if not box or box[3] > HIMMEL_BIS:
-        raise SystemExit("Blitz reicht unter den Himmel: %r" % (box,))
+    wolken = []
+    for k in WOLKEN:
+        blitz = lade(quellen, "himmel-blitz-%s.png" % k)
+        if blitz.size != (w, h):
+            raise SystemExit("himmel-blitz-%s.png hat andere Masse" % k)
+        ebene = nur_unterschied(grund, blitz)
+        box = ebene.getbbox()
+        if not box or box[3] > HIMMEL_BIS:
+            raise SystemExit("Blitz %s reicht unter den Himmel: %r" % (k, box))
+        name = "stadt-himmel-blitz-%s.png" % k
+        ebene.save(os.path.join(ziel, name))
+        wolken.append({"x": box[0], "y": box[1], "b": box[2] - box[0], "h": box[3] - box[1], "datei": name})
 
     # Helle Haeuser: nur die erkannten Fenster aus der hellen Variante ausstanzen,
     # einzelne Splitter-Pixel (kleiner als FENSTER_MINDEST) bleiben dunkel.
@@ -182,7 +193,6 @@ def main(quellen, ziel, json_pfad):
 
     grund.save(os.path.join(ziel, "stadt.png"))
     hell.save(os.path.join(ziel, "stadt-haeuser-licht.png"))
-    blitz_ebene.save(os.path.join(ziel, "stadt-himmel-blitz.png"))
 
     varianten = []
     fb = fh = 0
@@ -236,15 +246,15 @@ def main(quellen, ziel, json_pfad):
         "bus": {"b": bus.size[0], "h": bus.size[1], "tuerX": BUS_TUER_X},
         "regen": {"bilder": regen_bilder, "msProBild": regen_ms, "dateien": regen_dateien},
         "strahl": strahl_streifen(quellen, ziel),
-        # Lage der leuchtenden Wolke (Blitz-Ebene): der Strahl kommt aus ihr
-        "blitzWolke": {"x": box[0], "y": box[1], "b": box[2] - box[0], "h": box[3] - box[1]},
+        # Lage der leuchtenden Wolken (Blitz-Ebenen): der Strahl kommt aus einer sichtbaren
+        "blitzWolken": wolken,
         "gehwegY": GEHWEG_Y,
         "fahrbahnY": FAHRBAHN_Y,
     }
     with open(json_pfad, "w", encoding="utf-8", newline="\n") as f:
         json.dump(daten, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    print(json.dumps({"fenster": len(fenster), "blitz": box}))
+    print(json.dumps({"fenster": len(fenster), "wolken": wolken}))
 
 
 if __name__ == "__main__":

@@ -77,10 +77,12 @@ test('stadt.json: Felder fuer Bild, Ebenen, Fenster, Figuren, Fahrzeuge, Regen, 
   // Blitz-Strahl (PixelLab-Effekt „TwitchDual Stadt-Blitz“): Bildstreifen, Oberkante im Himmel
   for (const k of ['b', 'h', 'bilder', 'msProBild']) assert.ok(s.strahl[k] > 0, 'strahl.' + k);
   assert.ok(s.strahl.y >= 0 && s.strahl.y + s.strahl.h <= s.ebenen.haeuser.y + 10, 'Strahl endet in der Skyline');
-  // Leuchtende Wolke (Lage der Blitz-Ebene): der Strahl kommt aus ihr (Janis 13.11.)
-  const w = s.blitzWolke;
-  assert.ok(w.b >= s.strahl.b && w.h > 0, 'Wolke breit genug');
-  assert.ok(s.strahl.y >= w.y && s.strahl.y <= w.y + w.h, 'Strahl beginnt in der Wolke');
+  // Leuchtende Wolken (je eine Blitz-Ebene): der Strahl kommt aus ihnen (Janis 13.11.)
+  assert.ok(Array.isArray(s.blitzWolken) && s.blitzWolken.length >= 3);
+  for (const w of s.blitzWolken) {
+    assert.ok(w.b >= s.strahl.b && w.h > 0, 'Wolke breit genug: ' + w.datei);
+    assert.ok(s.strahl.y >= w.y && s.strahl.y <= w.y + w.h, 'Strahl beginnt in der Wolke: ' + w.datei);
+  }
   for (const k of ['auto', 'bus']) assert.ok(s[k].b > 0 && s[k].h > 0, k);
   // Autos 1,4x in mehreren Farben (Janis 13.11.), Radlinie fuer die Spiegelung
   assert.ok(Array.isArray(s.auto.varianten) && s.auto.varianten.length >= 2);
@@ -112,12 +114,12 @@ test('alle Stadt-Bilder existieren und haben die Masse aus stadt.json', () => {
   const erwartet = {
     'stadt.png': [s.bild.b, s.bild.h],
     'stadt-haeuser-licht.png': [s.bild.b, s.bild.h],
-    'stadt-himmel-blitz.png': [s.bild.b, s.bild.h],
     'stadt-bus.png': [s.bus.b, s.bus.h],
     'stadt-bus-tuer.png': [s.bus.b, s.bus.h],
   };
   for (const v of s.auto.varianten) erwartet[v] = [s.auto.b, s.auto.h];
   erwartet['stadt-blitz-strahl.png'] = [s.strahl.b * s.strahl.bilder, s.strahl.h];
+  for (const w of s.blitzWolken) erwartet[w.datei] = [s.bild.b, s.bild.h];
   for (const d of s.regen.dateien) erwartet[d] = [s.bild.b * s.regen.bilder, s.bild.h];
   for (const v of s.figur.varianten) erwartet[v] = [s.figur.b * s.figur.bilder, s.figur.h];
   for (const [name, [b, h]] of Object.entries(erwartet)) {
@@ -140,19 +142,22 @@ test('helle Haeuser unterscheiden sich vom Grundbild nur in den Fenstern', () =>
   assert.strictEqual(ausserhalb, 0);
 });
 
-test('Blitz-Ebene ist nur im Himmel sichtbar, sonst durchsichtig', () => {
+test('Blitz-Ebenen sind nur im Himmel und in ihrer Wolke sichtbar, sonst durchsichtig', () => {
   const s = ladeJson();
-  const blitz = dekodiere('stadt-himmel-blitz.png');
   const ende = s.ebenen.himmel.y + s.ebenen.himmel.h;
-  let sichtbar = 0;
-  for (let y = 0; y < blitz.h; y++) {
-    for (let x = 0; x < blitz.w; x++) {
-      const a = blitz.px[(y * blitz.w + x) * 4 + 3];
-      if (a > 0) {
-        sichtbar++;
-        assert.ok(y < ende, 'Blitz-Pixel unter dem Himmel bei y ' + y);
+  for (const w of s.blitzWolken) {
+    const blitz = dekodiere(w.datei);
+    let sichtbar = 0;
+    for (let y = 0; y < blitz.h; y++) {
+      for (let x = 0; x < blitz.w; x++) {
+        const a = blitz.px[(y * blitz.w + x) * 4 + 3];
+        if (a > 0) {
+          sichtbar++;
+          assert.ok(y < ende, w.datei + ': Pixel unter dem Himmel bei y ' + y);
+          assert.ok(x >= w.x && x < w.x + w.b && y >= w.y && y < w.y + w.h, w.datei + ': ausserhalb der Wolke');
+        }
       }
     }
+    assert.ok(sichtbar > 100, w.datei + ' ist leer');
   }
-  assert.ok(sichtbar > 100, 'Blitz-Ebene ist leer');
 });
