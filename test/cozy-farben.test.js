@@ -41,7 +41,7 @@ function kontrast(a, b) {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-const VERTRAG = ['--chat-alpha', '--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim',
+const VERTRAG = ['--accent', '--accent-title', '--accent-border', '--accent-glow', '--accent-dim',
   '--accent-contrast', '--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts',
   '--onair-from', '--onair-to', '--mono'];
 
@@ -49,9 +49,9 @@ test('farben.css setzt jede Variable des Vertrags genau einmal', () => {
   for (const k of VERTRAG) assert.strictEqual(anzahl[k], 1, k);
   assert.strictEqual((css.match(/:root/g) || []).length, 1);
 });
-test('Flaechen tragen --chat-alpha, Schrift und Akzent nicht', () => {
-  for (const k of ['--bg', '--panel', '--hover']) assert.ok(vars[k].includes('var(--chat-alpha)'));
-  for (const k of ['--text', '--muted', '--accent', '--line']) assert.ok(!vars[k].includes('--chat-alpha'));
+test('Flaechen sind deckend (keine Deckkraft-Variable mehr)', () => {
+  assert.ok(!css.includes('--chat-alpha'));
+  for (const k of ['--bg', '--panel', '--hover']) assert.ok(!vars[k].includes('/'), k + ' ' + vars[k]);
 });
 test('Emote-Auswahl, ihr Suchfeld und die Vorschlagsleiste bleiben bei jeder Deckkraft opak', () => {
   for (const k of ['--panel-fest', '--hover-fest']) {

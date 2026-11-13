@@ -440,13 +440,6 @@ button:focus-visible, input:focus-visible {
 }
 #opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
 
-/* ⚙-Popup: Deckkraft-Slider (Glass-Transparenz). */
-.opt-alpha-row { display: flex; align-items: center; gap: 8px; }
-.opt-alpha-row input[type="range"] { flex: 1; min-width: 90px; }
-.opt-alpha-val {
-  font-family: var(--mono); color: var(--muted);
-  min-width: 42px; text-align: right;
-}
 
 /* Chat-Eingabezeile (v1.8.0): nur eingeloggt + Live aktiv (updateComposerState). */
 /* Eingabe (Janis 09.11.2026): EIN Feld, Knoepfe als kleine Symbole rechts

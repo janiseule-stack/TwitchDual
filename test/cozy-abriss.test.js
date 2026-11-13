@@ -19,9 +19,17 @@ test('Chat: Bedienung der alten Themes ist weg', () => {
   assert.ok(!chatHtml.includes('data-art="gast"'));
 });
 test('Chat: gebliebene Einstellungen sind da', () => {
-  for (const id of ['opt-ts', 'opt-badges', 'opt-font', 'opt-diag', 'opt-diag-open', 'opt-alpha-chat', 'opt-animationen', 'opt-fx-test']) {
+  for (const id of ['opt-ts', 'opt-badges', 'opt-font', 'opt-diag', 'opt-diag-open', 'opt-animationen', 'opt-fx-test']) {
     assert.ok(chatHtml.includes('id="' + id + '"'), id);
   }
+});
+test('Chat: Deckkraft-Einstellung entfaellt (Stadt immer deckend)', () => {
+  const chatJs = lies('renderer/chat/chat.js');
+  const chatCss = lies('renderer/chat/chat.css');
+  for (const [name, text] of [['index.html', chatHtml], ['chat.js', chatJs], ['chat.css', chatCss]]) {
+    assert.ok(!/opt-alpha|chat-alpha|chatAlpha|alphaChat/.test(text), name);
+  }
+  assert.ok(!lies('renderer/themes/cozy/farben.css').includes('--chat-alpha'));
 });
 test('Chat: laedt keine Theme-Bausteine mehr', () => {
   for (const s of ['lib/themes.js', 'lib/fx-engine.js', 'lib/theme-runtime.js']) assert.ok(!chatHtml.includes(s), s);
@@ -58,7 +66,7 @@ test('alte Themes und ihre Bausteine sind geloescht', () => {
 });
 test('ThemeLib exportiert nur noch den Rest', () => {
   assert.deepStrictEqual(Object.keys(require('../renderer/lib/theme')).sort(),
-    ['AKZENT', 'BALKEN', 'SICHERE_FARBE', 'STANDARD_PREFS', 'clampAlpha', 'cleanThemePrefs', 'mergeThemePrefs',
+    ['AKZENT', 'BALKEN', 'SICHERE_FARBE', 'STANDARD_PREFS', 'cleanThemePrefs', 'mergeThemePrefs',
       'normalizeHex', 'onAirLabel', 'onAirState'].sort());
 });
 test('kein Quelltext nennt die alten Themes', () => {

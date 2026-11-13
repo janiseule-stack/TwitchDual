@@ -10,7 +10,8 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   // pixelUebergang: Wechsel Raum <-> Regal als Pixel-Blende statt Zoom (Janis 13.11.)
-  const STANDARD_PREFS = Object.freeze({ chatAlpha: 100, animationen: true, pixelUebergang: false });
+  // Die Chat-Deckkraft entfiel mit der Chat-Stadt (Janis 13.11.2026): Chat immer deckend.
+  const STANDARD_PREFS = Object.freeze({ animationen: true, pixelUebergang: false });
   const AKZENT = '#f9a650';   // = --accent in renderer/themes/cozy/farben.css
   const BALKEN = '#120505';   // = --bg; Flaeche ueber/unter dem Video
   // Zeichengleiche Kopie steht in preload.js (Sandbox: kein require);
@@ -26,18 +27,6 @@
     if (/^[0-9a-f]{3}$/.test(s)) s = s.replace(/./g, (c) => c + c);
     if (!/^[0-9a-f]{6}$/.test(s)) return fallback;
     return '#' + s;
-  }
-
-  // Prozent-Deckkraft 0..100. Kaputt/fehlend -> 100 (nie versehentlich
-  // unsichtbar durch alte/kaputte Store-Werte).
-  function clampAlpha(input) {
-    // Nur echte Zahlen oder nicht-leere numerische Strings zaehlen; alles
-    // andere (null, {}, '', 'viel', NaN) -> 100. (Number(null) waere 0!)
-    if (typeof input !== 'number' && typeof input !== 'string') return 100;
-    if (typeof input === 'string' && input.trim() === '') return 100;
-    const n = Number(input);
-    if (!Number.isFinite(n)) return 100;
-    return Math.round(Math.min(100, Math.max(0, n)));
   }
 
   // On Air = Live-Kanal geladen UND Player spielt. Alles andere (VOD, Pause,
@@ -57,12 +46,12 @@
   }
 
   // Store-Inhalt kann alt oder kaputt sein: nur die bekannten Felder
-  // bleiben. Umzug: wer frueher effekte 'aus' hatte, behaelt Animationen aus,
-  // solange kein echtes animationen-Feld gespeichert ist.
+  // bleiben (eine alte chatAlpha faellt weg). Umzug: wer frueher effekte 'aus'
+  // hatte, behaelt Animationen aus, solange kein echtes animationen-Feld gespeichert ist.
   function cleanThemePrefs(roh) {
     const p = roh && typeof roh === 'object' && !Array.isArray(roh) ? roh : {};
     const animationen = typeof p.animationen === 'boolean' ? p.animationen : p.effekte !== 'aus';
-    return { chatAlpha: clampAlpha(p.chatAlpha), animationen, pixelUebergang: p.pixelUebergang === true };
+    return { animationen, pixelUebergang: p.pixelUebergang === true };
   }
 
   // Teil-Updates (nur ein Feld) lassen die anderen Felder stehen.
@@ -70,7 +59,6 @@
     const basis = cleanThemePrefs(gespeichert);
     const u = update && typeof update === 'object' && !Array.isArray(update) ? update : {};
     const neu = { ...basis };
-    if ('chatAlpha' in u) neu.chatAlpha = u.chatAlpha;
     if ('animationen' in u) neu.animationen = u.animationen;
     if ('pixelUebergang' in u) neu.pixelUebergang = u.pixelUebergang;
     const sauber = cleanThemePrefs(neu);
@@ -80,6 +68,6 @@
     return sauber;
   }
 
-  return { STANDARD_PREFS, AKZENT, BALKEN, SICHERE_FARBE, normalizeHex, clampAlpha, onAirState, onAirLabel,
+  return { STANDARD_PREFS, AKZENT, BALKEN, SICHERE_FARBE, normalizeHex, onAirState, onAirLabel,
     cleanThemePrefs, mergeThemePrefs };
 });

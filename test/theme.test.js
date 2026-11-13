@@ -19,26 +19,10 @@ test('normalizeHex: Muell faellt auf den Fallback zurueck', () => {
   assert.equal(ThemeLib.normalizeHex(42, '#ff4fa3'), '#ff4fa3');
 });
 
-// --- clampAlpha ---------------------------------------------------------------
-test('clampAlpha: gueltige Prozente bleiben, gerundet', () => {
-  assert.equal(ThemeLib.clampAlpha(100), 100);
-  assert.equal(ThemeLib.clampAlpha(0), 0);
-  assert.equal(ThemeLib.clampAlpha(55), 55);
-  assert.equal(ThemeLib.clampAlpha(42.6), 43);
-  assert.equal(ThemeLib.clampAlpha('80'), 80); // numerischer String
-});
-
-test('clampAlpha: Grenzen werden geklemmt', () => {
-  assert.equal(ThemeLib.clampAlpha(140), 100);
-  assert.equal(ThemeLib.clampAlpha(-20), 0);
-});
-
-test('clampAlpha: Muell/fehlend faellt auf 100 (nie unsichtbar)', () => {
-  assert.equal(ThemeLib.clampAlpha(undefined), 100);
-  assert.equal(ThemeLib.clampAlpha(null), 100);
-  assert.equal(ThemeLib.clampAlpha('viel'), 100);
-  assert.equal(ThemeLib.clampAlpha(NaN), 100);
-  assert.equal(ThemeLib.clampAlpha({}), 100);
+// --- Deckkraft entfaellt (Chat-Stadt, Janis 13.11.2026) -----------------------
+test('Deckkraft-Einstellung gibt es nicht mehr', () => {
+  assert.strictEqual(ThemeLib.clampAlpha, undefined);
+  assert.ok(!('chatAlpha' in ThemeLib.STANDARD_PREFS));
 });
 
 // --- onAirState ----------------------------------------------------------------
@@ -70,7 +54,7 @@ test('onAirLabel: paused/idle -> null (dimmed, kein Label)', () => {
 const T = ThemeLib;
 test('cleanThemePrefs: leer/Muell -> Standard', () => {
   for (const roh of [null, undefined, 'x', 7, [], {}]) {
-    assert.deepStrictEqual(T.cleanThemePrefs(roh), { chatAlpha: 100, animationen: true, pixelUebergang: false });
+    assert.deepStrictEqual(T.cleanThemePrefs(roh), { animationen: true, pixelUebergang: false });
   }
 });
 // Janis 13.11.: Zoom ist Standard, die Pixel-Blende Raum <-> Regal gibt es als Einstellung.
@@ -78,17 +62,17 @@ test('pixelUebergang: Standard aus, nur echte Booleans, Teil-Update laesst die a
   assert.strictEqual(T.STANDARD_PREFS.pixelUebergang, false);
   assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: true }).pixelUebergang, true);
   assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: 'ja' }).pixelUebergang, false);
-  const g = { chatAlpha: 60, animationen: false, pixelUebergang: true };
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false, pixelUebergang: true });
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { pixelUebergang: false }), { chatAlpha: 60, animationen: false, pixelUebergang: false });
+  const g = { animationen: false, pixelUebergang: true };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { animationen: true, pixelUebergang: true });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { pixelUebergang: false }), { animationen: false, pixelUebergang: false });
   // kaputter Wert im Update wirft das Gespeicherte nicht um
   assert.strictEqual(T.mergeThemePrefs(g, { pixelUebergang: 'nein' }).pixelUebergang, true);
 });
-test('cleanThemePrefs: alte Felder verschwinden, chatAlpha bleibt', () => {
+test('cleanThemePrefs: alte Felder verschwinden, auch eine gespeicherte Deckkraft', () => {
   const alt = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'koi', effekte: 'normal',
     anpassungen: { 'koi:tusche': { akzent: '#112233' } }, variante: { koi: 'tusche' }, saat: { koi: 5 },
     gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' };
-  assert.deepStrictEqual(T.cleanThemePrefs(alt), { chatAlpha: 60, animationen: true, pixelUebergang: false });
+  assert.deepStrictEqual(T.cleanThemePrefs(alt), { animationen: true, pixelUebergang: false });
 });
 test('cleanThemePrefs: Umzug effekte aus -> animationen false', () => {
   assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus' }).animationen, false);
@@ -99,19 +83,15 @@ test('cleanThemePrefs: Umzug effekte aus -> animationen false', () => {
   assert.strictEqual(T.cleanThemePrefs({ animationen: 'aus' }).animationen, true);
   assert.strictEqual(T.cleanThemePrefs({ animationen: false }).animationen, false);
 });
-test('cleanThemePrefs: kaputte Deckkraft -> 100', () => {
-  assert.strictEqual(T.cleanThemePrefs({ chatAlpha: 'viel' }).chatAlpha, 100);
-  assert.strictEqual(T.cleanThemePrefs({ chatAlpha: -5 }).chatAlpha, 0);
-});
-test('mergeThemePrefs: Teil-Update laesst das andere Feld stehen', () => {
-  const g = { chatAlpha: 60, animationen: false, pixelUebergang: false };
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { chatAlpha: 80, animationen: false, pixelUebergang: false });
-  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { chatAlpha: 60, animationen: true, pixelUebergang: false });
+test('mergeThemePrefs: Teil-Update laesst das andere Feld stehen, Deckkraft im Update wird ignoriert', () => {
+  const g = { animationen: false, pixelUebergang: false };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { animationen: false, pixelUebergang: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { animationen: true, pixelUebergang: false });
   assert.deepStrictEqual(T.mergeThemePrefs(g, null), g);
-  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { chatAlpha: 100, animationen: true, pixelUebergang: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { animationen: true, pixelUebergang: false });
 });
 test('mergeThemePrefs: alter Store mit effekte aus + Update ohne animationen bleibt aus', () => {
-  assert.strictEqual(T.mergeThemePrefs({ effekte: 'aus', chatAlpha: 100 }, { chatAlpha: 90 }).animationen, false);
+  assert.strictEqual(T.mergeThemePrefs({ effekte: 'aus', chatAlpha: 100 }, { pixelUebergang: true }).animationen, false);
 });
 test('feste Werte: Akzent, Balken, Farbfilter', () => {
   assert.strictEqual(T.AKZENT, '#f9a650');

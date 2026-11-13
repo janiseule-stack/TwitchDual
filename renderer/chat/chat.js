@@ -774,12 +774,10 @@ document.getElementById('head').addEventListener('dblclick', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Fenster-Einstellungen (Deckkraft, Animationen): gelten fuer beide Fenster,
-// main.js mischt Teil-Updates. Die On-Air-Leiste haengt an load-Modus +
-// player-state.
+// Fenster-Einstellungen (Animationen, Pixel-Uebergang): gelten fuer beide
+// Fenster, main.js mischt Teil-Updates. Die On-Air-Leiste haengt an
+// load-Modus + player-state.
 // ---------------------------------------------------------------------------
-const $alphaChat = document.getElementById('opt-alpha-chat');
-const $alphaChatVal = document.getElementById('opt-alpha-chat-val');
 const $optAnimationen = document.getElementById('opt-animationen');
 const $optPixelUebergang = document.getElementById('opt-pixel-uebergang');
 
@@ -818,12 +816,9 @@ const abspieler = RaumLeben.abspieler({
 function applyTheme(prefs) {
   themePrefs = ThemeLib.cleanThemePrefs(prefs);
   const r = document.documentElement;
-  r.style.setProperty('--chat-alpha', String(themePrefs.chatAlpha / 100));
   r.dataset.animationen = themePrefs.animationen ? 'an' : 'aus';
   if (themePrefs.animationen) { leben.an(); stadt.an(); }
   else { leben.aus(); stadt.aus(); abspieler.aus(); }
-  $alphaChat.value = themePrefs.chatAlpha;
-  $alphaChatVal.textContent = themePrefs.chatAlpha + '%';
   $optAnimationen.checked = themePrefs.animationen;
   $optPixelUebergang.checked = themePrefs.pixelUebergang;
 }
@@ -833,15 +828,6 @@ window.twitchDual.getUiPrefs()
   .catch(() => applyTheme(null)); // Standard, App startet nie ohne Werte
 window.twitchDual.onThemeChanged(applyTheme);
 
-// input = Live-Vorschau (Broadcast ohne Store-Write), change = speichern.
-$alphaChat.addEventListener('input', () => {
-  const chatAlpha = ThemeLib.clampAlpha($alphaChat.value);
-  $alphaChatVal.textContent = chatAlpha + '%';
-  window.twitchDual.previewThemePrefs({ chatAlpha });
-});
-$alphaChat.addEventListener('change', () => {
-  window.twitchDual.saveThemePrefs({ chatAlpha: ThemeLib.clampAlpha($alphaChat.value) });
-});
 $optAnimationen.addEventListener('change', () => {
   window.twitchDual.saveThemePrefs({ animationen: $optAnimationen.checked });
 });
