@@ -28,7 +28,7 @@
   const url = (pfad, datei) => "url('" + pfad + datei + "')";
 
   // wirt = #stadt; pfad = Ordner der Bilder ('../themes/cozy/').
-  // opt: setTimeout, clearTimeout, jetzt, zufall, stunde (Tests),
+  // opt: setTimeout, clearTimeout, jetzt, zufall, stunde (Tests), fahrzeug(an) (Auto/Bus da/weg),
   //      gewitter (Ersatz fuer Stadt.gewitter, Tests).
   function baue(doc, wirt, pfad, opt) {
     const o = opt || {};
@@ -190,17 +190,24 @@
     let sichtLinks = 0;
     let sichtBreite = S.bild.b;
     let sichtOben = 0;
-    const unterwegs = new Set(); // { el, timer }
+    const unterwegs = new Set(); // { el, timer, fahrzeug }
+    // Autos und Raid-Bus melden sich (o.fahrzeug(true/false)), damit chat.js den Text
+    // ueber der Strasse kurz durchsichtig machen kann (Janis 13.11.2026).
+    let fahrzeuge = 0;
+    const meldeFahrzeug = (an) => { if (o.fahrzeug) o.fahrzeug(an); };
 
     function weg(u) {
       if (!unterwegs.has(u)) return;
       unterwegs.delete(u);
       if (u.timer !== null) clearT(u.timer);
       u.el.remove();
+      if (u.fahrzeug && --fahrzeuge === 0) meldeFahrzeug(false);
     }
-    function losschicken(el, dauerMs, endAnimation = null) {
-      const u = { el, timer: null };
+    // fahrzeug: false oder die Oberkante des Fahrzeugs in Bildpixeln
+    function losschicken(el, dauerMs, endAnimation = null, fahrzeug = false) {
+      const u = { el, timer: null, fahrzeug };
       unterwegs.add(u);
+      if (fahrzeug && fahrzeuge++ === 0) meldeFahrzeug(true);
       strasse.appendChild(el);
       // Nur das Ende der Bewegung zaehlt; die 0-s-Sichtbar-Animation endet schon beim Loslaufen,
       // beim Bus endet die Ankunft vor der Abfahrt (endAnimation).
@@ -265,7 +272,7 @@
       const von = nachLinks ? sichtLinks + sichtBreite : sichtLinks - A.b;
       bahn(el, von, von + (nachLinks ? -1 : 1) * schritte * AUTO.pxProBild, schritte, AUTO.msProBild, 0);
       const dauer = schritte * AUTO.msProBild;
-      losschicken(el, dauer);
+      losschicken(el, dauer, null, S.fahrbahnY - A.h);
       regie.belegt('strasse', dauer);
     }
     let lebenTimer = null;
@@ -328,7 +335,7 @@
           bus.style.setProperty('--halt-ms', haltMs + 'ms');
           bus.style.setProperty('--ab-verzug', BUS.ankunft + haltMs + 'ms');
           bus.style.setProperty('--ab', BUS.abfahrt + 'ms');
-          r.teile.push(losschicken(bus, BUS.ankunft + haltMs + BUS.abfahrt, 'stadt-bus-ab'));
+          r.teile.push(losschicken(bus, BUS.ankunft + haltMs + BUS.abfahrt, 'stadt-bus-ab', S.fahrbahnY - B.h));
           start = halt + B.tuerX - F.b / 2;
           weite = Math.max(F.b, sichtLinks + sichtBreite - start);
           verzug = BUS.ankunft + 200;
@@ -351,8 +358,16 @@
       });
     }
 
+    let mass = { faktor: 1, oben: 0 };
+    // Oberkante des hoechsten fahrenden Fahrzeugs (sonst der Strasse) in px innerhalb von #stadt
+    function fahrzeugOben() {
+      let y = S.ebenen.strasse.y;
+      for (const u of unterwegs) if (u.fahrzeug !== false) y = Math.min(y, u.fahrzeug);
+      return mass.oben + y * mass.faktor;
+    }
     function richteAus(breite, hoehe) {
       const m = Stadt.masse(breite, hoehe);
+      mass = m;
       wirt.style.setProperty('--stadt-f', String(m.faktor));
       wirt.style.setProperty('--stadt-links', px(m.links));
       wirt.style.setProperty('--stadt-oben', px(m.oben));
@@ -383,6 +398,7 @@
         aboTimer = [];
       },
       richteAus,
+      fahrzeugOben, // fuer den durchsichtigen Text ueber Fahrzeugen (chat.js)
       aboFenster,
       blitz: blitzJetzt, // Ausprobieren-Knopf
       raid,

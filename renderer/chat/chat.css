@@ -33,6 +33,10 @@ body { display: flex; flex-direction: column; }
   display: flex; flex-direction: column;
 }
 #messages > :first-child { margin-top: auto; }
+/* Auto oder Raid-Bus auf der Strasse: Nachrichten darueber kurz durchsichtig
+   (Janis 13.11.2026, 35 % sichtbar); chat.js setzt die Klasse. */
+#messages .msg { transition: opacity 300ms; }
+#messages .msg.unter-fahrzeug { opacity: .35; }
 /* Keine sichtbaren Scrollbalken im ganzen Chat-Fenster (Janis 09.11.2026):
    Mausrad/Touchpad scrollt weiter, nur der Balken an der Seite ist weg.
    scrollbar-width schlaegt in Chromium 121+ die ::-webkit-scrollbar-Regeln

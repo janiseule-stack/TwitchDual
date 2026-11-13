@@ -799,7 +799,27 @@ const lebenAktiv = () => document.documentElement.dataset.animationen !== 'aus';
 // Passanten, Autos und Raids; richtet sich bei jeder Groessenaenderung der Flaeche
 // neu aus (auch wenn die Eingabe hoeher wird). "Animationen aus" haelt sie an.
 const $stadt = document.getElementById('stadt');
-const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/');
+// Faehrt ein Auto oder der Raid-Bus, werden die Nachrichten ueber der Strasse kurz
+// durchsichtig (Janis 13.11.2026, chat.css .unter-fahrzeug). Solange etwas faehrt,
+// alle 100 ms neu, weil neue Nachrichten nachruecken.
+let fahrzeugTakt = null;
+function textUeberFahrzeug(an) {
+  clearInterval(fahrzeugTakt);
+  fahrzeugTakt = null;
+  const markiere = () => {
+    const grenze = $stadt.getBoundingClientRect().top + stadt.fahrzeugOben();
+    for (const m of $messages.querySelectorAll('.unter-fahrzeug')) {
+      if (m.getBoundingClientRect().bottom <= grenze) m.classList.remove('unter-fahrzeug');
+    }
+    // von unten nach oben, bis die erste Nachricht ganz ueber der Strasse liegt
+    for (let m = $messages.lastElementChild; m && m.getBoundingClientRect().bottom > grenze; m = m.previousElementSibling) {
+      m.classList.add('unter-fahrzeug');
+    }
+  };
+  if (an) { markiere(); fahrzeugTakt = setInterval(markiere, 100); }
+  else for (const m of $messages.querySelectorAll('.unter-fahrzeug')) m.classList.remove('unter-fahrzeug');
+}
+const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/', { fahrzeug: textUeberFahrzeug });
 new ResizeObserver(() => stadt.richteAus($stadt.clientWidth, $stadt.clientHeight)).observe($stadt);
 stadt.richteAus($stadt.clientWidth, $stadt.clientHeight);
 

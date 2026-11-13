@@ -260,6 +260,55 @@ test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abged
   assert.ok(hoechstens <= Stadt.BUDGET.strasse, 'Regisseur: hoechstens 2 auf der Strasse');
 });
 
+// Janis 13.11.2026: faehrt ein Auto oder der Raid-Bus, wird der Text ueber der Strasse kurz durchsichtig.
+const regenOhneBlitz = { naechste: () => ({ phase: 'regen', blitzInMs: null, wechselInMs: 1e9 }) };
+
+test('fahrzeug-Meldung: Auto meldet an und nach dem Wegfahren ab, Passant meldet nichts', () => {
+  const meldungen = [];
+  const { uhr, stadt, teil } = aufbau({ zufall: () => 0.9, gewitter: regenOhneBlitz, fahrzeug: (an) => meldungen.push(an) });
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  for (let i = 0; i < 200 && !strasse.kinder.some((k) => k.classList.contains('stadt-auto')); i++) uhr.vor(1000);
+  assert.deepStrictEqual(meldungen, [true], 'Auto faehrt -> an');
+  for (let i = 0; i < 60 && strasse.kinder.some((k) => k.classList.contains('stadt-auto')); i++) uhr.vor(500);
+  assert.strictEqual(meldungen[1], false, 'Auto weg -> aus');
+
+  const nurPassanten = [];
+  const p = aufbau({ zufall: () => 0.1, gewitter: regenOhneBlitz, fahrzeug: (an) => nurPassanten.push(an) });
+  p.stadt.an();
+  for (let i = 0; i < 600; i++) p.uhr.vor(1000);
+  assert.ok(p.teil('stadt-strasse').kinder.length + 1 > 0);
+  assert.deepStrictEqual(nurPassanten, [], 'Passanten melden nichts');
+});
+
+test('fahrzeug-Meldung: Raid mit Bus meldet an und beim Ende ab, kleiner Raid ohne Bus nichts', async () => {
+  const meldungen = [];
+  const { stadt } = aufbau({ fahrzeug: (an) => meldungen.push(an) });
+  stadt.an();
+  stadt.raid(Stadt.raidPlan(100));
+  assert.deepStrictEqual(meldungen, [], 'ohne Bus');
+  stadt.stoppeRaid();
+  stadt.raid(Stadt.raidPlan(5000));
+  assert.deepStrictEqual(meldungen, [true]);
+  stadt.stoppeRaid();
+  assert.deepStrictEqual(meldungen, [true, false]);
+});
+
+test('fahrzeugOben: Oberkante des hoechsten fahrenden Fahrzeugs in px innerhalb von #stadt', () => {
+  const { stadt } = aufbau({ gewitter: regenOhneBlitz });
+  stadt.an();
+  for (const [b, h] of [[1397, 940], [480, 1198]]) {
+    stadt.richteAus(b, h);
+    const m = Stadt.masse(b, h);
+    // nichts unterwegs: Oberkante der Strasse
+    assert.strictEqual(stadt.fahrzeugOben(), m.oben + S.ebenen.strasse.y * m.faktor);
+    // Bus ragt ueber die Strasse hinaus: dann zaehlt sein Dach
+    stadt.raid(Stadt.raidPlan(5000));
+    assert.strictEqual(stadt.fahrzeugOben(), m.oben + (S.fahrbahnY - S.bus.h) * m.faktor);
+    stadt.stoppeRaid();
+  }
+});
+
 test('raid: Figuren nach Plan, Bus ab 50, endet nach Stadt.raidDauer', async () => {
   const { uhr, stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
@@ -525,6 +574,9 @@ test('chat.css: Stadt-Regeln pixelig, Abdunkeln ueber Variable, Animationen aus 
   // margin-top: auto statt justify-content: flex-end, sonst ist der Anfang nicht mehr scrollbar.
   assert.ok(m.includes('display: flex; flex-direction: column'), 'Spalte');
   assert.ok(regel('#messages > :first-child').includes('margin-top: auto'), 'von unten');
+  // Fahrzeug auf der Strasse: Nachrichten darueber 35 % sichtbar, weich in 0,3 s
+  assert.ok(regel('#messages .msg.unter-fahrzeug').includes('opacity: .35'));
+  assert.ok(regel('#messages .msg').includes('transition: opacity 300ms'));
 });
 
 test('index.html: Stadt hinter den Nachrichten, Nachrichten bis zur Eingabe (kein Band), Skripte vor chat.js', () => {
@@ -542,7 +594,9 @@ test('index.html: Stadt hinter den Nachrichten, Nachrichten bis zur Eingabe (kei
 
 test('chat.js: Stadt gebaut, bei Groessenwechsel ausgerichtet, an/aus mit den Animationen', () => {
   const js = lies('renderer/chat/chat.js');
-  assert.ok(/StadtDom\.baue\(document, \$stadt, '\.\.\/themes\/cozy\/'/.test(js));
+  assert.ok(/StadtDom\.baue\(document, \$stadt, '\.\.\/themes\/cozy\/', \{ fahrzeug: textUeberFahrzeug \}\)/.test(js));
+  const f = js.slice(js.indexOf('function textUeberFahrzeug('), js.indexOf('\n}', js.indexOf('function textUeberFahrzeug(')));
+  assert.ok(f.includes('stadt.fahrzeugOben()') && f.includes("'unter-fahrzeug'"), f);
   assert.ok(js.includes('new ResizeObserver('));
   assert.ok(js.includes('stadt.richteAus($stadt.clientWidth, $stadt.clientHeight)'));
   const i = js.indexOf('function applyTheme(');
