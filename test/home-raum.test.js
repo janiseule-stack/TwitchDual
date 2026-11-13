@@ -272,7 +272,8 @@ test('home-raum-dom.js: altes Fach (Raum.FACH) ist ganz weg', () => {
   assert.ok(!js.includes('Raum.FACH'));
   assert.ok(!/function baueGross\(|function zeichneFach\(/.test(js));
   assert.ok(!/const faecher = \{|function zeigeFach\(|function baueRegal\(\)/.test(js));
-  assert.ok(!/\.fach\b|\.fach-reihe/.test(css));
+  // nur die alte Klasse .fach (Regal von nahe bringt .fach-hinweis / .fach-fahrt)
+  assert.ok(!/\.fach(?![-\w])|\.fach-reihe/.test(css));
 });
 
 test('home-raum.css: keine Verlaeufe, kein Blur, Ebenen pixelgenau', () => {
@@ -1068,9 +1069,9 @@ test('Regal neu: baueRegalNeu legt oben/unten, Wand und dann das Regal-Bild; ini
   assert.ok(i0.includes('t.regal.e.appendChild(baueKarte())'));
 });
 
-test('Regal neu: richteRegalNeuAus nutzt Raum.skalierungRegal(w, h)', () => {
+test('Regal neu: richteRegalNeuAus nutzt die Fach-Skalierung (Regal von nahe)', () => {
   const r = rumpf(js, 'function richteRegalNeuAus(');
-  assert.ok(r.includes('Raum.skalierungRegal(w, h)'));
+  assert.ok(r.includes('Raum.skalierungFach(w, h, nahFachNr)'));
   assert.ok(!r.includes('Raum.skalierung('), 'nicht die alte Skalierung');
   assert.ok(r.includes("setProperty('--f'"), 'eigener Faktor fuer die Textschicht');
 });
@@ -1298,4 +1299,92 @@ test('Task 9e: Schild zeigt im Home bei kannZurueck den Pfeil (Klasse zurueck), 
   assert.ok(/#onair-bar\.leer:not\(\.zurueck\)\s*\{[^}]*pointer-events:\s*none/.test(stil));
   assert.ok(!/#onair-bar\.leer\s*\{/.test(stil), 'keine Sperre, die zurueck uebergeht');
   assert.ok(/#onair-bar\.zurueck #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(stil));
+});
+
+// --- Regal von nahe, Task 2: Fach fuer Fach (Plan 2026-11-13-regal-nah) -------------
+test('Regal nah: richteRegalNeuAus nutzt Raum.skalierungFach und setzt --raum-schrift-gross', () => {
+  const r = rumpf(js, 'function richteRegalNeuAus(');
+  assert.ok(r.includes('Raum.skalierungFach(w, h, nahFachNr)'));
+  assert.ok(!r.includes('Raum.skalierungRegal('), 'nicht mehr die Gesamtansicht');
+  assert.ok(r.includes("setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px')"));
+  assert.ok(r.includes("setProperty('--f'") && r.includes("setProperty('--ruecken-schrift'"));
+});
+
+test('Regal nah: zeigeNahFach/nahFach/nahFachWechsel/fachVon in der Schnittstelle', () => {
+  for (const n of ['zeigeNahFach', 'nahFach', 'nahFachWechsel', 'fachVon']) {
+    assert.ok(new RegExp('\\b' + n + '\\b').test(schnittstelle()), n);
+    assert.ok(js.includes('function ' + n + '('), n);
+  }
+  const z = rumpf(js, 'function zeigeNahFach(');
+  assert.ok(z.includes('Raum.naechstesFach('), 'zeigeNahFach geht ueber naechstesFach');
+  assert.ok(rumpf(js, 'function nahFachWechsel(').includes('Raum.naechstesFach('));
+});
+
+test('Regal nah: zeichneRegal verlaesst ein leeres Fach per naechstesFach(…, 0, …)', () => {
+  const z = rumpf(js, 'function zeichneRegal(');
+  assert.ok(/Raum\.naechstesFach\(nahFachNr, 0, leereFaecher\(\)\)/.test(z));
+  assert.ok(z.includes('setzeHinweis()'), 'Hinweis neu gezaehlt');
+  assert.ok(rumpf(js, 'function zeigeNahFach(').includes('setzeHinweis()'));
+  const l = rumpf(js, 'function leereFaecher(');
+  assert.ok(l.includes('faecherNeu.live.anzahl === 0') && l.includes('faecherNeu.unten.anzahl === 0'));
+});
+
+test('Regal nah: Fachfahrt auf t.regalInnen mit Raum.fachFahrt, Klasse fach-fahrt in FAHRT_KLASSEN, stoppeFahrt setzt regalInnen zurueck, neuAusrichten bricht ab', () => {
+  const b = regalNeu();
+  assert.ok(/t\.regalInnen = el\('div', 'regal-innen'\)/.test(b));
+  assert.ok(/t\.regalInnen\.append\(r\.bild, r\.text\)/.test(b), 'umschliesst Bild- und Textschicht');
+  assert.ok(/FAHRT_KLASSEN = \[[^\]]*'fach-fahrt'/.test(js));
+  const f = rumpf(js, 'function fahreFach(');
+  assert.ok(f.includes('Raum.fachFahrt(') && f.includes('fahrtSchritt(') && f.includes('t.regalInnen.style.transform'));
+  assert.ok(f.includes("'fach-fahrt-sprung'"), 'Sprung ohne Uebergang');
+  const s = rumpf(js, 'function stoppeFahrt(');
+  assert.ok(s.includes("t.regalInnen.style.transform = ''"));
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(/if \(fachZiel !== null\) stoppeFahrt\(\)/.test(n));
+  assert.ok(/#home\.raum-home\.fach-fahrt \.regal-innen\s*\{[^}]*transform-origin:\s*0 0;[^}]*transition:\s*transform 350ms ease-in-out/.test(css));
+  assert.ok(/#home\.raum-home\.fach-fahrt-sprung \.regal-innen\s*\{[^}]*transition:\s*none/.test(css));
+});
+
+test('Regal nah: Mausrad an der Regal-Ebene (Sperre 400, Shift blaettert), nicht bei Tafel/Karte', () => {
+  const b = regalNeu();
+  const i = b.indexOf("r.e.addEventListener('wheel'");
+  assert.ok(i > -1, 'an der Regal-Ebene');
+  const teil = b.slice(i, b.indexOf('{ passive: false }', i));
+  assert.ok(teil.includes('tafelOffen()') && teil.includes('karteOffen()'));
+  assert.ok(teil.includes('e.shiftKey') && teil.includes('fachBlaettern('));
+  assert.ok(teil.includes('nahFachWechsel(') && teil.includes('RAD_SPERRE_MS'));
+  assert.ok(/const RAD_SPERRE_MS = 400;/.test(js));
+  assert.strictEqual(b.split("'wheel'").length - 1, 1, 'keine Wheel-Handler mehr an den Fach-Boxen');
+});
+
+test('Regal nah: focusin faehrt ins Fach des Elements', () => {
+  const b = regalNeu();
+  const i = b.indexOf("r.e.addEventListener('focusin'");
+  assert.ok(i > -1);
+  const teil = b.slice(i, i + 400);
+  assert.ok(teil.includes('fachVon(') && teil.includes('zeigeNahFach(') && teil.includes('true'));
+});
+
+test('Regal nah: Fach 0 nur beim Wechsel Raum -> Regal', () => {
+  const z = rumpf(js, 'function zeigeAnsicht(');
+  assert.ok(/if \(ziel === 'regal' && aktuell !== 'regal'\) nahFachNr = 0;/.test(z));
+  assert.ok(z.indexOf('nahFachNr = 0') < z.indexOf('aktuell = ziel'), 'vor dem Umschalten geprueft');
+});
+
+test('Regal nah: Suchleiste fest oben, such-zettel weg', () => {
+  const b = regalNeu();
+  assert.ok(!js.includes('such-zettel') && !css.includes('such-zettel'));
+  assert.ok(/t\.suchOben = el\('div', 'zettel such-oben'\)/.test(b));
+  assert.ok(/r\.e\.append\([^)]*t\.suchOben/.test(b), 'ausserhalb von regalInnen');
+  const a = rumpf(js, 'function richteRegalNeuAus(');
+  assert.ok(a.includes('Raum.REGAL.such.b * f') && a.includes('Raum.REGAL.such.h * f'));
+  assert.ok(/\.such-oben\s*\{[^}]*top:\s*8px/.test(css));
+});
+
+test('Regal nah: CSS Hinweis unten rechts, Hover-Name und Hinweis waehrend der Fahrt verborgen', () => {
+  assert.ok(/\.fach-hinweis\s*\{[^}]*right:[^}]*bottom:[^}]*font-size:\s*var\(--raum-schrift\)[^}]*color:\s*#f4e4c9[^}]*opacity:\s*\.8/.test(css));
+  assert.ok(/#home\.fach-fahrt \.fach-hinweis/.test(css));
+  const h = rumpf(js, 'function setzeHinweis(');
+  assert.ok(h.includes("'▲▼ Fach '"), 'Text');
+  assert.ok(/aus\(t\.fachHinweis, m < 2\)/.test(h), 'bei nur einem Fach verborgen');
 });

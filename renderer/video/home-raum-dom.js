@@ -28,7 +28,11 @@ window.HomeRaumDom = (function () {
   // 13.11.) die Pixel-Blende. Dauer gleich den Uebergaengen in home-raum.css, Klassen an #home.
   const FAHRT_MS = 700;
   const PIXEL_SCHRITT_MS = FAHRT_MS / 8; // 4 Stufen hin, 4 zurueck
-  const FAHRT_KLASSEN = ['fahrt', 'fahrt-hin', 'fahrt-zurueck', 'fahrt-leer'];
+  const FAHRT_KLASSEN = ['fahrt', 'fahrt-hin', 'fahrt-zurueck', 'fahrt-leer', 'fach-fahrt', 'fach-fahrt-sprung'];
+  // Regal von nahe (Plan 2026-11-13-regal-nah): Fachwechsel = Zoom an Ort, je Haelfte
+  // FACH_MS (gleich dem Uebergang von .regal-innen in home-raum.css). Mausrad-Sperre.
+  const FACH_MS = 350;
+  const RAD_SPERRE_MS = 400;
   // Drehende Platte: platte-dreht.png, 8 Bilder je 54x50 nebeneinander (432x50),
   // Ursprung wie Raum.HOVER.plattenspieler.
   const DREHT = { x: 258, y: 82, b: 54, h: 50, bilder: 8 };
@@ -37,7 +41,10 @@ window.HomeRaumDom = (function () {
   let opt = {};
   let skal = { faktor: 1, links: 0, oben: 0 }; // --f und Schrift an #home (Tafel, Ablauf, Name)
   let skalRaum = skal; // Raum-Ansicht samt Holzwand (Raum.RAUM_RAHMEN)
-  let skalRegal = skal; // Regal samt Leinwand (Raum.skalierungRegal)
+  let skalRegal = skal; // Regal-Ebene: ein Fach fuellt das Bild (Raum.skalierungFach)
+  let nahFachNr = 0; // sichtbares Fach: 0 Brett, 1 live, 2 unten
+  let fachZiel = null; // Fach, zu dem die laufende Fachfahrt geht (null: keine)
+  let radSperre = 0; // Zeitpunkt, ab dem das Mausrad wieder das Fach wechselt
   let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
@@ -377,6 +384,8 @@ window.HomeRaumDom = (function () {
     if (wirt && weich && fahrtZiel === ziel) return;
     const fahrt = !!wirt && !!weich && !fahrtZiel && ziel !== aktuell && kannFahren();
     stoppeFahrt();
+    // Regal von nahe: vom Raum aus immer ins Ausstellbrett (Fach 0)
+    if (ziel === 'regal' && aktuell !== 'regal') nahFachNr = 0;
     aktuell = ziel;
     if (!wirt) return;
     if (fahrt) { fahre(ziel); return; }
@@ -397,9 +406,11 @@ window.HomeRaumDom = (function () {
   function stoppeFahrt() {
     fahrtNr += 1;
     fahrtZiel = null;
+    fachZiel = null;
     fahrtTimer.forEach((x) => clearTimeout(x));
     fahrtTimer = [];
     if (wirt) wirt.classList.remove(...FAHRT_KLASSEN);
+    if (t.regalInnen) t.regalInnen.style.transform = '';
     for (const x of [t.regal, t.raum]) {
       if (!x) continue;
       x.e.style.transform = '';
@@ -516,6 +527,8 @@ window.HomeRaumDom = (function () {
 
   function neuAusrichten() {
     if (!wirt) return;
+    // Groessenwechsel waehrend einer Fachfahrt: abbrechen, das aktuelle Fach bleibt
+    if (fachZiel !== null) stoppeFahrt();
     skal = Raum.skalierung(wirt.clientWidth, wirt.clientHeight);
     skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN);
     const f = skal.faktor;
@@ -569,20 +582,36 @@ window.HomeRaumDom = (function () {
       lage(bildEl('../themes/cozy/regal-wand.png', 'regal-leinwand'), { x: L.x, y: 0, b: L.b, h: hoehe }),
       bildEl('../themes/cozy/regal.png', 'raum-bild'));
     t.brett = lage(el('div', 'brett-neu'), Raum.REGAL.brett);
-    r.bild.append(t.brett, lage(el('div', 'zettel such-zettel'), Raum.REGAL.such));
+    r.bild.appendChild(t.brett);
     t.brettText = textLage(el('div', 'text-teil brett-text raum-aus'), Raum.REGAL.brett);
-    t.suchPlatzNeu = textLage(el('div', 'text-teil such-platz'), innen(Raum.REGAL.such));
-    r.text.append(t.brettText, t.suchPlatzNeu);
+    r.text.appendChild(t.brettText);
+    // Innere Ebene fuer die Fachfahrt (Bild- und Textschicht; die Karte haengt an r.e)
+    t.regalInnen = el('div', 'regal-innen');
+    t.regalInnen.append(r.bild, r.text);
+    // Suchleiste fest oben (Zettel-Optik) und Hinweis unten rechts, unskaliert
+    t.suchOben = el('div', 'zettel such-oben');
+    t.suchPlatzNeu = el('div', 'such-platz');
+    t.suchOben.appendChild(t.suchPlatzNeu);
+    t.fachHinweis = el('div', 'fach-hinweis raum-aus');
+    r.e.append(t.regalInnen, t.suchOben, t.fachHinweis);
+    // Mausrad: Fach wechseln (Sperre), mit Shift in Fach 2/3 waagrecht blaettern.
+    r.e.addEventListener('wheel', (e) => {
+      if (tafelOffen() || karteOffen()) return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        const d = e.deltaY || e.deltaX;
+        if (d && nahFachNr > 0) fachBlaettern(nahFachNr === 1 ? 'live' : 'unten', d > 0 ? 1 : -1);
+        return;
+      }
+      const jetzt = Date.now();
+      if (!e.deltaY || jetzt < radSperre) return;
+      radSperre = jetzt + RAD_SPERRE_MS;
+      nahFachWechsel(e.deltaY > 0 ? 1 : -1);
+    }, { passive: false });
     t.plattenRuecken = {};
     for (const art of ['live', 'unten']) {
       const fach = Raum.REGAL.faecher[art];
       const box = textLage(el('div', 'text-teil ruecken-fach ruecken-fach-' + art), fach);
-      box.addEventListener('wheel', (e) => {
-        if (tafelOffen() || karteOffen()) return;
-        e.preventDefault();
-        e.stopPropagation();
-        fachBlaettern(art, (e.deltaY || e.deltaX) > 0 ? 1 : -1);
-      }, { passive: false });
       // Tab auf einen Ruecken ausserhalb des Fensters: der Browser wuerde das Fach per
       // scrollLeft verschieben; stattdessen per fachFenster in Sicht holen.
       box.addEventListener('focusin', (e) => {
@@ -599,21 +628,36 @@ window.HomeRaumDom = (function () {
       t.plattenRuecken[art] = box;
       r.text.appendChild(box);
     }
+    // Fokus (Tab) in einem anderen Fach: die Kamera faehrt dorthin
+    r.e.addEventListener('focusin', (e) => {
+      const p = e.target.closest('[data-login]');
+      if (!p || karteOffen()) return;
+      const n = fachVon(p.dataset.login);
+      if (n !== null && n !== (fachZiel !== null ? fachZiel : nahFachNr)) zeigeNahFach(n, true);
+    });
     const such = document.getElementById('home-such-zeile');
     if (such) t.suchPlatzNeu.appendChild(such);
     return r.e;
   }
 
-  // Skalierung der Regal-Ebene (Leinwand fuellt das Fenster, Regal immer ganz). Eigener
-  // Faktor --f und eigene Schrift an der Ebene, damit die Textschicht zur Bildebene passt.
+  // Skalierung der Regal-Ebene: ein Fach (nahFachNr) fuellt das Bild, ganzzahliger Faktor.
+  // Eigener Faktor --f und eigene Schrift an der Ebene, damit die Textschicht zur Bildebene passt.
   function richteRegalNeuAus(w, h) {
     if (!t.regalNeu) return;
-    skalRegal = Raum.skalierungRegal(w, h);
+    skalRegal = Raum.skalierungFach(w, h, nahFachNr);
     const f = skalRegal.faktor;
     const r = t.regalNeu;
     r.e.style.setProperty('--f', f);
     r.e.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
+    r.e.style.setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px');
     r.e.style.setProperty('--ruecken-schrift', Raum.rueckenSchrift(f) + 'px');
+    // Suchleiste: Zettel in Bildpixel-Groesse des alten Such-Zettels, mittig oben
+    const sb = Raum.REGAL.such.b * f, sh = Raum.REGAL.such.h * f;
+    const rand = Raum.randPx(f, ZETTEL_RAND) + 'px';
+    Object.assign(t.suchOben.style, {
+      width: sb + 'px', height: sh + 'px', left: Math.round((w - sb) / 2) + 'px',
+      borderWidth: rand, borderImageWidth: rand,
+    });
     r.bild.style.transform = 'translate(' + skalRegal.links + 'px, ' + skalRegal.oben + 'px) scale(' + f + ')';
     r.text.style.left = Math.round(skalRegal.links) + 'px';
     r.text.style.top = Math.round(skalRegal.oben) + 'px';
@@ -780,6 +824,85 @@ window.HomeRaumDom = (function () {
     zeichneBrett(b.brett || [], s);
     zeichneFachNeu('live', b.live || [], s);
     zeichneFachNeu('unten', b.unten || [], s);
+    // Aktuelles Fach leer geworden (offline, Suche): sofort ins naechste, ohne Fahrt
+    const z = Raum.naechstesFach(nahFachNr, 0, leereFaecher());
+    if (z !== nahFachNr && fachZiel === null) {
+      nahFachNr = z;
+      if (wirt.clientWidth > 0) richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight);
+    }
+    setzeHinweis();
+  }
+
+  // --- Regal von nahe: Fach fuer Fach (Plan 2026-11-13-regal-nah) --------------------
+  function leereFaecher() {
+    return [false, faecherNeu.live.anzahl === 0, faecherNeu.unten.anzahl === 0];
+  }
+  // "▲▼ Fach n / m" ueber die nicht leeren Faecher; bei nur einem verborgen.
+  function setzeHinweis() {
+    if (!t.fachHinweis) return;
+    const leer = leereFaecher();
+    const voll = [0, 1, 2].filter((i) => !leer[i]);
+    const m = voll.length;
+    const n = voll.indexOf(fachZiel !== null ? fachZiel : nahFachNr) + 1;
+    t.fachHinweis.textContent = '▲▼ Fach ' + Math.max(1, n) + ' / ' + m;
+    aus(t.fachHinweis, m < 2);
+  }
+  function nahFach() { return nahFachNr; }
+  // Fach eines Kanals: 0 Brett, 1 live, 2 unten, sonst null.
+  function fachVon(login) {
+    if (!login || !t.brett) return null;
+    const sel = '[data-login="' + CSS.escape(login) + '"]';
+    if (t.brett.querySelector(sel)) return 0;
+    if (faecherNeu.live.box && faecherNeu.live.box.querySelector(sel)) return 1;
+    if (faecherNeu.unten.box && faecherNeu.unten.box.querySelector(sel)) return 2;
+    return null;
+  }
+  // Zeigt Fach nr (leer -> naechstes nicht leeres). weich: Zoom an Ort, nur im sichtbaren
+  // Regal ohne Karte und ohne Fahrt Raum <-> Regal. Der letzte Wunsch gewinnt.
+  function zeigeNahFach(nr, weich) {
+    if (!wirt || !t.regalNeu || typeof nr !== 'number') return;
+    const ziel = Raum.naechstesFach(nr, 0, leereFaecher());
+    if (fachZiel !== null) {
+      if (fachZiel === ziel) return;
+      stoppeFahrt(); // springt auf das Fach, in dem die Fahrt gerade steht
+    }
+    if (ziel === nahFachNr) { setzeHinweis(); return; }
+    const fahren = !!weich && aktuell === 'regal' && fahrtZiel === null && !karteOffen() && kannFahren();
+    if (fahren) fahreFach(nahFachNr, ziel);
+    else {
+      nahFachNr = ziel;
+      if (wirt.clientWidth > 0) richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight);
+    }
+    setzeHinweis();
+  }
+  function nahFachWechsel(richtung) {
+    const von = fachZiel !== null ? fachZiel : nahFachNr;
+    const ziel = Raum.naechstesFach(von, richtung, leereFaecher());
+    if (ziel !== von) zeigeNahFach(ziel, true);
+  }
+  // Zoom an Ort: kurz heraus auf das ganze Regal (raus), Fach umschalten, aus der
+  // Gesamtansicht ins neue Fach (rein). Je FACH_MS, Uebergang in home-raum.css.
+  function fahreFach(von, nach) {
+    stoppeFahrt();
+    const nr = fahrtNr;
+    fachZiel = nach;
+    const k = wirt.classList;
+    const w = wirt.clientWidth, h = wirt.clientHeight;
+    const z = Raum.fachFahrt(w, h, von, nach);
+    const tf = (a) => 'translate(' + a.dx + 'px, ' + a.dy + 'px) scale(' + a.s + ')';
+    k.add('fach-fahrt');
+    void t.regalInnen.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
+    t.regalInnen.style.transform = tf(z.raus);
+    fahrtSchritt(nr, FACH_MS, () => {
+      k.add('fach-fahrt-sprung');
+      nahFachNr = nach;
+      richteRegalNeuAus(w, h);
+      t.regalInnen.style.transform = tf(z.rein);
+      void t.regalInnen.offsetWidth;
+      k.remove('fach-fahrt-sprung');
+      t.regalInnen.style.transform = '';
+    });
+    fahrtSchritt(nr, 2 * FACH_MS, () => { stoppeFahrt(); setzeHinweis(); });
   }
 
   // --- Karte: VOD-Vorschaubild ---------------------------------------------------
@@ -1200,7 +1323,7 @@ window.HomeRaumDom = (function () {
   }
 
   return {
-    init, zeigeAnsicht, ansicht, zeichneRegal, fachBlaettern,
+    init, zeigeAnsicht, ansicht, zeichneRegal, fachBlaettern, zeigeNahFach, nahFach, nahFachWechsel, fachVon,
     zeigeAblauf, versteckeAblauf, zeigeTafel, versteckeTafel, tafelOffen,
     zeigeSchild, setzeTv, neuAusrichten, zeichneKarte, kartenScrollen, karteOffen, leben, plattenspielerLaeuft,
   };
