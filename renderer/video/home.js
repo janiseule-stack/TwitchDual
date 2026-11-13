@@ -381,22 +381,25 @@ const karteHandler = {
   mehrVods,
 };
 
-// Ein Schritt (↑/↓): Rueckseite offen -> VOD-Liste scrollen; Vorderseite offen ->
-// naechste/vorige Live-Platte (Brett, dann Live-Ruecken) herausnehmen; ohne Karte
-// nimmt ↓ die erste, ↑ die letzte. Ohne Live-Platten blaettert das untere Fach.
-// Das Mausrad blaettert die Faecher selbst (home-raum-dom.js).
+// Ein Schritt (↑/↓): Rueckseite offen -> VOD-Liste scrollen; ohne Karte -> naechstes/
+// voriges Fach (Regal von nahe); Vorderseite offen -> naechste/vorige Live-Platte
+// (Brett, dann Live-Ruecken) herausnehmen, das Regal darunter springt in ihr Fach.
+// Das Mausrad wechselt die Faecher selbst (home-raum-dom.js).
 function schritt(r) {
   if (herausgenommen && seite === 'rueck') { HomeRaumDom.kartenScrollen(r); return; }
+  if (!herausgenommen) { HomeRaumDom.nahFachWechsel(r); return; }
   const b = belegung();
   const reihe = [...b.brett.map((kanal) => ({ kanal, art: 'brett' })), ...b.live];
-  if (!reihe.length) { HomeRaumDom.fachBlaettern('unten', r); return; }
-  const i = herausgenommen ? reihe.findIndex((e) => e.kanal.login === herausgenommen.login) : -1;
+  if (!reihe.length) return;
+  const i = reihe.findIndex((e) => e.kanal.login === herausgenommen.login);
   let ziel = r > 0 ? 0 : reihe.length - 1;
   if (i >= 0) {
     ziel = i + (r > 0 ? 1 : -1);
     if (ziel < 0 || ziel >= reihe.length) return; // Ende der Reihe: Platte bleibt
   }
-  waehle(reihe[ziel].kanal, reihe[ziel].art);
+  const k = reihe[ziel].kanal;
+  waehle(k, reihe[ziel].art);
+  HomeRaumDom.zeigeNahFach(HomeRaumDom.fachVon(k.login)); // ohne Fahrt: die Karte liegt darueber
 }
 
 // Was gezeigt wird: die herausgenommene Platte (frischer Stand aus kanaele) oder nichts.
@@ -492,11 +495,22 @@ function sucheGetippt() {
       const gueltig = nr === suchNr && res && res.ok; // sonst veraltet oder Fehler
       if (gueltig) twitch = { nadel: n, channels: res.channels || [], exakt: res.exakt || null };
       lauf.beenden(); // nach twitch, damit wartendes Enter den Treffer sieht
-      if (gueltig) renderHome();
+      if (gueltig) { renderHome(); folgeTreffer(); }
     }, 250);
   }
   legeZurueck();
   renderHome();
+  folgeTreffer();
+}
+
+// Regal von nahe (Janis 13.11.): Die Kamera folgt dem besten Treffer (Brett -> Fach 1,
+// Live -> 2); ohne Live-Treffer in Fach 3, wenn es dort Treffer gibt. Leere Suche: Fach bleibt.
+function folgeTreffer() {
+  if (!nadel()) return;
+  const b = belegung();
+  const k = besterTreffer(b);
+  if (k) HomeRaumDom.zeigeNahFach(HomeRaumDom.fachVon(k.login), true);
+  else if (b.unten.length > 0) HomeRaumDom.zeigeNahFach(2, true);
 }
 
 // --- Stern ---------------------------------------------------------------------
@@ -645,6 +659,14 @@ document.addEventListener('keydown', (e) => {
     schritt(e.key === 'ArrowDown' ? 1 : -1);
     return;
   }
+  // ←/→: in Fach 2/3 waagrecht blaettern (nicht im Suchfeld, nicht bei Karte/Tafel)
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (tafel || herausgenommen || HomeRaumDom.ansicht() !== 'regal' || document.activeElement === $suche ||
+        HomeRaumDom.nahFach() === 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    HomeRaumDom.fachBlaettern(HomeRaumDom.nahFach() === 1 ? 'live' : 'unten', e.key === 'ArrowRight' ? 1 : -1);
+    return;
+  }
   if (e.key === 'Escape') {
     escZaehler += 1; // bricht ein wartendes Enter ab
     if (!zurueckSchritt()) closeHomeResume();
@@ -654,6 +676,17 @@ document.addEventListener('keydown', (e) => {
       /^[\p{L}\p{N}]$/u.test(e.key)) {
     e.preventDefault();
     zeigeRegal(true, true);
+    $suche.value = e.key;
+    sucheGetippt();
+    return;
+  }
+  // Im Regal (Suchleiste in jedem Fach): Tippen ohne Fokus im Feld landet dort,
+  // wie im Raum; das Fach waehlt danach folgeTreffer.
+  const feld = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if (!tafel && !feld && HomeRaumDom.ansicht() === 'regal' && document.activeElement !== $suche &&
+      !e.ctrlKey && !e.altKey && !e.metaKey && /^[\p{L}\p{N}]$/u.test(e.key)) {
+    e.preventDefault();
+    $suche.focus();
     $suche.value = e.key;
     sucheGetippt();
   }

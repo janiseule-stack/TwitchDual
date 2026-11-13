@@ -217,7 +217,7 @@ test('Rueckseite der Karte: ↑/↓ scrollen die Liste (home.js fragt zuerst kar
   assert.ok(/seite === 'rueck'[^\n]*HomeRaumDom\.kartenScrollen\(r\)/.test(sch), 'Rueckseite offen -> kartenScrollen');
   assert.ok(sch.indexOf('kartenScrollen') < sch.indexOf('waehle('), 'vor dem Weiterblaettern');
   assert.ok(sch.includes("[...b.brett.map((kanal) => ({ kanal, art: 'brett' })), ...b.live]"), 'Reihe = Brett, dann Live');
-  assert.ok(sch.includes("HomeRaumDom.fachBlaettern('unten', r)"), 'ohne Live-Platten das untere Fach');
+  assert.ok(!sch.includes('fachBlaettern'), 'Regal von nahe: ohne Karte wechselt ↑/↓ das Fach');
 });
 
 test('Zuruecklegen: Klick daneben und ✕ rufen zuruecklegen; Esc-Kette in home.js', () => {
@@ -340,7 +340,8 @@ test('home.js nutzt HomeRaumDom statt der CD-Buehne', () => {
   assert.ok(/mindestMs:\s*7900/.test(homeJs), 'Auflegen neu: Summe ABLAUF_MS');
   assert.ok(/HomeRaumDom\.zeigeAblauf\([^)]*\(\)\s*=>\s*laufwerk\.ueberspringen\(\)\)/.test(homeJs));
   assert.ok(homeJs.includes('HomeRaumDom.versteckeAblauf()'));
-  assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern('unten'"));
+  // Regal von nahe: ←/→ blaettert in Fach 2/3
+  assert.ok(homeJs.includes("HomeRaumDom.fachBlaettern(HomeRaumDom.nahFach() === 1 ? 'live' : 'unten'"));
   assert.ok(!homeJs.includes("fachBlaettern('offline'"));
   assert.ok(homeJs.includes('HomeRaumDom.setzeTv('));
   assert.ok(homeJs.includes('HomeRaumDom.neuAusrichten()'));
@@ -1299,6 +1300,52 @@ test('Task 9e: Schild zeigt im Home bei kannZurueck den Pfeil (Klasse zurueck), 
   assert.ok(/#onair-bar\.leer:not\(\.zurueck\)\s*\{[^}]*pointer-events:\s*none/.test(stil));
   assert.ok(!/#onair-bar\.leer\s*\{/.test(stil), 'keine Sperre, die zurueck uebergeht');
   assert.ok(/#onair-bar\.zurueck #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(stil));
+});
+
+// --- Regal von nahe, Task 3: Tasten und Suche in home.js ------------------------------
+const tasten = () => {
+  const i = homeJs.indexOf("document.addEventListener('keydown'");
+  return homeJs.slice(i, homeJs.indexOf('\n});', i));
+};
+
+test('home.js: ↑/↓ ohne Karte wechselt das Fach, mit Karte vorn die Platte, Rueckseite scrollt', () => {
+  const sch = rumpfOben(homeJs, 'function schritt(');
+  assert.ok(/seite === 'rueck'[^\n]*HomeRaumDom\.kartenScrollen\(r\)/.test(sch));
+  assert.ok(/if \(!herausgenommen\) \{ HomeRaumDom\.nahFachWechsel\(r\); return; \}/.test(sch), 'ohne Karte: Fach');
+  assert.ok(sch.indexOf('kartenScrollen') < sch.indexOf('nahFachWechsel'), 'Rueckseite zuerst');
+  assert.ok(/HomeRaumDom\.zeigeNahFach\(HomeRaumDom\.fachVon\(k\.login\)\)/.test(sch), 'Fach der neuen Platte, ohne Fahrt');
+  assert.ok(sch.indexOf('waehle(') < sch.indexOf('zeigeNahFach('), 'nach dem Herausnehmen');
+});
+
+test('home.js: ←/→ blaettert in Fach 2/3, nicht im Suchfeld', () => {
+  const k = tasten();
+  const i = k.indexOf("e.key === 'ArrowLeft' || e.key === 'ArrowRight'");
+  assert.ok(i > -1);
+  const teil = k.slice(i, k.indexOf('return;\n  }', i));
+  assert.ok(teil.includes('document.activeElement === $suche'), 'nicht im Suchfeld');
+  assert.ok(teil.includes('herausgenommen') && teil.includes('tafel'), 'nicht bei Karte/Tafel');
+  assert.ok(teil.includes('HomeRaumDom.nahFach() === 0'), 'nur Fach 2/3');
+  assert.ok(teil.includes("e.key === 'ArrowRight' ? 1 : -1"));
+});
+
+test('home.js: Tippen im Regal fokussiert das Suchfeld', () => {
+  const k = tasten();
+  assert.ok(/HomeRaumDom\.ansicht\(\) === 'regal' && document\.activeElement !== \$suche/.test(k));
+  const i = k.indexOf("HomeRaumDom.ansicht() === 'regal' && document.activeElement !== $suche");
+  const teil = k.slice(i, i + 400);
+  assert.ok(teil.includes('$suche.focus()') && teil.includes('$suche.value = e.key') && teil.includes('sucheGetippt()'));
+  assert.ok(!teil.includes('zeigeRegal('), 'kein Fachwechsel durch zeigeRegal');
+});
+
+test('home.js: Suche faehrt ins Fach des besten Treffers, ohne Treffer in Fach 3 bei Offline/Twitch-Treffern', () => {
+  const f = rumpfOben(homeJs, 'function folgeTreffer(');
+  assert.ok(f.includes('if (!nadel()) return;'), 'leere Suche: Fach bleibt');
+  assert.ok(f.includes('besterTreffer(b)'));
+  assert.ok(f.includes('HomeRaumDom.zeigeNahFach(HomeRaumDom.fachVon(k.login), true)'));
+  assert.ok(/else if \(b\.unten\.length > 0\) HomeRaumDom\.zeigeNahFach\(2, true\)/.test(f));
+  const s = rumpfOben(homeJs, 'function sucheGetippt(');
+  assert.ok(s.lastIndexOf('folgeTreffer()') > s.lastIndexOf('renderHome()'), 'nach dem Zeichnen');
+  assert.ok(/if \(gueltig\) \{ renderHome\(\); folgeTreffer\(\); \}/.test(s), 'auch nach den Twitch-Treffern');
 });
 
 // --- Regal von nahe, Task 2: Fach fuer Fach (Plan 2026-11-13-regal-nah) -------------
