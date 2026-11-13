@@ -80,17 +80,18 @@
   const zahl = (x) => (typeof x === 'number' && Number.isFinite(x) && x > 0 ? x : 0);
   const spanne = (z, s) => s.min + z * (s.max - s.min);
 
-  // Stadt deckend hinter Nachrichtenliste + Strassenband (Hoehe `hoehe`), unten am Band
+  // Stadt deckend hinter der Nachrichtenliste (Hoehe `hoehe`), unten an der Eingabe
   // ausgerichtet, waagrecht mittig. Massstab wie der Streifen oben, groesser falls noetig.
+  // Kein eigenes Strassenband (Janis 13.11.2026, Variante B): das wuchs mit dem Faktor
+  // auf ~200 px, die Nachrichten endeten weit ueber der Eingabe. Die Strasse liegt
+  // jetzt hinter dem Text.
   function masse(breite, hoehe) {
     const B = STADT.bild;
-    const S = STADT.ebenen.strasse;
     const b = zahl(breite);
     const h = zahl(hoehe);
-    if (!b || !h) return { faktor: 1, links: 0, oben: 0, strasseH: S.h };
+    if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
     const faktor = Math.max(b / B.b, h / B.h);
-    const strasseH = Math.min(Math.round(S.h * faktor), Math.floor(h / 2));
-    return { faktor, links: (b - B.b * faktor) / 2, oben: h - B.h * faktor, strasseH };
+    return { faktor, links: (b - B.b * faktor) / 2, oben: h - B.h * faktor };
   }
 
   // Ab diesem Anteil (Flaeche) gilt eine leuchtende Wolke als sichtbar.

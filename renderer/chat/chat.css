@@ -340,7 +340,6 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
   position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
   background: #0b0d17;
 }
-#stadt-band { position: relative; z-index: 1; flex-shrink: 0; height: 37px; pointer-events: none; }
 .stadt-bildebene {
   position: absolute; left: var(--stadt-links, 0px); top: var(--stadt-oben, 0px);
   width: 344px; height: 277px;

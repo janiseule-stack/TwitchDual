@@ -24,9 +24,8 @@ test('STADT ist eingefroren und gleich tools/raum-quellen/stadt.json', () => {
 // Review Focus 1: breite, niedrige, schmale, grosse Chats
 const GROESSEN = [[1397, 1332], [1397, 400], [400, 1332], [2560, 1440], [900, 700]];
 
-test('masse: Stadt deckt die ganze Flaeche, Strasse ganz sichtbar, Nachrichten >= 50 %', () => {
+test('masse: Stadt deckt die ganze Flaeche, Strasse ganz sichtbar, kein eigenes Band', () => {
   const B = Stadt.STADT.bild;
-  const S = Stadt.STADT.ebenen.strasse;
   for (const [breite, hoehe] of GROESSEN) {
     const m = Stadt.masse(breite, hoehe);
     const tag = breite + 'x' + hoehe;
@@ -34,10 +33,9 @@ test('masse: Stadt deckt die ganze Flaeche, Strasse ganz sichtbar, Nachrichten >
     assert.ok(m.links <= 0, tag + ' links');
     assert.ok(m.links + B.b * m.faktor >= breite - 0.5, tag + ' rechts');
     assert.ok(m.oben <= 0, tag + ' oben');
-    assert.ok(Math.abs(m.oben + B.h * m.faktor - hoehe) < 0.5, tag + ' Bild endet unten am Band');
-    // Strassenband = ganze Strasse
-    assert.strictEqual(m.strasseH, Math.min(Math.round(S.h * m.faktor), Math.floor(hoehe / 2)), tag + ' strasseH');
-    assert.ok(hoehe - m.strasseH >= hoehe * 0.5, tag + ' Nachrichtenbereich');
+    assert.ok(Math.abs(m.oben + B.h * m.faktor - hoehe) < 0.5, tag + ' Bild endet unten an der Eingabe');
+    // Janis 13.11.2026 (Variante B): Nachrichten laufen bis zur Eingabe, Strasse liegt hinter dem Text
+    assert.ok(!('strasseH' in m), tag + ' kein Strassenband');
     // Pixel-Massstab wie im Streifen oben, sofern das deckt
     assert.ok(m.faktor >= Szene.faktor(breite) - 1e-9, tag + ' faktor');
   }
@@ -49,13 +47,8 @@ test('masse: kaputte Werte geben Bild-Masse mit Faktor 1', () => {
   for (const [b, h] of [[0, 500], [NaN, 500], [500, 0], [-3, 9]]) {
     const m = Stadt.masse(b, h);
     assert.strictEqual(m.faktor, 1);
-    assert.strictEqual(m.strasseH, Stadt.STADT.ebenen.strasse.h);
+    assert.ok(!('strasseH' in m));
   }
-});
-
-test('masse: sehr niedriger Chat kappt das Band auf die halbe Hoehe', () => {
-  const m = Stadt.masse(1397, 150);
-  assert.ok(m.strasseH <= 75);
 });
 
 test('lichtAnteil nach Uhrzeit', () => {

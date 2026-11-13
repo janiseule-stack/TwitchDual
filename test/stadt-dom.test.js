@@ -77,14 +77,13 @@ function dauerGewitter() {
 function aufbau(extra) {
   const uhr = scheinUhr();
   const wirt = scheinEl('div');
-  const band = scheinEl('div');
   const stadt = StadtDom.baue(scheinDoc(), wirt, 'p/', Object.assign({
     setTimeout: uhr.setTimeout, clearTimeout: uhr.clearTimeout, jetzt: uhr.jetzt,
-    zufall: () => 0.5, stunde: () => 20, band, gewitter: dauerGewitter(),
+    zufall: () => 0.5, stunde: () => 20, gewitter: dauerGewitter(),
   }, extra || {}));
   const ebene = wirt.kinder[0];
   const teil = (k) => ebene.kinder.find((e) => e.classList.contains(k));
-  return { uhr, wirt, band, stadt, ebene, teil };
+  return { uhr, wirt, stadt, ebene, teil };
 }
 
 test('baue: Bildebene mit Grundbild, Ebenen in fester Reihenfolge', () => {
@@ -141,15 +140,14 @@ test('Uhrzeit-Lichter: alle 2-5 min eines naeher ans Ziel', () => {
   assert.strictEqual(zaehle(), vorher - 2);
 });
 
-test('richteAus: Masse aus Stadt.masse als CSS-Variablen, Band-Hoehe, bei jedem Resize neu (Review Focus 4)', () => {
-  const { stadt, wirt, band } = aufbau();
+test('richteAus: Masse aus Stadt.masse als CSS-Variablen, bei jedem Resize neu (Review Focus 4)', () => {
+  const { stadt, wirt } = aufbau();
   for (const [b, h] of [[1397, 940], [400, 1200], [2560, 1100]]) {
     stadt.richteAus(b, h);
     const m = Stadt.masse(b, h);
     assert.strictEqual(wirt.style.props['--stadt-f'], String(m.faktor));
     assert.strictEqual(wirt.style.props['--stadt-links'], m.links + 'px');
     assert.strictEqual(wirt.style.props['--stadt-oben'], m.oben + 'px');
-    assert.strictEqual(band.style.height, m.strasseH + 'px');
   }
 });
 
@@ -517,17 +515,17 @@ test('chat.css: Stadt-Regeln pixelig, Abdunkeln ueber Variable, Animationen aus 
   assert.ok(regel('.stadt-blitz.an').includes('visibility: visible'));
   assert.ok(regel('.stadt-fenster').includes('transition: opacity 300ms'));
   assert.ok(regel('#stadt').includes('overflow: hidden'));
-  assert.ok(regel('#stadt-band').includes('pointer-events: none'));
+  assert.ok(!/#stadt-band\b/.test(lies('renderer/chat/chat.css')), 'kein Strassenband mehr');
 });
 
-test('index.html: Stadt hinter den Nachrichten, Band zwischen Nachrichten und Eingabe, Skripte vor chat.js', () => {
+test('index.html: Stadt hinter den Nachrichten, Nachrichten bis zur Eingabe (kein Band), Skripte vor chat.js', () => {
   const html = lies('renderer/chat/index.html');
   const stadt = html.indexOf('<div id="stadt">');
   const mitte = html.indexOf('<div id="chat-mitte">');
-  const band = html.indexOf('<div id="stadt-band">');
   const composer = html.indexOf('<div id="composer">');
   assert.ok(html.indexOf('<div id="stadt-flaeche">') > -1);
-  assert.ok(stadt > -1 && stadt < mitte && mitte < band && band < composer);
+  assert.ok(!html.includes('stadt-band'), 'kein Strassenband');
+  assert.ok(stadt > -1 && stadt < mitte && mitte < composer);
   const a = html.indexOf('../lib/stadt.js');
   const b = html.indexOf('../lib/stadt-dom.js');
   assert.ok(a > -1 && b > a && b < html.indexOf('src="chat.js"'));

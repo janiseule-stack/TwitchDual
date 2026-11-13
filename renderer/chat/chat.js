@@ -799,7 +799,7 @@ const lebenAktiv = () => document.documentElement.dataset.animationen !== 'aus';
 // Passanten, Autos und Raids; richtet sich bei jeder Groessenaenderung der Flaeche
 // neu aus (auch wenn die Eingabe hoeher wird). "Animationen aus" haelt sie an.
 const $stadt = document.getElementById('stadt');
-const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/', { band: document.getElementById('stadt-band') });
+const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/');
 new ResizeObserver(() => stadt.richteAus($stadt.clientWidth, $stadt.clientHeight)).observe($stadt);
 stadt.richteAus($stadt.clientWidth, $stadt.clientHeight);
 

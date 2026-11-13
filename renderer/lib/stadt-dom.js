@@ -28,7 +28,7 @@
   const url = (pfad, datei) => "url('" + pfad + datei + "')";
 
   // wirt = #stadt; pfad = Ordner der Bilder ('../themes/cozy/').
-  // opt: setTimeout, clearTimeout, jetzt, zufall, stunde (Tests), band (#stadt-band),
+  // opt: setTimeout, clearTimeout, jetzt, zufall, stunde (Tests),
   //      gewitter (Ersatz fuer Stadt.gewitter, Tests).
   function baue(doc, wirt, pfad, opt) {
     const o = opt || {};
@@ -356,7 +356,6 @@
       wirt.style.setProperty('--stadt-f', String(m.faktor));
       wirt.style.setProperty('--stadt-links', px(m.links));
       wirt.style.setProperty('--stadt-oben', px(m.oben));
-      if (o.band) o.band.style.height = px(m.strasseH);
       if (breite > 0 && m.faktor > 0) {
         sichtLinks = -m.links / m.faktor;
         sichtBreite = breite / m.faktor;
