@@ -8,7 +8,10 @@ const fs = require('fs');
 const path = require('path');
 
 const GROESSEN = [[2960, 1390], [2040, 952], [1920, 1030], [1536, 1030], [1280, 670], [900, 700]];
-const [,, ziel, ansicht = 'raum'] = process.argv;
+const [,, ziel, ansicht = 'raum', zusatzDatei] = process.argv;
+// Optional: JS-Datei, die vor jedem Foto im Video-Fenster laeuft (Varianten zur Wahl
+// zeigen, ohne sie in den App-Code zu bauen). Ausdruck darf ein Promise liefern.
+const zusatz = zusatzDatei ? fs.readFileSync(zusatzDatei, 'utf8') : null;
 if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [raum|regal|karte|rueckseite|fach-1|fach-2|fach-3]'); process.exit(1); }
 
 // Beispiel-Stand fuer zeichneKarte (laeuft im Video-Fenster, daher ohne Verweise nach aussen):
@@ -80,12 +83,13 @@ function beispielBelegung() {
       zeichne += 'HomeRaumDom.zeigeNahFach(' + (fach - 1) + "); setTimeout(function(){ var p=document.querySelectorAll('#home " + box + " [data-login]')[2]; if (p) p.dispatchEvent(new MouseEvent('mouseenter')); }, 100);";
     }
     const oben = await werte("(function(){ var h=document.getElementById('home'); h.style.right='auto'; h.style.bottom='auto'; h.style.width='" + b + "px'; h.style.height='" + h + "px'; HomeRaumDom.zeigeAnsicht('" + (regal ? 'regal' : ansicht) + "'); HomeRaumDom.neuAusrichten(); " + zeichne + " return new Promise(function(r){ setTimeout(function(){ r(h.getBoundingClientRect().top); }, 500); }); })()");
+    if (zusatz) await werte(zusatz);
     const s = await cdp('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: oben, width: b, height: h, scale: 1 } });
     const datei = path.join(ziel, ansicht + '-' + b + 'x' + h + '.png');
     fs.writeFileSync(datei, Buffer.from(s.result.data, 'base64'));
     console.log(datei);
   }
   await cdp('Emulation.clearDeviceMetricsOverride', {});
-  await werte("(function(){ var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneRegal({ brett: [], live: [], unten: [] }, {}, {}); HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
+  await werte("(function(){ document.querySelectorAll('[data-variante]').forEach(function(e){ e.remove(); }); var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneRegal({ brett: [], live: [], unten: [] }, {}, {}); HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
   process.exit(0);
 })().catch((e) => { console.error(e.message); process.exit(1); });
