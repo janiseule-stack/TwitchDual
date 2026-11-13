@@ -156,11 +156,14 @@ function appendEreignis(text, nachricht) {
 }
 
 // Echte und Test-Ereignisse laufen hier durch: immer als Zeile; ein Raid
-// spielt zusaetzlich den Effekt im Szenen-Streifen (Leute mit Schirm), Abos
-// bleiben bewusst nur Zeile (Janis). Diagnose: effekt = wirklich gemeldet.
+// spielt zusaetzlich den Effekt unten in der Stadt (Leute mit Schirm, ab 50 mit
+// Bus). Abos/Geschenke machen je Abo ein Fenster der Stadt hell - auch bei
+// "Animationen aus" (dann sofort). Diagnose: effekt = Raid wirklich gemeldet.
 function zeigeChatEreignis(ev) {
   if (!ev) return;
   appendEreignis(ChatEreignisse.zeile(ev), ev.nachricht);
+  const abos = ChatEreignisse.aboAnzahl(ev);
+  if (abos > 0) stadt.aboFenster(abos);
   const effekt = ev.art === 'raid' && lebenAktiv();
   if (effekt) abspieler.melde('raid', ev);
   window.twitchDual.diag('chat', 'ereignis', { art: ev.art, effekt });
@@ -783,32 +786,34 @@ const $optPixelUebergang = document.getElementById('opt-pixel-uebergang');
 let themePrefs = ThemeLib.cleanThemePrefs(null);
 
 // Leben im Szenen-Streifen (Etappe 3): Regen, Katze und Lampe laufen dauernd
-// (RaumLebenDom.baue), Raid und Kanalpunkte-Kiste spielen als Effekt einzeln
-// nacheinander (RaumLeben.abspieler, hoechstens 3 wartend). "Animationen aus"
-// (applyTheme) haelt alles an, leert die Warteschlange und verwirft neue Ereignisse.
+// (RaumLebenDom.baue). Effekte spielen einzeln nacheinander (RaumLeben.abspieler,
+// hoechstens 3 wartend): die Kanalpunkte-Kiste im Streifen, der Raid unten in der
+// Stadt. "Animationen aus" (applyTheme) haelt alles an, leert die Warteschlange
+// und verwirft neue Ereignisse.
 const $szeneEbene = document.querySelector('#szene .szene-bildebene');
 const leben = RaumLebenDom.baue(document, $szeneEbene, RaumLeben.STREIFEN, '../themes/cozy/leben-streifen-');
 const lebenEffekte = RaumLebenDom.effekte(document, $szeneEbene, '../themes/cozy/', {
   katze: $szeneEbene.querySelector('[data-leben="katze"]'),
 });
 const lebenAktiv = () => document.documentElement.dataset.animationen !== 'aus';
-const abspieler = RaumLeben.abspieler({
-  schlange: RaumLeben.warteschlange({ jetzt: () => Date.now() }),
-  aktiv: lebenAktiv,
-  starte: lebenEffekte.starte,
-  stoppe: lebenEffekte.stoppe,
-  dauer: (ev) => (ev.art === 'raid' ? RaumLeben.raidDauer(RaumLeben.schirmAnzahl(ev.daten.anzahl)) : RaumLeben.DAUER_KISTE),
-  setTimeout: (f, ms) => setTimeout(f, ms),
-  clearTimeout: (id) => clearTimeout(id),
-});
 
 // Regennacht-Stadt hinter den Nachrichten (stadt-dom.js): Blitz, Fensterlichter,
-// Passanten und Autos; richtet sich bei jeder Groessenaenderung der Flaeche neu aus
-// (auch wenn die Eingabe hoeher wird). "Animationen aus" haelt sie an (applyTheme).
+// Passanten, Autos und Raids; richtet sich bei jeder Groessenaenderung der Flaeche
+// neu aus (auch wenn die Eingabe hoeher wird). "Animationen aus" haelt sie an.
 const $stadt = document.getElementById('stadt');
 const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/', { band: document.getElementById('stadt-band') });
 new ResizeObserver(() => stadt.richteAus($stadt.clientWidth, $stadt.clientHeight)).observe($stadt);
 stadt.richteAus($stadt.clientWidth, $stadt.clientHeight);
+
+const abspieler = RaumLeben.abspieler({
+  schlange: RaumLeben.warteschlange({ jetzt: () => Date.now() }),
+  aktiv: lebenAktiv,
+  starte: (ev) => (ev.art === 'raid' ? stadt.raid(Stadt.raidPlan(ev.daten.anzahl)) : lebenEffekte.starte(ev)),
+  stoppe: () => { lebenEffekte.stoppe(); stadt.stoppeRaid(); },
+  dauer: (ev) => (ev.art === 'raid' ? stadt.raidDauer(Stadt.raidPlan(ev.daten.anzahl)) : RaumLeben.DAUER_KISTE),
+  setTimeout: (f, ms) => setTimeout(f, ms),
+  clearTimeout: (id) => clearTimeout(id),
+});
 
 function applyTheme(prefs) {
   themePrefs = ThemeLib.cleanThemePrefs(prefs);
@@ -1392,7 +1397,7 @@ window.twitchDual.onFxTest((art) => {
   else if (art === 'raid') zeigeChatEreignis({ art: 'raid', name: 'Testkanal', anzahl: 120 });
   else if (art === 'abo') {
     zeigeChatEreignis({ art: 'abo', name: 'TestZuschauer', monate: 12, prime: false, nachricht: 'Test-Nachricht zum Abo' });
-  }
+  } else if (art === 'geschenk') zeigeChatEreignis({ art: 'abo-regen', name: 'TestZuschauer', anzahl: 5, gruppe: null });
 });
 
 function zeigeZuwachs(z) {

@@ -321,29 +321,6 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 .raum-leben.verdeckt { visibility: hidden; }
 @keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
 
-/* Raid: Leute mit Schirm gehen draussen hinter dem Glas vorbei. Die Ebene liegt
-   ueber dem Glas-Rechteck, die Maske (aus streifen.png ausgestanzt) laesst sie nur
-   in den Scheiben sehen. Jede Figur rueckt im Takt ihres Gehzyklus um ganze
-   Bildpixel vor (steps), der Gehzyklus innen laeuft im selben Takt. */
-.raum-raid {
-  position: absolute; overflow: hidden; pointer-events: none;
-  -webkit-mask: url('../themes/cozy/streifen-glas-maske.png') var(--mx) var(--my) / 344px 72px no-repeat;
-  mask: url('../themes/cozy/streifen-glas-maske.png') var(--mx) var(--my) / 344px 72px no-repeat;
-}
-.raum-raid-figur {
-  position: absolute; left: 0; transform: translateX(var(--von));
-  animation: raum-raid-geht var(--dauer) steps(var(--schritte)) var(--verzug) 1 both;
-}
-.raum-raid-geht {
-  width: 100%; height: 100%; image-rendering: pixelated;
-  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
-  animation: raum-leben var(--dauer) steps(var(--bilder)) var(--verzug) infinite;
-}
-@keyframes raum-raid-geht {
-  from { transform: translateX(var(--von)); }
-  to { transform: translateX(var(--bis)); }
-}
-
 /* Kanalpunkte-Kiste: die Katze bringt eine Muenze, spielt einmal (Katze verdeckt). */
 .raum-kiste {
   position: absolute; pointer-events: none; image-rendering: pixelated; display: none;

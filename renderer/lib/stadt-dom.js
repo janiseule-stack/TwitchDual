@@ -315,6 +315,8 @@
       aboFenster,
       raid,
       stoppeRaid,
+      // Dauer eines Raids bei der aktuell sichtbaren Strassenbreite (fuer den Abspieler)
+      raidDauer: (plan) => Stadt.raidDauer(plan, sichtBreite),
     };
   }
 

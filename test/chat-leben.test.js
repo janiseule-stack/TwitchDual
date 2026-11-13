@@ -23,25 +23,18 @@ test('chat.css: Animationen aus haelt den Streifen an, keine Verlaeufe', () => {
   assert.ok(!/gradient/.test(chatCss));
 });
 
-test('chat.css: Leben-Regeln wie im Home, Raid-Ebene mit Glasmaske, Kiste nur beim Spielen', () => {
+test('chat.css: Leben-Regeln wie im Home, keine Raid-Ebene im Streifen, Kiste nur beim Spielen', () => {
   assert.ok(/\.raum-leben\s*\{[^}]*animation:\s*raum-leben var\(--dauer\) steps\(var\(--bilder\)\) infinite/.test(chatCss));
   assert.ok(/\.raum-leben\.selten:not\(\.spielt\)\s*\{\s*animation:\s*none/.test(chatCss));
   assert.ok(/\.raum-leben\.selten\.spielt\s*\{\s*animation-iteration-count:\s*1/.test(chatCss));
   assert.ok(/\.raum-leben\.ruht\s*\{\s*animation:\s*none/.test(chatCss));
   assert.ok(/\.raum-leben\.verdeckt\s*\{\s*visibility:\s*hidden/.test(chatCss));
   assert.ok(/@keyframes raum-leben\s*\{\s*to\s*\{\s*background-position:\s*calc\(-1 \* var\(--sb\)\) 0/.test(chatCss));
-  const raid = chatCss.slice(chatCss.indexOf('.raum-raid {'), chatCss.indexOf('}', chatCss.indexOf('.raum-raid {')));
-  assert.ok(raid.includes("url('../themes/cozy/streifen-glas-maske.png')"), 'Glasmaske');
-  assert.ok(/(^|[^-])mask:/.test(raid) && raid.includes('-webkit-mask:'));
-  assert.ok(raid.includes('var(--mx) var(--my)') && raid.includes('344px 72px'));
-  assert.ok(raid.includes('overflow: hidden'));
-  assert.ok(/\.raum-raid-figur\s*\{[^}]*animation:\s*raum-raid-geht var\(--dauer\) steps\(var\(--schritte\)\) var\(--verzug\) 1 both/.test(chatCss));
-  assert.ok(/@keyframes raum-raid-geht\s*\{\s*from\s*\{\s*transform:\s*translateX\(var\(--von\)\);?\s*\}\s*to\s*\{\s*transform:\s*translateX\(var\(--bis\)\)/.test(chatCss));
-  assert.ok(/\.raum-raid-geht\s*\{[^}]*animation:\s*raum-leben var\(--dauer\) steps\(var\(--bilder\)\) var\(--verzug\) infinite/.test(chatCss));
+  assert.ok(!chatCss.includes('raum-raid'), 'Raid laeuft in der Stadt, nicht im Streifen');
   assert.ok(/\.raum-kiste\s*\{[^}]*display:\s*none/.test(chatCss));
   assert.ok(/\.raum-kiste\.spielt\s*\{[^}]*display:\s*block;[^}]*animation:\s*raum-leben var\(--dauer\) steps\(var\(--bilder\)\) 1/.test(chatCss));
   // Pixel bleiben Pixel, keine weichen Uebergaenge
-  for (const sel of ['.raum-leben {', '.raum-raid-geht {', '.raum-kiste {']) {
+  for (const sel of ['.raum-leben {', '.raum-kiste {']) {
     const r = chatCss.slice(chatCss.indexOf(sel), chatCss.indexOf('}', chatCss.indexOf(sel)));
     assert.ok(r.includes('image-rendering: pixelated'), sel);
     assert.ok(!/transition|opacity|filter/.test(r), sel);
@@ -62,7 +55,11 @@ test('chat.js: Leben im Streifen und Abspieler verdrahtet', () => {
   assert.ok(chatJs.includes("document.documentElement.dataset.animationen !== 'aus'"));
   assert.ok(chatJs.includes('RaumLeben.abspieler({'));
   assert.ok(chatJs.includes('RaumLeben.warteschlange({'));
-  assert.ok(chatJs.includes("ev.art === 'raid' ? RaumLeben.raidDauer(RaumLeben.schirmAnzahl(ev.daten.anzahl)) : RaumLeben.DAUER_KISTE"));
+  assert.ok(chatJs.includes("ev.art === 'raid' ? stadt.raidDauer(Stadt.raidPlan(ev.daten.anzahl)) : RaumLeben.DAUER_KISTE"));
+  // Raid spielt in der Stadt, die Kiste im Streifen
+  assert.ok(/starte: \(ev\) => \(ev\.art === 'raid' \? stadt\.raid\(Stadt\.raidPlan\(ev\.daten\.anzahl\)\) : lebenEffekte\.starte\(ev\)\)/.test(chatJs));
+  assert.ok(/stoppe: \(\) => \{ lebenEffekte\.stoppe\(\); stadt\.stoppeRaid\(\); \}/.test(chatJs));
+  assert.ok(chatJs.indexOf('const stadt =') < chatJs.indexOf('const abspieler ='), 'Stadt vor dem Abspieler');
   // vor applyTheme definiert (applyTheme nutzt leben/abspieler)
   assert.ok(chatJs.indexOf('const abspieler =') < chatJs.indexOf('function applyTheme('));
 });
@@ -72,11 +69,24 @@ test('applyTheme: aus -> leben.aus(), stadt.aus() und abspieler.aus(), an -> leb
   assert.ok(/if \(themePrefs\.animationen\) \{ leben\.an\(\); stadt\.an\(\); \}\s*else \{ leben\.aus\(\); stadt\.aus\(\); abspieler\.aus\(\); \}/.test(r), r);
 });
 
+test('zeigeChatEreignis: Abo/Geschenk machen Fenster hell (auch bei Animationen aus)', () => {
+  const r = rumpf(chatJs, 'zeigeChatEreignis');
+  assert.ok(/const abos = ChatEreignisse\.aboAnzahl\(ev\);/.test(r), r);
+  assert.ok(/if \(abos > 0\) stadt\.aboFenster\(abos\);/.test(r), r);
+  assert.ok(!/lebenAktiv\(\)[^;]*aboFenster|aboFenster[^;]*lebenAktiv/.test(r), 'nicht an Animationen gebunden');
+});
+
+test('Ausprobieren: Geschenk-Knopf spielt ein Sammelgeschenk ueber denselben Weg', () => {
+  assert.ok(chatHtml.includes('<button type="button" data-art="geschenk">'));
+  assert.ok(/FX_TEST_ARTEN = \[[^\]]*'geschenk'/.test(lies('main.js')));
+  assert.ok(/else if \(art === 'geschenk'\) zeigeChatEreignis\(\{ art: 'abo-regen', name: 'TestZuschauer', anzahl: 5, gruppe: null \}\);/.test(chatJs));
+});
+
 test('zeigeChatEreignis: nur Raid meldet einen Effekt, Diagnose sagt ehrlich ob', () => {
   const r = rumpf(chatJs, 'zeigeChatEreignis');
   assert.ok(r.includes("ev.art === 'raid'"));
   assert.ok(r.includes("abspieler.melde('raid', ev)"));
-  assert.ok(!/melde\('abo'|art === 'abo'/.test(r), 'kein Abo-Effekt');
+  assert.ok(!/melde\('abo'/.test(r), 'kein Abo im Abspieler');
   assert.ok(!r.includes('effekt: false'));
   assert.ok(/const effekt = ev\.art === 'raid' && lebenAktiv\(\);/.test(r));
   assert.ok(/if \(effekt\) abspieler\.melde\('raid', ev\);/.test(r));

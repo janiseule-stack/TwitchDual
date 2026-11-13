@@ -197,6 +197,15 @@ test('raid: Figuren nach Plan, Bus ab 50, endet nach Stadt.raidDauer', async () 
   assert.strictEqual(strasse.kinder.filter((k) => /stadt-(raid-figur|bus)/.test(k.className)).length, 0);
 });
 
+test('raidDauer: aus der aktuell sichtbaren Strassenbreite', () => {
+  const { stadt } = aufbau();
+  const plan = Stadt.raidPlan(80);
+  assert.strictEqual(stadt.raidDauer(plan), Stadt.raidDauer(plan, S.bild.b));
+  stadt.richteAus(400, 1200);
+  const m = Stadt.masse(400, 1200);
+  assert.strictEqual(stadt.raidDauer(plan), Stadt.raidDauer(plan, 400 / m.faktor));
+});
+
 test('raid: kleine Raids ohne Bus, stoppeRaid raeumt sofort auf', async () => {
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');

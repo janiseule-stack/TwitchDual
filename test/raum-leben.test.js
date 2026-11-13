@@ -381,22 +381,17 @@ function baumDoc() {
   return doc;
 }
 
-test('RaumLebenDom.effekte: Raid-Ebene ueber GLAS unter dem Leben, Kiste obenauf', () => {
+test('RaumLebenDom.effekte: keine Raid-Ebene mehr im Streifen (Raid laeuft in der Stadt), Kiste obenauf', () => {
   const doc = baumDoc();
   const ebene = doc.createElement('div');
   const leben = RLD.baue(doc, ebene, RL.STREIFEN, 'p/leben-streifen-', scheinUhr());
   const katze = ebene.kinder.find((d) => d.dataset.leben === 'katze');
+  const vorher = ebene.kinder.length;
   const fx = RLD.effekte(doc, ebene, 'p/', { katze });
   assert.ok(leben && fx.starte && fx.stoppe);
-  const raid = ebene.kinder[0];
+  assert.strictEqual(ebene.kinder.length, vorher + 1, 'nur die Kiste kommt dazu');
+  assert.ok(!ebene.kinder.some((d) => d.classList.contains('raum-raid')));
   const kiste = ebene.kinder[ebene.kinder.length - 1];
-  assert.ok(raid.classList.contains('raum-raid'), 'Raid-Ebene liegt unter Regen/Katze/Lampe');
-  assert.strictEqual(raid.style.left, RL.GLAS.x + 'px');
-  assert.strictEqual(raid.style.top, RL.GLAS.y + 'px');
-  assert.strictEqual(raid.style.width, RL.GLAS.b + 'px');
-  assert.strictEqual(raid.style.height, RL.GLAS.h + 'px');
-  assert.strictEqual(raid.style.props['--mx'], -RL.GLAS.x + 'px');
-  assert.strictEqual(raid.style.props['--my'], -RL.GLAS.y + 'px');
   assert.ok(kiste.classList.contains('raum-kiste'));
   assert.strictEqual(kiste.style.left, RL.KISTE.x + 'px');
   assert.strictEqual(kiste.style.top, RL.KISTE.y + 'px');
@@ -407,49 +402,15 @@ test('RaumLebenDom.effekte: Raid-Ebene ueber GLAS unter dem Leben, Kiste obenauf
   assert.ok(!kiste.classList.contains('spielt'));
 });
 
-test('RaumLebenDom.effekte: Raid setzt 1-4 Figuren, im Gehtakt versetzt, raeumt am Ende auf', () => {
+test('RaumLebenDom.effekte: Raid spielt nicht mehr im Streifen', () => {
   const doc = baumDoc();
   const ebene = doc.createElement('div');
   const fx = RLD.effekte(doc, ebene, 'p/', {});
-  const raid = ebene.kinder[0];
-  const schritte = RL.raidSchritte();
+  const vorher = ebene.kinder.length;
   fx.starte({ art: 'raid', daten: { anzahl: 120 } });
-  assert.strictEqual(raid.kinder.length, 3);
-  raid.kinder.forEach((f, i) => {
-    assert.ok(f.classList.contains('raum-raid-figur'));
-    assert.strictEqual(f.style.top, RL.RAID.y - RL.GLAS.y + 'px');
-    assert.strictEqual(f.style.width, RL.RAID.b + 'px');
-    assert.strictEqual(f.style.height, RL.RAID.h + 'px');
-    assert.strictEqual(f.style.props['--schritte'], String(schritte));
-    assert.strictEqual(f.style.props['--dauer'], schritte * RL.RAID.msProBild + 'ms');
-    assert.strictEqual(f.style.props['--von'], -RL.RAID.b + 'px');
-    const bis = -RL.RAID.b + schritte * RL.RAID.pxProBild;
-    assert.ok(bis >= RL.GLAS.b, 'laeuft ganz hinaus');
-    assert.strictEqual(f.style.props['--bis'], bis + 'px');
-    assert.strictEqual(f.style.props['--verzug'], i * RL.RAID.versatzMs + 'ms');
-    const g = f.kinder[0];
-    assert.ok(g.classList.contains('raum-raid-geht'));
-    assert.strictEqual(g.style.props['--bilder'], String(RL.RAID.bilder));
-    assert.strictEqual(g.style.props['--dauer'], RL.RAID.bilder * RL.RAID.msProBild + 'ms');
-    assert.strictEqual(g.style.props['--sb'], RL.RAID.bilder * RL.RAID.b + 'px');
-    assert.strictEqual(g.style.props['--verzug'], i * RL.RAID.versatzMs + 'ms');
-    assert.strictEqual(g.style.backgroundImage, "url('p/leben-" + RL.RAID.dateien[i % RL.RAID.dateien.length] + ".png')");
-  });
-  // Gehzyklus-Ende (innen, Schleife) zaehlt nicht; erst wenn alle Figuren durch sind, ist die Ebene leer.
-  const [a, b, c] = raid.kinder;
-  a.kinder[0].feuere('animationend');
-  a.feuere('animationend');
-  b.feuere('animationend');
-  assert.strictEqual(raid.kinder.length, 3);
-  c.feuere('animationend');
-  assert.strictEqual(raid.kinder.length, 0);
-
-  fx.starte({ art: 'raid', daten: {} });
-  assert.strictEqual(raid.kinder.length, 1, 'ohne Anzahl 1 Figur');
-  fx.starte({ art: 'raid', daten: { anzahl: 100000 } });
-  assert.strictEqual(raid.kinder.length, 4, 'neuer Start raeumt den alten weg, hoechstens 4');
+  assert.strictEqual(ebene.kinder.length, vorher);
+  assert.ok(ebene.kinder.every((d) => d.kinder.length === 0));
   fx.stoppe();
-  assert.strictEqual(raid.kinder.length, 0);
 });
 
 test('RaumLebenDom.effekte: Kiste spielt einmal, Katze ist waehrenddessen verdeckt', () => {
