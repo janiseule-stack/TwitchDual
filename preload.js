@@ -141,43 +141,6 @@ if (!isTwitchFrame) {
   });
 }
 
-// --- Maus ueber dem Video ausblenden (Janis 13.11.2026) ----------------------
-// Steht die Maus 3 s still ueber dem Player, verschwindet sie; jede Bewegung
-// oder ein Klick holt sie sofort zurueck. Laeuft im player.twitch.tv-iframe,
-// weil das eigene Fenster dort keine Mausbewegungen sieht. test/maus-weg.test.js
-// loest die Funktion heraus (bis zur Ende-Marke) und testet sie mit Attrappen.
-function mausWeg(doc, uhr) {
-  var WARTE_MS = 3000;
-  var timer = null;
-  var stil = null;
-  function zeige() {
-    if (stil) { stil.remove(); stil = null; }
-    if (timer) { uhr.clearTimeout(timer); timer = null; }
-  }
-  function verstecke() {
-    timer = null;
-    if (stil) return;
-    stil = doc.createElement('style');
-    stil.id = 'twitchdual-maus-weg';
-    stil.textContent = '*, *::before, *::after { cursor: none !important; }';
-    (doc.head || doc.documentElement).appendChild(stil);
-  }
-  function bewegt() {
-    zeige();
-    timer = uhr.setTimeout(verstecke, WARTE_MS);
-  }
-  doc.addEventListener('mousemove', bewegt, true);
-  doc.addEventListener('mousedown', bewegt, true);
-  doc.addEventListener('wheel', bewegt, true);
-  // Maus verlaesst das iframe: sichtbar lassen, keine Wartezeit
-  doc.addEventListener('mouseout', function (e) { if (!e.relatedTarget) zeige(); }, true);
-}
-// ende mausWeg
-if (isTwitchFrame && location.hostname === 'player.twitch.tv') {
-  // Pfeilfunktionen: setTimeout als Methode eines fremden Objekts wirft "Illegal invocation"
-  try { mausWeg(document, { setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: (t) => clearTimeout(t) }); } catch (e) { /* Player nie stoeren */ }
-}
-
 // --- Werbe-Blocker: nur im Twitch-Player-iframe ------------------------------
 // Der Preload laeuft (Video-Fenster, nodeIntegrationInSubFrames) auch in
 // Subframes. Im player.twitch.tv-iframe injizieren wir vaft in die Main World
