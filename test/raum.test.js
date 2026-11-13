@@ -299,6 +299,120 @@ test('REGAL auf der Groessenliste ganz sichtbar (Bildschirm-Pixel)', () => {
   }
 });
 
+// --- Regal von nahe (Plan 2026-11-13-regal-nah, Task 1) ---
+const NAH_ZIELE = () => [R.REGAL.brett, R.REGAL.faecher.live, R.REGAL.faecher.unten];
+
+test('REGAL_NAH gleich regal.json.nah, eingefroren', () => {
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(R.REGAL_NAH)), REGAL_JSON.nah);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(R.REGAL_NAH)), {
+    b: 174, h: 82,
+    faecher: [{ id: 'brett', x: 122, y: 0 }, { id: 'live', x: 114, y: 57 }, { id: 'unten', x: 114, y: 110 }],
+  });
+  assert.ok(Object.isFrozen(R.REGAL_NAH) && Object.isFrozen(R.REGAL_NAH.faecher) && Object.isFrozen(R.REGAL_NAH.faecher[1]));
+});
+
+test('skalierungFach: F auf der Groessenliste', () => {
+  const soll = { '2960x1390': 16, '2040x952': 11, '1920x1030': 11, '1536x1030': 8, '1280x670': 7, '900x700': 5 };
+  for (const [b, h] of GROESSEN) {
+    const name = b + 'x' + h;
+    for (let nr = 0; nr < 3; nr++) {
+      const s = R.skalierungFach(b, h, nr);
+      assert.strictEqual(s.faktor, soll[name], name);
+      assert.ok(Number.isInteger(s.links) && Number.isInteger(s.oben), name);
+      const r = NAH_ZIELE()[nr];
+      const x0 = s.links + r.x * s.faktor, x1 = s.links + (r.x + r.b) * s.faktor;
+      const y0 = s.oben + r.y * s.faktor, y1 = s.oben + (r.y + r.h) * s.faktor;
+      assert.ok(x0 >= 0 && x1 <= b && y0 >= 0 && y1 <= h, `${name} Fach ${nr}`);
+    }
+  }
+});
+
+test('skalierungFach: nr geklemmt, Muell -> Faktor 1', () => {
+  assert.deepStrictEqual(R.skalierungFach(1920, 1030, 7), R.skalierungFach(1920, 1030, 2));
+  assert.deepStrictEqual(R.skalierungFach(1920, 1030, -3), R.skalierungFach(1920, 1030, 0));
+  assert.deepStrictEqual(R.skalierungFach(0, 1030, 1), { faktor: 1, links: 0, oben: 0 });
+  assert.deepStrictEqual(R.skalierungFach('x', null, 1), { faktor: 1, links: 0, oben: 0 });
+});
+
+test('fachFahrt: Bildpunkte landen in der Gesamtansicht', () => {
+  for (const [b, h] of GROESSEN) {
+    const g = R.skalierungRegal(b, h);
+    const fahrt = R.fachFahrt(b, h, 0, 1);
+    for (const [teil, nr, r] of [['raus', 0, R.REGAL.brett], ['rein', 1, R.REGAL.faecher.live]]) {
+      const f = R.skalierungFach(b, h, nr);
+      const t = fahrt[teil];
+      const mx = r.x + r.b / 2, my = r.y + r.h / 2;
+      const px = f.links + mx * f.faktor, py = f.oben + my * f.faktor;
+      assert.ok(Math.abs(t.s * px + t.dx - (g.links + mx * g.faktor)) < 1e-6, `${b}x${h} ${teil} x`);
+      assert.ok(Math.abs(t.s * py + t.dy - (g.oben + my * g.faktor)) < 1e-6, `${b}x${h} ${teil} y`);
+    }
+  }
+});
+
+test('fachFahrt: Fixpunkt liegt im Fach-Ausschnitt (Zoom an Ort)', () => {
+  const N = R.REGAL_NAH;
+  for (const [b, h] of GROESSEN) {
+    for (const [von, nach] of [[0, 1], [1, 2], [2, 1], [1, 0], [0, 2]]) {
+      const fahrt = R.fachFahrt(b, h, von, nach);
+      for (const [teil, nr] of [['raus', von], ['rein', nach]]) {
+        const f = R.skalierungFach(b, h, nr);
+        const t = fahrt[teil];
+        const a = { faktor: f.faktor, x: f.links, y: f.oben };
+        const z = { faktor: f.faktor * t.s, x: f.links * t.s + t.dx, y: f.oben * t.s + t.dy };
+        const F = R.fixpunkt(a, z);
+        assert.ok(F, `${b}x${h} ${teil}`);
+        const bx = (F.x - a.x) / a.faktor, by = (F.y - a.y) / a.faktor;
+        const fa = N.faecher[nr];
+        assert.ok(bx >= fa.x - 4 && bx <= fa.x + N.b + 4 && by >= fa.y - 4 && by <= fa.y + N.h + 4,
+          `${b}x${h} ${von}->${nach} ${teil}: ${bx.toFixed(1)},${by.toFixed(1)}`);
+      }
+    }
+  }
+});
+
+test('naechstesFach', () => {
+  const f = false, t = true;
+  assert.strictEqual(R.naechstesFach(0, 1, [f, t, f]), 2);
+  assert.strictEqual(R.naechstesFach(0, 1, [f, t, t]), 0);
+  assert.strictEqual(R.naechstesFach(2, -1, [f, t, f]), 0);
+  assert.strictEqual(R.naechstesFach(1, 1, [f, f, f]), 2);
+  assert.strictEqual(R.naechstesFach(2, 1, [f, f, f]), 2);
+  assert.strictEqual(R.naechstesFach(1, 0, [f, t, f]), 0);
+  assert.strictEqual(R.naechstesFach(2, 0, [f, f, t]), 0);
+});
+
+test('klickMasse auf der Groessenliste', () => {
+  const soll = { '2960x1390': 6, '2040x952': 4, '1920x1030': 5, '1536x1030': 4, '1280x670': 3, '900x700': 2 };
+  const drin = (x, y, kb, kh, b, h) => x >= 0 && y >= 0 && x + kb <= b && y + kh <= h;
+  for (const [b, h] of GROESSEN) {
+    const name = b + 'x' + h;
+    const k = R.klickMasse(b, h);
+    const g = soll[name];
+    assert.strictEqual(k.g, g, name);
+    assert.strictEqual(k.huelle.kante, 111 * g, name);
+    assert.ok(drin(k.huelle.x, k.huelle.y, k.huelle.kante, k.huelle.kante, b, h), name + ' Huelle');
+    assert.ok(drin(k.platte.x, k.platte.y, k.platte.kante, k.platte.kante, b, h), name + ' Platte');
+    assert.strictEqual(k.platte.x + k.platte.kante, k.huelle.x + 154 * g, name);
+    assert.strictEqual(k.platte.kante % 64, 0, name);
+    assert.ok(drin(k.tafel.x, k.tafel.mitteY - k.tafel.hoeheMax / 2, k.tafel.breite, k.tafel.hoeheMax, b, h), name + ' Tafel');
+    assert.ok(k.leucht.y >= 0 && k.leucht.y + k.leucht.schrift <= h, name + ' Leuchtzeile');
+    assert.strictEqual(k.leucht.schrift, k.schrift.namen, name);
+    for (const s of Object.values(k.schrift)) assert.strictEqual(s % 12, 0, name + ' Schrift ' + s);
+  }
+});
+
+test('namenZeile: Rotation um zeile*4', () => {
+  assert.deepStrictEqual(R.namenZeile(['a', 'b', 'c'], 1), ['b', 'c', 'a']);
+  assert.deepStrictEqual(R.namenZeile(['a', 'b', 'c'], 0), ['a', 'b', 'c']);
+  assert.deepStrictEqual(R.namenZeile([], 3), []);
+});
+
+test('namenLage: zentriert, am Rand geklemmt', () => {
+  assert.strictEqual(R.namenLage(10, 200, 1280), 16);
+  assert.strictEqual(R.namenLage(1270, 200, 1280), 1064);
+  assert.strictEqual(R.namenLage(640, 200, 1280), 540);
+});
+
 test('fachFenster mit teil: Kante und Abstand aus dem Teil', () => {
   assert.strictEqual(R.fachFenster(30, 0, 100, 0, { kante: 8, abstand: 1 }).sichtbar, 11);
   assert.deepStrictEqual(R.fachFenster(30, 0, 175, 0), { start: 0, sichtbar: 4 });

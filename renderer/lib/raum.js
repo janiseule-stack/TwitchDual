@@ -312,6 +312,100 @@
     return Math.max(1, Math.round(zahl(faktor) * zahl(bildPixel)));
   }
 
+  // --- Regal von nahe (Plan 2026-11-13-regal-nah): ein Fach fuellt das Bild ---
+  // 1:1 aus regal.json.nah (Test: REGAL_NAH gleich regal.json.nah).
+  const REGAL_NAH = Object.freeze({
+    b: 174,
+    h: 82,
+    faecher: Object.freeze([
+      Object.freeze({ id: 'brett', x: 122, y: 0 }),
+      Object.freeze({ id: 'live', x: 114, y: 57 }),
+      Object.freeze({ id: 'unten', x: 114, y: 110 }),
+    ]),
+  });
+
+  function fachNr(nr) {
+    const n = Math.floor(zahl(nr));
+    return Math.min(2, Math.max(0, n));
+  }
+
+  // Ganzzahliger Faktor F, Fach `nr` mittig im Fenster.
+  function skalierungFach(fensterBreite, fensterHoehe, nr) {
+    const b = zahl(fensterBreite), h = zahl(fensterHoehe);
+    if (!b || !h) return { faktor: 1, links: 0, oben: 0 };
+    const N = REGAL_NAH;
+    const fa = N.faecher[fachNr(nr)];
+    const faktor = Math.max(1, Math.min(Math.floor(b / N.b), Math.floor(h / N.h)));
+    return {
+      faktor,
+      links: Math.round((b - N.b * faktor) / 2) - fa.x * faktor + 0,
+      oben: Math.round((h - N.h * faktor) / 2) - fa.y * faktor + 0,
+    };
+  }
+
+  // Fachwechsel als Zoom an Ort: raus = Fach `von` -> Gesamtansicht, rein = Fach `nach`
+  // -> Gesamtansicht; je translate(dx, dy) scale(s), Ursprung 0 0.
+  function fachFahrt(fensterBreite, fensterHoehe, von, nach) {
+    const g = skalierungRegal(fensterBreite, fensterHoehe);
+    const abb = (nr) => {
+      const f = skalierungFach(fensterBreite, fensterHoehe, nr);
+      const s = g.faktor / f.faktor;
+      return { s, dx: g.links - s * f.links, dy: g.oben - s * f.oben };
+    };
+    return { raus: abb(von), rein: abb(nach) };
+  }
+
+  // Naechstes nicht leeres Fach in Richtung (1 / -1); keins -> nr. Richtung 0: nr, wenn
+  // nicht leer, sonst das erste nicht leere ab 0 (keins: 0).
+  function naechstesFach(nr, richtung, leer) {
+    const l = Array.isArray(leer) ? leer : [];
+    const n = fachNr(nr);
+    const r = Number.isFinite(richtung) ? Math.sign(richtung) : 0; // zahl() kennt keine negativen Werte
+    if (r === 0) {
+      if (!l[n]) return n;
+      for (let i = 0; i < 3; i++) if (!l[i]) return i;
+      return 0;
+    }
+    for (let i = n + r; i >= 0 && i <= 2; i += r) if (!l[i]) return i;
+    return n;
+  }
+
+  // Klick-Ansicht: Huelle (sichtbar 111 Bildpixel), Platte ragt rechts heraus, Tafel daneben.
+  // Gruppe 317 x 163 Bildpixel, eigener ganzzahliger Faktor g.
+  function klickMasse(fensterBreite, fensterHoehe) {
+    const b = zahl(fensterBreite), h = zahl(fensterHoehe);
+    const g = Math.max(1, Math.min(Math.floor((0.9 * b) / 317), Math.floor((0.8 * h) / 163)));
+    const links = Math.round((b - 317 * g) / 2);
+    const oben = Math.round((h - 163 * g) / 2);
+    const P = Math.max(1, Math.round((5 * g) / 3));
+    const kante = 111 * g;
+    const pk = 64 * P;
+    const namen = 12 * Math.max(1, Math.floor((43 * g) / 12));
+    return {
+      g,
+      oben,
+      huelle: { x: links, y: oben, kante },
+      platte: { x: links + 154 * g - pk, y: oben + Math.round((kante - pk) / 2), kante: pk },
+      tafel: { x: links + 167 * g, mitteY: oben + Math.round(55.5 * g), breite: 150 * g, hoeheMax: 150 * g },
+      leucht: { y: oben + 119 * g, schrift: namen },
+      schrift: { name: schriftPx(g, 16), titel: schriftPx(g, 10), zeile: schriftPx(g, 8), namen },
+    };
+  }
+
+  // Zeile der grossen Namen: Rotation um (zeile * 4) mod n.
+  function namenZeile(namen, zeile) {
+    const a = Array.isArray(namen) ? namen : [];
+    if (!a.length) return [];
+    const k = ((Math.floor(zahl(zeile)) * 4) % a.length + a.length) % a.length;
+    return a.slice(k).concat(a.slice(0, k));
+  }
+
+  // Linke Kante des Hover-Namens: zentriert auf mitteX, im Fenster geklemmt.
+  function namenLage(mitteX, breiteText, fensterBreite, rand = 16) {
+    const l = zahl(mitteX) - zahl(breiteText) / 2;
+    return Math.round(Math.min(zahl(fensterBreite) - rand - zahl(breiteText), Math.max(rand, l)));
+  }
+
   // Maße der vergrößerten Plattenkarte (zwei Hüllen breit): n = Vielfaches von 128 Bildpixeln.
   function kartenMasse(fensterBreite, fensterHoehe) {
     const b = zahl(fensterBreite);
@@ -332,5 +426,5 @@
     };
   }
 
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, LAUF_ECKEN, LAUF_FELD, laufMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, LAUF_ECKEN, LAUF_FELD, laufMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse, REGAL_NAH, skalierungFach, fachFahrt, naechstesFach, klickMasse, namenZeile, namenLage };
 });
