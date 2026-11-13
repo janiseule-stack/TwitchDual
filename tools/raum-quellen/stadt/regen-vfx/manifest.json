@@ -1,0 +1,510 @@
+{
+ "app": "PixelLab VFX Creator",
+ "name": "TwitchDual Stadt-Regen 3 Ebenen",
+ "fps": 12,
+ "frame_ms": 83,
+ "frames": 12,
+ "loop": true,
+ "canvas": {
+  "w": 366,
+  "h": 269
+ },
+ "anchor": {
+  "kind": "origin",
+  "x": 58,
+  "y": 84
+ },
+ "clips": [
+  {
+   "name": "whole",
+   "title": "the whole effect, no sprite",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 360,
+    "h": 263
+   },
+   "sheets": [
+    {
+     "file": "whole.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -55,
+    "y": -81
+   }
+  },
+  {
+   "name": "behind",
+   "title": "everything behind the sprite",
+   "depth": "behind",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 356,
+    "h": 232
+   },
+   "sheets": [
+    {
+     "file": "behind.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -55,
+    "y": -63
+   }
+  },
+  {
+   "name": "front",
+   "title": "everything in front of the sprite",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 357,
+    "h": 263
+   },
+   "sheets": [
+    {
+     "file": "front.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -52,
+    "y": -81
+   }
+  },
+  {
+   "name": "part-rain_ripples",
+   "title": "the rain ripples part",
+   "part": "rain_ripples",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 97,
+    "h": 109
+   },
+   "sheets": [
+    {
+     "file": "part-rain_ripples.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -55,
+    "y": 73
+   }
+  },
+  {
+   "name": "part-strasse2",
+   "title": "the rain ripples part",
+   "part": "rain_ripples",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 102,
+    "h": 110
+   },
+   "sheets": [
+    {
+     "file": "part-strasse2.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 35,
+    "y": 72
+   }
+  },
+  {
+   "name": "part-strasse3",
+   "title": "the rain ripples part",
+   "part": "rain_ripples",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 105,
+    "h": 107
+   },
+   "sheets": [
+    {
+     "file": "part-strasse3.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 116,
+    "y": 75
+   }
+  },
+  {
+   "name": "part-strasse4",
+   "title": "the rain ripples part",
+   "part": "rain_ripples",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 91,
+    "h": 110
+   },
+   "sheets": [
+    {
+     "file": "part-strasse4.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 214,
+    "y": 72
+   }
+  },
+  {
+   "name": "part-himmel1",
+   "title": "the rain streaks part",
+   "part": "rain_streaks",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 97,
+    "h": 110
+   },
+   "sheets": [
+    {
+     "file": "part-himmel1.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -51,
+    "y": -61
+   }
+  },
+  {
+   "name": "part-himmel2",
+   "title": "the rain streaks part",
+   "part": "rain_streaks",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 94,
+    "h": 108
+   },
+   "sheets": [
+    {
+     "file": "part-himmel2.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 38,
+    "y": -62
+   }
+  },
+  {
+   "name": "part-himmel3",
+   "title": "the rain streaks part",
+   "part": "rain_streaks",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 87,
+    "h": 104
+   },
+   "sheets": [
+    {
+     "file": "part-himmel3.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 120,
+    "y": -63
+   }
+  },
+  {
+   "name": "part-himmel4",
+   "title": "the rain streaks part",
+   "part": "rain_streaks",
+   "depth": "both",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 88,
+    "h": 103
+   },
+   "sheets": [
+    {
+     "file": "part-himmel4.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 213,
+    "y": -64
+   }
+  },
+  {
+   "name": "part-scheibe1",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 19,
+    "h": 31
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe1.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": -24,
+    "y": -68
+   }
+  },
+  {
+   "name": "part-scheibe2",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 18,
+    "h": 42
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe2.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 68,
+    "y": -46
+   }
+  },
+  {
+   "name": "part-scheibe3",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 22,
+    "h": 36
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe3.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 187,
+    "y": -81
+   }
+  },
+  {
+   "name": "part-scheibe4",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 19,
+    "h": 34
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe4.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 259,
+    "y": 2
+   }
+  },
+  {
+   "name": "part-scheibe5",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 20,
+    "h": 39
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe5.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 16,
+    "y": 49
+   }
+  },
+  {
+   "name": "part-scheibe6",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 19,
+    "h": 40
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe6.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 124,
+    "y": 36
+   }
+  },
+  {
+   "name": "part-scheibe7",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 16,
+    "h": 41
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe7.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 228,
+    "y": 87
+   }
+  },
+  {
+   "name": "part-scheibe8",
+   "title": "the water drips part",
+   "part": "water_drips",
+   "depth": "front",
+   "loop": true,
+   "start_frame": 0,
+   "frames": 12,
+   "frame": {
+    "w": 20,
+    "h": 36
+   },
+   "sheets": [
+    {
+     "file": "part-scheibe8.png",
+     "first_frame": 0,
+     "frames": 12,
+     "columns": 4,
+     "rows": 3
+    }
+   ],
+   "offset": {
+    "x": 89,
+    "y": 122
+   }
+  }
+ ]
+}

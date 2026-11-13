@@ -10,11 +10,11 @@
     },
     "haeuser": {
       "y": 125,
-      "h": 115
+      "h": 102
     },
     "strasse": {
-      "y": 240,
-      "h": 37
+      "y": 227,
+      "h": 50
     }
   },
   "fenster": [
@@ -463,16 +463,28 @@
     ]
   },
   "auto": {
-    "b": 48,
-    "h": 24
+    "b": 88,
+    "h": 44,
+    "radY": 43,
+    "varianten": [
+      "stadt-auto-a.png",
+      "stadt-auto-b.png",
+      "stadt-auto-c.png",
+      "stadt-auto-d.png"
+    ]
   },
   "bus": {
-    "b": 128,
-    "h": 40
+    "b": 176,
+    "h": 56,
+    "tuerX": 138
   },
   "regen": {
-    "b": 64,
-    "h": 64
+    "bilder": 12,
+    "msProBild": 83,
+    "dateien": [
+      "stadt-regen-himmel.png",
+      "stadt-regen-strasse.png"
+    ]
   },
   "gehwegY": 251,
   "fahrbahnY": 272

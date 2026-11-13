@@ -11,8 +11,8 @@
     bild: Object.freeze({ b: 344, h: 277 }),
     ebenen: Object.freeze({
       himmel: Object.freeze({ y: 0, h: 125 }),
-      haeuser: Object.freeze({ y: 125, h: 115 }),
-      strasse: Object.freeze({ y: 240, h: 37 }),
+      haeuser: Object.freeze({ y: 125, h: 102 }),
+      strasse: Object.freeze({ y: 227, h: 50 }),
     }),
     fenster: Object.freeze([
       f(319, 145, 7, 12), f(5, 146, 6, 4), f(335, 146, 5, 5), f(131, 150, 5, 5), f(147, 150, 5, 5), f(177, 150, 5, 5),
@@ -32,9 +32,15 @@
       b: 24, h: 24, bilder: 8, msProBild: 120, pxProBild: 2,
       varianten: Object.freeze(['stadt-passant-a.png', 'stadt-passant-b.png']),
     }),
-    auto: Object.freeze({ b: 48, h: 24 }),
-    bus: Object.freeze({ b: 128, h: 40 }),
-    regen: Object.freeze({ b: 64, h: 64 }),
+    auto: Object.freeze({
+      b: 88, h: 44, radY: 43,
+      varianten: Object.freeze(['stadt-auto-a.png', 'stadt-auto-b.png', 'stadt-auto-c.png', 'stadt-auto-d.png']),
+    }),
+    bus: Object.freeze({ b: 176, h: 56, tuerX: 138 }),
+    regen: Object.freeze({
+      bilder: 12, msProBild: 83,
+      dateien: Object.freeze(['stadt-regen-himmel.png', 'stadt-regen-strasse.png']),
+    }),
     gehwegY: 251,
     fahrbahnY: 272,
   });

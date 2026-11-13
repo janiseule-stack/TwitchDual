@@ -20,7 +20,7 @@
   const UHR_WARTEN = 10000;     // Mitte belegt: spaeter nochmal
   const FENSTER_MS = 300;       // weiches An/Aus eines Fensters
   const ABO_ABSTAND = 400;      // Geschenk: Fenster nacheinander
-  const BUS = Object.freeze({ dauer: 5000, ankunft: 1500, abfahrt: 3500, tuerX: 92, halteAnteil: 0.25 });
+  const BUS = Object.freeze({ dauer: 5000, ankunft: 1500, abfahrt: 3500, halteAnteil: 0.25 });
 
   const px = (n) => n + 'px';
   const url = (pfad, datei) => "url('" + pfad + datei + "')";
@@ -48,14 +48,21 @@
 
     const ebene = neu('stadt-bildebene', wirt);
     ebene.style.backgroundImage = url(pfad, 'stadt.png');
+    // Regen: PixelLab-Effekt als Bildstreifen (S.regen.bilder Bilder in Stadtbreite), per steps()
+    function regenEbene(art, datei) {
+      const r = neu('stadt-regen ' + art, ebene);
+      r.style.backgroundImage = url(pfad, datei);
+      r.style.setProperty('--bilder', S.regen.bilder);
+      r.style.setProperty('--dauer', S.regen.bilder * S.regen.msProBild + 'ms');
+      r.style.setProperty('--sb', px(S.bild.b * S.regen.bilder));
+      return r;
+    }
     const blitz = neu('stadt-blitz', ebene);
     blitz.style.backgroundImage = url(pfad, 'stadt-himmel-blitz.png');
+    regenEbene('himmel', S.regen.dateien[0]);
     const fensterEbene = neu('stadt-fenster-ebene', ebene);
     const strasse = neu('stadt-strasse', ebene);
-    const regenHinten = neu('stadt-regen hinten', ebene);
-    regenHinten.style.backgroundImage = url(pfad, 'stadt-regen-hinten.png');
-    const regenVorn = neu('stadt-regen vorn', ebene);
-    regenVorn.style.backgroundImage = url(pfad, 'stadt-regen-vorn.png');
+    regenEbene('strasse', S.regen.dateien[1]);
     const dunkel = neu('stadt-dunkel', ebene);
     dunkel.style.height = px(S.ebenen.strasse.y);
     wirt.style.setProperty('--stadt-dunkel', String(DUNKEL));
@@ -176,7 +183,7 @@
       el.style.top = px(S.gehwegY - F.h);
       el.style.width = px(F.b);
       el.style.height = px(F.h);
-      const schritte = Math.ceil(weite / F.pxProBild);
+      const schritte = Math.max(1, Math.ceil(weite / F.pxProBild));
       const bis = von + (nachLinks ? -1 : 1) * schritte * F.pxProBild;
       bahn(el, von, bis, schritte, F.msProBild, verzugMs);
       const g = neu('stadt-geht' + (nachLinks ? ' links' : ''), el);
@@ -206,9 +213,12 @@
       el.style.height = px(A.h);
       // Bild und Spiegelung als Kinder: die Bewegung (transform) liegt auf el, das
       // Spiegeln fuer die Fahrtrichtung auf den Kindern.
-      neu('stadt-auto-bild', el).style.backgroundImage = url(pfad, 'stadt-auto.png');
+      const farbe = A.varianten[Math.min(A.varianten.length - 1, Math.floor(zufall() * A.varianten.length))];
+      neu('stadt-auto-bild', el).style.backgroundImage = url(pfad, farbe);
       const spiegel = neu('stadt-spiegel', el);
-      spiegel.style.backgroundImage = url(pfad, 'stadt-auto.png');
+      spiegel.style.backgroundImage = url(pfad, farbe);
+      // Spiegelachse an der Radunterkante (Bildzeile radY)
+      spiegel.style.top = px(2 * A.radY - A.h);
       const schritte = Math.ceil((sichtBreite + A.b) / AUTO.pxProBild);
       const von = nachLinks ? sichtLinks + sichtBreite : sichtLinks - A.b;
       bahn(el, von, von + (nachLinks ? -1 : 1) * schritte * AUTO.pxProBild, schritte, AUTO.msProBild, 0);
@@ -261,7 +271,9 @@
           bus.style.width = px(B.b);
           bus.style.height = px(B.h);
           bus.style.backgroundImage = url(pfad, 'stadt-bus.png');
-          const halt = Math.round(sichtLinks + sichtBreite * BUS.halteAnteil);
+          // Haltestelle: Tuer immer im sichtbaren Teil, auch im schmalen Chat
+          const halt = Math.round(Math.min(sichtLinks + sichtBreite * BUS.halteAnteil,
+            sichtLinks + sichtBreite - B.tuerX - F.b));
           bus.style.setProperty('--von', px(sichtLinks - B.b));
           bus.style.setProperty('--halt', px(halt));
           bus.style.setProperty('--bis', px(sichtLinks + sichtBreite));
@@ -269,8 +281,8 @@
           r.teile.push(losschicken(bus, BUS.dauer));
           r.tuer.push(setT(() => { bus.style.backgroundImage = url(pfad, 'stadt-bus-tuer.png'); }, BUS.ankunft));
           r.tuer.push(setT(() => { bus.style.backgroundImage = url(pfad, 'stadt-bus.png'); }, BUS.abfahrt));
-          start = halt + BUS.tuerX - F.b / 2;
-          weite = sichtLinks + sichtBreite - start;
+          start = halt + B.tuerX - F.b / 2;
+          weite = Math.max(F.b, sichtLinks + sichtBreite - start);
           verzug = BUS.ankunft + 200;
         }
         for (let i = 0; i < plan.figuren; i++) {

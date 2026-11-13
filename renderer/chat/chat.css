@@ -357,13 +357,12 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
   image-rendering: pixelated; opacity: 0; transition: opacity 300ms;
 }
 .stadt-fenster.an { opacity: 1; }
+/* Regen hinten (PixelLab-Effekt, nahtlose Schleife): je Ebene ein Bildstreifen in Stadtbreite. */
 .stadt-regen {
-  width: 344px; height: 277px; background-size: 64px 64px; background-repeat: repeat;
-  animation: stadt-regen var(--regen-dauer, 600ms) steps(16) infinite;
+  width: 344px; height: 277px;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) infinite;
 }
-.stadt-regen.hinten { --regen-dauer: 900ms; opacity: 0.7; }
-.stadt-regen.vorn { --regen-dauer: 550ms; }
-@keyframes stadt-regen { to { background-position: 16px 64px; } }
 .stadt-dunkel { width: 344px; background-color: #05040a; opacity: var(--stadt-dunkel, 0.25); }
 
 /* Strasse: Passanten, Autos und Raids ruecken in ganzen Bildpixeln vor (steps). */
@@ -388,8 +387,8 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
   background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
 }
 .stadt-auto-bild { top: 0; }
-/* Spiegelung auf der nassen Strasse: Achse an der Radunterkante (Bildzeile 21 von 24). */
-.stadt-spiegel { top: 18px; transform: scaleY(-1); filter: brightness(0.35); opacity: 0.5; }
+/* Spiegelung auf der nassen Strasse: Achse an der Radunterkante (top setzt stadt-dom.js). */
+.stadt-spiegel { transform: scaleY(-1); filter: brightness(0.35); opacity: 0.5; }
 .stadt-auto.links .stadt-auto-bild { transform: scaleX(-1); }
 .stadt-auto.links .stadt-spiegel { transform: scale(-1, -1); }
 .stadt-bus {

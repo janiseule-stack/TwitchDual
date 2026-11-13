@@ -36,7 +36,7 @@ test('masse: Stadt deckt die ganze Flaeche, Strasse ganz sichtbar, Nachrichten >
     assert.ok(m.oben <= 0, tag + ' oben');
     assert.ok(Math.abs(m.oben + B.h * m.faktor - hoehe) < 0.5, tag + ' Bild endet unten am Band');
     // Strassenband = ganze Strasse
-    assert.strictEqual(m.strasseH, Math.round(S.h * m.faktor), tag + ' strasseH');
+    assert.strictEqual(m.strasseH, Math.min(Math.round(S.h * m.faktor), Math.floor(hoehe / 2)), tag + ' strasseH');
     assert.ok(hoehe - m.strasseH >= hoehe * 0.5, tag + ' Nachrichtenbereich');
     // Pixel-Massstab wie im Streifen oben, sofern das deckt
     assert.ok(m.faktor >= Szene.faktor(breite) - 1e-9, tag + ' faktor');

@@ -92,11 +92,17 @@ test('baue: Bildebene mit Grundbild, Ebenen in fester Reihenfolge', () => {
   assert.ok(ebene.classList.contains('stadt-bildebene'));
   assert.ok(ebene.style.backgroundImage.includes('p/stadt.png'));
   const reihe = ebene.kinder.map((e) => e.className.split(' ')[0]);
-  assert.deepStrictEqual(reihe, ['stadt-blitz', 'stadt-fenster-ebene', 'stadt-strasse', 'stadt-regen', 'stadt-regen', 'stadt-dunkel']);
-  assert.ok(ebene.kinder[3].classList.contains('hinten') && ebene.kinder[4].classList.contains('vorn'));
+  // Regen am Himmel hinter den Haeusern, Regen auf der Strasse vor den Figuren
+  assert.deepStrictEqual(reihe, ['stadt-blitz', 'stadt-regen', 'stadt-fenster-ebene', 'stadt-strasse', 'stadt-regen', 'stadt-dunkel']);
+  assert.ok(ebene.kinder[1].classList.contains('himmel') && ebene.kinder[4].classList.contains('strasse'));
   assert.ok(ebene.kinder[0].style.backgroundImage.includes('p/stadt-himmel-blitz.png'));
-  assert.ok(ebene.kinder[3].style.backgroundImage.includes('p/stadt-regen-hinten.png'));
-  assert.ok(ebene.kinder[4].style.backgroundImage.includes('p/stadt-regen-vorn.png'));
+  assert.ok(ebene.kinder[1].style.backgroundImage.includes('p/stadt-regen-himmel.png'));
+  assert.ok(ebene.kinder[4].style.backgroundImage.includes('p/stadt-regen-strasse.png'));
+  for (const r of [ebene.kinder[1], ebene.kinder[4]]) {
+    assert.strictEqual(r.style.props['--bilder'], String(S.regen.bilder));
+    assert.strictEqual(r.style.props['--dauer'], S.regen.bilder * S.regen.msProBild + 'ms');
+    assert.strictEqual(r.style.props['--sb'], S.bild.b * S.regen.bilder + 'px');
+  }
   // Abdunkeln nur ueber Himmel + Haeusern, nicht ueber dem Strassenband
   assert.strictEqual(ebene.kinder[5].style.height, S.ebenen.strasse.y + 'px');
 });
@@ -158,8 +164,8 @@ test('Blitz nur auf der Himmel-Ebene, Mitte dunkelt dabei staerker ab, hoechsten
 
 test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abgedunkelter Kopie', () => {
   let z = 0;
-  const werte = [0.1, 0.9]; // erst Passant, dann Auto
-  const { uhr, stadt, teil } = aufbau({ zufall: () => werte[z++ % 2] });
+  const werte = [0.1, 0.9, 0.5]; // Periode 3: Passant und Auto kommen beide vor
+  const { uhr, stadt, teil } = aufbau({ zufall: () => werte[z++ % 3] });
   const strasse = teil('stadt-strasse');
   const gesehen = [];
   const anhaengen = strasse.appendChild;
@@ -173,7 +179,12 @@ test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abged
   assert.strictEqual(passant.style.top, S.gehwegY - S.figur.h + 'px');
   assert.ok(auto, 'Auto faehrt');
   assert.strictEqual(auto.style.top, S.fahrbahnY - S.auto.h + 'px');
-  assert.ok(auto.kinder.some((k) => k.classList.contains('stadt-spiegel')), 'Spiegelung');
+  const spiegel = auto.kinder.find((k) => k.classList.contains('stadt-spiegel'));
+  assert.ok(spiegel, 'Spiegelung');
+  // Spiegelachse an der Radunterkante
+  assert.strictEqual(spiegel.style.top, 2 * S.auto.radY - S.auto.h + 'px');
+  const bild = auto.kinder.find((k) => k.classList.contains('stadt-auto-bild'));
+  assert.ok(S.auto.varianten.some((v) => bild.style.backgroundImage.includes('p/' + v)), 'eine der Auto-Farben');
   for (const k of gesehen) assert.ok(parseFloat(k.style.top) >= S.ebenen.strasse.y - S.figur.h, 'im Band');
   assert.ok(hoechstens <= Stadt.BUDGET.strasse, 'Regisseur: hoechstens 2 auf der Strasse');
 });
@@ -204,6 +215,24 @@ test('raidDauer: aus der aktuell sichtbaren Strassenbreite', () => {
   stadt.richteAus(400, 1200);
   const m = Stadt.masse(400, 1200);
   assert.strictEqual(stadt.raidDauer(plan), Stadt.raidDauer(plan, 400 / m.faktor));
+});
+
+test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklich (Final-Fund 2)', () => {
+  const { stadt, teil } = aufbau();
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  stadt.richteAus(400, 1332);
+  const m = Stadt.masse(400, 1332);
+  const sichtLinks = -m.links / m.faktor;
+  const sichtBreite = 400 / m.faktor;
+  stadt.raid(Stadt.raidPlan(250));
+  const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
+  const halt = parseFloat(bus.style.props['--halt']);
+  assert.ok(halt + S.bus.tuerX <= sichtLinks + sichtBreite, 'Tuer sichtbar');
+  for (const f of strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'))) {
+    assert.ok(Number(f.style.props['--schritte']) >= 1, 'gueltige steps()');
+    assert.ok(parseFloat(f.style.props['--bis']) > parseFloat(f.style.props['--von']), 'laeuft nach rechts');
+  }
 });
 
 test('raid: kleine Raids ohne Bus, stoppeRaid raeumt sofort auf', async () => {

@@ -16,10 +16,17 @@ from PIL import Image
 # Ebenen-Grenzen im 344x277-Bild (gemessen 13.11.2026): Blitz reicht bis y 73,
 # Daecher beginnen bei ~123, Fenster liegen in y 145..232, Gehweg ab y 244.
 HIMMEL_BIS = 125
-HAEUSER_BIS = 240
 # Fusslinie der Passanten (Gehweg) und Unterkante der Fahrzeuge (Fahrbahn)
 GEHWEG_Y = 251
 FAHRBAHN_Y = 272
+# Autos 1,4x (Janis 13.11.2026), vier Farben, zufaellig gemischt
+AUTOS = ("a", "b", "c", "d")
+# Bus: Mitte der Vordertuer (gemessen an bus.png 176x56: Tuer x 129..147)
+BUS_TUER_X = 138
+# Regen hinten: PixelLab-Effekt (vfx_workbench "TwitchDual Stadt-Regen 3 Ebenen"), Game-Pack in
+# regen-vfx/. Lage des Effekt-Ankers im Stadtbild: Teil rain_ripples (Effekt 54,255) = Stadt 50,272.
+REGEN_VERSATZ = (-4, 17)
+REGEN_EBENEN = (("himmel", ("part-himmel",)), ("strasse", ("part-strasse", "part-rain_ripples")))
 # Gehzyklus: 8 PixelLab-Bilder je Passant, Tempo
 FIGUR_BILDER = 8
 FIGUR_MS_PRO_BILD = 120
@@ -87,6 +94,40 @@ def streifen(quellen, kennung):
     return aus, b, h
 
 
+def regen_streifen(vfx_ordner, groesse, ziel):
+    """Setzt die Teile des PixelLab-Effekts je Ebene an ihre Stelle im Stadtbild und
+    reiht die Bilder zu einem Streifen (bilder x Stadtbreite). Nur einsetzen, nichts zeichnen."""
+    with open(os.path.join(vfx_ordner, "manifest.json"), encoding="utf-8") as f:
+        m = json.load(f)
+    n = m["frames"]
+    ax, ay = m["anchor"]["x"], m["anchor"]["y"]
+    w, h = groesse
+    dateien = []
+    for ebene, praefixe in REGEN_EBENEN:
+        streifen_bild = Image.new("RGBA", (w * n, h), (0, 0, 0, 0))
+        clips = [c for c in m["clips"] if c["name"].startswith(praefixe)]
+        if not clips:
+            raise SystemExit("regen-vfx: keine Teile fuer " + ebene)
+        for c in clips:
+            sh = c["sheets"][0]
+            bogen = Image.open(os.path.join(vfx_ordner, sh["file"])).convert("RGBA")
+            fw, fh = c["frame"]["w"], c["frame"]["h"]
+            px = ax + c["offset"]["x"] + REGEN_VERSATZ[0]
+            py = ay + c["offset"]["y"] + REGEN_VERSATZ[1]
+            for i in range(n):
+                col, row = i % sh["columns"], i // sh["columns"]
+                bild = bogen.crop((col * fw, row * fh, col * fw + fw, row * fh + fh))
+                lage = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+                lage.paste(bild, (px, py))
+                teil = streifen_bild.crop((i * w, 0, i * w + w, h))
+                teil.alpha_composite(lage)
+                streifen_bild.paste(teil, (i * w, 0))
+        name = "stadt-regen-%s.png" % ebene
+        streifen_bild.save(os.path.join(ziel, name))
+        dateien.append(name)
+    return dateien, n, m["frame_ms"]
+
+
 def main(quellen, ziel, json_pfad):
     grund = lade(quellen, "grund.png")
     licht = lade(quellen, "haeuser-licht.png")
@@ -97,8 +138,8 @@ def main(quellen, ziel, json_pfad):
 
     fenster = fenster_finden(grund, licht)
     for f in fenster:
-        if f["y"] < HIMMEL_BIS or f["y"] + f["h"] > HAEUSER_BIS:
-            raise SystemExit("Fenster ausserhalb der Haeuser: %r" % f)
+        if f["y"] < HIMMEL_BIS:
+            raise SystemExit("Fenster im Himmel: %r" % f)
     blitz_ebene = nur_unterschied(grund, blitz)
     box = blitz_ebene.getbbox()
     if not box or box[3] > HIMMEL_BIS:
@@ -123,25 +164,36 @@ def main(quellen, ziel, json_pfad):
         bild.save(os.path.join(ziel, name))
         varianten.append(name)
 
-    masse = {}
-    for quelle_name, ziel_name, schluessel in (
-        ("auto.png", "stadt-auto.png", "auto"),
-        ("bus.png", "stadt-bus.png", "bus"),
-        ("bus-tuer.png", "stadt-bus-tuer.png", None),
-        ("regen-hinten.png", "stadt-regen-hinten.png", "regen"),
-        ("regen-vorn.png", "stadt-regen-vorn.png", None),
-    ):
-        bild = lade(quellen, quelle_name)
-        bild.save(os.path.join(ziel, ziel_name))
-        if schluessel:
-            masse[schluessel] = {"b": bild.size[0], "h": bild.size[1]}
+    auto_varianten = []
+    auto_masse = None
+    rad_y = 0
+    for k in AUTOS:
+        bild = lade(quellen, "auto-%s.png" % k)
+        if auto_masse and bild.size != auto_masse:
+            raise SystemExit("auto-%s.png hat andere Masse" % k)
+        auto_masse = bild.size
+        rad_y = max(rad_y, bild.getbbox()[3] - 1)
+        name = "stadt-auto-%s.png" % k
+        bild.save(os.path.join(ziel, name))
+        auto_varianten.append(name)
+    bus = lade(quellen, "bus.png")
+    bus_tuer = lade(quellen, "bus-tuer.png")
+    if bus_tuer.size != bus.size:
+        raise SystemExit("bus-tuer.png hat andere Masse als bus.png")
+    bus.save(os.path.join(ziel, "stadt-bus.png"))
+    bus_tuer.save(os.path.join(ziel, "stadt-bus-tuer.png"))
+
+    regen_dateien, regen_bilder, regen_ms = regen_streifen(os.path.join(quellen, "regen-vfx"), (w, h), ziel)
+
+    # Strassenband: von der Oberkante der hoechsten Figur (Passant/Auto) bis unten
+    strasse_y = min(GEHWEG_Y - fh, FAHRBAHN_Y - auto_masse[1])
 
     daten = {
         "bild": {"b": w, "h": h},
         "ebenen": {
             "himmel": {"y": 0, "h": HIMMEL_BIS},
-            "haeuser": {"y": HIMMEL_BIS, "h": HAEUSER_BIS - HIMMEL_BIS},
-            "strasse": {"y": HAEUSER_BIS, "h": h - HAEUSER_BIS},
+            "haeuser": {"y": HIMMEL_BIS, "h": strasse_y - HIMMEL_BIS},
+            "strasse": {"y": strasse_y, "h": h - strasse_y},
         },
         "fenster": fenster,
         "figur": {
@@ -152,9 +204,9 @@ def main(quellen, ziel, json_pfad):
             "pxProBild": FIGUR_PX_PRO_BILD,
             "varianten": varianten,
         },
-        "auto": masse["auto"],
-        "bus": masse["bus"],
-        "regen": masse["regen"],
+        "auto": {"b": auto_masse[0], "h": auto_masse[1], "radY": rad_y, "varianten": auto_varianten},
+        "bus": {"b": bus.size[0], "h": bus.size[1], "tuerX": BUS_TUER_X},
+        "regen": {"bilder": regen_bilder, "msProBild": regen_ms, "dateien": regen_dateien},
         "gehwegY": GEHWEG_Y,
         "fahrbahnY": FAHRBAHN_Y,
     }

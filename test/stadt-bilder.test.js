@@ -74,20 +74,28 @@ test('stadt.json: Felder fuer Bild, Ebenen, Fenster, Figuren, Fahrzeuge, Regen, 
   for (const k of ['b', 'h', 'bilder', 'msProBild', 'pxProBild']) assert.ok(s.figur[k] > 0, 'figur.' + k);
   assert.ok(Array.isArray(s.figur.varianten) && s.figur.varianten.length >= 2);
   for (const k of ['auto', 'bus']) assert.ok(s[k].b > 0 && s[k].h > 0, k);
-  assert.ok(s.regen.b > 0 && s.regen.h > 0);
+  // Autos 1,4x in mehreren Farben (Janis 13.11.), Radlinie fuer die Spiegelung
+  assert.ok(Array.isArray(s.auto.varianten) && s.auto.varianten.length >= 2);
+  assert.ok(s.auto.radY > s.auto.h / 2 && s.auto.radY < s.auto.h);
+  assert.ok(s.bus.tuerX > 0 && s.bus.tuerX < s.bus.b);
+  // Regen: PixelLab-Effekt (vfx_workbench) als Bildstreifen je Ebene, nahtlose Schleife
+  assert.deepStrictEqual(s.regen.dateien, ['stadt-regen-himmel.png', 'stadt-regen-strasse.png']);
+  assert.ok(s.regen.bilder >= 8 && s.regen.msProBild > 0);
   // Fuesse der Passanten auf dem Gehweg, Fahrzeuge auf der Fahrbahn: beides im Strassenband
   const band = s.ebenen.strasse;
   for (const y of [s.gehwegY, s.fahrbahnY]) assert.ok(y > band.y && y <= band.y + band.h, 'im Band: ' + y);
   assert.ok(s.gehwegY < s.fahrbahnY);
+  // Review Focus 1/Final-Fund: Passanten und Autos ganz im Band (nicht hinter dem Text)
+  assert.ok(band.y <= s.gehwegY - s.figur.h, 'Passant ragt ueber das Band');
+  assert.ok(band.y <= s.fahrbahnY - s.auto.h, 'Auto ragt ueber das Band');
 });
 
-test('Fenster liegen in der Haeuser-Ebene und sind mindestens 2x2', () => {
+test('Fenster liegen unter dem Himmel im Bild und sind mindestens 2x2', () => {
   const s = ladeJson();
-  const e = s.ebenen.haeuser;
   for (const f of s.fenster) {
     assert.ok(f.b >= 2 && f.h >= 2, JSON.stringify(f));
     assert.ok(f.x >= 0 && f.x + f.b <= s.bild.b, JSON.stringify(f));
-    assert.ok(f.y >= e.y && f.y + f.h <= e.y + e.h, 'Fenster ausserhalb der Haeuser: ' + JSON.stringify(f));
+    assert.ok(f.y >= s.ebenen.haeuser.y && f.y + f.h <= s.bild.h, 'Fenster im Himmel: ' + JSON.stringify(f));
   }
 });
 
@@ -97,12 +105,11 @@ test('alle Stadt-Bilder existieren und haben die Masse aus stadt.json', () => {
     'stadt.png': [s.bild.b, s.bild.h],
     'stadt-haeuser-licht.png': [s.bild.b, s.bild.h],
     'stadt-himmel-blitz.png': [s.bild.b, s.bild.h],
-    'stadt-auto.png': [s.auto.b, s.auto.h],
     'stadt-bus.png': [s.bus.b, s.bus.h],
     'stadt-bus-tuer.png': [s.bus.b, s.bus.h],
-    'stadt-regen-hinten.png': [s.regen.b, s.regen.h],
-    'stadt-regen-vorn.png': [s.regen.b, s.regen.h],
   };
+  for (const v of s.auto.varianten) erwartet[v] = [s.auto.b, s.auto.h];
+  for (const d of s.regen.dateien) erwartet[d] = [s.bild.b * s.regen.bilder, s.bild.h];
   for (const v of s.figur.varianten) erwartet[v] = [s.figur.b * s.figur.bilder, s.figur.h];
   for (const [name, [b, h]] of Object.entries(erwartet)) {
     const bild = dekodiere(name);
