@@ -30,7 +30,7 @@ function scheinEl(tag) {
     removeChild(k) { const i = el.kinder.indexOf(k); if (i > -1) el.kinder.splice(i, 1); k.eltern = null; return k; },
     remove() { if (el.eltern) el.eltern.removeChild(el); },
     addEventListener: (art, f) => { (hoerer[art] = hoerer[art] || []).push(f); },
-    feuere(art) { (hoerer[art] || []).forEach((f) => f({ type: art, target: el })); },
+    feuere(art, animationName) { (hoerer[art] || []).forEach((f) => f({ type: art, target: el, animationName })); },
   };
   return el;
 }
@@ -172,7 +172,7 @@ test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abged
   strasse.appendChild = (k) => { gesehen.push(k); return anhaengen(k); };
   stadt.an();
   let hoechstens = 0;
-  for (let i = 0; i < 120; i++) { uhr.vor(1000); hoechstens = Math.max(hoechstens, strasse.kinder.length); }
+  for (let i = 0; i < 900; i++) { uhr.vor(1000); hoechstens = Math.max(hoechstens, strasse.kinder.length); }
   const passant = gesehen.find((k) => k.classList.contains('stadt-figur'));
   const auto = gesehen.find((k) => k.classList.contains('stadt-auto'));
   assert.ok(passant, 'Passant laeuft');
@@ -235,6 +235,54 @@ test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklic
   }
 });
 
+test('raid mit Bus: alle steigen aus, solange die Tuer offen ist (30 %..70 % der Busfahrt)', () => {
+  for (const anzahl of [80, 250]) {
+    const { stadt, teil } = aufbau();
+    const strasse = teil('stadt-strasse');
+    stadt.an();
+    stadt.raid(Stadt.raidPlan(anzahl));
+    const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
+    const dauer = parseFloat(bus.style.props['--dauer']);
+    const figuren = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'));
+    assert.strictEqual(figuren.length, Stadt.raidPlan(anzahl).figuren);
+    for (const f of figuren) {
+      const verzug = parseFloat(f.style.props['--verzug']);
+      assert.ok(verzug >= dauer * 0.3 && verzug < dauer * 0.7, anzahl + ': verzug ' + verzug);
+    }
+  }
+});
+
+test('raid: Ende der Sichtbar-Animation entfernt keine Figur, erst das Ende des Laufwegs', () => {
+  const { stadt, teil } = aufbau();
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  stadt.raid(Stadt.raidPlan(20));
+  const f = strasse.kinder.find((k) => k.classList.contains('stadt-raid-figur'));
+  const feuere = (name) => f.feuere('animationend', name);
+  feuere('stadt-erscheinen');
+  assert.ok(strasse.kinder.includes(f), 'bleibt nach stadt-erscheinen');
+  feuere('stadt-fahrt');
+  assert.ok(!strasse.kinder.includes(f), 'weg nach stadt-fahrt');
+});
+
+test('raid: Bus hat beide Bilder von Anfang an, die Tuer laeuft im selben CSS-Takt wie die Fahrt', () => {
+  const { stadt, teil } = aufbau();
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  stadt.raid(Stadt.raidPlan(80));
+  const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
+  const zu = bus.kinder.find((k) => k.classList.contains('stadt-bus-zu'));
+  const auf = bus.kinder.find((k) => k.classList.contains('stadt-bus-auf'));
+  assert.ok(zu.style.backgroundImage.includes('p/stadt-bus.png'));
+  assert.ok(auf.style.backgroundImage.includes('p/stadt-bus-tuer.png'));
+  const css = lies('renderer/chat/chat.css');
+  // Tuer offen genau waehrend des Halts (30 %..70 % wie @keyframes stadt-bus), kein JS-Zeitgeber
+  assert.ok(/\.stadt-bus-auf\s*\{[^}]*animation:\s*stadt-bus-tuer var\(--dauer\) step-end 1 both/.test(css));
+  assert.ok(/\.stadt-bus-zu\s*\{[^}]*animation:\s*stadt-bus-zu var\(--dauer\) step-end 1 both/.test(css));
+  assert.ok(/@keyframes stadt-bus-tuer\s*\{\s*0%\s*\{\s*visibility:\s*hidden;?\s*\}\s*30%\s*\{\s*visibility:\s*visible;?\s*\}\s*70%\s*\{\s*visibility:\s*hidden/.test(css));
+  assert.ok(!lies('renderer/lib/stadt-dom.js').includes('tuer-auf'));
+});
+
 test('raid: kleine Raids ohne Bus, stoppeRaid raeumt sofort auf', async () => {
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
@@ -291,6 +339,20 @@ test('aus() mitten im Gewitter und Raid: Blitz weg, Figuren weg, Timer leer, Abo
   assert.ok(!blitz.classList.contains('an'), 'kein neuer Blitz');
   assert.strictEqual(strasse.kinder.length, 0, 'kein neues Leben');
   assert.strictEqual(wirt.style.props['--stadt-dunkel'], normal);
+});
+
+test('Strassen-Leben ist selten und meist ein Passant (Janis: „selten, so dass es einzigartig bleibt“)', () => {
+  assert.ok(StadtDom.LEBEN_PAUSE.min >= 40000, 'hoechstens alle 40 s');
+  assert.ok(StadtDom.LEBEN_PAUSE.max >= StadtDom.LEBEN_PAUSE.min);
+  assert.ok(StadtDom.PASSANT_ANTEIL >= 0.8, 'Autos seltener');
+});
+
+test('chat.css: Raid-Figuren erst sichtbar, wenn sie loslaufen (niemand wartet schon an der Bustuer)', () => {
+  const css = lies('renderer/chat/chat.css');
+  const i = css.indexOf('.stadt-figur, .stadt-raid-figur, .stadt-auto {');
+  const regel = css.slice(i, css.indexOf('}', i));
+  assert.ok(/stadt-erscheinen 0s var\(--verzug\) both/.test(regel), regel);
+  assert.ok(/@keyframes stadt-erscheinen\s*\{\s*from\s*\{\s*visibility:\s*hidden;?\s*\}\s*to\s*\{\s*visibility:\s*visible/.test(css));
 });
 
 test('chat.css: Stadt-Regeln pixelig, Abdunkeln ueber Variable, Animationen aus haelt alles an', () => {

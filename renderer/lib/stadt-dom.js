@@ -13,8 +13,9 @@
   const DUNKEL = 0.25;          // Abdunkeln hinter dem Text (0..1)
   const DUNKEL_BLITZ = 0.45;    // waehrend eines Blitzes staerker, Helligkeit bleibt gleich
   const BLITZ_MS = 250;         // hoechstens 300 ms
-  const LEBEN_PAUSE = Object.freeze({ min: 6000, max: 20000 });
-  const PASSANT_ANTEIL = 0.7;   // sonst ein Auto
+  // Janis 13.11.: selten, damit es besonders bleibt; meist ein Passant, Autos seltener
+  const LEBEN_PAUSE = Object.freeze({ min: 40000, max: 120000 });
+  const PASSANT_ANTEIL = 0.85;  // sonst ein Auto
   const AUTO = Object.freeze({ pxProBild: 3, msProBild: 60 });
   const UHR_PAUSE = Object.freeze({ min: 2 * 60000, max: 5 * 60000 });
   const UHR_WARTEN = 10000;     // Mitte belegt: spaeter nochmal
@@ -165,7 +166,10 @@
       const u = { el, timer: null };
       unterwegs.add(u);
       strasse.appendChild(el);
-      el.addEventListener('animationend', (e) => { if (e.target === el) weg(u); });
+      // Nur das Ende der Bewegung zaehlt; die 0-s-Sichtbar-Animation endet schon beim Loslaufen.
+      el.addEventListener('animationend', (e) => {
+        if (e.target === el && e.animationName !== 'stadt-erscheinen') weg(u);
+      });
       u.timer = setT(() => { u.timer = null; weg(u); }, dauerMs + 500);
       return u;
     }
@@ -270,7 +274,10 @@
           bus.style.top = px(S.fahrbahnY - B.h);
           bus.style.width = px(B.b);
           bus.style.height = px(B.h);
-          bus.style.backgroundImage = url(pfad, 'stadt-bus.png');
+          // Beide Bilder von Anfang an (geladen); die Tuer schaltet per CSS im selben Takt wie
+          // die Fahrt (chat.css stadt-bus-tuer), damit Halt und offene Tuer nie auseinanderlaufen
+          neu('stadt-bus-zu', bus).style.backgroundImage = url(pfad, 'stadt-bus.png');
+          neu('stadt-bus-auf', bus).style.backgroundImage = url(pfad, 'stadt-bus-tuer.png');
           // Haltestelle: Tuer immer im sichtbaren Teil, auch im schmalen Chat
           const halt = Math.round(Math.min(sichtLinks + sichtBreite * BUS.halteAnteil,
             sichtLinks + sichtBreite - B.tuerX - F.b));
@@ -279,14 +286,17 @@
           bus.style.setProperty('--bis', px(sichtLinks + sichtBreite));
           bus.style.setProperty('--dauer', BUS.dauer + 'ms');
           r.teile.push(losschicken(bus, BUS.dauer));
-          r.tuer.push(setT(() => { bus.style.backgroundImage = url(pfad, 'stadt-bus-tuer.png'); }, BUS.ankunft));
-          r.tuer.push(setT(() => { bus.style.backgroundImage = url(pfad, 'stadt-bus.png'); }, BUS.abfahrt));
           start = halt + B.tuerX - F.b / 2;
           weite = Math.max(F.b, sichtLinks + sichtBreite - start);
           verzug = BUS.ankunft + 200;
         }
+        // Beim Bus steigen alle aus, solange die Tuer offen ist (grosse Gruppen dichter)
+        let abstand = abstandMs;
+        if (plan.bus && plan.figuren > 1) {
+          abstand = Math.min(abstandMs, (BUS.abfahrt - verzug - 100) / (plan.figuren - 1));
+        }
         for (let i = 0; i < plan.figuren; i++) {
-          const f = figur('stadt-raid-figur', false, start, weite, verzug + i * abstandMs);
+          const f = figur('stadt-raid-figur', false, start, weite, Math.round(verzug + i * abstand));
           r.teile.push(losschicken(f.el, f.dauer));
         }
         r.timer = setT(() => { r.timer = null; if (raidLauf === r) stoppeRaid(); }, dauer);
@@ -332,5 +342,5 @@
     };
   }
 
-  return { baue, DUNKEL, DUNKEL_BLITZ, BLITZ_MS };
+  return { baue, DUNKEL, DUNKEL_BLITZ, BLITZ_MS, LEBEN_PAUSE, PASSANT_ANTEIL };
 });

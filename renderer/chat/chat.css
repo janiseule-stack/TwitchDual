@@ -369,8 +369,11 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
 .stadt-figur, .stadt-raid-figur, .stadt-auto {
   position: absolute; left: 0; image-rendering: pixelated;
   transform: translateX(var(--von));
-  animation: stadt-fahrt var(--dauer) steps(var(--schritte)) var(--verzug) 1 both;
+  /* unsichtbar, bis die Figur loslaeuft (sonst steht beim Raid schon jemand an der Bustuer) */
+  animation: stadt-fahrt var(--dauer) steps(var(--schritte)) var(--verzug) 1 both,
+    stadt-erscheinen 0s var(--verzug) both;
 }
+@keyframes stadt-erscheinen { from { visibility: hidden; } to { visibility: visible; } }
 @keyframes stadt-fahrt {
   from { transform: translateX(var(--von)); }
   to { transform: translateX(var(--bis)); }
@@ -396,6 +399,15 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
   background-size: 100% 100%; background-repeat: no-repeat;
   animation: stadt-bus var(--dauer) linear 1 both;
 }
+.stadt-bus-zu, .stadt-bus-auf {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
+}
+/* Tuer offen genau waehrend des Halts (30 %..70 % wie @keyframes stadt-bus) */
+.stadt-bus-auf { animation: stadt-bus-tuer var(--dauer) step-end 1 both; }
+.stadt-bus-zu { animation: stadt-bus-zu var(--dauer) step-end 1 both; }
+@keyframes stadt-bus-tuer { 0% { visibility: hidden; } 30% { visibility: visible; } 70% { visibility: hidden; } 100% { visibility: hidden; } }
+@keyframes stadt-bus-zu { 0% { visibility: visible; } 30% { visibility: hidden; } 70% { visibility: visible; } 100% { visibility: visible; } }
 @keyframes stadt-bus {
   0% { transform: translateX(var(--von)); }
   30% { transform: translateX(var(--halt)); }
