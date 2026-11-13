@@ -1,6 +1,6 @@
 {
  "app": "PixelLab VFX Creator",
- "name": "TwitchDual Stadt-Regen 3 Ebenen",
+ "name": "TwitchDual Stadt-Regen 3 Ebenen v2 (Strasse hoeher)",
  "fps": 12,
  "frame_ms": 83,
  "frames": 12,
@@ -99,8 +99,8 @@
    "start_frame": 0,
    "frames": 12,
    "frame": {
-    "w": 97,
-    "h": 109
+    "w": 96,
+    "h": 135
    },
    "sheets": [
     {
@@ -113,7 +113,7 @@
    ],
    "offset": {
     "x": -55,
-    "y": 73
+    "y": 47
    }
   },
   {
@@ -126,7 +126,7 @@
    "frames": 12,
    "frame": {
     "w": 102,
-    "h": 110
+    "h": 135
    },
    "sheets": [
     {
@@ -139,7 +139,7 @@
    ],
    "offset": {
     "x": 35,
-    "y": 72
+    "y": 47
    }
   },
   {
@@ -152,7 +152,7 @@
    "frames": 12,
    "frame": {
     "w": 105,
-    "h": 107
+    "h": 137
    },
    "sheets": [
     {
@@ -165,7 +165,7 @@
    ],
    "offset": {
     "x": 116,
-    "y": 75
+    "y": 45
    }
   },
   {
@@ -178,7 +178,7 @@
    "frames": 12,
    "frame": {
     "w": 91,
-    "h": 110
+    "h": 136
    },
    "sheets": [
     {
@@ -191,7 +191,7 @@
    ],
    "offset": {
     "x": 214,
-    "y": 72
+    "y": 46
    }
   },
   {
