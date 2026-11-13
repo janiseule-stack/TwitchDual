@@ -1114,11 +1114,17 @@ $epSuche.addEventListener('keydown', (e) => {
   }
 });
 
+// emoteMap, aus der das Kanal-Grid zuletzt gebaut wurde (sie wird nur als Ganzes ersetzt)
+let epChannelFuer = null;
 async function openEmotePanel() {
   // Channel-Emotes aus der bereits geladenen emoteMap (name -> url). Alle,
   // ohne Deckel: grosse Kanaele haben 900+ 7TV-Emotes, ein Limit von 200 hat
   // den Rest stillschweigend verschluckt. Bilder laden lazy beim Scrollen.
-  fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })));
+  // Neu gebaut nur bei neuer Liste, nicht bei jedem Oeffnen (~1000 Bilder + Listener).
+  if (epChannelFuer !== emoteMap) {
+    fillEmoteGrid($epChannel, Object.entries(emoteMap).map(([name, url]) => ({ name, url })));
+    epChannelFuer = emoteMap;
+  }
   $emotePanel.classList.remove('hidden'); // sofort zeigen; eigenes Grid fuellt sich nach
   filterEmoteGrids(); // alte Suche gilt weiter, auch fuers schon gefuellte eigene Grid
   await ensureUserEmotes();
