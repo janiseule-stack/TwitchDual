@@ -3,6 +3,38 @@
 Stand 2026-07-02: **Alle Punkte der ursprünglichen Roadmap sind umgesetzt** —
 Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 
+## Chat-Stadt „Regennacht“ (ungemergt, Branch feat/cozy-raum, 13.11.2026)
+
+Entwurf `docs/superpowers/specs/2026-11-13-chat-stadt-design.md`, Plan
+`docs/superpowers/plans/2026-11-13-chat-stadt.md` (dort auch Janis' Bildwahl).
+
+**Stand:** Hinter den Chat-Nachrichten liegt die Nachtstadt (PixelLab: Häuserzeile B +
+Skyline C, 344×277). Fensterlichter nach Uhrzeit (alle 2–5 min eins), Gewitter in
+Phasen (8–20 min Regen, 2–4 min Gewitter, Blitz nur im Himmel ≤ 300 ms), bewegter
+Regen (2 Kacheln), Passanten mit Schirm und Autos mit Spiegelung auf einem Straßenband
+zwischen Nachrichten und Eingabe. Raid läuft in der Stadt (1 / 3 / Bus + 4 / Bus + 8),
+Abos und Geschenke machen je Abo ein Fenster hell (bleibt). Kiste bleibt im Streifen.
+Die Deckkraft-Einstellung ist weg (Chat immer deckend). Ausprobieren: Raid, Abo und
+neu „🎁 Geschenk“ (5 Abos).
+
+- Bilder neu bauen: `python -I tools/stadt-bilder.py tools/raum-quellen/stadt renderer/themes/cozy tools/raum-quellen/stadt.json`,
+  danach die Kopie in `renderer/lib/stadt.js` (STADT) angleichen (Test prüft Gleichheit).
+- Werte zum Einstellen: `renderer/lib/stadt-dom.js` (DUNKEL, DUNKEL_BLITZ, BLITZ_MS,
+  LEBEN_PAUSE, PASSANT_ANTEIL, AUTO-Tempo, BUS), `renderer/lib/stadt.js`
+  (LICHT_NACH_STUNDE, GEWITTER, BUDGET, figur.pxProBild/msProBild über stadt-bilder.py).
+
+**Offene Optik-Fragen (Janis beim Anschauen):**
+- Blitz: Stärke und Häufigkeit; wie stark die Mitte beim Blitz abdunkelt.
+- Abdunkeln hinter dem Text (heute 25 %) – lesbar genug, zu dunkel?
+- Häufigkeit von Passanten/Autos, Gehtempo, Regen-Tempo und -Dichte.
+- Das Auto ist klein (sichtbar 27×12 px, niedriger als ein Passant) – größeres Auto aus PixelLab?
+- Sehr schmale, hohe Chats (z. B. 400×1332) zeigen nur einen Ausschnitt; bei Bedarf
+  Himmel nach oben anbauen (PixelLab, je ~20 Gen.).
+
+**Aufräumen später (nicht im Plan):** alter Streifen-Raid (`RaumLeben.RAID/GLAS/raidDauer/
+schirmAnzahl/raidSchritte`, `leben-streifen-raid*`, `streifen-glas-maske.png` samt
+raum-bilder.py-Teil) wird nicht mehr benutzt; ebenso `previewThemePrefs` (preload/main).
+
 ## Cozy-Raum Etappe 1a (ungemergt, Branch feat/cozy-raum)
 
 Entwurf: `docs/superpowers/specs/2026-11-10-cozy-raum-design.md`.
