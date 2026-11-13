@@ -213,8 +213,23 @@
     return Math.ceil(weg / F.pxProBild) * F.msProBild + (plan.bus ? BUS_HALT_MS : 0);
   }
 
+  // Welche Nachrichten werden ueber einem fahrenden Fahrzeug durchsichtig? boxen = je
+  // { top, bottom } von der untersten Nachricht nach oben. Unter dem sichtbaren Bereich
+  // (unten, hochgescrollt) wird uebersprungen; Schluss bei der ersten ganz ueber dem Dach
+  // (grenze). Liefert die Indizes in boxen.
+  function unterFahrzeug(boxen, grenze, unten) {
+    const treffer = [];
+    for (let i = 0; i < boxen.length; i++) {
+      const b = boxen[i];
+      if (b.top >= unten) continue;
+      if (b.bottom <= grenze) break;
+      treffer.push(i);
+    }
+    return treffer;
+  }
+
   return {
     STADT, LICHT_NACH_STUNDE, GEWITTER, BUDGET, RAID_ABSTAND, BUS_HALT_MS, WOLKE_SICHTBAR, blitzZiel,
-    masse, lichtAnteil, aboFenster, gewitter, regisseur, raidPlan, raidDauer,
+    masse, lichtAnteil, aboFenster, gewitter, regisseur, raidPlan, raidDauer, unterFahrzeug,
   };
 });

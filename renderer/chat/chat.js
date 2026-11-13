@@ -807,15 +807,22 @@ let fahrzeugTakt = null;
 function textUeberFahrzeug(an) {
   clearInterval(fahrzeugTakt);
   fahrzeugTakt = null;
+  // Erst alles lesen, dann schreiben (sonst rechnet der Browser bei jeder Nachricht neu);
+  // Nachrichten unter dem sichtbaren Bereich zaehlen nicht (Stadt.unterFahrzeug).
   const markiere = () => {
     const grenze = $stadt.getBoundingClientRect().top + stadt.fahrzeugOben();
-    for (const m of $messages.querySelectorAll('.unter-fahrzeug')) {
-      if (m.getBoundingClientRect().bottom <= grenze) m.classList.remove('unter-fahrzeug');
+    const unten = $messages.getBoundingClientRect().bottom;
+    const msgs = [];
+    const boxen = [];
+    for (let m = $messages.lastElementChild; m; m = m.previousElementSibling) {
+      const r = m.getBoundingClientRect();
+      if (r.top < unten && r.bottom <= grenze) break; // sichtbar und ganz ueber dem Dach: Schluss
+      msgs.push(m);
+      boxen.push({ top: r.top, bottom: r.bottom });
     }
-    // von unten nach oben, bis die erste Nachricht ganz ueber der Strasse liegt
-    for (let m = $messages.lastElementChild; m && m.getBoundingClientRect().bottom > grenze; m = m.previousElementSibling) {
-      m.classList.add('unter-fahrzeug');
-    }
+    const soll = new Set(Stadt.unterFahrzeug(boxen, grenze, unten).map((i) => msgs[i]));
+    for (const m of $messages.querySelectorAll('.unter-fahrzeug')) if (!soll.has(m)) m.classList.remove('unter-fahrzeug');
+    for (const m of soll) m.classList.add('unter-fahrzeug');
   };
   if (an) { markiere(); fahrzeugTakt = setInterval(markiere, 100); }
   else for (const m of $messages.querySelectorAll('.unter-fahrzeug')) m.classList.remove('unter-fahrzeug');

@@ -144,6 +144,28 @@ test('regisseur: frei(ort, eintrag) gibt genau den gebuchten Platz frei, nicht d
   assert.ok(sd.includes("for (const p of r.plaetze) regie.frei('strasse', p);"));
 });
 
+test('unterFahrzeug: von unten nach oben, sichtbare Nachrichten ueber der Strasse, Rest uebersprungen (Review 13.11.)', () => {
+  // boxen: von der letzten (untersten) Nachricht nach oben, je { top, bottom }
+  const grenze = 500; // Dach des Fahrzeugs
+  const unten = 700; // Unterkante der sichtbaren Nachrichtenflaeche
+  const boxen = [
+    { top: 900, bottom: 950 }, // unter dem sichtbaren Bereich (hochgescrollt): ueberspringen
+    { top: 720, bottom: 760 }, // ebenso
+    { top: 650, bottom: 710 }, // teils sichtbar, ueber der Strasse: markieren
+    { top: 560, bottom: 640 }, // markieren
+    { top: 480, bottom: 520 }, // ragt in die Strasse: markieren
+    { top: 400, bottom: 480 }, // ganz darueber: Schluss
+    { top: 300, bottom: 400 },
+  ];
+  assert.deepStrictEqual(Stadt.unterFahrzeug(boxen, grenze, unten), [2, 3, 4]);
+  assert.deepStrictEqual(Stadt.unterFahrzeug([], grenze, unten), []);
+  // chat.js: erst lesen (alle Boxen), dann schreiben
+  const chat = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'chat', 'chat.js'), 'utf8');
+  const f = chat.slice(chat.indexOf('function textUeberFahrzeug('), chat.indexOf('\n}', chat.indexOf('function textUeberFahrzeug(')));
+  assert.ok(f.includes('Stadt.unterFahrzeug('), f);
+  assert.ok(f.indexOf('getBoundingClientRect') < f.indexOf(".add('unter-fahrzeug')"), 'Lesen vor Schreiben');
+});
+
 test('raidPlan: Gruppengroesse nach Raid-Groesse (Janis 13.11.: kleine Raids nur eine Person)', () => {
   assert.deepStrictEqual(Stadt.raidPlan(5), { figuren: 1, bus: false });
   assert.deepStrictEqual(Stadt.raidPlan(499), { figuren: 1, bus: false });
