@@ -8,6 +8,8 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const fs = require('fs');
 const path = require('path');
+// App-Icon (Fernseher aus PixelLab, Janis 13.11.2026); build/icon.ico fuer Installer/exe.
+const APP_ICON = path.join(__dirname, 'renderer', 'themes', 'cozy', 'app-icon.png');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 
@@ -105,6 +107,7 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
+    icon: APP_ICON,
     backgroundColor: '#120505', // = ThemeLib.BALKEN; Video-Fenster bleibt opak (Player deckt eh alles)
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
@@ -118,6 +121,7 @@ function createWindows() {
   chatWin = new BrowserWindow({
     ...cb,
     title: 'TwitchDual — Chat',
+    icon: APP_ICON,
     backgroundColor: '#00000000',
     transparent: true,
     frame: false,
