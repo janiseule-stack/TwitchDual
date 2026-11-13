@@ -83,6 +83,7 @@ if (!isTwitchFrame) {
     // Home-Overlay: Favoriten, Live-Status, VOD-Listen.
     getFavorites: () => ipcRenderer.invoke('get-favorites'),
     homeKanaele: () => ipcRenderer.invoke('home-kanaele'),
+    homePunkte: (login) => ipcRenderer.invoke('home-punkte', login),
     addFavorite: (login) => ipcRenderer.invoke('add-favorite', login),
     removeFavorite: (login) => ipcRenderer.invoke('remove-favorite', login),
     channelVods: (login, limit) => ipcRenderer.invoke('channel-vods', { login, limit }),
@@ -140,6 +141,43 @@ if (!isTwitchFrame) {
   });
 }
 
+// --- Medientasten (Review 13.11.2026) ----------------------------------------
+// Medientaste oder Windows-Medienfenster pausiert den Stream ohne Klick/Taste im
+// Player. Der Pause-Waechter (unten) hielt das fuer eine ungewollte Pause und liess
+// weiterspielen. Darum laeuft jede Play/Pause/Stop-Aktion der MediaSession ueber
+// uns: erst "Nutzer-Eingabe" melden (dieselbe Nachricht wie das Space-Kuerzel),
+// dann Twitchs eigenen Handler oder, ohne einen, die Aktion selbst ausfuehren.
+// Laeuft per toString() in der Main World des Players (eigenstaendig, ES5);
+// test/medientasten.test.js loest sie bis zur Ende-Marke heraus.
+function medientastenEinbauen(win) {
+  var ms = win.navigator && win.navigator.mediaSession;
+  if (!ms || typeof ms.setActionHandler !== 'function') return;
+  var setzen = ms.setActionHandler.bind(ms);
+  function melde() {
+    try { win.postMessage({ source: 'twitchdual-nutzer' }, '*'); } catch (e) {}
+  }
+  function video() { return win.document.querySelector('video'); }
+  var eigen = {
+    play: function () { var v = video(); if (v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); } },
+    pause: function () { var v = video(); if (v) v.pause(); },
+    stop: function () { var v = video(); if (v) v.pause(); }
+  };
+  function wickle(aktion, f) {
+    return function (details) {
+      melde();
+      return f ? f(details) : eigen[aktion](details);
+    };
+  }
+  ms.setActionHandler = function (aktion, f) {
+    if (Object.prototype.hasOwnProperty.call(eigen, aktion)) return setzen(aktion, wickle(aktion, f));
+    return setzen(aktion, f);
+  };
+  for (var a in eigen) {
+    try { ms.setActionHandler(a, null); } catch (e) {}
+  }
+}
+// ende medientastenEinbauen
+
 // --- Werbe-Blocker: nur im Twitch-Player-iframe ------------------------------
 // Der Preload laeuft (Video-Fenster, nodeIntegrationInSubFrames) auch in
 // Subframes. Im player.twitch.tv-iframe injizieren wir vaft in die Main World
@@ -163,10 +201,13 @@ if (!isTwitchFrame) {
         }
       } catch (e) {}
     })();`).catch(() => {});
+    // Medientasten zaehlen als Nutzer-Eingabe (siehe medientastenEinbauen), ebenfalls
+    // sofort, damit Twitchs eigene Handler schon umwickelt werden.
+    webFrame.executeJavaScript('(' + medientastenEinbauen.toString() + ')(window);').catch(() => {});
 
-    // Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.). Das
-    // <video> fuellt das iframe; sein Hintergrund ist genau die Balkenflaeche.
-    // Farbfilter = Kopie von ThemeKatalog.SICHERE_FARBE (Sandbox: kein require;
+    // Balken ueber/unter dem Video in der Raum-Farbe. Das <video> fuellt das
+    // iframe; sein Hintergrund ist genau die Balkenflaeche.
+    // Farbfilter = Kopie von ThemeLib.SICHERE_FARBE (Sandbox: kein require;
     // test/balken-farbe.test.js haelt beide gleich).
     const SICHERE_FARBE = /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\))$/i;
     window.addEventListener('message', (e) => {

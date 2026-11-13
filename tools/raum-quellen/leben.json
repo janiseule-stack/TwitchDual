@@ -1,0 +1,25 @@
+{
+  "_hinweis": "Einzige Quelle fuer Orte und Bildzahlen der Raum-Animationen (Etappe 3). Koordinaten in Bildpixeln. quelle = PixelLab-Eingabe-Ausschnitt (Ursprung x/y, Groesse b/h) im Standbild; ziel = Flaeche, die als Animation gesetzt wird (absolut im Standbild, liegt innerhalb der Quelle). Quellbilder: leben-home-<datei>-<k>.png, k = 0..bilder-1, Bild 0 = Eingabe. Janis' Wahl 11.11.2026. gelbWeg (Janis: Regen ohne Gelb): im Rechteck (absolut im Standbild) werden gelbliche Pixel kuehl eingefaerbt – im Standbild UND in allen Animationsbildern; Regel: r-b > 5 und |r-g| < 25 und Helligkeit l = 0.3r+0.59g+0.11b < 130 -> (int(l*0.82), int(l*0.95), min(255, int(l*1.2))).",
+  "home": {
+    "standbild": "raum-tv-aus.png",
+    "animationen": [
+      { "id": "regen",  "dateien": ["regen"],            "bilder": 9,  "quelle": { "x": 32,  "y": 8,   "b": 64, "h": 96 }, "ziel": { "x": 40,  "y": 20,  "b": 48, "h": 76 },
+        "gelbWeg": { "x": 40, "y": 21, "b": 48, "h": 71 } },
+      { "id": "katze",  "dateien": ["katze1", "katze2"], "bilder": 9,  "quelle": { "x": 136, "y": 104, "b": 64, "h": 64 }, "ziel": { "x": 146, "y": 114, "b": 48, "h": 40 } },
+      { "id": "dampf",  "dateien": ["dampf"],            "bilder": 13, "quelle": { "x": 180, "y": 140, "b": 48, "h": 48 }, "ziel": { "x": 186, "y": 144, "b": 32, "h": 44 } },
+      { "id": "lampe",  "dateien": ["lampe"],            "bilder": 9,  "quelle": { "x": 148, "y": 0,   "b": 64, "h": 64 }, "ziel": { "x": 150, "y": 0,   "b": 60, "h": 56 } }
+    ]
+  },
+  "streifen": {
+    "_hinweis": "Quellbilder leben-streifen-<datei>-<k>.png. katze1 ist mit 4 Ruhebildern (Kopie von Bild 0) auf 13 Bilder aufgefuellt, damit beide Katzen-Dateien gleich lang sind. glas = Rechteck des Fensterglases, saat = Startpunkt der Flutfuellung fuer die Glasmaske, glasfarben = gemessene dunkle Glasfarben (Toleranz im Werkzeug). raid: Gehzyklus auf der Stelle (32x32, Figur schaut nach rechts), zwei Figuren abwechselnd; y = Oberkante der Figur im Bild; pxProBild = Vorruecken je Gehbild. kiste ersetzt waehrend des Effekts die Katze.",
+    "standbild": "streifen.png",
+    "animationen": [
+      { "id": "regen", "dateien": ["regen"],            "bilder": 9,  "quelle": { "x": 96,  "y": 0,  "b": 160, "h": 64 }, "ziel": { "x": 104, "y": 0,  "b": 137, "h": 58 } },
+      { "id": "katze", "dateien": ["katze1", "katze2"], "bilder": 13, "quelle": { "x": 180, "y": 24, "b": 64,  "h": 40 }, "ziel": { "x": 188, "y": 36, "b": 46,  "h": 28 } },
+      { "id": "lampe", "dateien": ["lampe"],            "bilder": 9,  "quelle": { "x": 280, "y": 24, "b": 64,  "h": 48 }, "ziel": { "x": 290, "y": 30, "b": 52,  "h": 42 } }
+    ],
+    "kiste": { "datei": "kiste", "bilder": 17, "msProBild": 200, "quelle": { "x": 176, "y": 16, "b": 80, "h": 48 }, "ziel": { "x": 178, "y": 18, "b": 76, "h": 46 } },
+    "glas": { "x": 104, "y": 0, "b": 137, "h": 56, "saat": { "x": 170, "y": 30 }, "glasfarben": [[9, 17, 43], [19, 26, 50], [20, 30, 59]] },
+    "raid": { "dateien": ["raid1", "raid2"], "bilder": 9, "b": 32, "h": 32, "msProBild": 125, "y": 22, "pxProBild": 2, "versatzMs": 1500 }
+  }
+}

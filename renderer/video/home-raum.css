@@ -1,0 +1,461 @@
+/* Home als Cozy-Raum (Etappe 2): Raum- und Regal-Ansicht (home-raum-dom.js).
+   Die Bildebenen sind 344x192 Bildpixel und werden per transform deckend
+   vergroessert (Faktor nicht ganzzahlig); --f (Faktor), --raum-schrift und
+   --raum-schrift-gross (Vielfache von 12 px) und --rand (ganze Pixel) setzt
+   home-raum-dom.js an #home. Text sitzt in einer unskalierten Schicht
+   darueber, Lage = Bildpixel x --f.
+   Keine Verlaeufe, kein Blur, harte Kanten. */
+
+#home.raum-home {
+  --zettel-tinte: #3b2416;
+  --raum-schrift: 12px;
+  --raum-schrift-gross: 24px;
+  --rand: 12px;
+  --karte-g: 2;
+}
+.raum-aus { display: none !important; }
+
+#raum-ebene, #regal-ebene {
+  position: absolute; inset: 0; z-index: 1; overflow: hidden;
+  background: rgb(18 5 5);
+}
+.raum-bildebene {
+  position: absolute; left: 0; top: 0; width: 344px; height: 192px;
+  transform-origin: 0 0;
+  image-rendering: pixelated;
+}
+.raum-bildebene img, .raum-bildebene canvas { image-rendering: pixelated; }
+.raum-bild { position: absolute; left: 0; top: 0; width: 344px; height: 192px; user-select: none; }
+.raum-tv { position: absolute; }
+/* Laufschrift auf dem Plattenspieler (Janis 13.11.): Feld 18x4 Bildpixel (Raum.LAUF_FELD),
+   per matrix (home-raum-dom.js) schraeg auf die dunkle Front des Geraets gelegt, skaliert
+   mit der Bildebene. Nur Schrift: hell mit dunkler Kante, ohne Punkt; der Text
+   steht zweimal da und laeuft endlos von rechts nach links. */
+.raum-laufschrift {
+  position: absolute; left: 0; top: 0; width: 18px; height: 4px; transform-origin: 0 0;
+  overflow: hidden; pointer-events: none;
+  font-family: var(--schrift-pixel); font-size: 3.5px; line-height: 4px;
+  color: rgb(244 234 213); text-shadow: .5px .5px 0 rgb(18 5 5);
+}
+.laufschrift-text {
+  display: inline-flex; white-space: nowrap;
+  animation: raum-laufschrift 9000ms linear infinite;
+}
+.lauf-stueck { padding-right: 12px; }
+@keyframes raum-laufschrift { to { transform: translateX(-50%); } }
+/* Holzwand (PixelLab) hinter dem Raum: 504x192, der Raum liegt bei x=80 */
+.raum-wand { position: absolute; left: -80px; top: 0; width: 504px; height: 192px; user-select: none; }
+
+.raum-textschicht { position: absolute; left: 0; top: 0; pointer-events: none; }
+.raum-textschicht > * { pointer-events: auto; }
+.text-teil {
+  position: absolute; box-sizing: border-box;
+  /* auf ganze Bildschirm-Pixel gerundet, sonst verschmiert die Pixel-Schrift */
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  width: round(calc(var(--b) * var(--f) * 1px), 1px); height: round(calc(var(--h) * var(--f) * 1px), 1px);
+  /* Raum Klar: 1 em = 12 Schriftpixel, Zeilenhoehe 1 = Schriftgroesse */
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+}
+
+/* --- Raum: Hover und Name unten ---------------------------------------------- */
+/* PixelLab-Ausschnitt des Gegenstands (hover-<id>.png an Raum.HOVER), aufgehellt */
+.raum-hover {
+  position: absolute; pointer-events: none; opacity: 0;
+  filter: brightness(1.3); transition: opacity 120ms linear;
+}
+.raum-hover.an { opacity: 1; }
+/* unten mittig, ueber der Hinweiszeile #home-hinweis (bottom 8px, ca. 36px hoch) */
+.raum-name {
+  position: absolute; left: 0; right: 0; text-align: center; bottom: 56px; z-index: 3;
+  pointer-events: none; white-space: nowrap;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+  color: var(--text); text-shadow: 2px 2px 0 rgb(18 5 5), -1px -1px 0 rgb(18 5 5);
+}
+#home.im-ablauf .raum-name { display: none; }
+
+/* --- Regal: Huellen (Cover auf dem Brett) ------------------------------------ */
+.huelle { position: absolute; width: 40px; height: 40px; }
+.huelle-fenster { position: absolute; overflow: hidden; }
+.huelle-fenster canvas { display: block; width: 100%; height: 100%; }
+.huelle-rahmen { position: absolute; left: 0; top: 0; width: 40px; height: 40px; pointer-events: none; }
+.huelle-buchstabe {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--schrift-pixel); font-size: 18px; line-height: 1; color: var(--text);
+}
+.huelle.offline .huelle-fenster { filter: grayscale(1) brightness(.85); }
+.huelle-stern {
+  position: absolute; right: 1px; bottom: 1px; width: 10px; height: 10px; padding: 0;
+  border: 0; background: none; cursor: pointer; opacity: 0;
+  font-family: var(--schrift-pixel); font-size: 9px; line-height: 10px; color: var(--accent);
+}
+.huelle:hover .huelle-stern, .huelle:focus-within .huelle-stern, .huelle-stern.an { opacity: 1; }
+
+/* --- Regal: Zettel (Such-Zettel, Tafel) ----------------------------------------- */
+.zettel {
+  position: absolute; box-sizing: border-box;
+  border-style: solid; border-color: transparent; border-width: 6px;
+  border-image: url('../themes/cozy/zettel.png') 6 fill / 6px / 0 stretch;
+  image-rendering: pixelated;
+}
+.stern.an { color: var(--accent); }
+
+/* --- Karte (Regal von nahe, Plan 2026-11-13-regal-nah): Klick-Ansicht ----------------
+   Das Regal wird dunkel, dahinter gleiten die grossen Namen, der Name der Platte
+   leuchtet. Vorn die Huelle (huelle-gross-vorn.png, 128g, sichtbar nur 9..119) mit der
+   drehenden Platte (PixelLab-Bildstreifen) dahinter, rechts die Tafel (karte.png
+   9-Slice, Rand 10 Bildpixel = tools/raum-quellen/regal.json). Lagen, --karte-g,
+   --karte-rand und die Schriften setzt home-raum-dom.js (Raum.klickMasse).
+   Hover/Fokus nur heller und leicht angehoben. */
+.karte-platz { position: absolute; inset: 0; z-index: 3; }
+#home.im-ablauf .karte-platz { display: none; }
+.karte-dunkel, .karte-namen, .karte-leucht, .karte { position: absolute; pointer-events: none; }
+.karte-dunkel { inset: 0; background: #05040a; opacity: .72; }
+.karte-namen { inset: 0; overflow: hidden; }
+.karte-namen-zeile {
+  position: absolute; left: 0; white-space: nowrap;
+  font-family: var(--schrift-karte); font-size: var(--karte-namen); line-height: 1;
+  color: #f4e4c9; opacity: .1;
+}
+.karte-namen-text { display: inline-flex; animation: raum-laufschrift 180s linear infinite; }
+.karte-namen-stueck { padding-right: 1em; white-space: pre; }
+.karte-leucht {
+  white-space: nowrap; font-family: var(--schrift-karte); font-size: var(--karte-namen); line-height: 1;
+  color: #f0aa6e; opacity: .45;
+}
+.karte { inset: 0; perspective: calc(1024px * var(--karte-g, 2)); }
+.karte > * { pointer-events: auto; }
+/* Platte: platte-nah-dreht.png (7 Bilder je 64x64, Janis' Wahl A), Kante 64 x --karte-p */
+.karte-platte {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background: url('../themes/cozy/platte-nah-dreht.png') 0 0 no-repeat;
+  background-size: calc(448px * var(--karte-p)) calc(64px * var(--karte-p));
+  animation: karte-platte-dreht 840ms steps(7) infinite;
+}
+@keyframes karte-platte-dreht { to { background-position: calc(-448px * var(--karte-p)) 0; } }
+/* Nur die Huelle dreht sich um (rotateY), die Tafel bleibt stehen */
+.karte-huelle-dreh {
+  position: absolute; transform-style: preserve-3d;
+  transition: transform 400ms ease-in-out;
+}
+.karte-huelle-dreh.ohne-drehen { transition: none; }
+.karte-huelle-dreh.gedreht { transform: rotateY(180deg); }
+.karte-seite { position: absolute; inset: 0; backface-visibility: hidden; }
+.karte-huelle { position: absolute; inset: 0; overflow: hidden; }
+/* Live-Platte: Klick auf die Huelle legt auf (home-raum-dom.js), Hand + Aufhellen */
+.karte-vorn.live .karte-huelle { cursor: pointer; }
+.karte-vorn.live .karte-huelle:hover { filter: brightness(1.15); }
+/* Bild 128g, um 9 Bildpixel nach oben links versetzt: der sichtbare Teil (9..119)
+   fuellt .karte-huelle-dreh (111g). Nur skaliert (scharfkantig), nicht neu gezeichnet. */
+.karte-bild {
+  position: absolute; pointer-events: none; user-select: none; image-rendering: pixelated;
+  left: calc(-9px * var(--karte-g)); top: calc(-9px * var(--karte-g));
+  width: calc(128px * var(--karte-g)); height: calc(128px * var(--karte-g));
+}
+.karte-teil {
+  position: absolute; box-sizing: border-box;
+  left: round(calc((var(--x) - 9) * var(--karte-g) * 1px), 1px); top: round(calc((var(--y) - 9) * var(--karte-g) * 1px), 1px);
+  width: round(calc(var(--b) * var(--karte-g) * 1px), 1px); height: round(calc(var(--h) * var(--karte-g) * 1px), 1px);
+}
+/* Fenster: ruhige dunkle Flaeche, nie das, was dahinter liegt; das Profilbild kommt darueber */
+.karte-fenster { overflow: hidden; background: var(--zettel-tinte); }
+.karte-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.karte-fenster .huelle-buchstabe { font-size: var(--karte-name, 12px); }
+/* ✕ an der rechten oberen Ecke der Tafel */
+.karte-zu {
+  position: absolute; z-index: 1;
+  top: calc(-4px * var(--karte-g)); right: calc(-4px * var(--karte-g));
+  width: calc(8px * var(--karte-g)); height: calc(8px * var(--karte-g));
+  background-size: 100% 100%; image-rendering: pixelated;
+}
+
+/* Tafel: 9-Slice, Breite und Hoechsthoehe aus klickMasse, top setzt lageTafel */
+.karte-tafel {
+  position: absolute; box-sizing: border-box; display: flex; flex-direction: column;
+  border-style: solid; border-color: transparent;
+  border-width: var(--karte-rand);
+  border-image: url('../themes/cozy/karte.png') 10 fill / var(--karte-rand) / 0 stretch;
+  border-image-slice: 10 10 10 10 fill;
+  image-rendering: pixelated;
+  font-family: var(--schrift-karte); color: var(--zettel-tinte);
+}
+.karte-info {
+  flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column;
+  gap: calc(var(--karte-zeile) / 3); overflow: hidden;
+  font-size: var(--karte-zeile); line-height: 1;
+}
+.karte-info > div { flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.karte-info > .karte-name { font-size: var(--karte-name); }
+.karte-info > .karte-titel {
+  font-size: var(--karte-titel); white-space: normal;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  max-height: 2em;
+}
+.karte-info > .karte-zeile { opacity: .85; }
+/* Vorschaubild 16:9 oben; bei wenig Platz niedriger (mittig beschnitten) */
+.karte-info > .karte-vorschau {
+  flex: 0 1 auto; min-height: 0; width: 100%; aspect-ratio: 16 / 9;
+  background: var(--zettel-tinte); overflow: hidden;
+}
+.karte-vorschau canvas { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.karte-knoepfe, .karte-kopf { display: flex; align-items: center; gap: .7em; }
+/* passt ein Knopf nicht mehr in die Zeile (schmale Tafel, grosse Schriftstufe), rutscht er
+   in die naechste statt aus der Tafel zu laufen */
+.karte-info > .karte-knoepfe { overflow: visible; gap: .3333em; flex-wrap: wrap; row-gap: .3333em; }
+/* Knoepfe aus knopf.png (32x32, Rand 8 als 9-Slice), Hoehe 32 Bildpixel in Schriftgroesse
+   (12 px -> 32 px, 24 px -> 64 px), helle Schrift */
+.karte-info .karte-knopf {
+  box-sizing: border-box; height: 2.6667em; padding: 0 .3333em;
+  border-style: solid; border-color: transparent; border-width: .6667em;
+  border-image: url('../themes/cozy/knopf.png') 8 fill / .6667em / 0 stretch;
+  image-rendering: pixelated; color: var(--text); text-decoration: none; line-height: 1;
+}
+.karte-knopf {
+  font: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0;
+  cursor: pointer; outline: none; text-decoration: underline; text-underline-offset: 2px;
+}
+.karte-knopf.stern { text-decoration: none; }
+.karte-knopf:hover, .karte-knopf:focus-visible, .karte-zu:hover, .karte-zu:focus-visible {
+  filter: brightness(1.5); transform: translateY(-1px);
+}
+
+/* Rueckseite: deckungsgleich mit der Huelle (111g), karte-rueck.png als 9-Slice */
+.karte-rueck {
+  transform: rotateY(180deg); box-sizing: border-box;
+  border-style: solid; border-color: transparent;
+  border-width: var(--karte-rand);
+  border-image: url('../themes/cozy/karte-rueck.png') 10 fill / var(--karte-rand) / 0 stretch;
+  border-image-slice: 10 10 10 10 fill;
+  image-rendering: pixelated;
+  display: flex; flex-direction: column; gap: calc(var(--karte-zeile) / 2); overflow: hidden;
+  font-family: var(--schrift-karte); font-size: var(--karte-zeile); line-height: 1;
+  color: var(--zettel-tinte);
+}
+.karte-kopf { flex: none; font-size: var(--karte-zeile); }
+.karte-kopf-titel { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.karte-vods {
+  flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none;
+  display: flex; flex-direction: column; gap: calc(var(--karte-zeile) / 2);
+  scrollbar-width: thin; scrollbar-color: var(--zettel-tinte) transparent;
+}
+/* Trackliste: Nr, Titel (einzeilig), Laenge; das laufende VOD leicht hinterlegt */
+.karte-vod {
+  flex: none; display: flex; align-items: baseline; gap: .5em; width: 100%; min-width: 0;
+  padding: .15em 0; border: 0; border-radius: 0; background: none; cursor: pointer; outline: none;
+  font: inherit; color: inherit; text-align: left;
+}
+.karte-vod-titel, .karte-vod-nr, .karte-vod-laenge { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.karte-vod-nr, .karte-vod-laenge { flex: none; opacity: .7; }
+.karte-vod-titel { flex: 1; min-width: 0; }
+.karte-vod.laeuft { background: rgb(59 36 22 / .12); }
+.karte-vod:hover, .karte-vod:focus-visible { filter: brightness(1.3); }
+.karte-status-leer, .karte-vods-fuss { flex: none; margin: auto; text-align: center; }
+.karte-vods-fuss { margin: 0 auto; }
+
+/* Such-Zettel: das vorhandene Suchfeld liegt auf dem Papier */
+.such-platz { display: flex; align-items: center; color: var(--zettel-tinte); }
+.such-platz #home-such-zeile { display: flex; align-items: center; gap: .3em; width: 100%; margin: 0; padding: 0; }
+.such-platz #home-suche {
+  flex: 1; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; outline: none;
+  font-family: var(--schrift-pixel); font-size: inherit; color: var(--zettel-tinte);
+}
+.such-platz #home-suche::placeholder { color: var(--zettel-tinte); opacity: .55; }
+.such-platz #refresh-btn {
+  padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer;
+  font: inherit; color: var(--zettel-tinte);
+}
+/* ▲▼ hinter ⟳ (Janis 13.11., Variante B): Tinte auf dem Zettel, Trennstrich davor */
+.fach-pfeile { display: flex; gap: .4em; margin-left: .4em; padding-left: .5em; border-left: 2px solid var(--zettel-tinte); }
+.fach-pfeile button {
+  padding: 0; border: 0; border-radius: 0; background: none; font: inherit; line-height: 1;
+  color: var(--zettel-tinte); cursor: pointer;
+}
+.fach-pfeile button:disabled { opacity: .3; cursor: default; }
+
+/* --- Regal neu (Task 9a): Leinwand, Ausstellbrett, Plattenruecken ------------------
+   Bildebene: regal-oben/-unten und regal-wand (PixelLab, 504 breit ab x -80) unter
+   regal.png, Cover (huelle.png) auf dem Brett. Textschicht mit eigenem --f der
+   Regal-Ebene (richteRegalNeuAus): Ruecken-Faecher; Ruecken = ruecken-<art>.png (6x40,
+   auf 100 % gestreckt, scharfkantig) mit Mini-Profilbild und Name laengs. Lage =
+   Bildpixel x --f auf ganze Bildschirm-Pixel gerundet. Live-Punkt per CSS (Janis'
+   Ausnahme: rund, rot, keine Verlaeufe). Hover/Fokus nur heller; gewaehlt und
+   Vorschlag angehoben. */
+.regal-leinwand { position: absolute; user-select: none; }
+.brett-neu { position: absolute; }
+.brett-neu .huelle { cursor: pointer; outline: none; transition: transform .15s; }
+.brett-neu .huelle.gewaehlt, .brett-neu .huelle.vorschlag { transform: translateY(-3px); }
+.brett-neu .huelle:hover, .brett-neu .huelle:focus-visible { filter: brightness(1.3); }
+.live-punkt { position: absolute; border-radius: 50%; background: rgb(220 40 32); pointer-events: none; }
+.brett-text {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+}
+/* waagrecht beschnitten, nach oben 12 Bildpixel frei fuer die herausgerutschte Platte */
+.ruecken-fach { overflow: visible; clip-path: inset(calc(-12px * var(--f)) 0 0 0); }
+.ruecken {
+  position: absolute; box-sizing: border-box; cursor: pointer; outline: none;
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  /* Breite aus beiden gerundeten Kanten: die Ruecken schliessen ohne Luecke aneinander */
+  width: calc(round(calc((var(--x) + var(--b)) * var(--f) * 1px), 1px) - round(calc(var(--x) * var(--f) * 1px), 1px));
+  height: round(calc(var(--h) * var(--f) * 1px), 1px);
+  background-repeat: no-repeat; background-position: 0 0; background-size: 100% 100%;
+  image-rendering: pixelated;
+  transition: transform .15s;
+}
+.ruecken.r-live { background-image: url('../themes/cozy/ruecken-live.png'); }
+.ruecken.r-favorit { background-image: url('../themes/cozy/ruecken-favorit.png'); }
+.ruecken.r-offline { background-image: url('../themes/cozy/ruecken-offline.png'); }
+.ruecken.r-twitch { background-image: url('../themes/cozy/ruecken-twitch.png'); }
+.ruecken:hover, .ruecken:focus-visible { filter: brightness(1.3); }
+.ruecken.gewaehlt, .ruecken.vorschlag { transform: translateY(round(calc(-1 * var(--f) * 1px), 1px)); }
+.ruecken-stueck {
+  position: absolute; box-sizing: border-box;
+  left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
+  width: round(calc(var(--b) * var(--f) * 1px), 1px); height: round(calc(var(--h) * var(--f) * 1px), 1px);
+}
+.ruecken-fenster { overflow: hidden; }
+.ruecken-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.ruecken-fenster .huelle-buchstabe { font-size: var(--raum-schrift); }
+.ruecken.r-offline .ruecken-fenster { filter: grayscale(1) brightness(.85); }
+.ruecken-name {
+  writing-mode: vertical-rl; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1; font-size: var(--ruecken-schrift, 12px); color: var(--text);
+}
+/* Helle Ruecken: dunkle Schrift (kein Umriss, kein Schatten) */
+.ruecken.r-live .ruecken-name, .ruecken.r-favorit .ruecken-name { color: var(--zettel-tinte); }
+/* Laden: die gewaehlte Platte pulsiert */
+.regal-neu.ladend .gewaehlt { animation: raum-puls 1.2s steps(2) infinite; }
+
+/* --- Regal von nahe (Plan 2026-11-13-regal-nah): Fach fuer Fach --------------------
+   .regal-innen = Bild- und Textschicht; die Fachfahrt (Zoom an Ort) laeuft per
+   transform darauf (home-raum-dom.js fahreFach, FACH_MS = 350). Suchleiste und Hinweis
+   liegen unskaliert darueber. */
+.regal-innen { position: absolute; inset: 0; }
+#home.raum-home.fach-fahrt .regal-innen { transform-origin: 0 0; transition: transform 350ms ease-in-out; }
+#home.raum-home.fach-fahrt-sprung .regal-innen { transition: none; }
+#home.fach-fahrt .fach-hinweis, #home.fach-fahrt .hover-name { visibility: hidden; }
+.zettel.such-oben {
+  top: 8px; z-index: 2; display: flex;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+}
+.such-oben .such-platz { flex: 1; min-width: 0; }
+/* Hover/Fokus: Platte rutscht heraus (Ruecken 10 Bildpixel, Cover in der Bildebene 4) */
+.ruecken.raus { transform: translateY(round(calc(-10 * var(--f) * 1px), 1px)); }
+.brett-neu .huelle.raus { transform: translateY(-4px); }
+/* Name gross ueber der Platte: nur Schrift, weiss mit dunklem Rand, ohne Schild */
+.hover-name {
+  position: absolute; z-index: 3; pointer-events: none; white-space: nowrap;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
+  color: #fff; text-shadow: 0 0 4px #000, 3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000;
+}
+#home.fahrt .hover-name { visibility: hidden; }
+.fach-hinweis {
+  position: absolute; right: 16px; bottom: 12px; z-index: 2; pointer-events: none;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
+  color: #f4e4c9; opacity: .8; text-shadow: 2px 2px 0 rgb(18 5 5);
+}
+
+/* --- Kopf, Tafel, Ablauf ----------------------------------------------------------- */
+#home-knoepfe { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; gap: 4px; }
+
+#home-tafel {
+  position: absolute; inset: 0; z-index: 4;
+  display: flex; align-items: center; justify-content: center;
+  background: rgb(18 5 5 / .55);
+}
+#home-tafel .tafel-rahmen {
+  position: relative; box-sizing: border-box; display: flex; flex-direction: column;
+  width: min(90%, 760px); max-height: 85%;
+  border-style: solid; border-color: transparent; border-width: var(--rand);
+  border-image: url('../themes/cozy/zettel.png') 6 fill / var(--rand) / 0 stretch;
+  image-rendering: pixelated; color: var(--zettel-tinte);
+}
+.tafel-kopf {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
+}
+.tafel-inhalt { overflow: auto; min-height: 0; }
+
+/* Auflegen: durchsichtige Fangschicht fuer Klick/Taste, Text unten. Ablauf in
+   Klassen an #home (home-raum-dom.js, ABLAUF_MS): Raum blendet ueber das Regal
+   (500ms), Kamera zoomt zum Plattenspieler (1500ms), Platte aufgelegt (1200ms,
+   dreht weiter), Kamera zurueck auf den Raum (1500ms), Fernseher flackert an
+   (700ms), kurz zeigen (500ms), in den Fernseher (2000ms). Die Ziel-Lagen
+   (Raum.lage*) zoomen um einen Punkt im Gegenstand statt zu schieben. */
+#home-ablauf {
+  position: absolute; inset: 0; z-index: 6; outline: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px;
+  padding-bottom: 16px; box-sizing: border-box;
+  color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
+}
+.ablauf-tipp { color: var(--muted); font-size: var(--raum-schrift); }
+
+#home.im-ablauf #raum-ebene { z-index: 2; opacity: 0; transition: opacity 500ms linear; }
+#home.im-ablauf #raum-ebene .raum-textschicht { visibility: hidden; }
+#home.ablauf-raum #raum-ebene { opacity: 1; }
+#home.ablauf-spieler #raum-ebene .raum-bildebene { transition: transform 1500ms ease-in-out; }
+#home.ablauf-zurueck #raum-ebene .raum-bildebene { transition: transform 1500ms ease-in-out; }
+#home.ablauf-tv #raum-ebene .raum-bildebene { transition: transform 2000ms ease-in; }
+/* Fernseher: im Ablauf aus (raum-tv-aus.png darunter), bis er anflackert; harte
+   Schritte ohne Ueberblendung, am Ende an */
+#home.im-ablauf:not(.ablauf-an):not(.ablauf-tv) .raum-tv { visibility: hidden; }
+#home.ablauf-an .raum-tv { animation: raum-tv-an 700ms steps(1) 1 both; }
+/* Laufschrift erst, wenn die Platte aufgelegt ist */
+#home.im-ablauf:not(.ablauf-dreht) .raum-laufschrift { visibility: hidden; }
+@keyframes raum-tv-an {
+  0% { visibility: visible; }
+  11% { visibility: hidden; }
+  20% { visibility: visible; }
+  29% { visibility: hidden; }
+  46% { visibility: visible; }
+  100% { visibility: visible; }
+}
+/* Drehende Platte: platte-dreht.png (8 Bilder je 54x50) in Bildpixeln; die
+   Bildebene vergroessert sie mit. ~10 Bilder/s: 8 Bilder in 800ms, steps(8). */
+.ablauf-dreht-platte {
+  position: absolute; pointer-events: none;
+  background: url('../themes/cozy/platte-dreht.png') 0 0 / 432px 50px no-repeat;
+  image-rendering: pixelated;
+  animation: raum-platte-dreht 800ms steps(8) infinite;
+}
+@keyframes raum-platte-dreht { to { background-position: -432px 0; } }
+/* Neue Platte bei laufender (Janis 13.11.): die alte steht ab Beginn des Ablaufs
+   still (erstes Bild), bis sie abgenommen wird (home-raum-dom.js PLATTE_STEHT_MS). */
+.ablauf-dreht-platte.platte-steht { animation: none; background-position: 0 0; }
+
+/* Leben (Etappe 3, raum-leben-dom.js): PixelLab-Bildstreifen leben-home-<datei>.png
+   in Bildpixeln, --bilder Bilder je Flaeche, --sb Streifenbreite, --dauer ein
+   Durchlauf. Bild 0 = Standbild-Ausschnitt: ruhend nicht zu sehen. Schleife laeuft
+   durch, selten spielt einmal je Klasse spielt; ruht = aus (Home zu, Animationen aus).
+   Chat-Streifen (Task 6) nutzt dieselben Regeln. */
+.raum-leben {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: raum-leben var(--dauer) steps(var(--bilder)) infinite;
+}
+.raum-leben.selten:not(.spielt) { animation: none; }
+.raum-leben.selten.spielt { animation-iteration-count: 1; }
+.raum-leben.ruht { animation: none; }
+@keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
+
+/* Wechsel Raum <-> Regal (home-raum-dom.js fahre, FAHRT_MS 700). Zoom an Ort und
+   Stelle (fahreZoom, Raum.zoomAmOrt): die Raum-Ebene vergroessert sich um die
+   Regal-Mitte (hin ease-in, zurueck ease-out); das Nahbild waechst im letzten
+   Drittel leicht und blendet ein, zurueck im ersten Drittel aus. Die Pixel-Blende
+   (fahrePixel) setzt nur SVG-Filter per JS, ohne Uebergaenge hier.
+   fahrt-leer = Regal durchsichtig. Waehrend der Fahrt kein Hover/Klick. */
+#home.fahrt #raum-ebene, #home.fahrt #raum-ebene *,
+#home.fahrt #regal-ebene, #home.fahrt #regal-ebene * { pointer-events: none !important; }
+#home.fahrt #raum-ebene .raum-textschicht { visibility: hidden; }
+#home.fahrt #regal-ebene, #home.fahrt #raum-ebene { transform-origin: 0 0; }
+#home.fahrt-hin #regal-ebene { transition: transform 230ms ease-out 470ms, opacity 230ms linear 470ms; }
+#home.fahrt-zurueck #regal-ebene { transition: transform 230ms ease-in, opacity 230ms linear; }
+#home.fahrt-hin #raum-ebene { transition: transform 700ms ease-in; }
+#home.fahrt-zurueck #raum-ebene { transition: transform 700ms ease-out; }
+#home.fahrt-leer #regal-ebene { opacity: 0; }
+
+/* Animationen aus: alle Uebergaenge und Bewegungen im Raum stehen still. */
+html[data-animationen="aus"] #home.raum-home *,
+body[data-animationen="aus"] #home.raum-home * { transition: none !important; animation: none !important; }
+
+@keyframes raum-puls { 50% { opacity: .5; } }

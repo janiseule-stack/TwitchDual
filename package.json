@@ -1,6 +1,6 @@
 {
   "name": "twitchdual",
-  "version": "1.18.0",
+  "version": "2.0.0",
   "description": "Zwei-Fenster Twitch-Viewer (Video + Chat mit 7TV-Emotes) fuer Hochkant-Monitore",
   "main": "main.js",
   "scripts": {
@@ -22,10 +22,12 @@
       "preload.js",
       "renderer/**/*",
       "src/**/*",
-      "vendor/**/*"
+      "vendor/**/*",
+      "!renderer/themes/cozy/entwuerfe/**"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": true,

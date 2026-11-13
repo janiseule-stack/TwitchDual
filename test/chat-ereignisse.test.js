@@ -67,3 +67,13 @@ test('Filter: Abos hoechstens alle abstandMs, Raid immer', () => {
   const f2 = E.createEreignisFilter();
   assert.deepEqual(f2.effekt({ art: 'abo', name: 'Neu', monate: 1, prime: false }, 0).daten.zeilen, ['Neu', 'hat abonniert']);
 });
+
+test('aboAnzahl: Abos fuer die Stadt-Fenster, Regen zaehlt einmal (nicht seine Einzelgeschenke)', () => {
+  assert.equal(E.aboAnzahl(ev(RESUB)), 1);
+  assert.equal(E.aboAnzahl(ev(SUB_PRIME)), 1);
+  assert.equal(E.aboAnzahl(ev(REGEN)), 20);
+  assert.equal(E.aboAnzahl(ev(GESCHENK_AUS_REGEN)), 0, 'gehoert zum Regen');
+  assert.equal(E.aboAnzahl({ art: 'geschenk', name: 'A', empfaenger: 'B', gruppe: null }), 1);
+  assert.equal(E.aboAnzahl(ev(RAID)), 0);
+  assert.equal(E.aboAnzahl(null), 0);
+});

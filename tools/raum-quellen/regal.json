@@ -1,0 +1,34 @@
+{
+  "_quelle": "Regal neu (Plan docs/superpowers/plans/2026-11-11-regal-neu.md), Janis' Wahl 11.11.2026: Variante A (PixelLab inpaint, seed 11). Bildpixel in regal.png (344x192). Gemessen am Bild: Innenraum x 115..286; Brett ab x 144, weil die Pflanzenblaetter bis x 143 ins obere Fach haengen; Brett-Unterkante = Oberkante der Lippe (y 61).",
+  "brett": { "x": 144, "y": 14, "b": 130, "h": 47 },
+  "faecher": {
+    "live": { "x": 115, "y": 76, "b": 172, "h": 44 },
+    "unten": { "x": 115, "y": 133, "b": 172, "h": 47 }
+  },
+  "such": { "x": 140, "y": 0, "b": 120, "h": 18 },
+  "_nah": "Regal von nahe (Plan 2026-11-13-regal-nah): ein Fach mit Rand 174x82 Bildpixel; Ausschnitte (linke obere Ecke) je Fach: Brett, live, unten.",
+  "nah": { "b": 174, "h": 82, "faecher": [{ "id": "brett", "x": 122, "y": 0 }, { "id": "live", "x": 114, "y": 57 }, { "id": "unten", "x": 114, "y": 110 }] },
+  "bereich": { "von": 100, "bis": 300, "mitte": 200 },
+  "hover": { "x": 86, "y": 9, "b": 77, "h": 121 },
+  "_ruecken": "ruecken.png = 6x40-Ausschnitt aus PixelLab-Fachfuellung (Janis 12.11.: Form Variante 2), inkl. 1 px Trennlinie rechts; Farben Satz C (Janis 12.11., statt zuerst A). Einfaerben: L = round(0.299r+0.587g+0.114b), Kanal = round(L*farbe/255), Alpha bleibt.",
+  "ruecken": {
+    "b": 6, "h": 40, "abstand": 0,
+    "bild": { "x": 0, "y": 0, "b": 6, "h": 40 },
+    "fenster": { "x": 0, "y": 2, "b": 5, "h": 5 },
+    "name": { "x": 0, "y": 8, "b": 5, "h": 26 }
+  },
+  "_livePunkt": "Live-Punkt ist CSS (Janis 12.11.: in der App, nicht generiert). Lage/Durchmesser in Bildpixeln: Cover 40x40 oben rechts, Ruecken unten unter dem Namen. Vorschlag, Abnahme in der App.",
+  "livePunkt": {
+    "cover": { "x": 33, "y": 3, "d": 4 },
+    "ruecken": { "x": 1, "y": 35, "d": 3 }
+  },
+  "_karte": "karte.png = karte-rueck.png = PixelLab pixflux 96x96 seed 777 (Janis 12.11.: Flaeche 2 fuer Infotafel und Rueckseite). 9-Slice-Rand 10 px rundum (Nieten in den Ecken bis ~10 px, Mitte ruhig ab 5-9 px).",
+  "karte": { "datei": "karte.png", "rand": { "oben": 10, "rechts": 10, "unten": 10, "links": 10 } },
+  "rueckseite": { "datei": "karte-rueck.png", "rand": { "oben": 10, "rechts": 10, "unten": 10, "links": 10 } },
+  "rueckenFarben": {
+    "live": [240, 170, 110],
+    "favorit": [150, 140, 88],
+    "offline": [70, 64, 52],
+    "twitch": [70, 66, 104]
+  }
+}

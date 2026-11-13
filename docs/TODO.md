@@ -3,6 +3,281 @@
 Stand 2026-07-02: **Alle Punkte der ursprünglichen Roadmap sind umgesetzt** —
 Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 
+## Regal von nahe (ungemergt, Branch feat/cozy-raum, 13.11.2026)
+
+Entwurf `docs/superpowers/specs/2026-11-13-regal-nah-design.md`, Plan
+`docs/superpowers/plans/2026-11-13-regal-nah.md` (Tasks 1–7 gebaut). Ein Fach füllt das Bild
+(Mausrad/↑↓ = Zoom an Ort ins nächste Fach, Shift+Rad/←→ blättert im Fach), Suchleiste fest oben,
+Kamera folgt dem Suchtreffer, Hover = Platte rutscht heraus + Name groß, Klick = Hülle mit drehender
+Platte (PixelLab A2) + Tafel + große Namen, Rückseite = Trackliste so groß wie die Hülle.
+Fotos (selbst geprüft): `renderer/themes/cozy/entwuerfe/_ANSCHAUEN/86-regal-nah-*/`
+(`node tools/home-groessen.js <ordner> fach-1|fach-2|fach-3|karte|rueckseite`).
+
+Offen für Janis (Optik, nicht selbst entschieden):
+- **Hover-Name im Fach 1 liegt auf der Suchleiste** (alle Größen): Über den Covern ist zwischen
+  Suchleiste und Cover kaum Platz. Mögliche Wege: Name unter das Cover, Suchleiste beim Hover
+  ausblenden oder den Namen über die Leiste legen (so ist es jetzt).
+- **900×700 (und knapp 1280×670):** Tafel-Zeilen, Knöpfe und Trackliste stehen dort in 12 px. Das
+  ist lesbar, aber klein. Laut Plan wird das nicht selbst umgebaut (z. B. Tafel unter die Hülle).
+- Lage der Leuchtzeile (links bündig mit der Hülle) und des ✕ (Ecke über der Tafel): meine Wahl,
+  bitte beim Anschauen beurteilen.
+- Die Vorschaubilder der Tafel waren auf den Fotos leer, weil die Beispieldaten ohne Netz laufen.
+
+## Chat-Stadt „Regennacht“ (ungemergt, Branch feat/cozy-raum, 13.11.2026)
+
+Entwurf `docs/superpowers/specs/2026-11-13-chat-stadt-design.md`, Plan
+`docs/superpowers/plans/2026-11-13-chat-stadt.md` (dort auch Janis' Bildwahl).
+
+**Stand:** Hinter den Chat-Nachrichten liegt die Nachtstadt (PixelLab: Häuserzeile B +
+Skyline C, 344×277). Fensterlichter nach Uhrzeit (alle 2–5 min eins), Gewitter in
+Phasen (8–20 min Regen, 2–4 min Gewitter, Blitz nur im Himmel ≤ 300 ms), bewegter
+Regen (2 Kacheln), Passanten mit Schirm und Autos mit Spiegelung auf einem Straßenband
+zwischen Nachrichten und Eingabe. Raid läuft in der Stadt (1 / 3 / Bus + 4 / Bus + 8),
+Abos und Geschenke machen je Abo ein Fenster hell (bleibt). Kiste bleibt im Streifen.
+Die Deckkraft-Einstellung ist weg (Chat immer deckend). Ausprobieren: Raid, Abo und
+neu „🎁 Geschenk“ (5 Abos).
+
+- Bilder neu bauen: `python -I tools/stadt-bilder.py tools/raum-quellen/stadt renderer/themes/cozy tools/raum-quellen/stadt.json`,
+  danach die Kopie in `renderer/lib/stadt.js` (STADT) angleichen (Test prüft Gleichheit).
+- Werte zum Einstellen: `renderer/lib/stadt-dom.js` (DUNKEL, DUNKEL_BLITZ, BLITZ_MS,
+  LEBEN_PAUSE, PASSANT_ANTEIL, AUTO-Tempo, BUS), `renderer/lib/stadt.js`
+  (LICHT_NACH_STUNDE, GEWITTER, BUDGET, figur.pxProBild/msProBild über stadt-bilder.py).
+
+**Abnahme-Runde 13.11.:** Regen kommt aus PixelLabs Effekt-Werkzeug (`vfx_workbench`, 0 Gen.):
+Himmel = schräge Striche aus der Vorlage `slant_rain` (gleiche Richtung wie die im Stadtbild
+eingemalten, die deshalb bleiben), Straße = `rain_ripples` mit Ringen auf der Fahrbahn; Pakete
+in `tools/raum-quellen/stadt/regen-vfx*/`, Effekte unter „My effects“ auf pixellab.ai.
+Autos 1,4× (vier Farben, zufällig), Bus 1,4× mit Tür. Straßenband beginnt an der höchsten Figur.
+Janis: „passt erstmal so“.
+
+**Offen:**
+- **Tropfen an der Scheibe** (Janis wollte „wie oben im Streifen“): vier Wege gescheitert
+  (Video-Animation zu hell/realistisch, Stadt-Ausschnitte flackern, durchsichtige Ebenen
+  realistisch bzw. leer, Glas-Träger nicht flach, Rahmen-Trick → Modell schwärzt den Himmel).
+  Lehre: im Streifen klappt es, weil Glas + Rahmen im Bild sind und `animate_image` direkt
+  darauf animiert. Nächster Versuch ggf. im PixelLab-Web-Editor mit Vorschau.
+- Blitz: Stärke und Häufigkeit; wie stark die Mitte beim Blitz abdunkelt.
+- Abdunkeln hinter dem Text (heute 25 %) – lesbar genug, zu dunkel?
+- Straßenleben: seit 13.11. selten (alle 40–120 s, 85 % Passanten), Raid-Bus synchron (Tür per CSS) – Janis: „passt“.
+- Breite/niedrige Chats (z. B. 2560×1440, 1397×400) zeigen den Himmel samt Blitz nicht;
+  sehr schmale (400×1332) nur einen Ausschnitt → ggf. Bild per PixelLab erweitern.
+- Bus (56 hoch) ragt beim großen Raid etwas über das Straßenband.
+
+**Aufräumen später (nicht im Plan):** alter Streifen-Raid (`RaumLeben.RAID/GLAS/raidDauer/
+schirmAnzahl/raidSchritte`, `leben-streifen-raid*`, `streifen-glas-maske.png` samt
+raum-bilder.py-Teil) wird nicht mehr benutzt; ebenso `previewThemePrefs` (preload/main).
+
+## Cozy-Raum Etappe 1a (ungemergt, Branch feat/cozy-raum)
+
+Entwurf: `docs/superpowers/specs/2026-11-10-cozy-raum-design.md`.
+
+- Alte Themes entfernt (Sakura, Koi, Wald, Blasen, Neon Dual) samt Galerie,
+  Farbwählern, 🎲, Runtime und Effekt-Engine.
+- Feste Palette: `renderer/themes/cozy/farben.css` (beide Fenster binden sie
+  zuerst ein).
+- `themePrefs` = `{ chatAlpha, animationen }` (gesäubert in `renderer/lib/theme.js`).
+- ⚙ enthält zusätzlich Deckkraft, Animationen und „Ausprobieren“.
+- Kiste fest im Stil `pixel` (der Geschenk-Stil bleibt als ungenutzter Rest
+  in `kiste.js`, Aufräumen nach Etappe 3).
+- Abo nur als Zeile (Janis: kein Effekt); Raid seit Etappe 3 zusätzlich als
+  Effekt im Chat-Streifen. Vorhersage-Start und „Tipp verloren“ ohne Effekt
+  (in Etappe 3 nicht vorgesehen).
+- Der Schalter „Animationen“ wirkt auf Home und (seit Etappe 3) auf den
+  Chat-Streifen samt Raid-/Kisten-Effekt.
+
+### Etappe 1b (eingebaut, wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-10-cozy-raum-etappe-1b.md`. Alle
+Optik-Festlegungen sind Claudes Vorschlag.
+
+- Gemeinsame Bausteine in `renderer/themes/cozy/raum.css`: Pixel-Schrift
+  (Pixelify Sans, OFL, lokal), Rahmen aus den Pixel-Bildern (9-Slice,
+  Faktor 2), Pixel-Knopf, Lampen, Tapete.
+- Chat: Holzleiste als Kopf, darunter der Szenen-Streifen (Faktor aus
+  `renderer/lib/szene.js`, höchstens ein Fünftel der Fensterhöhe) mit
+  LIVE/VOD-Schild, Eingabefeld als Pixel-Rahmen, harte Kanten, keine Verläufe.
+- Video: Leiste als TV-Gehäuse (Lautsprecher links), grüne Lampe bei „Ads
+  blocked“, rote Lampe bei Live, leerer Player zeigt die Holzwand.
+- **Nächster Schritt:** Janis' Korrekturen, dann Etappe 2 (Raum als Home).
+
+### Etappe 2 (eingebaut, wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-10-cozy-raum-etappe-2.md` (Prüfung:
+`…-etappe-2-pruefung.md`). Geometrie in `renderer/lib/raum.js`, Darstellung in
+`renderer/video/home-raum-dom.js` + `home-raum.css`, Steuerung in `home.js`.
+Alle Optik-Festlegungen sind Claudes Vorschlag.
+
+1. Zwei Ansichten: `raum` (Hauptmenü) und `regal`; passt der Raum nicht in
+   Faktor 2 (unter 688×384), öffnet Home direkt im Regal.
+2. Tippen im Raum springt ins Regal-Suchfeld; Strg+L und Klick auf die
+   Stream-Infos öffnen das Regal mit Fokus im Suchfeld.
+3. Klick im Raum: Regal → Regal-Ansicht; Fernseher → zurück zum Stream
+   (sonst Schild „Nichts geladen“); Plattenspieler → Schild mit dem, was
+   aufliegt; Bild → Tafel „Konto“; Stehlampe → Tafel „Licht“ (Animationen,
+   „Weitere Einstellungen: ⚙ im Chat“).
+4. Hover: vier helle Pixel-Winkel an den Ecken der Fläche + Holzschild mit Namen.
+5. (Ersetzt durch „Regal neu“ unten.) Regal: oben Live-Platten (★ zuerst),
+   Mitte Offline-Favoriten bzw. Such-Treffer; Hüllen 40×40 mit verpixeltem
+   Profilbild; Fächer blättern per Mausrad und Auswahl.
+6. (Ersetzt durch „Regal neu“ unten.) Gewählte Platte vorn im Bücherfach in
+   1× mit Zettel; „VODs“ dreht auf die Rückseite mit 2×2 VOD-Bildern.
+7. Suchfeld auf einem Papierzettel oben am Regal (mit ⟳).
+8. Auflegen-Ablauf (nur mit Kanal und Animationen an): Raum blendet über das
+   Regal (500 ms), Kamera fährt zum Plattenspieler, die Platte dreht sich
+   (PixelLab-Sprite), danach Zoom in den Fernseher (ersetzt das frühere
+   „Platte fliegt“, Runde 2); Klick/Taste überspringt (Doppelklick nicht); Fehler setzt alles zurück + Hinweiszeile.
+   Animationen aus: alle Übergänge im Home stehen still.
+9. Fernseher: Vorschaubild des Live-Streams verpixelt (27×38) und affin in die
+   schräge Bildschirmfläche gelegt, mit `raum-tv-maske.png` beschnitten;
+   sonst `raum-tv-aus.png`. Das Grün aus `raum.png` ist nie zu sehen.
+10. Entfallen: CD-Hülle, CD, Laufwerk, Ständer, Riesen-Namen, `cdWechsel`;
+    „Alle VODs“ ist ebenfalls entfallen: die Rückseite der großen Karte mit
+    der endlosen VOD-Liste ersetzt sie (Regal neu).
+11. Kopfzeile entfällt: ✕ und ← als Pixel-Knöpfe oben rechts, `#home-version`
+    bleibt unten rechts.
+
+- Janis' Bild-Entscheidungen vom 11.11.: Fernseher aus = PixelLab-Variante 2;
+  Hülle = Profilbild mit dünner Kante aus PixelLab-Hülle 18; Rückseite =
+  Variante 12; Live-Lämpchen = PixelLab-Lampe 43, ausgeschnitten.
+- Offene Optik-Punkte für Janis:
+  - ←-Knopf zeigt noch das Haus-Symbol (Pfeil-Bild aus PixelLab fehlt).
+  - ✓-Haken am Kanalnamen ohne eigenen Stil.
+  - `#auth-bar` und VOD-Karten haben noch runde Ecken.
+  - Licht-Tafel ohne eigenen Stil.
+  - ✕ von Home liegt über der Tafel neben deren eigenem ✕.
+  - Hinweiszeile unten im Raum.
+  - Lämpchen deckt eine Ecke des Profilbilds.
+  - Auflegen: Text „Lege auf: …“ und Tipp stehen unten über dem Raum; die
+    Kamera fährt zum Plattenspieler, die Platte dreht sich, der Zoom in den TV
+    läuft mit sanftem Anfahren/Abbremsen (Runde 2, ersetzt „Platte fliegt“).
+- `renderer/themes/cozy/entwuerfe/` muss vor einem Build aus `renderer/`
+  heraus (sonst landen die Entwürfe im Paket).
+
+#### Runde 2 (Janis' Korrekturen, eingebaut 11.11., wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-2-runde-2.md`.
+
+1. PixelLab-Quellen für Hover, drehende Platte (`platte-dreht.png`, 8 Bilder
+   je 54×50) und Schrift „Raum Klar“.
+2. Raum füllt das Fenster ohne Rand (deckender, nicht ganzzahliger Faktor).
+3. Neue Pixel-Schrift (Vielfache von 12 px), Hover in Form des Gegenstands
+   (aufgehellter PixelLab-Ausschnitt), feinere Profilbilder, Zettel zeigt je
+   nach Höhe mehr oder weniger Zeilen, Doppelklick auf eine Live-Hülle legt auf.
+4. „VODs“ nimmt die Platte heraus: große Hülle mittig, dreht sich um, auf der
+   Rückseite eine scrollbare Liste aller geladenen VODs.
+5. LIVE- und VOD-Schild aus PixelLab statt Kasten mit Lämpchen.
+6. Auflegen neu: Raum blendet über das Regal (500 ms), Kamera fährt zum
+   Plattenspieler (1200 ms), die Platte dreht sich als PixelLab-Sprite
+   (1500 ms, ~10 Bilder/s, dreht bis zum Ende weiter), Schwenk + Zoom in den
+   Fernseher (2000 ms); mindestens 5200 ms, Klick/Taste überspringt. Die
+   fliegende Platte entfällt. Große Hülle ist im Ablauf ausgeblendet.
+
+- Offene Optik-Fragen für Janis (Runde 2; große Hülle/Rückseite sind durch
+  „Regal neu“ ersetzt, die Punkte dazu gelten dort neu):
+  - Name des Gegenstands 56 px über dem unteren Rand.
+  - LIVE-/VOD-Schild in 1× (2× passt nicht in die Lautsprecher-Fläche).
+  - Klick auf eine Offline-Hülle öffnet jetzt die große Hülle.
+  - Auflegen: Kamera-Fahrten mit sanftem Anfahren/Abbremsen, Zoom-Stufen
+    ganzzahlig (Plattenspieler bzw. Bildschirm füllen das Fenster knapp).
+    Bei Fenstern breiter als 16:9 schneidet die Kamera den Plattenteller an.
+  - Profilbild in der großen Hülle ist so grob verpixelt wie in den kleinen
+    Hüllen (Plan sagte „kaum verpixelt“) – feiner machen?
+  - Schrift in Chat- und Video-Leiste (heute 13–16 px, künstliches Fett ist
+    abgeschaltet): **A** „Raum Klar“ in 12/24 px wie in Home (Empfehlung) oder
+    **B** dort die alte Pixelify-Schrift behalten. Janis entscheidet beim Anschauen.
+- Aufräumen nach Janis' Urteil: ungenutzte Bilder `huelle-rueck.png`,
+  `platte-klein.png`, `schild.png`, `Raum.TELLER`, `.lampe.rot`/`lampe-rot.png`
+  samt Tests; Quelltext-genaue Tests in `test/home-raum.test.js` lockern;
+  Fokus in die VOD-Liste, wenn die große Hülle aufgeht.
+- **Janis' erstes Urteil (11.11.):** Schilder ok. LIVE-Schild oben links
+  „leuchtet nicht“. **Raum füllt das Fenster immer noch nicht ganz: links
+  gefüllt, rechts nicht** (Fehler aus Task 2, ungeklärt). Dazu „ein paar
+  kleinere Dinge“ – alles erst **nach Etappe 3** gesammelt verbessern.
+- **Nächster Schritt:** Etappe 3 (Animationen), danach eine gesammelte
+  Verbesserungsrunde mit den Punkten oben.
+
+### Regal neu (gebaut 12.11., wartet auf Janis' Abnahme in der App)
+
+Plan: `docs/superpowers/plans/2026-11-11-regal-neu.md`. Stand: Tasks 1–9d
+gebaut auf `feat/cozy-raum`, **nicht released, nicht gemergt**. Regal-Nahbild
+mit Plattenrücken (Live / Favorit / offline / fremd), große Karte mit
+Rückseite und endloser VOD-Liste („● läuft“ oben), Kamerafahrt + Überblendung
+Raum ↔ Regal, Rücken-Schrift nach Rückenart. Screenshots (alle 6 Größen) in
+`_ANSCHAUEN`: `30-regal-*`, `31-karte-*`, `32-rueckseite-*`.
+
+- Offene Optik-Fragen für Janis:
+  - Schriftgrößen der Karte (`kartenMasse.schrift`).
+  - Rot und Lage des Live-Punkts (`regal.json` `livePunkt`).
+  - Mini-Profilbild und Name auf den Rücken (`regal.json` `ruecken.fenster`/`name`).
+  - Mausrad im Fach: 1 Rücken pro Raste, passt die Schrittweite?
+  - Der 29. Rücken ragt 4 px angeschnitten ins Fach.
+  - Leeres Brett ohne Hinweistext, wenn Live-Kanäle nur in den Fächern liegen.
+  - Naht-Pfosten oben im erweiterten Regalbild glätten (PixelLab, ~10
+    Generationen) und ggf. das Bild verbreitern, damit der Ultrawide weniger
+    zoomt (~40 Generationen).
+  - Gefühl des Übergangs Raum ↔ Regal (450 ms Fahrt + 250 ms Blende).
+  - Reihenfolge der Favoriten-Rücken (vorne im Live-Fach).
+  - ↑/↓ ohne Karte nimmt die erste Live-Platte heraus.
+  - „● läuft“-Markierung beim laufenden VOD.
+- Nächste Schritte:
+  1. ~~Auflege-Animation neu (Janis' Punkt 9)~~ gebaut 13.11. (Spec
+     `docs/superpowers/specs/2026-11-13-auflegen-neu-design.md`, Plan
+     `docs/superpowers/plans/2026-11-13-auflegen-neu.md`): sanft zum
+     Plattenspieler (50 % Fensterhöhe), Platte auf, zurück zum Raum, TV flackert
+     an (live Vorschau, VOD Vorschaubild), rein in den TV; 7,9 s, Klick/Taste
+     überspringt. Jede Fahrt zoomt um einen Punkt im Gegenstand (kein Schieben),
+     außer in hochkanten Fenstern. Offene Optik-Fragen für Janis: Dauern
+     (`ABLAUF_MS`), Zoomstärke (`Raum.SPIELER_ANTEIL` 0,5), Flacker-Muster
+     (`@keyframes raum-tv-an`).
+  - Ebenfalls 13.11.: Regal-Übergang = Zoom an Ort (Standard), Pixel-Blende als
+    Einstellung „Pixel-Übergang“ (⚙ im Chat, Licht-Tafel); Karte vorn neu
+    (Name groß, Live-Vorschau, Knöpfe aus `knopf.png`, roter blinkender
+    Live-Punkt); Klick auf die große Hülle legt auf; Doppelklick im Regal legt
+    auf, auch wenn der zweite Klick auf der Karte landet.
+  - Offen: Licht-Tafel und Kopf der Rückseite haben noch die alte Optik
+    (Janis: „potthässlich“).
+  2. Punkt 12: Schrift bei Lampe/Konto.
+  3. Chat-Wand später.
+- PixelLab: 219 Generationen für Regal neu verbraucht; das Kontingent
+  erneuert sich am 10.12.2026.
+
+### Etappe 3 – Leben (eingebaut 11.11., wartet auf Janis' Urteil)
+
+Plan: `docs/superpowers/plans/2026-11-11-cozy-raum-etappe-3-leben.md`, Spec
+`docs/superpowers/specs/2026-11-11-cozy-raum-etappe-3-leben-design.md`. Alle
+Bilder aus PixelLab (Janis' Wahl), Orte und Bildzahlen in
+`tools/raum-quellen/leben.json`, aufbereitet von `tools/raum-bilder.py`.
+
+1. Chat-Streifen zeigt immer die ganze Breite und das ganze Fenster
+   (höchstens 30 % der Chat-Höhe, oben beschnitten).
+2. Home lebt (Regen 4 ohne Gelb, Katze 1/2 abwechselnd, Dampf 2, Lampe 1),
+   solange Home offen ist; Regal-Ansicht still.
+3. Chat-Streifen lebt: Regen am Fenster, Katze (zwei Varianten abwechselnd,
+   selten), Lampe flackert selten.
+4. Raid: 1–4 Leute mit Schirm (1–9 / ab 10 / ab 50 / ab 200 Raider) gehen
+   draußen hinter dem Glas von links nach rechts, je Figur ~10,6 s, alle
+   1,5 s die nächste. Sichtbar nur in den Glasscheiben (Maske aus
+   `streifen.png` ausgestanzt).
+5. Kanalpunkte-Kiste (auch Tipp-Gewinn): die Katze bringt eine Münze
+   (17 Bilder, 3,4 s), währenddessen ruht die Katzen-Animation.
+6. Effekte laufen einzeln nacheinander (höchstens 3 wartend, älter als 30 s
+   entfällt). „Animationen aus“ hält alles an, leert die Warteschlange und
+   verwirft neue Ereignisse.
+
+- Offene Optik-Fragen für Janis (Etappe 3):
+  - Takt: Regen 150 ms, Katze 200 ms (Pause 8–20 s), Lampe 125 ms (Pause
+    10–30 s), Raid 125 ms je Gehbild bei 2 px Vorrücken, Kiste 200 ms
+    (`RaumLeben.TAKT`, `leben.json`) – zu schnell/zu langsam?
+  - Raid-Figuren laufen unter den Regentropfen-Bildern (Tropfen vor den
+    Leuten) und verschwinden hinter Sprossen und Katze. Gemalte Regenstriche
+    im Standbild sind aus der Maske ausgenommen, die Figur hat dort kleine
+    Lücken – stört das?
+  - Raid dauert mit 1 Figur ~10,6 s, mit 4 Figuren ~15 s (Spec sagte „etwa 8 s“).
+  - Kiste wird auch beim gewonnenen Tipp gespielt.
+  - Leute laufen nur von links nach rechts (Figuren schauen nach rechts).
+- Bekannt: die Glasmaske wird mit dem Streifen skaliert; je nach Faktor
+  können ihre Kanten leicht weich wirken.
+
 ## Erledigt
 
 **Robustheit / Testbarkeit**
@@ -28,6 +303,10 @@ Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 - Home-Overlay: Favoriten-Suche (Name/Spiel/Titel), Sortierung zentral im
   Main (`sortByLive`), erklärende Leerzustände.
 - Tastenkürzel: `Ctrl+L` Eingabefeld, `Space` Play/Pause, `Esc` Overlay.
+- Home als CD-Bühne (Branch `feat/home-cd`, wartet auf Janis' Ansehen,
+  insbesondere die Mittelzeile „Namen antworten“): Live-Kanäle als CDs
+  in einer Hülle, Namenszeilen, Tracklist, Info-Block; Abnahme: `npm test`
+  681/681, 0 lange Frames bei Sakura/viel, Enter-Suche lädt den getippten Login.
 - Home als eine Ansicht (Branch `feat/kanal-suche`): Suche oben (eigene
   Kanäle sofort, „Auf Twitch“ per GQL `searchSuggestions` + exakter Login),
   ★-Favoriten ganz oben, gefolgte Live/Offline (offline alphabetisch);
@@ -689,6 +968,14 @@ Raid-/Abo-Ereignisse folgen mit dem Feature "Abos/Raids im Chat".
 
 ## Ideen für später
 
+- **Chat als gemütliche Wand (Janis 11.11.2026, später):** Das flache Braun hinter den
+  Chat-Nachrichten wirkt neben dem Pixel-Streifen langweilig, Chat- und Video-Fenster
+  verschwimmen. Idee: Der Chat-Hintergrund wird eine zweite Wand des Raums mit großem
+  Fenster (Regen, wie oben im Streifen), Lampe und wenigen Möbeln. Erst wenig, später
+  erweiterbar (z. B. Kratzbaum), animiert, Stimmung wie im Rest. Eigener Entwurf nötig
+  (neue Idee → EGM-Ideen-Prüfung). Lesbarkeit beachten: dunkle Namensfarben aufhellen.
+  Verworfen: gekachelte Muster (Nähte), PixelLab-Regenanimation am Stück (flimmert nur).
+  Auch die Ränder neben dem Video (flaches Braun) dabei mitdenken.
 - **Native Twitch-Emotes im VOD**: das `emote`-Feld der Kommentar-`fragments`
   zusätzlich rendern, nicht nur als Text.
 - **Mehrere Chat-Fenster / zweiter Kanal** für Squad-Streams.

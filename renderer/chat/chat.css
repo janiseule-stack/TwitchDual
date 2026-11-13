@@ -1,23 +1,4 @@
-/* Neon Dual - On Air (v1.5.0): alle Akzente laufen ueber CSS-Variablen.
-   --accent* und --panel setzt chat.js aus ThemeLib.accentVars(chatAccent);
-   die Werte hier sind nur der Fallback bis zum ersten applyTheme(). */
-:root {
-  --accent: #ff4fa3;
-  --accent-title: #ff9ecc;
-  --accent-border: rgba(255, 79, 163, .4);
-  --accent-glow: rgba(255, 79, 163, .2);
-  --accent-dim: rgba(255, 79, 163, .3);
-  --panel: #1c101b;
-  --onair-from: #35e0ff;
-  --onair-to: #ff4fa3;
-  --bg: #0b0b11;
-  --line: #1c1c26;
-  --hover: #14141c;
-  --text: #ededf4;
-  --muted: #8b8b9c;
-  --ts: #565666;
-  --mono: "Cascadia Code", Consolas, monospace;
-}
+/* Alle Farben laufen ueber CSS-Variablen aus ../themes/cozy/farben.css. */
 
 * { box-sizing: border-box; }
 html, body {
@@ -28,22 +9,40 @@ html, body {
 }
 body { display: flex; flex-direction: column; }
 
+/* Kopf = Holzleiste (Rahmen aus raum.css, Klasse rahmen-leiste-chat). Der
+   Inhalt ragt etwas in den Rahmen, damit die Leiste nicht zu hoch wird. */
 #head {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 12px; background: var(--panel);
-  border-bottom: 1px solid var(--accent-border); font-size: 13px;
+  padding: 0 2px; font-size: 13px; flex-shrink: 0;
   -webkit-app-region: drag;
 }
-#title { font-weight: 700; }
+#head > * { margin-top: -7px; margin-bottom: -7px; }
+#title { font-weight: 700; font-family: var(--schrift-pixel); font-size: 16px; letter-spacing: .04em; }
 #mode { color: var(--muted); font-size: 12px; margin-left: 10px; }
 
 #messages {
   flex: 1; overflow-y: auto; padding: 8px 10px;
   font-size: var(--chat-font-size, 14px); line-height: 1.45;
-  scrollbar-width: thin; scrollbar-color: #23232e transparent;
+  scrollbar-width: none;
+  /* Lesbar vor der Regennacht-Stadt (Janis 13.11.2026, Variante S1):
+     halbfett, reines Weiss, dunkler 1-px-Rand. Namen bleiben fett in ihrer Farbe. */
+  font-weight: 600; color: #fff;
+  text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+  /* Von unten fuellen wie bei Twitch (Janis 13.11.2026): margin-top: auto am ersten
+     Kind statt justify-content: flex-end, damit der Anfang scrollbar bleibt. */
+  display: flex; flex-direction: column;
 }
-#messages::-webkit-scrollbar { width: 8px; }
-#messages::-webkit-scrollbar-thumb { background: #23232e; border-radius: 4px; }
+#messages > :first-child { margin-top: auto; }
+/* Auto oder Raid-Bus auf der Strasse: Nachrichten darueber kurz durchsichtig
+   (Janis 13.11.2026, 35 % sichtbar); chat.js setzt die Klasse. */
+#messages .msg { transition: opacity 300ms; }
+#messages .msg.unter-fahrzeug { opacity: .35; }
+/* Keine sichtbaren Scrollbalken im ganzen Chat-Fenster (Janis 09.11.2026):
+   Mausrad/Touchpad scrollt weiter, nur der Balken an der Seite ist weg.
+   scrollbar-width schlaegt in Chromium 121+ die ::-webkit-scrollbar-Regeln
+   der Themes, die Farb-Regeln dort wirken damit einfach nicht mehr. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
 
 .msg { padding: 3px 4px; border-radius: 4px; word-wrap: break-word; }
 /* Hover halb durchsichtig: das Theme dahinter bleibt sichtbar. */
@@ -85,7 +84,7 @@ body { display: flex; flex-direction: column; }
      hoch diese durch Inline-Emotes/mehrzeilige Eingabe gerade ist. */
   position: absolute; bottom: 100%; margin-bottom: 6px; left: 50%; transform: translateX(-50%);
   z-index: 5;
-  background: var(--accent); color: #fff; border: none; border-radius: 14px;
+  background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 14px;
   padding: 5px 14px; font-size: 12px; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,.5);
 }
@@ -93,8 +92,8 @@ body { display: flex; flex-direction: column; }
 #new-msgs.hidden { display: none; }
 
 #footer {
-  padding: 5px 12px; background: var(--panel);
-  border-top: 1px solid var(--line); font-size: 11px; color: var(--muted);
+  padding: 5px 12px; background: var(--panel-fest);
+  border-top: 2px solid var(--line); font-size: 11px; color: var(--muted);
   display: flex; align-items: center; justify-content: space-between;
 }
 #conn.ok { color: var(--muted); }
@@ -131,6 +130,8 @@ body { display: flex; flex-direction: column; }
    nichts mehr zu erkennen (am 2026-08-12 an echten Bildern geprueft). */
 #points-icon, #points-svg { height: 18px; width: 18px; flex-shrink: 0; }
 #points-icon { object-fit: contain; }
+/* Pixel-Muenze (kein Kanal-Icon): Originalgroesse, scharfe Pixel. */
+#points-icon.pixel { width: 32px; height: 32px; margin: -7px -4px; image-rendering: pixelated; }
 #points-svg { color: var(--accent); }
 #points-icon.hidden, #points-svg.hidden { display: none; }
 #zuschauer-auge { font-size: 0.85em; line-height: 1; opacity: 0.75; }
@@ -179,35 +180,25 @@ body { display: flex; flex-direction: column; }
 @keyframes msg-in { from { opacity: 0; } }
 #messages.no-anim .msg { animation: none; }
 
-/* 🎨 + ⚙: Kopfzeile ist drag-Region -> Buttons explizit klickbar machen. */
-#theme-btn, #settings-btn {
-  -webkit-app-region: no-drag;
-  background: none; border: none; color: var(--muted);
-  font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;
-}
-#theme-btn { margin-left: auto; /* 🎨 ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links */ }
-#settings-btn { margin-left: 8px; }
-#theme-btn:hover, #settings-btn:hover { color: var(--text); }
+/* ⚙: Kopfzeile ist drag-Region -> Button explizit klickbar machen. */
+/* Aussehen kommt aus der Klasse pixel-knopf (raum.css). */
+#settings-btn { -webkit-app-region: no-drag; }
+/* ⚙ + Fenster-Buttons rechts buendeln, Titel bleibt links. */
+#settings-btn { margin-left: auto; }
 
-/* Fenster-Buttons (randloses Fenster): dezent, ✕ warnt rot */
+/* Fenster-Buttons (randloses Fenster): Pixel-Knoepfe, ✕ warnt rot */
 #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 6px; }
-#win-controls button {
-  background: none; border: none; color: var(--muted); cursor: pointer;
-  font-size: 12px; padding: 6px 9px; border-radius: 6px; line-height: 1;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-#win-controls button:hover { background: var(--hover); color: var(--text); }
-#win-controls #win-close:hover { background: #eb0400; color: #fff; }
+#win-controls #win-close:hover { filter: saturate(2.2) hue-rotate(-22deg) brightness(1.1); }
 
 #settings-pop {
-  position: absolute; top: 48px; right: 8px; z-index: 10;
-  background: var(--panel); border: 1px solid var(--accent-border); border-radius: 8px;
+  position: absolute; top: 52px; right: 8px; z-index: 10;
+  background: var(--panel-fest); border: 2px solid var(--line);
   padding: 4px; font-size: 12px; min-width: 236px;
   display: flex; flex-direction: column;
-  box-shadow: 0 10px 28px rgba(0,0,0,.6), inset 0 0 30px -16px var(--accent-glow);
+  box-shadow: 4px 4px 0 rgba(0,0,0,.5);
 }
-#settings-pop input[type="checkbox"], #theme-galerie input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
-#settings-pop input[type="range"], #theme-galerie input[type="range"] { accent-color: var(--accent); }
+#settings-pop input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+#settings-pop input[type="range"] { accent-color: var(--accent); }
 #settings-pop.hidden { display: none; }
 /* Abschnitte mit dezenter Ueberschrift und Trennlinie dazwischen. */
 .opt-group { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px; }
@@ -231,10 +222,6 @@ body { display: flex; flex-direction: column; }
 /* Name + graue Erklaerung darunter */
 .opt-text { display: flex; flex-direction: column; line-height: 1.25; }
 .opt-text small { font-size: 10px; color: var(--muted); font-weight: 400; }
-/* Beschriftung oben, Knopfreihe darunter ueber die ganze Breite */
-.opt-row.opt-stapel { flex-direction: column; align-items: stretch; gap: 5px; cursor: default; }
-.opt-stapel .opt-segment { margin-left: 0; display: flex; }
-.opt-stapel .opt-segment button { flex: 1; white-space: nowrap; padding: 4px 6px; }
 .opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; }
 #opt-font { flex: 1; min-width: 90px; }
 #opt-font-val { color: var(--muted); min-width: 38px; text-align: right; }
@@ -305,43 +292,154 @@ button { transition: background-color 120ms ease, color 120ms ease; }
   from { opacity: 0; transform: translateX(-50%) translateY(10px); }
 }
 
-/* --- Neon Dual - On Air (v1.5.0) ------------------------------------------ */
+/* --- On-Air-Leiste ---------------------------------------------------------- */
 
-/* Fensterrahmen in der Fensterfarbe (randloses Fenster). */
-body {
-  border: 1px solid var(--accent-border);
-  box-shadow: inset 0 0 24px -12px var(--accent-glow);
-}
+/* Kein Rahmen ums Fenster (Janis 09.11.2026): angedockt lagen Video- und
+   Chat-Rahmen als Doppellinie nebeneinander. */
 
-/* Titelzeile traegt die Fensterfarbe. */
+/* Titelzeile traegt die Akzentfarbe. */
 #title { color: var(--accent-title); }
 
-/* On-Air-Leiste: 2px ueber der Titelzeile. Gedimmt sichtbar, live = volle
-   Leuchtkraft + langsamer Puls. Kein display-Wechsel -> kein Layout-Sprung. */
-#onair-bar {
-  display: flex; align-items: center; gap: 10px; height: 16px;
-  padding: 0 12px; flex-shrink: 0;
+/* Szenen-Streifen: Pixel-Bild aus dem Raum. Faktor, Hoehe und Verschiebung
+   setzt chat.js aus der Szene-Lib (nicht ganzzahlig, Breite/344). Das Bild
+   liegt in einer 344x72-Ebene, die skaliert wird (spaetere Animationen kommen
+   als Kinder dort hinein). Das Fenster bleibt ganz sichtbar, oben wird
+   beschnitten. Immer deckend, auch bei reduzierter Deckkraft. */
+#szene {
+  position: relative; z-index: 1; flex-shrink: 0; overflow: hidden;
+  height: var(--szene-h, 72px);
+  background: #2e1612;
+  border-bottom: 2px solid var(--line);
 }
-#onair-bar .oa-line {
-  flex: 1; height: 2px; border-radius: 2px;
-  background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
-  opacity: .22;
+.szene-bildebene {
+  position: absolute; left: 0; top: var(--szene-oben, 0px);
+  width: 344px; height: 72px;
+  background: url('../themes/cozy/streifen.png') 0 0 / 344px 72px no-repeat;
+  image-rendering: pixelated;
+  transform: scale(var(--szene-f, 1)); transform-origin: 0 0;
 }
-body.onair #onair-bar .oa-line {
-  opacity: 1; box-shadow: 0 0 8px var(--accent-glow);
-  animation: onair-pulse 3.6s ease-in-out infinite;
-}
-@keyframes onair-pulse { 50% { opacity: .55; } }
 
-/* ON-AIR-Schriftzug: Verlaufs-Text am rechten Ende der Leiste, nur wenn on air. */
-#oa-label {
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  letter-spacing: .14em; white-space: nowrap;
-  background: linear-gradient(90deg, var(--onair-from), var(--onair-to));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-  opacity: 0; transition: opacity .25s;
+/* Leben im Streifen (Etappe 3, raum-leben-dom.js): PixelLab-Bildstreifen
+   leben-streifen-<datei>.png in Bildpixeln, gleiche Regeln wie im Home
+   (home-raum.css). Bild 0 und unbewegte Pixel sind auf Glas durchsichtig. */
+.raum-leben {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: raum-leben var(--dauer) steps(var(--bilder)) infinite;
 }
-body.onair #oa-label { opacity: 1; }
+.raum-leben.selten:not(.spielt) { animation: none; }
+.raum-leben.selten.spielt { animation-iteration-count: 1; }
+.raum-leben.ruht { animation: none; }
+.raum-leben.verdeckt { visibility: hidden; }
+@keyframes raum-leben { to { background-position: calc(-1 * var(--sb)) 0; } }
+
+/* Kanalpunkte-Kiste: die Katze bringt eine Muenze, spielt einmal (Katze verdeckt). */
+.raum-kiste {
+  position: absolute; pointer-events: none; image-rendering: pixelated; display: none;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+}
+.raum-kiste.spielt { display: block; animation: raum-leben var(--dauer) steps(var(--bilder)) 1; }
+
+/* Animationen aus: im Streifen steht alles still (chat.js leert dazu die Effekte). */
+html[data-animationen="aus"] #szene * { animation: none !important; }
+
+/* Regennacht-Stadt (stadt-dom.js): liegt fest hinter der Nachrichtenliste, unten am
+   Strassenband ausgerichtet. Alle Ebenen sind PixelLab-Bilder in einer 344x277-Ebene
+   (Bildpixel), die chat.js per --stadt-f skaliert. Code zeichnet nichts: Fenster sind
+   Ausschnitte aus stadt-haeuser-licht.png, Abdunkeln ist ein einfarbiger Schleier. */
+#stadt-flaeche { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+#stadt {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: #0b0d17;
+}
+.stadt-bildebene {
+  position: absolute; left: var(--stadt-links, 0px); top: var(--stadt-oben, 0px);
+  width: 344px; height: 277px;
+  background-position: 0 0; background-size: 344px 277px; background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transform: scale(var(--stadt-f, 1)); transform-origin: 0 0;
+}
+.stadt-bildebene > div { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+.stadt-blitz { width: 344px; height: 277px; background-size: 344px 277px; visibility: hidden; }
+.stadt-blitz.an { visibility: visible; }
+.stadt-fenster-ebene, .stadt-strasse { width: 344px; height: 277px; }
+.stadt-fenster {
+  position: absolute; background-size: 344px 277px; background-repeat: no-repeat;
+  image-rendering: pixelated; opacity: 0; transition: opacity 300ms;
+}
+.stadt-fenster.an { opacity: 1; }
+/* Regen hinten (PixelLab-Effekt, nahtlose Schleife): je Ebene ein Bildstreifen in Stadtbreite. */
+.stadt-regen {
+  width: 344px; height: 277px;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) infinite;
+}
+/* Blitz-Strahl: spielt einmal (PixelLab-Effekt), danach entfernt ihn stadt-dom.js */
+.stadt-strahl {
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) 1 both;
+}
+.stadt-dunkel { width: 344px; background-color: #05040a; opacity: var(--stadt-dunkel, 0.25); }
+
+/* Strasse: Passanten, Autos und Raids ruecken in ganzen Bildpixeln vor (steps). */
+.stadt-figur, .stadt-raid-figur, .stadt-auto {
+  position: absolute; left: 0; image-rendering: pixelated;
+  transform: translateX(var(--von));
+  /* unsichtbar, bis die Figur loslaeuft (sonst steht beim Raid schon jemand an der Bustuer) */
+  animation: stadt-fahrt var(--dauer) steps(var(--schritte)) var(--verzug) 1 both,
+    stadt-erscheinen 0s var(--verzug) both;
+}
+@keyframes stadt-erscheinen { from { visibility: hidden; } to { visibility: visible; } }
+@keyframes stadt-fahrt {
+  from { transform: translateX(var(--von)); }
+  to { transform: translateX(var(--bis)); }
+}
+.stadt-geht {
+  width: 100%; height: 100%; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) var(--verzug) infinite;
+}
+.stadt-geht.links { transform: scaleX(-1); }
+@keyframes stadt-zyklus { to { background-position: calc(-1 * var(--sb)) 0; } }
+/* Fahrbahn liegt vor dem Gehweg: Fahrzeuge verdecken Fussgaenger, nicht umgekehrt */
+.stadt-auto { z-index: 1; }
+.stadt-auto-bild, .stadt-spiegel {
+  position: absolute; left: 0; width: 100%; height: 100%;
+  background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
+}
+.stadt-auto-bild { top: 0; }
+/* Spiegelung auf der nassen Strasse: Achse an der Radunterkante (top setzt stadt-dom.js). */
+.stadt-spiegel { transform: scaleY(-1); filter: brightness(0.35); opacity: 0.5; }
+.stadt-auto.links .stadt-auto-bild { transform: scaleX(-1); }
+.stadt-auto.links .stadt-spiegel { transform: scale(-1, -1); }
+/* Bus: anfahren (--an), halten (--halt-ms, so lange alle aussteigen), wegfahren (--ab).
+   Die zweite Animation haelt bis zu ihrem Start nichts fest, die erste haelt den Halt-Punkt. */
+.stadt-bus {
+  position: absolute; left: 0; z-index: 1; image-rendering: pixelated;
+  background-size: 100% 100%; background-repeat: no-repeat;
+  animation: stadt-bus-an var(--an) linear 1 both, stadt-bus-ab var(--ab) linear var(--ab-verzug) 1 forwards;
+}
+.stadt-bus-zu, .stadt-bus-auf {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
+}
+/* Tuer offen genau waehrend des Halts (dieselben Werte wie die Fahrt) */
+.stadt-bus-auf { visibility: hidden; animation: stadt-bus-tuer var(--halt-ms) step-end var(--an) 1; }
+.stadt-bus-zu { animation: stadt-bus-zu var(--halt-ms) step-end var(--an) 1; }
+@keyframes stadt-bus-tuer { from, to { visibility: visible; } }
+@keyframes stadt-bus-zu { from, to { visibility: hidden; } }
+@keyframes stadt-bus-an {
+  from { transform: translateX(var(--von)); }
+  to { transform: translateX(var(--halt)); }
+}
+@keyframes stadt-bus-ab {
+  from { transform: translateX(var(--halt)); }
+  to { transform: translateX(var(--bis)); }
+}
+
+/* Animationen aus: Stadt steht still, Fenster schalten hart. */
+html[data-animationen="aus"] #stadt * { animation: none !important; transition: none !important; }
+
 
 /* Monospace fuer den technischen Puls: Zeitstempel, Status, msg/min. */
 .msg .ts, #footer, #mode { font-family: var(--mono); }
@@ -366,55 +464,37 @@ body.onair #oa-label { opacity: 1; }
 button:focus-visible, input:focus-visible {
   outline: 2px solid var(--accent-dim); outline-offset: 1px;
 }
-#new-msgs { color: #fff; }
+#new-msgs { color: var(--accent-contrast); }
 
-/* ⚙-Popup: Preset-Chips (kuratierte Video/Chat-Kombis). Zwei-Ton diagonal:
-   --pv (Video) oben-links, --pc (Chat) unten-rechts; aktiver Chip glueht. */
-.opt-presets-label { font-size: 11px; color: var(--muted); margin: -2px 0 -2px; }
-.opt-presets { display: flex; flex-wrap: wrap; gap: 9px; padding: 2px 0 2px; }
-.preset-chip {
-  width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--line);
-  background: linear-gradient(135deg, var(--pv) 0 50%, var(--pc) 50% 100%);
-  box-shadow: 0 0 6px -1px var(--pv);
-  transition: transform 100ms ease, box-shadow 120ms ease;
-}
-.preset-chip:hover { transform: scale(1.12); }
-.preset-chip.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent), 0 0 10px 1px var(--accent-glow);
-}
-
-/* ⚙-Popup: Farbwaehler (Neon Dual). */
-.opt-color-row input[type="color"] {
-  width: 44px; height: 24px; padding: 0; border: 1px solid var(--line);
-  border-radius: 4px; background: none; cursor: pointer;
-}
-#opt-color-reset, #opt-tf-reset, #opt-diag-open {
+#opt-diag-open {
   margin: 6px 6px 4px; align-self: stretch; text-align: center;
   background: var(--hover); border: 1px solid var(--accent-border); border-radius: 6px;
   color: var(--accent-title); font-size: 12px; padding: 6px 8px; cursor: pointer;
 }
-#opt-color-reset:hover, #opt-tf-reset:hover, #opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
+#opt-diag-open:hover { color: var(--text); border-color: var(--accent-dim); }
 
-/* ⚙-Popup: Deckkraft-Slider (Glass-Transparenz). */
-.opt-alpha-row { display: flex; align-items: center; gap: 8px; }
-.opt-alpha-row input[type="range"] { flex: 1; min-width: 90px; }
-.opt-alpha-val {
-  font-family: var(--mono); color: var(--muted);
-  min-width: 42px; text-align: right;
-}
 
 /* Chat-Eingabezeile (v1.8.0): nur eingeloggt + Live aktiv (updateComposerState). */
+/* Eingabe (Janis 09.11.2026): EIN Feld, Knoepfe als kleine Symbole rechts
+   darin; Slow-Mode & Co. als duenner Streifen darueber. Frueher standen
+   Hinweis, Feld und Knoepfe nebeneinander - bei schmalem Chat wurde das Feld
+   auf Null gedrueckt, sichtbar blieb nur sein Scrollbalken. */
 #composer {
-  display: flex; gap: 6px; padding: 6px 8px; align-items: center;
+  display: flex; flex-direction: column; gap: 4px; padding: 6px 8px;
   position: relative; flex-shrink: 0;
-  background: var(--panel); border-top: 1px solid var(--line);
+  background: var(--panel-fest); border-top: 2px solid var(--line);
 }
+/* Rahmen und Flaeche kommen aus der Klasse rahmen-feld (raum.css); der
+   Inhalt ragt in den dunklen Innenrand, damit das Feld nicht zu hoch wird. */
+#chat-feld {
+  display: flex; align-items: flex-end; gap: 2px; padding: 0;
+}
+#chat-feld > * { margin-top: -8px; margin-bottom: -8px; }
+#chat-feld:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
 #chat-input {
-  flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px;
-  background: rgba(255, 255, 255, .06); color: var(--text);
-  border: 1px solid var(--accent-border); font-family: inherit; font-size: 13px;
+  flex: 1; min-width: 0; padding: 6px 8px;
+  background: none; color: var(--text); border: none;
+  font-family: inherit; font-size: 13px;
   /* contenteditable statt <input>: rendert Emote-Bilder inline (wie Twitch). */
   max-height: 84px; overflow-y: auto; line-height: 1.5;
   white-space: pre-wrap; word-break: break-word; outline: none;
@@ -427,14 +507,16 @@ button:focus-visible, input:focus-visible {
   height: 1.5em; vertical-align: middle; margin: 0 1px;
   border-radius: 3px; user-select: all;
 }
+/* Symbole im Feld: Pixel-Bilder in Originalgroesse (32 px), ohne eigenen
+   Rahmen, beim Drueberfahren heller. */
 #chat-send, #emote-btn, #rewards-btn {
-  cursor: pointer; background: var(--hover); color: var(--text);
-  border: 1px solid var(--accent-border); border-radius: 6px; padding: 6px 10px;
+  flex-shrink: 0; cursor: pointer; background: none;
+  border: none; padding: 0 1px;
+  display: inline-flex; align-items: center; justify-content: center; line-height: 1;
 }
-#emote-btn, #rewards-btn { padding: 4px 6px; display: inline-flex; align-items: center; }
-#emote-btn img, #rewards-btn img { height: 20px; width: auto; display: block; }
-#chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled), #rewards-btn:hover:not(:disabled) { border-color: var(--accent-dim); }
-#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .5; }
+.pixel-symbol { width: 32px; height: 32px; display: block; image-rendering: pixelated; }
+#chat-send:hover:not(:disabled), #emote-btn:hover:not(:disabled), #rewards-btn:hover:not(:disabled) { filter: brightness(1.25); }
+#chat-send:disabled, #emote-btn:disabled { cursor: default; opacity: .4; }
 #chat-error {
   position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 4px;
   background: #4a1220; color: #ffb3c4; padding: 4px 8px; border-radius: 6px;
@@ -455,11 +537,11 @@ button:focus-visible, input:focus-visible {
 /* Picker rechts angedockt statt volle Breite (Nutzerwunsch). */
 #emote-panel { position: absolute; bottom: 100%; right: 6px; left: auto; margin-bottom: 6px;
   width: 300px; max-width: calc(100% - 12px);
-  max-height: 260px; overflow-y: auto; background: #14141c; border: 1px solid var(--accent-border, #333);
+  max-height: 260px; overflow-y: auto; background: var(--panel-fest); border: 1px solid var(--accent-border, #333);
   border-radius: 8px; padding: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
 #ep-suche { position: sticky; top: -6px; z-index: 1; display: block; box-sizing: border-box;
   width: 100%; margin: -6px 0 4px; padding: 6px 8px; font: inherit; font-size: 12px;
-  color: inherit; background: #14141c; border: none; border-bottom: 1px solid var(--accent-border, #333);
+  color: inherit; background: var(--hover-fest); border: none; border-bottom: 1px solid var(--accent-border, #333);
   border-radius: 8px 8px 0 0; outline: none; }
 #ep-suche:focus { border-bottom-color: var(--accent, #9146ff); }
 .ep-emote[hidden] { display: none; }
@@ -477,14 +559,14 @@ button:focus-visible, input:focus-visible {
   padding: 6px 8px; background: none; border: none; color: inherit; cursor: pointer; }
 #rewards-panel .reward:hover:not(:disabled) { background: var(--hover); }
 #rewards-panel .reward:disabled { opacity: 0.5; cursor: default; }
-#room-state { font-size: 11px; color: var(--muted, #8b8b9c); background: rgba(255,255,255,.06);
-  padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
+/* Streifen ueber dem Feld; lange Texte brechen um statt das Feld zu druecken. */
+#room-state { font-size: 11px; color: var(--muted, #8b8b9c); padding: 0 4px; line-height: 1.4; }
 #room-state.hidden { display: none; }
 /* Autocomplete-Leiste: zeigt beim Tab-Durchgehen die Treffer als Bild,
    der aktuelle ist hervorgehoben. */
 #ac-bar { position: absolute; bottom: 100%; left: 6px; right: 6px; margin-bottom: 6px;
   display: flex; gap: 4px; overflow-x: auto; padding: 6px; z-index: 6;
-  background: #14141c; border: 1px solid var(--accent-border, #333); border-radius: 8px;
+  background: var(--panel-fest); border: 1px solid var(--accent-border, #333); border-radius: 8px;
   box-shadow: 0 6px 20px rgba(0,0,0,.4); }
 #ac-bar.hidden { display: none; }
 .ac-item { display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -495,65 +577,11 @@ button:focus-visible, input:focus-visible {
 .ac-item.active { background: var(--accent-dim, #333); }
 .ac-item.active .ac-name { color: var(--text); }
 
-/* --- Lebendige Themes: Effekt-Ebenen --------------------------------------
-   fx-hinten liegt UNTER Kopf/Nachrichten/Composer/Footer (die bekommen eine
-   eigene Ebene 1), fx-vorn ueber allem fuer kurze Ereignis-Effekte. Beide
-   fangen nie einen Klick ab. */
-.fx-ebene { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
-#fx-hinten { z-index: 0; opacity: .55; }
-#fx-vorn { z-index: 40; }
 #head, #messages, #composer, #footer { position: relative; z-index: 1; }
 
-/* Namensfarbe als Variable: helle Themes koennen sie per color-mix
-   abdunkeln, ohne dass alte Nachrichten neu gerendert werden muessen. */
+/* Namensfarbe als Variable (setzt chat.js je Nachricht). */
 .msg .user, #uc-name { color: var(--name, #bf94ff); }
 
-/* --- 🎨: Effekte-Regler ------------------------------------------------------- */
-.opt-segment { display: inline-flex; margin-left: auto; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.opt-segment button {
-  padding: 3px 7px; border: none; background: transparent; color: var(--muted);
-  font: inherit; font-size: 11px; cursor: pointer;
-}
-.opt-segment button + button { border-left: 1px solid var(--line); }
-.opt-segment button.aktiv { background: var(--accent); color: var(--accent-contrast); }
-#opt-neon-farben { display: flex; flex-direction: column; gap: 8px; }
-#opt-neon-farben.hidden { display: none; }
-
-/* --- Theme-Galerie ------------------------------------------------------------ */
-#theme-galerie {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
-  background: var(--panel); backdrop-filter: blur(8px);
-  display: flex; flex-direction: column; animation: pop-in 120ms ease-out;
-}
-#theme-galerie.hidden { display: none; }
-.galerie-kopf {
-  display: flex; align-items: center; padding: 8px 12px; font-weight: 700; color: var(--accent-title);
-  border-bottom: 1px solid var(--line);
-}
-.galerie-kopf button {
-  margin-left: auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px;
-}
-#galerie-wuerfel { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-title); margin-right: 6px; }
-#galerie-wuerfel + #galerie-zu { margin-left: 0; }
-#galerie-wuerfel:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
-/* 🎨-Fenster: Reiter oben, darunter scrollt die aktive Seite. */
-#theme-reiter { margin: 6px 8px 0; }
-#theme-seiten { flex: 1; overflow-y: auto; font-size: 12px; padding: 0 6px 8px; }
-#theme-seiten .opt-seite[data-seite="farben"], #theme-seiten .opt-seite[data-seite="effekte"] { max-width: 420px; }
-#galerie-liste { padding: 10px 4px; display: flex; flex-direction: column; gap: 10px; }
-.galerie-karte {
-  display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 8px;
-  overflow: hidden; background: var(--hover); color: var(--text); cursor: pointer; text-align: left;
-  font: inherit; transition: transform 120ms ease, border-color 120ms ease;
-  flex-shrink: 0; /* sonst staucht die scrollende Liste die Karten */
-}
-.galerie-karte:hover { transform: translateY(-1px); border-color: var(--accent-border); }
-.galerie-karte.aktiv { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-.galerie-bild { height: 70px; position: relative; overflow: hidden; }
-.galerie-name { padding: 6px 10px; font-size: 12px; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
-.galerie-info { margin-left: auto; font-size: 10px; font-weight: 400; color: var(--muted); }
-.galerie-check { display: none; color: var(--accent); }
-.galerie-karte.aktiv .galerie-check { display: inline; }
 /* ⚙ Effekte testen */
 .opt-fx-test { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .opt-fx-test button {
@@ -562,29 +590,12 @@ button:focus-visible, input:focus-visible {
 }
 .opt-fx-test button:hover { filter: brightness(1.2); }
 .opt-hinweis { margin-top: 5px; font-size: 10px; color: var(--muted); }
-/* Varianten eines gezeichneten Themes: Reihe unter der Karte */
-.galerie-varianten { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-top: -4px; flex-shrink: 0; }
-.galerie-variante {
-  padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; cursor: pointer;
-  background: var(--hover); color: var(--text); font: inherit; font-size: 10px; text-align: center;
-  transition: transform 120ms ease, border-color 120ms ease;
-}
-.galerie-variante:hover { transform: translateY(-1px); border-color: var(--accent-border); }
-.galerie-variante.aktiv { border: 2px solid var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-.galerie-variante-bild { height: 54px; position: relative; overflow: hidden; }
-.galerie-variante span { display: block; padding: 3px 2px; }
 
-/* --- Welle 1b: Deko + Titel-Schrift + Namens-Abdunklung ------------------- */
-.theme-deko { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-#title, .galerie-kopf, .opt-group-title { font-family: var(--schrift-titel, inherit); }
-/* Heller (auch selbst gewaehlter) Grund: helle Twitch-Namen abdunkeln. */
-:root[data-hell="1"] .msg .user,
-:root[data-hell="1"] #uc-name { color: color-mix(in srgb, var(--name, #bf94ff) 45%, #000); }
-#opt-theme-farben { display: flex; flex-direction: column; gap: 8px; }
-#opt-theme-farben.hidden { display: none; }
+/* --- Titel-Schrift ---------------------------------------------------------- */
+#title, .opt-group-title { font-family: var(--schrift-titel, inherit); }
 
 /* --- Kanalpunkte-Effekte in der Leiste (renderer/lib/kiste.js) --------------
-   Fuer alle Themes gleich gezeichnet, Farben aus den Theme-Variablen. */
+   Farben aus den Farb-Variablen. */
 #points-wrap { overflow: visible; }
 .kfx-kiste {
   position: absolute; left: 100%; bottom: -3px; margin-left: 6px;
@@ -729,7 +740,7 @@ button:focus-visible, input:focus-visible {
 .ke-feld.falsch { border-color: #ff5a5a; }
 .ke-los, .ke-anmelden {
   align-self: stretch; padding: 5px; border-radius: 6px; border: 0; cursor: pointer; font-weight: 600;
-  background: var(--accent); color: #0b0b11; animation: ke-puls 1.6s ease-in-out infinite;
+  background: var(--accent); color: var(--accent-contrast); animation: ke-puls 1.6s ease-in-out infinite;
 }
 @keyframes ke-puls { 50% { box-shadow: 0 0 14px var(--accent-glow); } }
 .ke-meldung { font-size: .85em; color: var(--accent-title); }
@@ -767,12 +778,13 @@ button:focus-visible, input:focus-visible {
 .vk-tau { position: relative; display: flex; height: 22px; border-radius: 11px; overflow: hidden; margin-top: 8px; box-shadow: 0 0 14px rgba(255,111,182,.2), 0 0 14px rgba(109,182,255,.2); }
 .vk-tau-seg {
   display: flex; align-items: center; font-weight: 800; font-size: .8em; white-space: nowrap; overflow: hidden; color: #fff;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--vk-farbe) 70%, #000), var(--vk-farbe));
+  background: var(--vk-farbe);
   transition: width .8s cubic-bezier(.2,.9,.3,1); text-shadow: 0 1px 2px rgba(0,0,0,.5);
 }
 .vk-tau-seg.links { padding-left: 9px; }
-.vk-tau-seg.rechts { justify-content: flex-end; padding-right: 9px; background: linear-gradient(90deg, var(--vk-farbe), color-mix(in srgb, var(--vk-farbe) 70%, #000)); }
-.vk-glanz { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.3) 50%, transparent 70%); animation: vk-glanz 2.8s linear infinite; }
+.vk-tau-seg.rechts { justify-content: flex-end; padding-right: 9px; }
+/* Der Glanz-Streifen war ein Verlauf; im Pixel-Raum gibt es keine Verlaeufe. */
+.vk-glanz { display: none; }
 .vk-meins {
   margin-top: 8px; text-align: center; font-weight: 700; font-size: .9em; color: var(--vk-farbe);
   background: color-mix(in srgb, var(--vk-farbe) 14%, transparent); border: 1px solid color-mix(in srgb, var(--vk-farbe) 45%, transparent); border-radius: 6px; padding: 3px;
@@ -825,3 +837,34 @@ button:focus-visible, input:focus-visible {
 .teiler-griff:hover::after, .teiler-griff.zieht::after { background: var(--accent, #35e0ff); height: 96px; margin-top: -48px; }
 .teiler-rechts { right: 0; }
 .teiler-links { left: 0; }
+/* Per Klick ausgeblendet: unsichtbar, beim Drueberfahren wieder da. */
+.teiler-griff.versteckt:not(:hover):not(.zieht) { background: transparent; }
+.teiler-griff.versteckt:not(:hover):not(.zieht)::after { opacity: 0; }
+.teiler-griff::after { transition: height 150ms ease, background-color 150ms ease, opacity 200ms ease; }
+
+/* Runde Positions-Pille rechts am Chat (renderer/lib/scroll-pille.js):
+   gleiche Optik wie der Griff an der Trennlinie, nur beim Scrollen da. */
+.scroll-pille {
+  position: absolute; right: 2px; top: 0; width: 12px; z-index: 4;
+  cursor: grab; touch-action: none;
+  opacity: 0; pointer-events: none; transition: opacity 250ms ease;
+}
+.scroll-pille::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 4px; border-radius: 2px;
+  background: var(--accent-border, rgba(255,255,255,.35));
+  transition: left 150ms ease, width 150ms ease, background-color 150ms ease;
+}
+.scroll-pille.sichtbar { opacity: 1; pointer-events: auto; }
+.scroll-pille:hover::after, .scroll-pille.zieht::after { left: 3px; width: 6px; border-radius: 3px; background: var(--accent, #35e0ff); }
+.scroll-pille.zieht { cursor: grabbing; }
+
+/* --- Cozy: harte Kanten -----------------------------------------------------
+   Im Pixel-Raum sind Tafeln, Felder und Nachrichten eckig. Rund bleiben nur
+   Punkte und Bilder (Status-Punkt, Profilbilder, Scroll-Pille). Steht am
+   Schluss, damit es die Rundungen der Regeln oben ueberstimmt. */
+#settings-pop, .opt-reiter button, #opt-diag-open, .opt-fx-test button,
+#emote-panel, #ep-suche, #rewards-panel, #ac-bar, .ac-item, #rewards-panel .reward,
+.msg, .msg.ereignis, #new-msgs, #user-card, #emote-tip,
+#chat-send, #emote-btn, #rewards-btn, .ep-emote {
+  border-radius: 0;
+}

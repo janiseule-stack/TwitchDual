@@ -50,6 +50,16 @@
     return null;
   }
 
+  // Wie viele Abos ein Ereignis bringt (Chat-Stadt: so viele Fenster gehen an).
+  // Einzelgeschenke eines Sammelgeschenks (gruppe gesetzt) zaehlt schon der Regen.
+  function aboAnzahl(ev) {
+    if (!ev) return 0;
+    if (ev.art === 'abo') return 1;
+    if (ev.art === 'geschenk') return ev.gruppe ? 0 : 1;
+    if (ev.art === 'abo-regen') return zahl(ev.anzahl, 1);
+    return 0;
+  }
+
   function deZahl(n) { return Number(n).toLocaleString('de-DE'); }
 
   function zeile(ev) {
@@ -101,5 +111,5 @@
     };
   }
 
-  return { ereignisAus, zeile, createEreignisFilter, tagWert };
+  return { ereignisAus, zeile, createEreignisFilter, tagWert, aboAnzahl };
 });

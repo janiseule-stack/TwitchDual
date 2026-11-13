@@ -1,11 +1,8 @@
-/* Home-Overlay: Favoriten (Live-Status) + VOD-Browser */
+/* Home-Overlay: Grundregeln. Raum, Regal, Tafel und Ablauf stehen in
+   home-raum.css (Darstellung home-raum-dom.js); hier nur #home selbst,
+   Login-Zeile, Hinweiszeile und Versionsnummer. */
 
-#home-btn {
-  padding: 8px 12px; border: none; border-radius: 6px;
-  background: var(--hover); color: var(--text); cursor: pointer; font-size: 16px;
-  line-height: 1;
-}
-#home-btn:hover { background: var(--line); }
+/* Ins Home geht es ueber das Schild links in der Leiste (#onair-bar, video/index.html). */
 
 .hidden { display: none !important; }
 
@@ -16,27 +13,17 @@
 }
 #home {
   position: absolute;
-  top: 63px; /* unter der On-Air-Leiste (16px) + Bar */
+  top: var(--leiste-h, 50px); /* direkt unter der Leiste (video.js misst ihre Hoehe) */
   left: 0; right: 0; bottom: 0;
   background: var(--bg);
   display: flex; flex-direction: column;
   z-index: 10;
 }
+/* Die Login-Zeile erscheint nur in der Tafel (dort ist sie kein direktes
+   Kind von #home mehr). */
+#home > #auth-bar { display: none; }
 
-#home-head {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-bottom: 1px solid var(--line);
-  background: var(--panel);
-}
-#home-title { font-weight: 700; flex: 1; }
-#home-head button {
-  padding: 6px 10px; border: none; border-radius: 6px;
-  background: var(--hover); color: var(--text); cursor: pointer; font-size: 13px;
-}
-#home-head button:hover { background: var(--line); }
-
-/* Login-Zeile + Device-Code-Panel (oberhalb der Favoriten-/VOD-Ansicht,
-   bleibt in beiden Ansichten sichtbar) */
+/* Login-Zeile + Device-Code-Panel (in der Tafel "Konto") */
 #auth-bar {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 12px; border-bottom: 1px solid var(--line);
@@ -58,168 +45,19 @@
 #auth-bar.unvollstaendig #auth-login { animation: auth-puls 1.6s ease-in-out infinite; }
 @keyframes auth-puls { 50% { box-shadow: 0 0 0 4px rgba(255,184,77,.35); } }
 
-#home-kanaele, #home-vod-view {
-  flex: 1; overflow-y: auto; padding: 12px;
-  scrollbar-width: thin; scrollbar-color: #23232e transparent;
+/* Hinweiszeile (Ladefehler, nicht angemeldet): ueber Raum, Regal und Tafel,
+   unter dem Ablauf */
+#home-hinweis {
+  position: absolute; left: 50%; bottom: 8px; z-index: 5; transform: translateX(-50%);
+  max-width: calc(100% - 32px); padding: 6px 12px;
+  background: var(--panel-fest, var(--bg)); border: 2px solid var(--line);
 }
-#home-kanaele::-webkit-scrollbar, #home-vod-view::-webkit-scrollbar { width: 8px; }
-#home-kanaele::-webkit-scrollbar-thumb,
-#home-vod-view::-webkit-scrollbar-thumb { background: #23232e; border-radius: 4px; }
 
-#home-such-zeile { display: flex; gap: 8px; margin-bottom: 12px; justify-content: center; }
-#home-suche {
-  flex: 0 1 460px; min-width: 0; padding: 8px 10px; border-radius: 6px;
-  border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 14px;
-}
-#home-suche:focus { outline: none; border-color: var(--accent); }
-#refresh-btn {
-  padding: 8px 12px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 6px;
-  background: var(--hover); color: var(--text); font-weight: 600; cursor: pointer;
-}
-#refresh-btn:hover { background: var(--line); }
-#home-hinweis { padding: 8px 12px; }
-
-/* Stern (Favorit) an jeder Karte, Haken bei verifizierten Twitch-Kanaelen. */
-.stern {
-  background: transparent; border: none; cursor: pointer; font-size: 17px; line-height: 1;
-  color: var(--muted); padding: 4px 6px; transition: transform 120ms ease, color 120ms ease;
-}
-.stern:hover { color: #ffcf40; transform: scale(1.15); }
-.stern.an { color: #ffcf40; }
-.haken {
-  display: inline-grid; place-items: center; width: 14px; height: 14px; margin-left: 5px;
-  border-radius: 50%; background: #9147ff; color: #fff; font-size: 9px; font-weight: 700; vertical-align: 1px;
-}
+/* Im Auflege-Ablauf (Zoom auf den Fernseher) sollen sie nicht durchscheinen. */
+#home.im-ablauf #home-hinweis,
+#home.im-ablauf #home-version { display: none; }
 
 .empty { color: var(--muted); text-align: center; padding: 24px; font-size: 14px; }
-
-/* Favoriten-Karte */
-.fav {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px; border-radius: 8px; margin-bottom: 8px;
-  background: var(--panel); border: 1px solid var(--line);
-}
-.fav .avatar {
-  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-  background: var(--hover); object-fit: cover;
-}
-.fav .avatar.live { box-shadow: 0 0 0 2px var(--onair-to), 0 0 8px var(--onair-to); }
-.fav .info { flex: 1; min-width: 0; }
-.fav .name { font-weight: 700; display: flex; align-items: center; gap: 6px; }
-.fav .badge {
-  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
-  background: var(--onair-to); box-shadow: 0 0 8px var(--onair-to); color: #fff; text-transform: uppercase;
-}
-.fav .badge.off { background: var(--line); color: var(--muted); }
-.fav .meta {
-  font-size: 12px; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.fav .actions { display: flex; gap: 6px; flex-shrink: 0; }
-.fav .actions button {
-  padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer;
-  font-size: 12px; font-weight: 600;
-}
-.fav .watch { background: var(--onair-to); color: #fff; }
-.fav .watch:disabled { background: var(--hover); color: #6a6a72; cursor: default; }
-.fav .vods { background: var(--hover); color: var(--text); }
-.fav .vods:hover { background: var(--line); }
-
-/* VOD-Karte */
-.vod {
-  display: flex; gap: 10px; padding: 8px; border-radius: 8px;
-  margin-bottom: 8px; background: var(--panel); border: 1px solid var(--line);
-  cursor: pointer;
-}
-.vod:hover { background: var(--hover); border-color: var(--accent); }
-.vod .thumbwrap { position: relative; flex-shrink: 0; }
-.vod .thumb {
-  width: 140px; height: 79px; border-radius: 6px; object-fit: cover;
-  background: var(--hover);
-}
-.vod .len {
-  position: absolute; right: 4px; bottom: 4px;
-  background: rgba(0,0,0,.8); color: #fff; font-size: 11px;
-  padding: 1px 4px; border-radius: 3px;
-}
-.vod .vinfo { flex: 1; min-width: 0; }
-.vod .vtitle {
-  font-weight: 600; font-size: 14px; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.vod .vmeta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-/* Live-Favoriten als Vorschau-Karten im Grid */
-#live-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px; margin-bottom: 12px;
-}
-.live-card {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-  overflow: hidden; cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
-}
-.live-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,.45);
-  border-color: var(--accent);
-}
-.lc-thumbwrap {
-  position: relative; aspect-ratio: 16 / 9; background: var(--hover); overflow: hidden;
-}
-.lc-thumb {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  transition: transform 160ms ease;
-}
-.live-card:hover .lc-thumb { transform: scale(1.03); }
-.lc-live {
-  position: absolute; top: 6px; left: 6px;
-  display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(0,0,0,.75); color: #fff; font-size: 11px; font-weight: 700;
-  padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
-}
-.lc-live::before {
-  content: ''; width: 7px; height: 7px; border-radius: 50%;
-  background: #eb0400; animation: live-pulse 1.6s ease-in-out infinite;
-}
-@keyframes live-pulse { 50% { opacity: .35; } }
-.lc-viewers {
-  position: absolute; right: 6px; bottom: 6px;
-  background: rgba(0,0,0,.75); color: #fff; font-size: 11px;
-  padding: 2px 6px; border-radius: 4px;
-  font-family: var(--mono);
-}
-.lc-body { display: flex; gap: 8px; padding: 8px; align-items: center; }
-.lc-body .avatar { width: 32px; height: 32px; }
-.lc-info { flex: 1; min-width: 0; }
-.lc-name { font-weight: 700; font-size: 13px; }
-.lc-meta {
-  font-size: 12px; color: var(--muted); margin-top: 2px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.lc-actions {
-  display: flex; gap: 6px; padding: 0 8px 8px; justify-content: flex-end;
-}
-.lc-actions button {
-  padding: 5px 10px; border: none; border-radius: 6px; cursor: pointer;
-  font-size: 12px; font-weight: 600;
-}
-.lc-actions .vods { background: var(--hover); color: var(--text); }
-.lc-actions .vods:hover { background: var(--line); }
-
-/* Skeleton-Platzhalter beim ersten Laden */
-.live-card.skeleton { pointer-events: none; }
-.live-card.skeleton .lc-thumbwrap,
-.live-card.skeleton .sk-line {
-  background: linear-gradient(90deg, var(--line) 25%, var(--hover) 50%, var(--line) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.2s linear infinite;
-}
-.sk-line { height: 12px; border-radius: 4px; }
-.sk-line.w60 { width: 60%; }
-@keyframes shimmer { to { background-position: -200% 0; } }
 
 /* Overlay gleitet ein. .hidden nutzt display:none - die Animation startet
    jedes Mal neu, wenn das Element sichtbar wird (Chromium-Verhalten). */
@@ -229,38 +67,10 @@
 }
 
 /* Dezentes Druck-Feedback fuer alle Buttons im Overlay */
-#home button:active, #home-btn:active { transform: scale(.96); }
+#home button:active { transform: scale(.96); }
 
 /* Bewusste Design-Entscheidung: Die App animiert immer, unabhaengig von der
    Windows-Einstellung "Animationseffekte" (prefers-reduced-motion). */
 
 /* Satisfying-Details */
-#home button, #home-btn { transition: background-color 120ms ease, color 120ms ease; }
-/* Leichter Glow um den pulsierenden LIVE-Punkt */
-.lc-live::before { box-shadow: 0 0 6px #eb0400; }
-/* Verlauf am unteren Thumbnail-Rand: Chips bleiben auf hellen Bildern lesbar */
-.lc-thumbwrap::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
-  background: linear-gradient(transparent, rgba(0, 0, 0, .55));
-  pointer-events: none;
-}
-.lc-viewers, .lc-live { z-index: 1; }
-
-/* Live/Offline als einklappbare Abschnitte (Favoriten + Gefolgt). Zu = nur
-   die Kopfzeile bleibt, darunter sieht man den Theme-Hintergrund. */
-.home-abschnitt { margin-bottom: 10px; }
-.abschnitt-kopf {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  margin: 0 0 8px; padding: 4px 2px 6px; border: none; border-bottom: 1px solid var(--line);
-  background: none; color: var(--accent-title); font: inherit; font-family: var(--schrift-titel, inherit);
-  font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; text-align: left;
-}
-.abschnitt-kopf:hover { color: var(--accent); }
-.abschnitt-pfeil { display: inline-block; width: 12px; transition: transform 160ms ease; }
-.home-abschnitt.zu .abschnitt-pfeil { transform: rotate(-90deg); }
-.abschnitt-anzahl {
-  padding: 0 7px; border-radius: 999px; background: var(--accent-glow); border: 1px solid var(--accent-border);
-  color: var(--text); font-size: 11px; font-weight: 600; line-height: 18px;
-}
-.home-abschnitt.zu .abschnitt-inhalt { display: none; }
-.home-abschnitt.zu .abschnitt-kopf { margin-bottom: 0; }
+#home button { transition: background-color 120ms ease, color 120ms ease; }

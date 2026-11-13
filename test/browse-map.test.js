@@ -42,6 +42,16 @@ test('mapLiveUser: offline (stream null)', () => {
   assert.equal(r.thumb, null);
 });
 
+test('mapLiveUser: start aus stream.createdAt', () => {
+  const r = m.mapLiveUser({ login: 'kanal_a', stream: { createdAt: '2026-11-09T10:00:00Z' } });
+  assert.equal(r.start, '2026-11-09T10:00:00Z');
+});
+
+test('mapLiveUser: start null offline oder ohne Feld', () => {
+  assert.equal(m.mapLiveUser({ login: 'kanal_a', stream: null }).start, null);
+  assert.equal(m.mapLiveUser({ login: 'kanal_a', stream: { title: 't' } }).start, null);
+});
+
 test('mapLiveUser: null node -> null', () => {
   assert.equal(m.mapLiveUser(null), null);
 });
@@ -65,6 +75,26 @@ test('sortByLive: live zuerst, dann Zuschauer', () => {
     { login: 'c', live: true, viewers: 5000 }
   ];
   assert.deepEqual(m.sortByLive(list).map((x) => x.login), ['c', 'b', 'a']);
+});
+
+test('mapVod: Platzhalter-Bild eines VODs in Aufnahme -> kein Bild, laeuft markiert', () => {
+  // Twitch liefert fuer laufende Aufnahmen .../_404/404_processing_...png (antwortet 403)
+  const r = m.mapVod({ id: '1', status: 'RECORDING',
+    previewThumbnailURL: 'https://vod-secure.twitch.tv/_404/404_processing_640x360.png' });
+  assert.equal(r.thumb, null);
+  assert.equal(r.aufnahme, true);
+  const fertig = m.mapVod({ id: '2', status: 'RECORDED', previewThumbnailURL: 'http://a/t.jpg' });
+  assert.equal(fertig.thumb, 'http://a/t.jpg');
+  assert.equal(fertig.aufnahme, false);
+  assert.equal(m.echteVorschau('https://vod-secure.twitch.tv/_404/404_processing_640x360.png'), null);
+  assert.equal(m.echteVorschau(null), null);
+  assert.equal(m.echteVorschau('http://a/t.jpg'), 'http://a/t.jpg');
+});
+
+test('mapVod: Spiel', () => {
+  assert.equal(m.mapVod({ id: '1', game: { displayName: 'Spiel' } }).game, 'Spiel');
+  assert.equal(m.mapVod({ id: '1', game: null }).game, '');
+  assert.equal(m.mapVod({ id: '1' }).game, '');
 });
 
 test('sortByLive: Offline alphabetisch nach Anzeigename (case-insensitiv)', () => {

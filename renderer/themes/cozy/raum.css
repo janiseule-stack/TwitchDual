@@ -1,0 +1,99 @@
+/* Cozy-Raum: gemeinsame Bausteine beider Fenster (Etappe 1b).
+   Pixel-Schrift, Rahmen aus den Pixel-Bildern (9-Slice, immer ganzzahlig
+   vergroessert), Knopf, Lampen, Tapete. Farben stehen in farben.css.
+   test/cozy-raum.test.js prueft den Vertrag. */
+
+/* Pixelify Sans, SIL Open Font License 1.1 (schrift/OFL.txt). Liegt lokal,
+   es wird nichts aus dem Netz geladen. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('schrift/PixelifySans.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: block;
+}
+/* Raum Klar (PixelLab, tools/raum-quellen/schrift-klar.ttf): Raster 12 px
+   (1 em = 12 Schriftpixel), scharf nur in Vielfachen von 12 px. Fehlende
+   Zeichen (ae oe ue ss u. a.) kommen aus Pixelify Sans. */
+@font-face {
+  font-family: 'Raum Klar';
+  src: url('schrift/RaumKlar.ttf') format('truetype');
+  font-display: block;
+}
+/* Raum Zahlen: nur die Ziffern (und . :) aus Raum Klar, der Rest kommt aus Pixelify
+   Sans (Regal von nahe: in Pixelify sieht die 5 wie ein S aus, die 2 wie ein Z). */
+@font-face {
+  font-family: 'Raum Zahlen';
+  src: url('schrift/RaumKlar.ttf') format('truetype');
+  unicode-range: U+0030-0039, U+002E, U+003A;
+  font-display: block;
+}
+/* Raum Klar hat nur ein Gewicht: kein kuenstliches Fett/Kursiv, das die Pixel verschmiert */
+body { font-synthesis: none; }
+:root {
+  /* nur fuer Leisten, Schilder und Ueberschriften; Chat-Text bleibt wie er ist */
+  --schrift-pixel: 'Raum Klar', 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
+  /* Tafel, Trackliste und grosse Namen im Regal: Pixelify Sans mit Raum-Klar-Ziffern */
+  --schrift-karte: 'Raum Zahlen', 'Pixelify Sans', monospace;
+}
+
+/* --- Rahmen ------------------------------------------------------------------
+   Schnittmasse in Bildpixeln, am Bild gemessen (10.11.2026); die Rahmenbreite
+   ist das Doppelte (Faktor 2). Die Mitte wird gestreckt und fuellt die Flaeche. */
+
+/* leiste-chat.png 334x42: Holz mit Creme-Linie, Rand 7 px ringsum */
+.rahmen-leiste-chat {
+  border-style: solid; border-color: transparent; border-width: 14px;
+  border-image: url('leiste-chat.png') 7 fill / 14px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* leiste-video-links.png 334x39 (gespiegelt): Gehaeuse, links der Lautsprecher
+   (bis Bildpixel 50, samt Schrauben), rechts 14, oben 7, unten 9 */
+.rahmen-leiste-video {
+  border-style: solid; border-color: transparent; border-width: 14px 28px 18px 100px;
+  border-image: url('leiste-video-links.png') 7 14 9 50 fill / 14px 28px 18px 100px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* feld.png 334x39: dunkles Feld mit Bernstein-Linie, Rand 9 px ringsum */
+.rahmen-feld {
+  border-style: solid; border-color: transparent; border-width: 18px;
+  border-image: url('feld.png') 9 fill / 18px / 0 stretch;
+  image-rendering: pixelated; border-radius: 0; background: none;
+}
+
+/* image-rendering vererbt sich: Bilder IN den Rahmen (Emotes, Profilbild)
+   sollen weich bleiben. Knopf und Lampen setzen es unten wieder selbst. */
+.rahmen-leiste-chat > *, .rahmen-leiste-video > *, .rahmen-feld > *, .tapete > * { image-rendering: auto; }
+
+/* --- Knopf, Lampen, Tapete --------------------------------------------------- */
+/* Das Zeichen steckt im Bild (tools/knopf-bilder.py baut die Bilder), damit
+   es pixelgenau mittig sitzt; das Schriftzeichen im Knopf bleibt nur fuer
+   Vorleseprogramme und ist unsichtbar (font-size 0). */
+.pixel-knopf {
+  width: 32px; height: 32px; flex: none; padding: 0; border: none; border-radius: 0;
+  background: url('knopf.png') center / 32px 32px no-repeat;
+  image-rendering: pixelated;
+  color: transparent; font-size: 0; cursor: pointer;
+}
+.pixel-knopf.k-min { background-image: url('knopf-min.png'); }
+.pixel-knopf.k-max { background-image: url('knopf-max.png'); }
+.pixel-knopf.k-zu { background-image: url('knopf-zu.png'); }
+.pixel-knopf.k-zahnrad { background-image: url('knopf-zahnrad.png'); }
+.pixel-knopf.k-home { background-image: url('knopf-home.png'); }
+.pixel-knopf.k-teilen { background-image: url('knopf-teilen.png'); }
+.pixel-knopf.k-vollbild { background-image: url('knopf-vollbild.png'); }
+.pixel-knopf:hover { filter: brightness(1.25); }
+.pixel-knopf:active { transform: translateY(1px); }
+
+.lampe {
+  display: inline-block; width: 32px; height: 32px; flex: none;
+  background: center / 32px 32px no-repeat; image-rendering: pixelated;
+}
+.lampe.rot { background-image: url('lampe-rot.png'); }
+.lampe.gruen { background-image: url('lampe-gruen.png'); }
+
+.tapete {
+  background: url('tapete.png') 0 0 / 60px 60px repeat;
+  image-rendering: pixelated;
+}

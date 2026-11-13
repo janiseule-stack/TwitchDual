@@ -17,28 +17,21 @@ function renderAdOverlay() {
   $adsIndicator.classList.toggle('blocking', adState.overlayVisible);
 }
 
-// "Ads blocked"-Pille: animierte 7TV-Emotes wechseln ab und zu (alle 45 s,
-// sofort bei geblockter Werbung), Zahl = geblockte Werbungen dieser Sitzung.
-const $adsEmote = document.getElementById('ads-emote');
+// "Ads blocked"-Schild: gruene Lampe + Zahl = geblockte Werbungen insgesamt
+// (zaehlt und speichert der Main, src/werbe-zaehler.js).
 const $adsZahl = document.getElementById('ads-zahl');
-let adsEmoteNr = -1;
 let adsGeblockt = 0;
-function adsEmoteWechseln() {
-  if (!$adsEmote || !window.AdsEmotes) return;
-  adsEmoteNr = AdsEmotes.naechstes(adsEmoteNr, Math.random);
-  const e = AdsEmotes.EMOTES[adsEmoteNr];
-  $adsEmote.classList.add('weg');
-  setTimeout(() => { $adsEmote.src = AdsEmotes.url(e); $adsEmote.title = e.name; $adsEmote.classList.remove('weg'); }, 250);
-}
 function adsZahlZeigen() {
   if (!$adsZahl) return;
   $adsZahl.textContent = String(adsGeblockt);
   $adsZahl.classList.remove('hidden'); // auch die 0 zeigen: der Zaehler ist immer da
-  $adsZahl.title = adsGeblockt + (adsGeblockt === 1 ? ' Werbung' : ' Werbungen') + ' in dieser Sitzung geblockt';
+  $adsZahl.title = adsGeblockt + (adsGeblockt === 1 ? ' Werbung' : ' Werbungen') + ' geblockt (insgesamt)';
 }
-adsEmoteWechseln();
+// Stand vom letzten Mal; nie rueckwaerts, falls schon eine Werbung kam.
+function adsGesamtUebernehmen(n) {
+  if (Number.isFinite(n) && n > adsGeblockt) { adsGeblockt = n; adsZahlZeigen(); }
+}
 adsZahlZeigen();
-setInterval(adsEmoteWechseln, 45000);
 
 // Werbe-Status aus dem Player-iframe (via Main-Relay).
 if (window.twitchDual.onAdblockState) {
@@ -46,9 +39,8 @@ if (window.twitchDual.onAdblockState) {
     if (!adState) return;
     const phase = payload && payload.phase;
     if (phase === 'start') {
-      adsGeblockt++;
-      adsZahlZeigen();
-      adsEmoteWechseln(); // bei geblockter Werbung sofort ein neues Emote
+      if (Number.isFinite(payload.gesamt)) adsGesamtUebernehmen(payload.gesamt);
+      else { adsGeblockt++; adsZahlZeigen(); }
       let muted = false;
       try { muted = !!(player && player.getMuted && player.getMuted()); } catch (e) {}
       adState.adStart(muted);
@@ -130,7 +122,7 @@ function mountPlayer(options) {
   player = new Twitch.Player($player, { ...base, ...options });
 
   player.addEventListener(Twitch.Player.READY, () => {
-    sendeBalken(); // neues iframe -> Theme-Balkenfarbe nachreichen
+    sendeBalken(); // neues iframe -> Balkenfarbe nachreichen
     setStatus(''); // "live: X"/"VOD: X" war redundant (Kanal steht im Feld + On-Air-Label)
     // Gemerkte Lautstaerke/Qualitaet wieder anwenden.
     try {
@@ -207,6 +199,7 @@ function startTimeBroadcast() {
 // (nur ausserhalb von Eingabefeldern; greift nicht, wenn das Player-iframe
 // selbst den Fokus hat - dann uebernimmt der Twitch-Player).
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented) return; // schon behandelt (z. B. Album im Staender auf Home)
   if (e.ctrlKey && e.key.toLowerCase() === 'l') {
     e.preventDefault();
     if (window.homeMitSuche) window.homeMitSuche();
@@ -215,6 +208,10 @@ document.addEventListener('keydown', (e) => {
   const t = e.target;
   const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
   if (inField) return;
+  // Knopf auf Home (Platte, Zettel): Leertaste loest den Knopf aus, pausiert nicht.
+  const homeKnopf = t && t.closest && t.closest('#home') &&
+    (t.tagName === 'BUTTON' || t.getAttribute('role') === 'button');
+  if (homeKnopf) return;
   if (e.key === ' ' && player) {
     e.preventDefault();
     meldeNutzerEingabe(); // Pause ist gewollt -> Pause-Waechter im Player haelt still
@@ -254,6 +251,12 @@ document.getElementById('win-min').addEventListener('click', () => window.twitch
 document.getElementById('win-max').addEventListener('click', () => window.twitchDual.windowControl('maximize'));
 document.getElementById('win-close').addEventListener('click', () => window.twitchDual.windowControl('close'));
 // Doppelklick nur auf die freie Leiste (nicht Eingabefeld/Buttons) maximiert.
+// Home liegt direkt unter der Leiste (home.css: top = --leiste-h).
+new ResizeObserver(() => {
+  const leiste = document.getElementById('bar');
+  document.documentElement.style.setProperty('--leiste-h', leiste.offsetHeight + 'px');
+}).observe(document.getElementById('bar'));
+
 document.getElementById('bar').addEventListener('dblclick', (e) => {
   if (e.target.id === 'bar') window.twitchDual.windowControl('maximize');
 });
@@ -303,22 +306,12 @@ document.getElementById('player').addEventListener('dblclick', () => {
 document.addEventListener('mousemove', showControlsBriefly);
 
 // ---------------------------------------------------------------------------
-// Neon Dual - On Air (v1.5.0): Fensterfarbe (Video = videoAccent) als CSS-
-// Variablen; On-Air-Leiste haengt an load-Modus + eigenem Player-Zustand.
+// Fenster-Einstellungen (Animationen) und Balkenfarbe; die On-Air-Leiste
+// haengt an load-Modus + eigenem Player-Zustand.
 // ---------------------------------------------------------------------------
-// Farben, data-theme, Theme-CSS und Welt setzt die Runtime (Spec Lebendige
-// Themes). Im Video-Fenster lebt die Welt nur im Home-Overlay; uebers Video
-// fliegen nur Gastauftritte.
-const themeRuntime = ThemeRuntime.createRuntime({
-  fenster: 'video',
-  doc: document,
-  win: window,
-  ebenen: { hinten: document.getElementById('fx-hinten'), gast: document.getElementById('fx-gast') },
-  melde: (bereich, ereignis, detail) => window.twitchDual.diag(bereich, ereignis, detail)
-});
-// Balken ueber/unter dem Video in Theme-Farbe (Spec Welle 1b, 3.): die Farbe
-// geht per postMessage ins Twitch-iframe, der Preload dort setzt sie.
-let balkenFarbe = null;
+// Balken ueber/unter dem Video in der festen Raum-Farbe: sie geht per
+// postMessage ins Twitch-iframe, der Preload dort setzt sie.
+const balkenFarbe = ThemeLib.BALKEN;
 // Dem Pause-Waechter im Player-iframe sagen: diese Pause kommt vom Nutzer.
 function meldeNutzerEingabe() {
   const f = $player.querySelector('iframe');
@@ -332,20 +325,14 @@ function sendeBalken() {
     try { f.contentWindow.postMessage({ source: 'twitchdual-theme', balken: balkenFarbe }, '*'); } catch (e) { /* egal */ }
   }
 }
+// Animationen "aus" -> data-animationen="aus" (Home liest es beim Auflegen).
+// Pixel-Uebergang -> data-uebergang="pixel" (Home, Wechsel Raum <-> Regal), sonst "zoom".
 function applyTheme(prefs) {
-  themeRuntime.anwenden(prefs);
-  balkenFarbe = ThemeKatalog.balkenFarbe(ThemeKatalog.cleanThemePrefs(prefs));
+  const p = ThemeLib.cleanThemePrefs(prefs);
+  document.documentElement.dataset.animationen = p.animationen ? 'an' : 'aus';
+  document.documentElement.dataset.uebergang = p.pixelUebergang ? 'pixel' : 'zoom';
   sendeBalken();
 }
-
-// Ambient nur bei offenem Home und nie im Nur-Video-Modus.
-const $homeFx = document.getElementById('home');
-function aktualisiereFxPause() {
-  themeRuntime.pausieren($homeFx.classList.contains('hidden') || document.body.classList.contains('video-only'));
-}
-new MutationObserver(aktualisiereFxPause).observe($homeFx, { attributes: true, attributeFilter: ['class'] });
-new MutationObserver(aktualisiereFxPause).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-aktualisiereFxPause();
 
 // Updater-Anzeige: laedt -> Prozent, bereit -> Knopf "Neu starten", Fehler
 // -> Hinweis (Grund im Tooltip). Sonst unsichtbar.
@@ -378,29 +365,10 @@ $updateChip.addEventListener('click', () => {
 window.twitchDual.getUpdateZustand().then(zeigeUpdate).catch(() => {});
 window.twitchDual.onUpdateZustand(zeigeUpdate);
 
-// Effekte testen (⚙ im Chat): Gast sofort, Raid/Abo auch im Home-Teich.
-window.twitchDual.onFxTest((art) => {
-  if (art === 'gast') themeRuntime.gastErzwingen();
-  else if (art === 'raid') themeRuntime.ereignis('raid', { name: 'Testkanal', anzahl: 120 });
-  else if (art === 'abo') {
-    themeRuntime.ereignis('abo', { name: 'TestZuschauer', monate: 12,
-      ursprung: { x: window.innerWidth / 2, y: window.innerHeight * 0.45 } });
-  }
-});
-
-// Gastauftritte nur bei laufendem Player und nicht im Nur-Video-Modus.
-themeRuntime.setzeGastBedingung(() =>
-  letzterGesendeterPlayerZustand === 'playing' && !document.body.classList.contains('video-only'));
-// Kiste eingesammelt -> sofort ein Gast (die Punkte-Anzeige selbst lebt im Chat).
-window.twitchDual.onPointsUpdate((p) => {
-  if (p && Array.isArray(p.zuwaechse) && p.zuwaechse.some((z) => z && z.quelle === 'kiste')) {
-    themeRuntime.gastJetzt();
-  }
-});
-
 window.twitchDual.getUiPrefs()
   .then((prefs) => {
     applyTheme(prefs && prefs.themePrefs);
+    if (prefs) adsGesamtUebernehmen(prefs.werbungGeblockt);
     const v = document.getElementById('home-version');
     if (v && prefs && prefs.appVersion) v.textContent = 'v' + prefs.appVersion;
   })
@@ -412,8 +380,18 @@ let onAirPlayerState = null;
 function updateOnAir() {
   const label = ThemeLib.onAirLabel(onAirMode, onAirPlayerState);
   document.body.classList.toggle('onair', label !== null);
+  // Plattenspieler im Home-Raum dreht, solange etwas spielt (LIVE oder VOD).
+  if (window.HomeRaumDom) HomeRaumDom.plattenspielerLaeuft(label !== null);
+  // Schild links leuchtet, solange etwas geladen ist (auch bei Pause): LIVE oder VOD.
+  // Ohne Quelle: aus und nicht klickbar (Janis 11.11.2026).
+  const knopf = document.getElementById('onair-bar');
   const el = document.getElementById('oa-label');
-  if (el) el.textContent = label ? ('● ' + label) : '';
+  if (!knopf || !el) return;
+  knopf.classList.toggle('leer', !onAirMode);
+  const art = onAirMode === 'vod' ? 'VOD' : onAirMode ? 'Live' : null;
+  el.src = '../themes/cozy/' + (art === 'VOD' ? 'schild-vod.png' : art ? 'schild-live.png' : 'schild-aus.png');
+  el.alt = art || '';
+  if (art) el.setAttribute('aria-label', art + ' – Home öffnen'); else el.removeAttribute('aria-label');
 }
 
 
@@ -427,6 +405,14 @@ const $siAvatar = document.getElementById('si-avatar');
 const $siOben = document.getElementById('si-oben');
 const $siUnten = document.getElementById('si-unten');
 let infoQuelle = null;   // { mode, wert } der geladenen Quelle
+// Auskunft fuer Home (Fernseher, Plattenspieler): was laeuft gerade?
+// vorschau: Vorschaubild des VODs (aus den Stream-Infos, auch bei VOD per Link).
+window.laeuftEtwas = () => infoQuelle ? {
+  mode: infoQuelle.mode,
+  login: infoQuelle.mode === 'live' ? infoQuelle.wert : null,
+  vorschau: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.vorschau || null) : null,
+  liveLogin: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.liveLogin || null) : null,
+} : null;
 let info = null;         // angezeigte Infos (Titel/Spiel nur alle 5 min erneuert)
 let titelZeit = 0;       // wann Titel/Spiel zuletzt uebernommen wurden
 let infoLauf = 0;        // verwirft verspaetete Antworten
@@ -466,6 +452,7 @@ function infoZeigen(zuschauer) {
     $siUnten.textContent = '☰ Home: Kanal wählen';
     $streamInfo.classList.remove('live');
     $siAvatar.style.visibility = 'hidden';
+    $siAvatarPixel.style.visibility = 'hidden';
     return;
   }
   const z = StreamInfo.zeilen(zuschauer === undefined ? info : { ...info, zuschauer }, Date.now());
@@ -473,7 +460,19 @@ function infoZeigen(zuschauer) {
   $siUnten.textContent = z.unten;
   $streamInfo.classList.toggle('live', z.live);
   if (info.avatar) { $siAvatar.src = info.avatar; $siAvatar.style.visibility = ''; } else $siAvatar.style.visibility = 'hidden';
+  $siAvatarPixel.style.visibility = info.avatar ? '' : 'hidden';
 }
+
+// Profilbild grob verpixelt (Cozy-Raum): das geladene Bild wird klein auf
+// eine 16x16-Flaeche gezeichnet, die das Stylesheet scharfkantig vergroessert.
+// Das <img> selbst bleibt unsichtbar und dient nur als Lader.
+const $siAvatarPixel = document.getElementById('si-avatar-pixel');
+$siAvatar.addEventListener('load', () => {
+  const ctx = $siAvatarPixel.getContext('2d');
+  ctx.clearRect(0, 0, 16, 16);
+  try { ctx.drawImage($siAvatar, 0, 0, 16, 16); } catch (e) { /* kaputtes Bild: Flaeche bleibt leer */ }
+});
+$siAvatar.addEventListener('error', () => { $siAvatarPixel.getContext('2d').clearRect(0, 0, 16, 16); });
 
 $streamInfo.addEventListener('click', () => { if (window.homeMitSuche) window.homeMitSuche(); });
 infoZeigen();

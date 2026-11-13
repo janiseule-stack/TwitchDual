@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..');
 const R = path.join(ROOT, 'renderer');
 const OUT = path.join(ROOT, 'design-screens');
 
-// Realistische Fake-Chatnachrichten (Neon Dual .msg-Struktur).
+// Realistische Fake-Chatnachrichten (.msg-Struktur des Chat-Fensters).
 const CHAT_MSGS = `
   <div class="msg"><span class="ts">21:04</span><span class="user" style="color:#ff7ac6">gronkh</span><span class="sep">: </span>morgen zusammen o/</div>
   <div class="msg"><span class="ts">21:04</span><span class="user" style="color:#7ad0ff">Pixelfee</span><span class="sep">: </span>endlich live PogChamp</div>

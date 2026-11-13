@@ -12,6 +12,20 @@ test('findChannel: existierender Kanal -> Modell (auch offline)', async () => {
   assert.equal(k.avatar, 'a.png');
 });
 
+test('findChannel und getLiveStatus fragen createdAt ab', async () => {
+  const bodies = [];
+  const fetchImpl = async (_url, init) => {
+    bodies.push(init.body);
+    return { ok: true, status: 200, async json() { return { data: { user: null, users: [] } }; } };
+  };
+  await browse.findChannel('kanal_a', { fetchImpl, retries: 0 });
+  await browse.getLiveStatus(['kanal_a'], { fetchImpl, retries: 0 });
+  assert.equal(bodies.length, 2);
+  for (const b of bodies) assert.match(JSON.parse(b).query, /createdAt/);
+  // Profilbild gross genug fuer Album-Cover und CD-Label (gemessen: 300 lieferbar)
+  for (const b of bodies) assert.match(JSON.parse(b).query, /profileImageURL\(width:300\)/);
+});
+
 test('findChannel: unbekannter Kanal -> null statt Platzhalter', async () => {
   assert.equal(await browse.findChannel('gibtsnichtxyz', { fetchImpl: antwort({ data: { user: null } }) }), null);
 });
@@ -102,7 +116,28 @@ test('streamInfo: offline, VOD, unbekannt', async () => {
   const antwort = (data) => async () => ({ ok: true, status: 200, async json() { return { data }; } });
   assert.deepEqual(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: { login: 'x', displayName: 'X', profileImageURL: null, stream: null } }), retries: 0 }),
     { art: 'offline', name: 'X', avatar: null });
-  assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' } } }), retries: 0 }),
-    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z' });
+  assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' }, previewThumbnailURL: 'v.jpg' } }), retries: 0 }),
+    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z', vorschau: 'v.jpg', liveLogin: null });
+  // ohne Vorschaubild: vorschau null (Fernseher bleibt aus)
+  assert.equal((await browse.streamInfo({ mode: 'vod', wert: '1' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, owner: null } }), retries: 0 })).vorschau, null);
+  // VOD noch in Aufnahme: Platzhalter (403) -> kein Bild, dafuer Login des live sendenden Besitzers
+  const aufnahme = await browse.streamInfo({ mode: 'vod', wert: '2' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, status: 'RECORDING',
+    owner: { login: 'kanal_o', displayName: 'O', stream: { id: '9' } },
+    previewThumbnailURL: 'https://vod-secure.twitch.tv/_404/404_processing_640x360.png' } }), retries: 0 });
+  assert.equal(aufnahme.vorschau, null);
+  assert.equal(aufnahme.liveLogin, 'kanal_o');
+  // fertiges VOD eines live sendenden Kanals: kein Ersatz (andere Sendung)
+  const alt = await browse.streamInfo({ mode: 'vod', wert: '3' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, status: 'RECORDED',
+    owner: { login: 'kanal_o', displayName: 'O', stream: { id: '9' } }, previewThumbnailURL: 'v.jpg' } }), retries: 0 });
+  assert.equal(alt.liveLogin, null);
   assert.equal(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: null }), retries: 0 }), null);
+});
+
+test("getChannelVods fragt das Spiel ab und reicht limit durch", async () => {
+  let body = null;
+  const fetchImpl = async (url, init) => { body = JSON.parse(init.body); return { ok: true, status: 200, async json() { return { data: { user: { videos: { edges: [{ node: { id: "9", game: { displayName: "G" } } }] } } } }; } }; };
+  const vods = await browse.getChannelVods("kanal_a", 50, { fetchImpl, retries: 0 });
+  assert.ok(body.query.includes("game{ displayName }"));
+  assert.equal(body.variables.n, 50);
+  assert.equal(vods[0].game, "G");
 });

@@ -3,30 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <title>TwitchDual — Chat</title>
+  <link rel="stylesheet" href="../themes/cozy/farben.css" />
+  <link rel="stylesheet" href="../themes/cozy/raum.css" />
   <link rel="stylesheet" href="chat.css" />
 </head>
 <body>
-  <!-- Theme-Effekte (Spec Lebendige Themes): nie klickbar, hinten gedaempft. -->
-  <div id="fx-hinten" class="fx-ebene"></div>
-  <div id="fx-vorn" class="fx-ebene"></div>
-  <div id="theme-deko" class="theme-deko" aria-hidden="true"></div>
-  <div id="onair-bar">
-    <span class="oa-line"></span>
-    <span id="oa-label">● ON AIR</span>
-  </div>
-  <div id="head">
+  <div id="head" class="rahmen-leiste-chat">
     <span id="title">Chat</span>
     <span id="mode"></span>
-    <button id="theme-btn" title="Themes, Farben &amp; Effekte">🎨</button>
-    <button id="settings-btn" title="Chat-Einstellungen">⚙</button>
+    <button id="settings-btn" class="pixel-knopf k-zahnrad" title="Chat-Einstellungen">⚙</button>
     <div id="win-controls">
-      <button id="win-min" title="Minimieren">─</button>
-      <button id="win-max" title="Maximieren/Wiederherstellen">▢</button>
-      <button id="win-close" title="Schließen">✕</button>
+      <button id="win-min" class="pixel-knopf k-min" title="Minimieren">─</button>
+      <button id="win-max" class="pixel-knopf k-max" title="Maximieren/Wiederherstellen">▢</button>
+      <button id="win-close" class="pixel-knopf k-zu" title="Schließen">✕</button>
     </div>
   </div>
+  <!-- Szenen-Streifen aus dem Raum (das LIVE-Schild sitzt im Video-Fenster). -->
+  <div id="szene"><div class="szene-bildebene"></div></div>
   <div id="settings-pop" class="hidden">
-    <!-- Reiter: Chat / Mehr. Aussehen + Effekte stehen im 🎨-Fenster. -->
+    <!-- Reiter: Chat / Mehr. -->
     <div id="opt-reiter" class="opt-reiter" role="tablist">
       <button type="button" role="tab" data-reiter="chat">💬 Chat</button>
       <button type="button" role="tab" data-reiter="mehr">🛠 Mehr</button>
@@ -43,6 +38,10 @@
           <span id="opt-font-val"></span>
         </label>
       </div>
+      <div class="opt-group">
+        <label class="opt-check"><input type="checkbox" id="opt-animationen" checked /><span class="opt-text">Animationen<small>Bewegung im Hintergrund</small></span></label>
+        <label class="opt-check"><input type="checkbox" id="opt-pixel-uebergang" /><span class="opt-text">Pixel-Übergang<small>Home: Regal pixelig statt Zoom</small></span></label>
+      </div>
     </div>
 
     <div class="opt-seite" data-seite="mehr">
@@ -52,82 +51,6 @@
           <span class="opt-text">Protokoll mitschreiben<small>hilft bei der Fehlersuche, bleibt auf deinem PC</small></span></label>
         <button id="opt-diag-open" type="button">Diagnose-Ordner öffnen</button>
       </div>
-    </div>
-  </div>
-  <!-- 🎨-Fenster: Themes / Farben / Effekte (IDs wie frueher im ⚙). -->
-  <div id="theme-galerie" class="hidden">
-    <div class="galerie-kopf"><span>🎨 <b id="opt-theme-name">Neon Dual</b></span><button id="galerie-wuerfel" type="button" title="Welt neu generieren (gefällt sie dir, bleibt sie so)">🎲 Neu</button><button id="galerie-zu" type="button" title="Schließen">✕</button></div>
-    <div id="theme-reiter" class="opt-reiter" role="tablist">
-      <button type="button" role="tab" data-reiter="themes">🖼 Themes</button>
-      <button type="button" role="tab" data-reiter="farben">🎨 Farben</button>
-      <button type="button" role="tab" data-reiter="effekte">✨ Effekte</button>
-    </div>
-    <div id="theme-seiten">
-    <div class="opt-seite" data-seite="themes">
-      <div id="galerie-liste"></div>
-    </div>
-    <div class="opt-seite" data-seite="farben">
-      <div class="opt-group">
-        <div class="opt-group-title">Farben</div>
-        <div id="opt-neon-farben">
-          <div class="opt-presets-label">Fertige Farbpaare</div>
-          <div id="opt-presets" class="opt-presets"></div>
-          <label class="opt-color-row opt-row"><span class="opt-text">Farbe Video-Fenster<small>Leuchtfarbe von Rahmen und Knöpfen im Video</small></span>
-            <input type="color" id="opt-color-video" value="#35e0ff" />
-          </label>
-          <label class="opt-color-row opt-row"><span class="opt-text">Farbe Chat-Fenster<small>Leuchtfarbe von Rahmen und Knöpfen im Chat</small></span>
-            <input type="color" id="opt-color-chat" value="#ff4fa3" />
-          </label>
-          <button id="opt-color-reset" type="button">Farben zurücksetzen</button>
-        </div>
-        <div id="opt-theme-farben" class="hidden">
-          <label class="opt-color-row opt-row"><span class="opt-text">Hervorhebung<small>Knöpfe, Titel, Rahmen, Kiste</small></span>
-            <input type="color" id="opt-tf-akzent" /></label>
-          <label class="opt-color-row opt-row"><span class="opt-text">Hintergrund<small>Fläche hinter Chat und Übersicht</small></span>
-            <input type="color" id="opt-tf-hintergrund" /></label>
-          <label class="opt-color-row opt-row"><span class="opt-text">Tiere &amp; Teilchen<small>Fische, Blüten, Glühwürmchen, Funken</small></span>
-            <input type="color" id="opt-tf-partikel" /></label>
-          <button id="opt-tf-reset" type="button">Original-Farben</button>
-        </div>
-      </div>
-      <div class="opt-group">
-        <label class="opt-alpha-row opt-row"><span class="opt-text">Chat-Deckkraft<small>weniger = Desktop scheint durch</small></span>
-          <input type="range" id="opt-alpha-chat" min="0" max="100" step="5" value="100" />
-          <span id="opt-alpha-chat-val" class="opt-alpha-val">100%</span>
-        </label>
-      </div>
-    </div>
-
-    <div class="opt-seite" data-seite="effekte">
-      <div class="opt-group">
-        <div class="opt-row opt-stapel"><span class="opt-text">Animationen<small>wie viel sich im Hintergrund bewegt</small></span>
-          <div id="opt-effekte" class="opt-segment" role="group" aria-label="Animationen"></div>
-        </div>
-        <div class="opt-row opt-stapel"><span class="opt-text">Kiste<small>erscheint beim Einsammeln neben den Punkten</small></span>
-          <div id="opt-kiste" class="opt-segment" role="group" aria-label="Kiste">
-            <button type="button" data-stil="geschenk">🎁 Geschenk</button>
-            <button type="button" data-stil="pixel">👾 Pixel</button>
-          </div>
-        </div>
-      </div>
-      <div class="opt-group">
-        <div class="opt-group-title">Effekte im Video</div>
-        <div class="opt-row opt-stapel"><span class="opt-text">Wie oft<small>ein Tier aus dem Theme schwimmt übers Video</small></span>
-          <div id="opt-gast-oft" class="opt-segment" role="group" aria-label="Effekte im Video wie oft">
-            <button type="button" data-wert="aus" title="nie">Aus</button>
-            <button type="button" data-wert="selten" title="alle 5–8 Minuten">Selten</button>
-            <button type="button" data-wert="normal" title="alle 2–4 Minuten">Normal</button>
-            <button type="button" data-wert="oft" title="alle 40–90 Sekunden">Oft</button>
-          </div>
-        </div>
-        <div class="opt-row opt-stapel"><span class="opt-text">Wie viele<small>pro Auftritt</small></span>
-          <div id="opt-gast-viele" class="opt-segment" role="group" aria-label="Effekte im Video wie viele">
-            <button type="button" data-wert="eins">1</button>
-            <button type="button" data-wert="wenige">2–3</button>
-            <button type="button" data-wert="schwarm">Schwarm</button>
-          </div>
-        </div>
-      </div>
       <div class="opt-group">
         <div class="opt-group-title">Ausprobieren</div>
         <div id="opt-fx-test" class="opt-fx-test">
@@ -135,26 +58,34 @@
           <button type="button" data-art="punkte">✨ Punkte</button>
           <button type="button" data-art="raid">🚀 Raid</button>
           <button type="button" data-art="abo">⭐ Abo</button>
-          <button type="button" data-art="gast">🎬 Video</button>
+          <button type="button" data-art="geschenk">🎁 Geschenk</button>
+          <button type="button" data-art="blitz">⚡ Blitz</button>
         </div>
-        <div class="opt-hinweis">Spielt das Ereignis mit Beispieldaten im aktuellen Theme ab. „Video" spielt im Video-Fenster. Bei Animationen „Aus" bewegt sich nur die Kiste.</div>
+        <div class="opt-hinweis">Spielt das Ereignis mit Beispieldaten ab.</div>
       </div>
     </div>
-
-    </div>
   </div>
-  <!-- Pin/Umfrage/Vorhersage schweben ueber dem Chat (Schleier laeuft bis oben). -->
-  <div id="chat-mitte">
-    <div id="kanal-ereignisse"></div>
-    <div id="messages"></div>
+  <!-- Regennacht-Stadt (stadt-dom.js) liegt fest hinter den Nachrichten; die Strasse
+       (Passanten, Autos, Raids) liegt unten hinter dem Text, kein eigenes Band. -->
+  <div id="stadt-flaeche">
+    <div id="stadt"></div>
+    <!-- Pin/Umfrage/Vorhersage schweben ueber dem Chat (Schleier laeuft bis oben). -->
+    <div id="chat-mitte">
+      <div id="kanal-ereignisse"></div>
+      <div id="messages"></div>
+    </div>
   </div>
   <div id="composer">
     <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
-    <span id="room-state" class="hidden"></span>
-    <div id="chat-input" contenteditable="false" data-placeholder="Zum Chatten anmelden"></div>
-    <button id="emote-btn" type="button" title="Emotes" aria-label="Emotes" disabled><img src="https://cdn.betterttv.net/emote/5f1b0186cf6d2144653d2970/1x.webp" alt="catJAM"></button>
-    <button id="rewards-btn" type="button" title="Belohnungen" aria-label="Belohnungen"><img src="https://cdn.7tv.app/emote/01FHPG3BCR00093JSPCMYFBG0E/1x.webp" alt="peepoMoney"></button>
-    <button id="chat-send" type="button" disabled>Senden</button>
+    <!-- Slow-Mode & Co.: duenner Streifen ueber dem Feld, nur wenn aktiv. -->
+    <div id="room-state" class="hidden"></div>
+    <!-- Ein Feld: Eingabe links, Knoepfe als kleine Symbole rechts darin. -->
+    <div id="chat-feld" class="rahmen-feld">
+      <div id="chat-input" contenteditable="false" data-placeholder="Zum Chatten anmelden"></div>
+      <button id="emote-btn" type="button" title="Emotes" aria-label="Emotes" disabled><img class="pixel-symbol" src="../themes/cozy/symbol-smiley.png" alt=""></button>
+      <button id="rewards-btn" type="button" title="Belohnungen" aria-label="Belohnungen"><img class="pixel-symbol" src="../themes/cozy/symbol-truhe.png" alt=""></button>
+      <button id="chat-send" type="button" title="Senden (Enter)" aria-label="Senden" disabled><img class="pixel-symbol" src="../themes/cozy/symbol-flieger.png" alt=""></button>
+    </div>
     <div id="chat-error" class="hidden"></div>
     <!-- Ergebnis einer Belohnungs-Einloesung. Geschwister von #rewards-panel,
          damit ein Neuaufbau des Panels die Meldung nicht mitreisst. Eigenes
@@ -212,14 +143,16 @@
   <script src="../lib/vod-replay.js"></script>
   <script src="../lib/chat-ui.js"></script>
   <script src="../lib/theme.js"></script>
-  <script src="../lib/themes.js"></script>
-  <script src="../lib/fx-engine.js"></script>
   <script src="../lib/kiste.js"></script>
   <script src="../lib/chat-ereignisse.js"></script>
-  <script src="../lib/theme-runtime.js"></script>
-  <script src="../lib/points-icon.js"></script>
   <script src="../lib/kanal-ereignisse.js"></script>
   <script src="../lib/teiler.js"></script>
+  <script src="../lib/szene.js"></script>
+  <script src="../lib/raum-leben.js"></script>
+  <script src="../lib/raum-leben-dom.js"></script>
+  <script src="../lib/stadt.js"></script>
+  <script src="../lib/stadt-dom.js"></script>
+  <script src="../lib/scroll-pille.js"></script>
   <script src="../lib/vorhersage-statistik.js"></script>
   <script src="vorhersage-karte.js"></script>
   <script src="ereignis-karten.js"></script>

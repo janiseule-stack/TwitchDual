@@ -19,95 +19,10 @@ test('normalizeHex: Muell faellt auf den Fallback zurueck', () => {
   assert.equal(ThemeLib.normalizeHex(42, '#ff4fa3'), '#ff4fa3');
 });
 
-// --- accentVars ---------------------------------------------------------------
-test('accentVars: liefert alle Variablen mit korrekten Ableitungen', () => {
-  const v = ThemeLib.accentVars('#ff4fa3'); // rgb(255, 79, 163)
-  assert.equal(v['--accent'], '#ff4fa3');
-  assert.equal(v['--accent-border'], 'rgba(255, 79, 163, 0.4)');
-  assert.equal(v['--accent-glow'], 'rgba(255, 79, 163, 0.2)');
-  assert.equal(v['--accent-dim'], 'rgba(255, 79, 163, 0.3)');
-  // Titeltext: 45 % Richtung Weiss gemischt -> heller als die Akzentfarbe.
-  // g: 79+(255-79)*0.45 = 158 (0x9e), b: 163+(255-163)*0.45 = 204 (0xcc)
-  assert.equal(v['--accent-title'], '#ff9ecc');
-  // Panel: 7 % Akzent in den Grundton #0b0b11 gemischt.
-  assert.equal(v['--panel'], 'rgba(28, 16, 27, 1)'); // Default-Alpha 100 % = opak
-  assert.equal(v['--bg'], 'rgba(11, 11, 17, 1)');
-  assert.equal(v['--hover'], 'rgba(20, 20, 28, 1)');
-});
-
-test('accentVars: dunkle Nutzerfarbe ergibt trotzdem hellen Titelton', () => {
-  const v = ThemeLib.accentVars('#220011'); // fast schwarz
-  // mixWhite(0.45): 0x22=34 -> 34+(255-34)*.45 = 133 (0x85); 0x00 -> 115 (0x73); 0x11=17 -> 124 (0x7c)
-  assert.equal(v['--accent-title'], '#85737c');
-});
-
-test('accentVars: kaputte Eingabe faellt auf den Video-Default zurueck', () => {
-  const v = ThemeLib.accentVars('kaputt');
-  assert.equal(v['--accent'], '#35e0ff');
-});
-
-// --- clampAlpha ---------------------------------------------------------------
-test('clampAlpha: gueltige Prozente bleiben, gerundet', () => {
-  assert.equal(ThemeLib.clampAlpha(100), 100);
-  assert.equal(ThemeLib.clampAlpha(0), 0);
-  assert.equal(ThemeLib.clampAlpha(55), 55);
-  assert.equal(ThemeLib.clampAlpha(42.6), 43);
-  assert.equal(ThemeLib.clampAlpha('80'), 80); // numerischer String
-});
-
-test('clampAlpha: Grenzen werden geklemmt', () => {
-  assert.equal(ThemeLib.clampAlpha(140), 100);
-  assert.equal(ThemeLib.clampAlpha(-20), 0);
-});
-
-test('clampAlpha: Muell/fehlend faellt auf 100 (nie unsichtbar)', () => {
-  assert.equal(ThemeLib.clampAlpha(undefined), 100);
-  assert.equal(ThemeLib.clampAlpha(null), 100);
-  assert.equal(ThemeLib.clampAlpha('viel'), 100);
-  assert.equal(ThemeLib.clampAlpha(NaN), 100);
-  assert.equal(ThemeLib.clampAlpha({}), 100);
-});
-
-// --- accentContrast -----------------------------------------------------------
-test('accentContrast: helle Akzentfarben bekommen dunklen Text', () => {
-  assert.equal(ThemeLib.accentContrast('#35e0ff'), '#041018'); // Cyan-Default
-  assert.equal(ThemeLib.accentContrast('#ff4fa3'), '#041018'); // Magenta-Default
-  assert.equal(ThemeLib.accentContrast('#ffffff'), '#041018'); // Weiss
-});
-
-test('accentContrast: dunkle Akzentfarben bekommen hellen Text (Bug-Fix)', () => {
-  assert.equal(ThemeLib.accentContrast('#000000'), '#f2f6ff'); // Schwarz
-  assert.equal(ThemeLib.accentContrast('#1a1a1a'), '#f2f6ff'); // dunkelgrau
-  assert.equal(ThemeLib.accentContrast('#3b0a2a'), '#f2f6ff'); // dunkles Magenta
-});
-
-test('accentContrast: kaputte Eingabe wie der Video-Default (hell -> dunkler Text)', () => {
-  assert.equal(ThemeLib.accentContrast('kaputt'), '#041018');
-});
-
-// --- accentVars mit Alpha -----------------------------------------------------
-test('accentVars: Alpha faerbt nur die Flaechen, nicht die Akzente', () => {
-  const v = ThemeLib.accentVars('#ff4fa3', 40);
-  assert.equal(v['--bg'], 'rgba(11, 11, 17, 0.4)');
-  assert.equal(v['--panel'], 'rgba(28, 16, 27, 0.4)');
-  assert.equal(v['--hover'], 'rgba(20, 20, 28, 0.4)');
-  assert.equal(v['--accent'], '#ff4fa3');            // Akzent bleibt voll
-  assert.equal(v['--accent-border'], 'rgba(255, 79, 163, 0.4)');
-});
-
-test('accentVars: 0 % ergibt vollkommen durchsichtige Flaechen', () => {
-  const v = ThemeLib.accentVars('#35e0ff', 0);
-  assert.equal(v['--bg'], 'rgba(11, 11, 17, 0)');
-});
-
-test('accentVars: kaputtes Alpha faellt auf 100 % (opak) zurueck', () => {
-  const v = ThemeLib.accentVars('#35e0ff', 'kaputt');
-  assert.equal(v['--bg'], 'rgba(11, 11, 17, 1)');
-});
-
-test('accentVars: setzt --accent-contrast passend zur Akzentfarbe', () => {
-  assert.equal(ThemeLib.accentVars('#35e0ff')['--accent-contrast'], '#041018');
-  assert.equal(ThemeLib.accentVars('#000000')['--accent-contrast'], '#f2f6ff');
+// --- Deckkraft entfaellt (Chat-Stadt, Janis 13.11.2026) -----------------------
+test('Deckkraft-Einstellung gibt es nicht mehr', () => {
+  assert.strictEqual(ThemeLib.clampAlpha, undefined);
+  assert.ok(!('chatAlpha' in ThemeLib.STANDARD_PREFS));
 });
 
 // --- onAirState ----------------------------------------------------------------
@@ -135,85 +50,52 @@ test('onAirLabel: paused/idle -> null (dimmed, kein Label)', () => {
   assert.strictEqual(_TL.onAirLabel(null, null), null);
 });
 
-// --- PRESETS ---------------------------------------------------------------
-test('PRESETS: nicht leer, jeder Eintrag vollstaendig + gueltige Hex', () => {
-  assert.ok(Array.isArray(ThemeLib.PRESETS) && ThemeLib.PRESETS.length >= 1);
-  for (const p of ThemeLib.PRESETS) {
-    assert.ok(p.id && typeof p.id === 'string', `id fehlt: ${JSON.stringify(p)}`);
-    assert.ok(p.name && typeof p.name === 'string', `name fehlt: ${p.id}`);
-    // Farben sind bereits normalisiert (== ihre eigene Normalisierung).
-    assert.equal(ThemeLib.normalizeHex(p.videoAccent, '#000000'), p.videoAccent, `videoAccent: ${p.id}`);
-    assert.equal(ThemeLib.normalizeHex(p.chatAccent, '#000000'), p.chatAccent, `chatAccent: ${p.id}`);
+// --- Cozy-Raum: feste Werte und geschrumpfte Einstellungen -------------------
+const T = ThemeLib;
+test('cleanThemePrefs: leer/Muell -> Standard', () => {
+  for (const roh of [null, undefined, 'x', 7, [], {}]) {
+    assert.deepStrictEqual(T.cleanThemePrefs(roh), { animationen: true, pixelUebergang: false });
   }
 });
-
-test('PRESETS: ids sind eindeutig', () => {
-  const ids = ThemeLib.PRESETS.map((p) => p.id);
-  assert.equal(new Set(ids).size, ids.length);
+// Janis 13.11.: Zoom ist Standard, die Pixel-Blende Raum <-> Regal gibt es als Einstellung.
+test('pixelUebergang: Standard aus, nur echte Booleans, Teil-Update laesst die anderen Felder stehen', () => {
+  assert.strictEqual(T.STANDARD_PREFS.pixelUebergang, false);
+  assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: true }).pixelUebergang, true);
+  assert.strictEqual(T.cleanThemePrefs({ pixelUebergang: 'ja' }).pixelUebergang, false);
+  const g = { animationen: false, pixelUebergang: true };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { animationen: true, pixelUebergang: true });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { pixelUebergang: false }), { animationen: false, pixelUebergang: false });
+  // kaputter Wert im Update wirft das Gespeicherte nicht um
+  assert.strictEqual(T.mergeThemePrefs(g, { pixelUebergang: 'nein' }).pixelUebergang, true);
 });
-
-test('PRESETS: neon-dual entspricht den DEFAULTS', () => {
-  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
-  assert.ok(nd);
-  assert.equal(nd.videoAccent, ThemeLib.DEFAULTS.videoAccent);
-  assert.equal(nd.chatAccent, ThemeLib.DEFAULTS.chatAccent);
+test('cleanThemePrefs: alte Felder verschwinden, auch eine gespeicherte Deckkraft', () => {
+  const alt = { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 60, theme: 'koi', effekte: 'normal',
+    anpassungen: { 'koi:tusche': { akzent: '#112233' } }, variante: { koi: 'tusche' }, saat: { koi: 5 },
+    gastHaeufigkeit: 'oft', gastAnzahl: 'schwarm' };
+  assert.deepStrictEqual(T.cleanThemePrefs(alt), { animationen: true, pixelUebergang: false });
 });
-
-// --- activePreset ----------------------------------------------------------
-test('activePreset: exakter Treffer', () => {
-  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
-  const hit = ThemeLib.activePreset({ videoAccent: nd.videoAccent, chatAccent: nd.chatAccent });
-  assert.equal(hit && hit.id, 'neon-dual');
+test('cleanThemePrefs: Umzug effekte aus -> animationen false', () => {
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus' }).animationen, false);
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'wenig' }).animationen, true);
+  // ein echtes animationen-Feld schlaegt das alte effekte-Feld
+  assert.strictEqual(T.cleanThemePrefs({ effekte: 'aus', animationen: true }).animationen, true);
+  // nur echte Booleans zaehlen
+  assert.strictEqual(T.cleanThemePrefs({ animationen: 'aus' }).animationen, true);
+  assert.strictEqual(T.cleanThemePrefs({ animationen: false }).animationen, false);
 });
-
-test('activePreset: Treffer trotz anderer Schreibweise (Gross/ohne #)', () => {
-  const p = ThemeLib.PRESETS.find((x) => x.id === 'sunset');
-  const hit = ThemeLib.activePreset({
-    videoAccent: p.videoAccent.slice(1).toUpperCase(),
-    chatAccent: p.chatAccent.toUpperCase()
-  });
-  assert.equal(hit && hit.id, 'sunset');
+test('mergeThemePrefs: Teil-Update laesst das andere Feld stehen, Deckkraft im Update wird ignoriert', () => {
+  const g = { animationen: false, pixelUebergang: false };
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { chatAlpha: 80 }), { animationen: false, pixelUebergang: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, { animationen: true }), { animationen: true, pixelUebergang: false });
+  assert.deepStrictEqual(T.mergeThemePrefs(g, null), g);
+  assert.deepStrictEqual(T.mergeThemePrefs(null, null), { animationen: true, pixelUebergang: false });
 });
-
-test('activePreset: Zwischenfarbe -> null', () => {
-  assert.equal(ThemeLib.activePreset({ videoAccent: '#123456', chatAccent: '#abcdef' }), null);
+test('mergeThemePrefs: alter Store mit effekte aus + Update ohne animationen bleibt aus', () => {
+  assert.strictEqual(T.mergeThemePrefs({ effekte: 'aus', chatAlpha: 100 }, { pixelUebergang: true }).animationen, false);
 });
-
-test('activePreset: nur ein Akzent passt -> null (beide muessen matchen)', () => {
-  const nd = ThemeLib.PRESETS.find((p) => p.id === 'neon-dual');
-  assert.equal(ThemeLib.activePreset({ videoAccent: nd.videoAccent, chatAccent: '#000000' }), null);
-});
-
-test('activePreset: robust gegen kaputte/fehlende prefs', () => {
-  assert.equal(ThemeLib.activePreset(null), null);
-  assert.equal(ThemeLib.activePreset({}), null);
-  assert.equal(ThemeLib.activePreset({ videoAccent: 'rot', chatAccent: 42 }), null);
-});
-
-// --- Welle 1b: Flaechen aus eigenem Hintergrund -----------------------------
-test('istHell: hell/dunkel nach Leuchtdichte', () => {
-  assert.equal(ThemeLib.istHell('#fff4f8'), true);
-  assert.equal(ThemeLib.istHell('#f0f7ff'), true);
-  assert.equal(ThemeLib.istHell('#0e1f14'), false);
-  assert.equal(ThemeLib.istHell('#082625'), false);
-  assert.equal(ThemeLib.istHell('kaputt'), false);
-});
-
-test('flaechenVars: heller Grund -> dunkle Schrift, dunkler Grund -> helle Schrift', () => {
-  const hell = ThemeLib.flaechenVars('#fff4f8', 100);
-  assert.equal(hell['--bg'], 'rgba(255, 244, 248, 1)');
-  assert.equal(hell['--text'], '#2b2b38');
-  const dunkel = ThemeLib.flaechenVars('#0e1f14', 100);
-  assert.equal(dunkel['--text'], '#ededf4');
-  for (const k of ['--bg', '--panel', '--hover', '--line', '--text', '--muted', '--ts']) {
-    assert.ok(k in hell && k in dunkel, k);
-  }
-});
-
-test('flaechenVars: Alpha nur auf Flaechen, Panel weicht vom Grund ab', () => {
-  const v = ThemeLib.flaechenVars('#0e1f14', 50);
-  assert.match(v['--bg'], /, 0\.5\)$/);
-  assert.match(v['--panel'], /, 0\.5\)$/);
-  assert.notEqual(v['--panel'], v['--bg']);
-  assert.match(v['--line'], /^#[0-9a-f]{6}$/);
+test('feste Werte: Akzent, Balken, Farbfilter', () => {
+  assert.strictEqual(T.AKZENT, '#f9a650');
+  assert.strictEqual(T.BALKEN, '#120505');
+  assert.ok(T.SICHERE_FARBE.test(T.BALKEN));
+  assert.ok(!T.SICHERE_FARBE.test('red; } body { display: none'));
 });

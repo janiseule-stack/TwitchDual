@@ -8,6 +8,8 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 const fs = require('fs');
 const path = require('path');
+// App-Icon (Fernseher aus PixelLab, Janis 13.11.2026); build/icon.ico fuer Installer/exe.
+const APP_ICON = path.join(__dirname, 'renderer', 'themes', 'cozy', 'app-icon.png');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
 
@@ -20,11 +22,11 @@ const badgeSources = require('./src/badge-sources');
 const BadgesLib = require('./renderer/lib/badges');
 const { cachedLoader } = require('./src/session-cache');
 const ThemeLib = require('./renderer/lib/theme');
-const ThemeKatalog = require('./renderer/lib/themes');
 const { TokenStore } = require('./src/twitch-tokens');
 const { AuthManager } = require('./src/auth-manager');
 const helix = require('./src/twitch-helix');
 const { ladeHomeKanaele } = require('./src/home-kanaele');
+const { homePunkte } = require('./src/home-punkte');
 const { ChatSender } = require('./src/chat-send');
 const { safeStorage, session, screen } = require('electron');
 
@@ -37,10 +39,12 @@ const store = new Store({
     lastSource: '',   // letzte Roheingabe (Prefill beim Start)
     playerPrefs: { volume: null, quality: null },
     chatPrefs: { showTimestamps: true, showBadges: true },
-    themePrefs: { videoAccent: '#35e0ff', chatAccent: '#ff4fa3', chatAlpha: 100, theme: 'neon-dual', effekte: 'normal' },
+    themePrefs: { ...ThemeLib.STANDARD_PREFS },
     diagEnabled: false   // Diagnose-Protokoll: Standard aus = nichts auf der Platte
   }
 });
+// Geblockte Werbungen insgesamt (ueber Neustarts, siehe 'adblock-state').
+const werbeZaehler = require('./src/werbe-zaehler').createWerbeZaehler(store);
 
 // --- Twitch-Login + Sende-Chat (v1.8.0) ------------------------------------
 let authManager = null;
@@ -103,7 +107,8 @@ function createWindows() {
   videoWin = new BrowserWindow({
     ...vb,
     title: 'TwitchDual — Video',
-    backgroundColor: '#0b0b11', // Video-Fenster bleibt opak (Player deckt eh alles)
+    icon: APP_ICON,
+    backgroundColor: '#120505', // = ThemeLib.BALKEN; Video-Fenster bleibt opak (Player deckt eh alles)
     frame: false, // randlos: die App-Leiste ist die Titelleiste (Buttons via window-control)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -116,6 +121,7 @@ function createWindows() {
   chatWin = new BrowserWindow({
     ...cb,
     title: 'TwitchDual — Chat',
+    icon: APP_ICON,
     backgroundColor: '#00000000',
     transparent: true,
     frame: false,
@@ -130,6 +136,8 @@ function createWindows() {
   videoWin.loadURL(`http://localhost:${serverPort}/video/index.html`);
   chatWin.loadURL(`http://localhost:${serverPort}/chat/index.html`);
   diagLog.melde('app', 'fenster', { welches: 'beide', was: 'auf' });
+  // Windows 11: keine runden Ecken, kein 1-px-Systemrand (Desktop schien durch).
+  require('./src/fenster-ecken').eckenAus([videoWin, chatWin]);
 
   // Fenster-Bounds bei jeder Aenderung merken.
   const save = () => {
@@ -465,9 +473,9 @@ ipcMain.handle('submit-load', async (_evt, raw) => {
   }
 });
 
-// Saeuberung lebt in renderer/lib/themes.js (getestet, auch fuer theme/effekte).
+// Saeuberung lebt in renderer/lib/theme.js (getestet).
 function cleanThemePrefs(prefs) {
-  return ThemeKatalog.cleanThemePrefs(prefs);
+  return ThemeLib.cleanThemePrefs(prefs);
 }
 
 // UI-Voreinstellungen fuers Video-Fenster (Verlauf, Prefill, Player-Prefs).
@@ -477,12 +485,13 @@ ipcMain.handle('get-ui-prefs', () => ({
   playerPrefs: store.get('playerPrefs', { volume: null, quality: null }),
   chatPrefs: store.get('chatPrefs', { showTimestamps: true, showBadges: true }),
   themePrefs: cleanThemePrefs(store.get('themePrefs')),
+  werbungGeblockt: werbeZaehler.gesamt(),
   appVersion: app.getVersion()
 }));
 
 // Home-Overlay geoeffnet -> beide Fenster benachrichtigen (Chat trennt die Quelle).
 // Effekte testen (⚙ im Chat): nur bekannte Arten, an beide Fenster.
-const FX_TEST_ARTEN = ['kiste', 'punkte', 'gast', 'raid', 'abo'];
+const FX_TEST_ARTEN = ['kiste', 'punkte', 'raid', 'abo', 'geschenk', 'blitz'];
 ipcMain.on('fx-test', (_evt, art) => {
   if (FX_TEST_ARTEN.includes(art)) broadcast('fx-test', art);
 });
@@ -519,12 +528,12 @@ ipcMain.on('save-chat-prefs', (_evt, prefs) => {
 // Teil-Updates (nur Farben, nur Theme, nur Stufe) mit dem Gespeicherten
 // mischen - sonst setzt z.B. ein Preset-Klick Theme und Effekte zurueck.
 ipcMain.on('save-theme-prefs', (_evt, prefs) => {
-  const clean = ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs);
+  const clean = ThemeLib.mergeThemePrefs(store.get('themePrefs'), prefs);
   store.set('themePrefs', clean);
   broadcast('theme-changed', clean);
 });
 ipcMain.on('preview-theme-prefs', (_evt, prefs) => {
-  broadcast('theme-changed', ThemeKatalog.mergeThemePrefs(store.get('themePrefs'), prefs));
+  broadcast('theme-changed', ThemeLib.mergeThemePrefs(store.get('themePrefs'), prefs));
 });
 
 // vaft-Quelltext fuer die Injektion: das Preload ist sandboxed (kein fs)
@@ -1124,13 +1133,16 @@ ipcMain.on('window-control', (evt, action) => {
   }
 });
 
-// Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen.
+// Werbe-Status aus dem Player-iframe -> ans Video-Fenster relayen. Bei
+// 'start' zaehlt der Main dauerhaft mit (src/werbe-zaehler.js) und schickt
+// die Gesamtzahl mit.
 ipcMain.on('adblock-state', (_evt, payload) => {
   const phase = payload && payload.phase;
   if (phase === 'start' || phase === 'end') {
     diagLog.melde('video', phase === 'start' ? 'werbung-start' : 'werbung-ende');
+    const gesamt = phase === 'start' ? werbeZaehler.plusEins() : werbeZaehler.gesamt();
     if (videoWin && !videoWin.isDestroyed()) {
-      videoWin.webContents.send('adblock-state', { phase });
+      videoWin.webContents.send('adblock-state', { phase, gesamt });
     }
   }
 });
@@ -1179,6 +1191,18 @@ ipcMain.handle('home-kanaele', async () => {
     });
     return { ok: true, ...r };
   } catch (e) { return { ok: false, error: e.message || String(e) }; }
+});
+
+// Home: Kanalpunkte-Stand fuer einen Kanal. Der Token bleibt im Main-Prozess,
+// zum Renderer geht nur Stand und Symbol.
+ipcMain.handle('home-punkte', async (_evt, login) => {
+  if (webTokenAbgelaufen) return { ok: false, error: 'Anmeldung abgelaufen', abgelaufen: true };
+  const r = await homePunkte({ login, token: webToken, api: pointsApi });
+  if (r.abgelaufen) {
+    webTokenAbgelaufen = true;
+    diagLog.melde('punkte', 'token-abgelaufen', { kanal: login });
+  }
+  return r;
 });
 
 // Kanalsuche oben: Twitchs eigene Vorschlaege + exakter Login-Treffer.

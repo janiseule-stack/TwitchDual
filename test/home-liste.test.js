@@ -120,3 +120,56 @@ test('enterLaden: VOD-Link/-ID oder Kanalname direkt laden, sonst nichts', () =>
   assert.equal(L.enterLaden(''), null);
   assert.equal(L.enterLaden('a'), null, 'ein Zeichen ist kein Kanal');
 });
+
+test('normalisiere: trim, klein, Raute weg', () => {
+  assert.equal(L.normalisiere('  #Kanal_A '), 'kanal_a');
+  assert.equal(L.normalisiere(null), '');
+});
+
+test('besterTreffer: exakt vor Praefix', () => {
+  assert.equal(L.besterTreffer([{ login: 'kanal_ab' }, { login: 'kanal_a' }], 'Kanal_A'), 'kanal_a');
+});
+
+test('besterTreffer: Praefix vor Enthaelt vor Titel', () => {
+  const live = [{ login: 'x_kanal', title: '' }, { login: 'zz', title: 'Kanal Abend' }, { login: 'kanal_q' }];
+  assert.equal(L.besterTreffer(live, 'kanal'), 'kanal_q');
+  assert.equal(L.besterTreffer(live.slice(0, 2), 'kanal'), 'x_kanal');
+});
+
+test('besterTreffer: displayName zaehlt', () => {
+  assert.equal(L.besterTreffer([{ login: 'abc', displayName: 'Kanal_D' }], 'kanal_d'), 'abc');
+});
+
+test('besterTreffer: leer oder kein Treffer -> null', () => {
+  assert.equal(L.besterTreffer([{ login: 'abc' }], ''), null);
+  assert.equal(L.besterTreffer([{ login: 'abc' }], 'zzz'), null);
+  assert.equal(L.besterTreffer([], 'abc'), null);
+});
+
+test('enterZiel: VOD-Link roh', () => {
+  assert.deepEqual(L.enterZiel({ text: ' https://www.twitch.tv/videos/123456 ' }), { art: 'laden', wert: 'https://www.twitch.tv/videos/123456' });
+});
+
+test('enterZiel: eigener exakter Login schlaegt vordere Praefix-CD', () => {
+  const r = L.enterZiel({ text: 'kanal_a', eigene: [{ login: 'kanal_a', live: false }], vordere: { login: 'kanal_ab' } });
+  assert.deepEqual(r, { art: 'laden', wert: 'kanal_a' });
+});
+
+test('enterZiel: fertiger exakter Twitch-Treffer schlaegt warten und vordere', () => {
+  const r = L.enterZiel({ text: 'fremd', exakt: { login: 'fremd' }, exaktFuer: 'Fremd', sucheLaeuft: true, vordere: { login: 'fremd_lang' } });
+  assert.deepEqual(r, { art: 'laden', wert: 'fremd' });
+});
+
+test('enterZiel: Suche laeuft ohne Ergebnis -> warten', () => {
+  assert.deepEqual(L.enterZiel({ text: 'fremd', sucheLaeuft: true, vordere: { login: 'fremd_lang' } }), { art: 'warten' });
+});
+
+test('enterZiel: exakt fuer anderen Text zaehlt nicht', () => {
+  const r = L.enterZiel({ text: 'fremd', exakt: { login: 'frem' }, exaktFuer: 'frem', sucheLaeuft: false, vordere: { login: 'fremd_lang' } });
+  assert.deepEqual(r, { art: 'laden', wert: 'fremd_lang' });
+});
+
+test('enterZiel: Rueckfall enterLaden roh', () => {
+  assert.deepEqual(L.enterZiel({ text: 'Irgendwer' }), { art: 'laden', wert: 'Irgendwer' });
+  assert.equal(L.enterZiel({ text: '!!' }), null);
+});

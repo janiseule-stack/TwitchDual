@@ -1,0 +1,25 @@
+/* Cozy-Raum: feste Farbpalette fuer beide Fenster, gemessen aus raum.png
+   (die Schriftfarbe Creme ist fuer Lesbarkeit gewaehlt). Alle Flaechen sind
+   deckend (die Chat-Deckkraft entfiel mit der Chat-Stadt, 13.11.2026).
+   test/cozy-farben.test.js prueft den Vertrag. */
+:root {
+  --accent: #f9a650;
+  --accent-title: #fdc173;
+  --accent-border: rgba(249, 166, 80, .4);
+  --accent-glow: rgba(249, 166, 80, .2);
+  --accent-dim: rgba(249, 166, 80, .3);
+  --accent-contrast: #120505;
+  --bg: rgb(18 5 5);
+  --panel: rgb(46 22 18);
+  --hover: rgb(70 32 25);
+  /* gleich wie Panel/Hover (frueher bei Deckkraft < 100 % der Unterschied) */
+  --panel-fest: rgb(46 22 18);
+  --hover-fest: rgb(70 32 25);
+  --line: #552719;
+  --text: #f4e4c9;
+  --muted: #cc915a;
+  --ts: #915a35;
+  --onair-from: #f9a650;
+  --onair-to: #de732a;
+  --mono: "Cascadia Code", Consolas, monospace;
+}
