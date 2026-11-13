@@ -82,8 +82,10 @@ test('home-raum-dom.js: Profilbild mit error-Zweig und Anfangsbuchstabe', () => 
   assert.ok(/charAt\(0\)|\[0\]/.test(js) && js.includes('toUpperCase'));
 });
 
-test('home-raum-dom.js: VOD-Vorschau als Canvas 64x36 (16:9, nur noch die Karte)', () => {
-  assert.ok(/width\s*=\s*64;/.test(js) && /height\s*=\s*36;/.test(js));
+test('home-raum-dom.js: VOD-Vorschau nur noch auf der Tafel (Canvas 160x90), alte Groessen weg', () => {
+  const z = rumpf(js, 'function tafelVodBild(');
+  assert.ok(/c\.width = 160;/.test(z) && /c\.height = 90;/.test(z) && z.includes('vodBild(v.thumb, c)'));
+  assert.ok(!/width\s*=\s*64;/.test(js) && !/height\s*=\s*36;/.test(js), 'keine 64x36 in den Zeilen');
   assert.ok(!/height\s*=\s*18;/.test(js), 'alte 64x18-Liste entfaellt');
   assert.ok(!/width\s*=\s*32;/.test(js) && !/height\s*=\s*9;/.test(js));
 });
@@ -882,20 +884,18 @@ test('Karte: baueKarte nutzt huelle-gross-vorn, karte.png und karte-rueck.png; i
 test('Karte: zeichneKarte kennt alle Handler (laden, stern, umdrehen, zuruecklegen, vod, mehrVods)', () => {
   const z = rumpf(js, 'function zeichneKarte(');
   assert.ok(z.length > 0);
-  for (const h of ['laden', 'stern', 'umdrehen', 'zuruecklegen', 'vod', 'mehrVods']) assert.ok(z.includes("'" + h + "'"), h);
+  // die Tafel-Knoepfe (umdrehen) bauen zeichneKarteVorn / zeichneTafelVod
+  const alle = z + rumpf(js, 'function zeichneKarteVorn(') + rumpf(js, 'function zeichneTafelVod(');
+  for (const h of ['laden', 'stern', 'umdrehen', 'zuruecklegen', 'vod', 'mehrVods']) assert.ok(alle.includes("'" + h + "'"), h);
   assert.ok(/stand\.seite === 'rueck'/.test(z));
-  // "Vorderseite" auf der Rueckseite auch fuer markierte Platten (nur offline nicht)
-  assert.ok(/if \(stand\.modus !== 'offline'\) \{\s*const vorn = knopf\('karte-knopf', 'Vorderseite'/.test(z));
+  // "↻ Vorderseite" steht jetzt auf der Tafel (Rueckseite nah), auch fuer markierte Platten (nur offline nicht)
+  assert.ok(/if \(s\.modus !== 'offline'\) \{\s*const vorn = knopf\('karte-knopf', '↻ Vorderseite'/.test(rumpf(js, 'function zeichneTafelVod(')));
 });
 
-test('Karte: Vorschau-Canvas 64x36 links in jeder Zeile, Zeilen nur ueber eine Funktion (auch beim Anhaengen)', () => {
+test('Karte: Zeilen nur ueber eine Funktion (auch beim Anhaengen), ohne Vorschau', () => {
   const v = rumpf(js, 'function zeichneKarteVods(');
   assert.ok(v.includes('const anhaengen ='));
   assert.ok(v.includes('laufend'));
-  const z = rumpf(js, 'function karteVodZeile(');
-  assert.ok(/c\.width = 64;/.test(z) && /c\.height = 36;/.test(z));
-  assert.ok(z.includes('v.game') && z.includes('vodBild(v.thumb, c)'));
-  assert.ok(z.indexOf('b.append(c, ') > -1, 'Vorschau vor dem Text');
   // beide Wege (neu bauen, anhaengen) bauen Zeilen nur mit karteVodZeile
   assert.ok((v.match(/karteVodZeile\(/g) || []).length >= 2);
   assert.ok(!/createElement\('canvas'\)/.test(v));
@@ -931,7 +931,7 @@ test('Karte: wechselt nur das laufende VOD, ziehen die vorhandenen Zeilen die Ma
   assert.ok(/kv\.laufend !== laufend/.test(teil) && teil.includes('karteSetzeLaufend(laufend)'));
   assert.ok(/t\.karteKv = \{[^}]*laufend/.test(v), 'laufend im Anhaenge-Stand');
   const s = rumpf(js, 'function karteSetzeLaufend(');
-  assert.ok(s.includes("toggle('laeuft'") && s.includes('b.dataset.id') && s.includes('karteVodInfo('));
+  assert.ok(s.includes("toggle('laeuft'") && s.includes('b.dataset.id') && s.includes('karteVodTitel('));
 });
 
 test('Karte: Klick daneben und ✕ legen zurueck (Doppelklick ignoriert), Doppelklick auf die Huelle legt auf', () => {
@@ -1333,6 +1333,49 @@ test('home.js: zeichneKarte bekommt namen aus belegung()', () => {
   const k = rumpfOben(homeJs, 'function kartenNamen(');
   assert.ok(k.includes('b.brett') && k.includes('b.live') && k.includes('b.unten'));
   assert.ok(k.includes('k.displayName || k.login'));
+});
+
+// --- Regal von nahe, Task 6: Rueckseite quadratisch mit Trackliste ---------------------
+test('Rueckseite nah: deckungsgleich mit der Huelle (111g), karte-rueck 9-Slice, nur .karte-huelle-dreh dreht', () => {
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(/t\.karteKarte\.append\(vorn, rueck\)/.test(b), 'Rueckseite in der drehenden Huelle');
+  assert.ok(/\.karte-seite\s*\{\s*position:\s*absolute;\s*inset:\s*0;/.test(css), 'Seiten fuellen die Huelle (111g)');
+  assert.ok(cssRegel('.karte-rueck').includes("url('../themes/cozy/karte-rueck.png') 10 fill / var(--karte-rand)"));
+  const z = rumpf(js, 'function zeichneKarte(');
+  assert.ok(z.includes("t.karteKarte.classList.toggle('gedreht', rueck)"));
+  assert.ok(z.includes("el('div', 'karte-kopf-titel', name(k) + ' · VODs')"), 'Kopf Name · VODs');
+  assert.ok(!z.includes("'Vorderseite'"), 'Vorderseite steht auf der Tafel');
+});
+
+test('Rueckseite nah: Zeile = Nr, Titel, Laenge ohne Canvas; laufend mit ●', () => {
+  const z = rumpf(js, 'function karteVodZeile(');
+  assert.ok(!z.includes('canvas') && !z.includes('vodBild('), 'keine Canvas in den Zeilen');
+  assert.ok(z.includes("String(nr).padStart(2, '0')"), 'Nr zweistellig');
+  for (const c of ["'karte-vod-nr'", "'karte-vod-titel'", "'karte-vod-laenge'"]) assert.ok(z.includes(c), c);
+  assert.ok(z.includes('v.lengthLabel'));
+  assert.ok(rumpf(js, 'function karteVodTitel(').includes("'● '"));
+  const v = rumpf(js, 'function zeichneKarteVods(');
+  assert.ok(v.includes('karteVodZeile(alle[i], alle[i].id === laufend, i + 1)') && v.includes('karteVodZeile(v, v.id === laufend, i + 1)'));
+  assert.ok(/\.karte-vod-titel\s*\{[^}]*flex:\s*1/.test(css) && /text-overflow:\s*ellipsis/.test(cssRegel('.karte-vod-titel, .karte-vod-nr, .karte-vod-laenge')));
+  assert.ok(/\.karte-vod\.laeuft\s*\{[^}]*background/.test(css), 'leichte Markierung');
+  assert.ok(!/\.karte-vod canvas/.test(css));
+  assert.ok(!/\.karte-vod:hover[^{]*\{[^}]*translateY/.test(css), 'Zeilen heben sich nicht');
+});
+
+test('Rueckseite nah: Tafel zeigt das VOD unter Maus/Fokus, anfangs das laufende; ▶ abspielen ruft vod', () => {
+  const z = rumpf(js, 'function zeichneKarte(');
+  assert.ok(/if \(rueck\) zeichneTafelVod\(stand, k, h\);\s*else zeichneKarteVorn\(stand, k, h\);/.test(z));
+  assert.ok(z.indexOf('zeichneKarteVods(') < z.indexOf('zeichneTafelVod('), 'Liste vor der Tafel');
+  const t6 = rumpf(js, 'function zeichneTafelVod(');
+  assert.ok(t6.includes('t.tafelVodId') && t6.includes('vods.laufend') && t6.includes('liste[0]'), 'Maus/Fokus, sonst laufend, sonst erstes');
+  const p = (s) => { const i = t6.indexOf(s); assert.ok(i > -1, s); return i; };
+  assert.ok(p('tafelVodBild(v)') < p("' · ' + (v.title || 'VOD')"));
+  assert.ok(p("' · ' + (v.title || 'VOD')") < p('[v.game, v.publishedLabel, v.lengthLabel]'));
+  assert.ok(p('[v.game, v.publishedLabel, v.lengthLabel]') < p("'▶ abspielen'"));
+  assert.ok(t6.includes("ruf(h, 'vod', v.id)"));
+  const zl = rumpf(js, 'function karteVodZeile(');
+  assert.ok(zl.includes("'mouseenter'") && zl.includes("'focus'") && zl.includes('zeigeTafelVod(v.id)'));
+  assert.ok(zl.includes('t.karteVodKlick(v.id)'), 'Klick auf eine Zeile spielt ab');
 });
 
 // --- Regal von nahe, Task 4: Hover - Platte rutscht heraus, Name gross darueber --------

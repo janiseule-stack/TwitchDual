@@ -1013,6 +1013,7 @@ window.HomeRaumDom = (function () {
     if (t.karteLogin !== k.login) {
       // neu herausgenommen; steht sie schon auf der Rueckseite, ohne Drehen einblenden
       t.karteLogin = k.login;
+      t.tafelVodId = null; // Tafel zeigt anfangs das laufende VOD
       t.karteFrisch = true; // ein zweiter Klick gleich danach gehoert zum Doppelklick (baueKarte)
       t.karteKv = null;
       t.karteFenster.replaceChildren();
@@ -1025,26 +1026,81 @@ window.HomeRaumDom = (function () {
     } else {
       t.karteKarte.classList.toggle('gedreht', rueck);
     }
-    zeichneKarteVorn(stand, k, h);
     zeichneKarteNamen(stand.namen || []);
     t.karteLeucht.textContent = name(k);
-    lageTafel();
-    // Rueckseite: Kopf (Titel, Stern, bei Live-Platten "Vorderseite") und Liste
+    // Rueckseite: Kopf "Name · VODs" mit Stern, darunter die Trackliste
     const fokus = merkeFokus(t.karteRueck, 'id');
     t.karteKopf.replaceChildren();
-    t.karteKopf.appendChild(el('div', 'karte-kopf-titel', 'VODs · ' + name(k)));
+    t.karteKopf.appendChild(el('div', 'karte-kopf-titel', name(k) + ' · VODs'));
     const stern = knopf('karte-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
     stern.dataset.id = 'stern-rueck';
     t.karteKopf.appendChild(stern);
-    // "Vorderseite" fuer live und markiert (gerade offline gegangen), nicht fuer offline
-    if (stand.modus !== 'offline') {
-      const vorn = knopf('karte-knopf', 'Vorderseite', 'Karte umdrehen', () => ruf(h, 'umdrehen'));
-      vorn.dataset.id = 'vorderseite';
-      t.karteKopf.appendChild(vorn);
-    }
     stelleFokusHer(t.karteRueck, 'id', fokus);
     zeichneKarteVods(stand.vods, k.login);
+    // Tafel: vorn die Infos zum Stream, gedreht das VOD unter Maus/Fokus
+    if (rueck) zeichneTafelVod(stand, k, h);
+    else zeichneKarteVorn(stand, k, h);
+    lageTafel();
+  }
+
+  // Tafel bei gedrehter Huelle: das VOD unter Maus/Fokus (t.tafelVodId), sonst das
+  // laufende, sonst das erste. Vorschaubild, "Nr · Titel", "Spiel · wann · Laenge",
+  // ▶ abspielen, ↻ Vorderseite (nicht offline).
+  function zeichneTafelVod(s, k, h) {
+    const z = t.karteInfo;
+    const fokus = merkeFokus(z, 'id');
+    z.replaceChildren();
+    t.karteVornSeite.classList.remove('live');
+    const vods = s.vods || {};
+    const liste = vods.liste || [];
+    const finde = (id) => liste.findIndex((x) => x.id === id);
+    let i = t.tafelVodId ? finde(t.tafelVodId) : -1;
+    if (i < 0 && vods.laufend) i = finde(vods.laufend);
+    if (i < 0 && liste[0]) i = 0;
+    const v = i >= 0 ? liste[i] : null;
+    const knoepfe = el('div', 'karte-knoepfe');
+    if (v) {
+      z.appendChild(tafelVodBild(v));
+      z.appendChild(el('div', 'karte-titel', String(i + 1).padStart(2, '0') + ' · ' + (v.title || 'VOD')));
+      const info = [v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
+      if (info) z.appendChild(el('div', 'karte-zeile', info));
+      const ab = knopf('karte-knopf', '▶ abspielen', 'VOD abspielen', () => ruf(h, 'vod', v.id));
+      ab.dataset.id = 'abspielen';
+      knoepfe.appendChild(ab);
+    } else {
+      z.appendChild(el('div', 'karte-name', name(k)));
+      const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[vods.status || 'laden'];
+      z.appendChild(el('div', 'karte-zeile', status || 'lade VODs …'));
+    }
+    // "↻ Vorderseite" fuer live und markiert (gerade offline gegangen), nicht fuer offline
+    if (s.modus !== 'offline') {
+      const vorn = knopf('karte-knopf', '↻ Vorderseite', 'Karte umdrehen', () => ruf(h, 'umdrehen'));
+      vorn.dataset.id = 'vorderseite';
+      knoepfe.appendChild(vorn);
+    }
+    z.appendChild(knoepfe);
+    stelleFokusHer(z, 'id', fokus);
+  }
+  // Vorschaubild des VODs auf der Tafel (Canvas 160x90); fuer dasselbe VOD bleibt es
+  // erhalten (kein kurzes Leerblinken beim Neuzeichnen).
+  function tafelVodBild(v) {
+    if (t.tafelVodBild && t.tafelVodBild.id === v.id) return t.tafelVodBild.e;
+    const e = el('div', 'karte-vorschau');
+    const c = document.createElement('canvas');
+    c.width = 160;
+    c.height = 90;
+    e.appendChild(c);
+    vodBild(v.thumb, c);
+    t.tafelVodBild = { id: v.id, e };
+    return e;
+  }
+  // Maus/Fokus auf einer Zeile: die Tafel zeigt dieses VOD.
+  function zeigeTafelVod(id) {
+    if (t.tafelVodId === id || !t.karteStand || t.karteStand.seite !== 'rueck') return;
+    t.tafelVodId = id;
+    zeichneTafelVod(t.karteStand, t.karteStand.kanal, t.karteH);
+    lageTafel();
   }
 
   // Tafel vorn (Regal von nahe): Vorschaubild, Name, Titel (hoechstens 2 Zeilen),
@@ -1131,37 +1187,35 @@ window.HomeRaumDom = (function () {
     return e;
   }
 
-  function karteVodInfo(rest, laufend) {
-    return [laufend ? '● läuft' : '', rest].filter(Boolean).join(' · ');
+  // Titel einer Zeile; das laufende VOD bekommt "● " davor.
+  function karteVodTitel(titel, laufend) {
+    return (laufend ? '● ' : '') + titel;
   }
   // Das laufende VOD wechselt, die Liste bleibt: Markierung an den vorhandenen Zeilen nachziehen.
   function karteSetzeLaufend(laufend) {
     for (const b of t.karteVods.querySelectorAll('.karte-vod')) {
       const an = b.dataset.id === 'vod-' + laufend;
       b.classList.toggle('laeuft', an);
-      const info = b.querySelector('.karte-vod-info');
-      if (info) info.textContent = karteVodInfo(b.dataset.info, an);
+      const titel = b.querySelector('.karte-vod-titel');
+      if (titel) titel.textContent = karteVodTitel(b.dataset.titel, an);
     }
   }
 
-  // Eine VOD-Zeile: Vorschau links (Canvas 64x36, 16:9), Titel, darunter Spiel · wann · Laenge.
-  // Einziger Weg, Zeilen zu bauen: neu bauen und Anhaengen haben dieselbe Vorschau.
-  // Fehlt thumb, bleibt die Canvas eine ruhige Flaeche (CSS) und haelt den Platz.
-  function karteVodZeile(v, laufend) {
+  // Eine Zeile der Trackliste: Nr (zweistellig), Titel (einzeilig, …), Laenge; keine
+  // Vorschau (die zeigt die Tafel fuer die Zeile unter Maus/Fokus). Einziger Weg,
+  // Zeilen zu bauen: neu bauen und Anhaengen sehen gleich aus.
+  function karteVodZeile(v, laufend, nr) {
     const b = el('button', 'karte-vod' + (laufend ? ' laeuft' : ''));
     b.type = 'button';
     b.addEventListener('click', (e) => { e.stopPropagation(); if (t.karteVodKlick) t.karteVodKlick(v.id); });
+    b.addEventListener('mouseenter', () => zeigeTafelVod(v.id));
+    b.addEventListener('focus', () => zeigeTafelVod(v.id));
     b.title = [v.title, v.game, v.lengthLabel, v.publishedLabel, v.viewsLabel ? v.viewsLabel + ' Aufrufe' : ''].filter(Boolean).join(' · ');
     b.dataset.id = 'vod-' + v.id;
-    const c = document.createElement('canvas');
-    c.width = 64;
-    c.height = 36;
-    vodBild(v.thumb, c);
-    const text = el('span', 'karte-vod-text');
-    b.dataset.info = [v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
-    text.append(el('span', 'karte-vod-titel', v.title || 'VOD'),
-      el('span', 'karte-vod-info', karteVodInfo(b.dataset.info, laufend)));
-    b.append(c, text);
+    b.dataset.titel = v.title || 'VOD';
+    b.append(el('span', 'karte-vod-nr', String(nr).padStart(2, '0')),
+      el('span', 'karte-vod-titel', karteVodTitel(b.dataset.titel, laufend)),
+      el('span', 'karte-vod-laenge', v.lengthLabel || ''));
     return b;
   }
 
@@ -1175,7 +1229,7 @@ window.HomeRaumDom = (function () {
     const anhaengen = kv.login === login && kv.ids.length > 0 && kv.ids.every((id, i) => alle[i] && alle[i].id === id);
     if (anhaengen) {
       for (let i = kv.ids.length; i < alle.length; i++) {
-        liste.insertBefore(karteVodZeile(alle[i], alle[i].id === laufend), t.karteFuss);
+        liste.insertBefore(karteVodZeile(alle[i], alle[i].id === laufend, i + 1), t.karteFuss);
       }
       if (kv.laufend !== laufend) karteSetzeLaufend(laufend);
     } else {
@@ -1186,7 +1240,7 @@ window.HomeRaumDom = (function () {
         const status = { laden: 'lade VODs …', leer: 'Keine VODs', fehler: 'VODs nicht abrufbar' }[vods ? vods.status : 'laden'];
         liste.appendChild(el('div', 'karte-status-leer', status || 'lade VODs …'));
       }
-      for (const v of alle) liste.appendChild(karteVodZeile(v, v.id === laufend));
+      alle.forEach((v, i) => liste.appendChild(karteVodZeile(v, v.id === laufend, i + 1)));
       liste.appendChild(t.karteFuss);
       stelleFokusHer(t.karteRueck, 'id', fokus);
     }
