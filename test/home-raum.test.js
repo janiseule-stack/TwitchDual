@@ -1585,6 +1585,12 @@ test('Regal nah: CSS Hinweis unten rechts, Hover-Name und Hinweis waehrend der F
   assert.ok(/aus\(t\.fachHinweis, m < 2\)/.test(h), 'bei nur einem Fach verborgen');
 });
 
+test('Tafel: Knopfreihe bricht um statt aus der Tafel zu laufen (Fotos 13.11.: "Vorderseite" abgeschnitten)', () => {
+  const r = /\.karte-info > \.karte-knoepfe\s*\{([^}]*)\}/.exec(css);
+  assert.ok(r && /flex-wrap:\s*wrap/.test(r[1]), 'umbrechen');
+  assert.ok(/row-gap:\s*\.3333em/.test(r[1]), 'Abstand zwischen den Zeilen wie zwischen den Knoepfen');
+});
+
 test('Pfeile ▲▼ in der Suchzeile wechseln das Fach, an den Enden ausgegraut (Janis 13.11., Variante B)', () => {
   const b = rumpf(js, 'function baueRegalNeu(');
   // hinter ⟳ in der Suchzeile, je ein Knopf mit Richtung
