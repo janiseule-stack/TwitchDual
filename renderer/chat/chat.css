@@ -363,6 +363,11 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
   background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
   animation: stadt-zyklus var(--dauer) steps(var(--bilder)) infinite;
 }
+/* Blitz-Strahl: spielt einmal (PixelLab-Effekt), danach entfernt ihn stadt-dom.js */
+.stadt-strahl {
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) 1 both;
+}
 .stadt-dunkel { width: 344px; background-color: #05040a; opacity: var(--stadt-dunkel, 0.25); }
 
 /* Strasse: Passanten, Autos und Raids ruecken in ganzen Bildpixeln vor (steps). */

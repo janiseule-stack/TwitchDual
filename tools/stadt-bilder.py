@@ -37,7 +37,10 @@ REGEN_EBENEN = (
 FIGUR_BILDER = 8
 FIGUR_MS_PRO_BILD = 120
 FIGUR_PX_PRO_BILD = 2
-PASSANTEN = ("a", "b")
+# a/b: erste Wahl; c..g (13.11.): gelbe/olive Kapuze, roter Schirm mit Tuete, blauer Schirm, Hut
+PASSANTEN = ("a", "b", "c", "d", "e", "f", "g")
+# Blitz-Strahl (vfx_workbench „TwitchDual Stadt-Blitz“, blitz-vfx/): Oberkante im Bild, endet in der Skyline
+STRAHL_Y = 50
 # Kleinste Fensterflaeche (Bildpixel je Seite)
 FENSTER_MINDEST = 2
 
@@ -138,6 +141,21 @@ def regen_streifen(quellen, groesse, ziel):
     return dateien, n, ms
 
 
+def strahl_streifen(quellen, ziel):
+    """Blitz-Effekt (Blatt + Bildliste) als waagrechter Bildstreifen. Nur umordnen."""
+    ordner = os.path.join(quellen, "blitz-vfx")
+    with open(os.path.join(ordner, "blitz.json"), encoding="utf-8") as f:
+        m = json.load(f)
+    blatt = Image.open(os.path.join(ordner, "blitz.png")).convert("RGBA")
+    rahmen = [b["frame"] for b in m["frames"]]
+    w, h = rahmen[0]["w"], rahmen[0]["h"]
+    aus = Image.new("RGBA", (w * len(rahmen), h), (0, 0, 0, 0))
+    for i, r in enumerate(rahmen):
+        aus.paste(blatt.crop((r["x"], r["y"], r["x"] + w, r["y"] + h)), (i * w, 0))
+    aus.save(os.path.join(ziel, "stadt-blitz-strahl.png"))
+    return {"b": w, "h": h, "bilder": len(rahmen), "msProBild": m["frames"][0]["duration"], "y": STRAHL_Y}
+
+
 def main(quellen, ziel, json_pfad):
     grund = lade(quellen, "grund.png")
     licht = lade(quellen, "haeuser-licht.png")
@@ -217,6 +235,7 @@ def main(quellen, ziel, json_pfad):
         "auto": {"b": auto_masse[0], "h": auto_masse[1], "radY": rad_y, "varianten": auto_varianten},
         "bus": {"b": bus.size[0], "h": bus.size[1], "tuerX": BUS_TUER_X},
         "regen": {"bilder": regen_bilder, "msProBild": regen_ms, "dateien": regen_dateien},
+        "strahl": strahl_streifen(quellen, ziel),
         "gehwegY": GEHWEG_Y,
         "fahrbahnY": FAHRBAHN_Y,
     }

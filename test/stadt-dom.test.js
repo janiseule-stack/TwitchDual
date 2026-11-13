@@ -162,6 +162,27 @@ test('Blitz nur auf der Himmel-Ebene, Mitte dunkelt dabei staerker ab, hoechsten
   assert.strictEqual(Number(wirt.style.props['--stadt-dunkel']), normal);
 });
 
+test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei aus() sofort', () => {
+  const { uhr, stadt, ebene } = aufbau();
+  const strahlen = () => ebene.kinder.filter((k) => k.classList.contains('stadt-strahl'));
+  stadt.an();
+  uhr.vor(5000);
+  const [st] = strahlen();
+  assert.ok(st, 'Strahl da');
+  assert.ok(st.style.backgroundImage.includes('p/stadt-blitz-strahl.png'));
+  assert.strictEqual(st.style.top, S.strahl.y + 'px');
+  assert.strictEqual(st.style.props['--bilder'], String(S.strahl.bilder));
+  assert.strictEqual(st.style.props['--dauer'], S.strahl.bilder * S.strahl.msProBild + 'ms');
+  const x = parseFloat(st.style.left);
+  assert.ok(x >= 0 && x + S.strahl.b <= S.bild.b, 'im Bild');
+  uhr.vor(S.strahl.bilder * S.strahl.msProBild + 10);
+  assert.strictEqual(strahlen().length, 0, 'nach dem Abspielen weg');
+  uhr.vor(5000 - S.strahl.bilder * S.strahl.msProBild - 10);
+  assert.strictEqual(strahlen().length, 1, 'naechster Blitz');
+  stadt.aus();
+  assert.strictEqual(strahlen().length, 0, 'aus() raeumt auf');
+});
+
 test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abgedunkelter Kopie', () => {
   let z = 0;
   const werte = [0.1, 0.9, 0.5]; // Periode 3: Passant und Auto kommen beide vor

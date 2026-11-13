@@ -30,7 +30,8 @@
     ]),
     figur: Object.freeze({
       b: 24, h: 24, bilder: 8, msProBild: 120, pxProBild: 2,
-      varianten: Object.freeze(['stadt-passant-a.png', 'stadt-passant-b.png']),
+      varianten: Object.freeze(['stadt-passant-a.png', 'stadt-passant-b.png', 'stadt-passant-c.png',
+        'stadt-passant-d.png', 'stadt-passant-e.png', 'stadt-passant-f.png', 'stadt-passant-g.png']),
     }),
     auto: Object.freeze({
       b: 88, h: 44, radY: 43,
@@ -41,6 +42,7 @@
       bilder: 12, msProBild: 83,
       dateien: Object.freeze(['stadt-regen-himmel.png', 'stadt-regen-strasse.png']),
     }),
+    strahl: Object.freeze({ b: 38, h: 69, bilder: 14, msProBild: 50, y: 50 }),
     gehwegY: 251,
     fahrbahnY: 272,
   });

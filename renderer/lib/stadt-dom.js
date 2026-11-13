@@ -133,11 +133,36 @@
       blitz.classList.remove('an');
       wirt.style.setProperty('--stadt-dunkel', String(DUNKEL));
     }
+    // Blitz-Strahl (PixelLab-Effekt): zuckt an zufaelliger Stelle des sichtbaren Himmels in die Skyline
+    let strahlEl = null;
+    let strahlTimer = null;
+    function strahlWeg() {
+      if (strahlTimer !== null) { clearT(strahlTimer); strahlTimer = null; }
+      if (strahlEl) { strahlEl.remove(); strahlEl = null; }
+    }
+    function strahl() {
+      strahlWeg();
+      const R = S.strahl;
+      const von = Math.max(0, Math.min(S.bild.b - R.b, sichtLinks));
+      const bis = Math.max(von, Math.min(S.bild.b - R.b, sichtLinks + sichtBreite - R.b));
+      const el = neu('stadt-strahl', ebene);
+      el.style.left = px(Math.round(von + zufall() * (bis - von)));
+      el.style.top = px(R.y);
+      el.style.width = px(R.b);
+      el.style.height = px(R.h);
+      el.style.backgroundImage = url(pfad, 'stadt-blitz-strahl.png');
+      el.style.setProperty('--bilder', R.bilder);
+      el.style.setProperty('--dauer', R.bilder * R.msProBild + 'ms');
+      el.style.setProperty('--sb', px(R.bilder * R.b));
+      strahlEl = el;
+      strahlTimer = setT(() => { strahlTimer = null; strahlWeg(); }, R.bilder * R.msProBild);
+    }
     function blitzt() {
       wetterTimer = null;
       if (!laeuft) return;
       if (regie.darf('himmel')) {
         regie.belegt('himmel', BLITZ_MS);
+        strahl();
         blitz.classList.add('an');
         wirt.style.setProperty('--stadt-dunkel', String(DUNKEL_BLITZ));
         blitzTimer = setT(() => { blitzTimer = null; blitzAus(); }, BLITZ_MS);
@@ -327,6 +352,7 @@
         if (wetterTimer !== null) { clearT(wetterTimer); wetterTimer = null; }
         if (lebenTimer !== null) { clearT(lebenTimer); lebenTimer = null; }
         blitzAus();
+        strahlWeg();
         stoppeRaid();
         for (const u of [...unterwegs]) weg(u);
         // wartende Abo-Fenster gehen sofort (hart) an

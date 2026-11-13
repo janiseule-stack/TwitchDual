@@ -459,7 +459,12 @@
     "pxProBild": 2,
     "varianten": [
       "stadt-passant-a.png",
-      "stadt-passant-b.png"
+      "stadt-passant-b.png",
+      "stadt-passant-c.png",
+      "stadt-passant-d.png",
+      "stadt-passant-e.png",
+      "stadt-passant-f.png",
+      "stadt-passant-g.png"
     ]
   },
   "auto": {
@@ -485,6 +490,13 @@
       "stadt-regen-himmel.png",
       "stadt-regen-strasse.png"
     ]
+  },
+  "strahl": {
+    "b": 38,
+    "h": 69,
+    "bilder": 14,
+    "msProBild": 50,
+    "y": 50
   },
   "gehwegY": 251,
   "fahrbahnY": 272

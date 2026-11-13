@@ -72,7 +72,11 @@ test('stadt.json: Felder fuer Bild, Ebenen, Fenster, Figuren, Fahrzeuge, Regen, 
   assert.strictEqual(s.ebenen.strasse.y + s.ebenen.strasse.h, s.bild.h);
   assert.ok(Array.isArray(s.fenster) && s.fenster.length >= 20, 'mindestens 20 Fenster');
   for (const k of ['b', 'h', 'bilder', 'msProBild', 'pxProBild']) assert.ok(s.figur[k] > 0, 'figur.' + k);
-  assert.ok(Array.isArray(s.figur.varianten) && s.figur.varianten.length >= 2);
+  // 7 verschiedene Passanten (Janis 13.11.: „paar mehr Leute, verschiedene Passanten“)
+  assert.ok(Array.isArray(s.figur.varianten) && s.figur.varianten.length >= 7);
+  // Blitz-Strahl (PixelLab-Effekt „TwitchDual Stadt-Blitz“): Bildstreifen, Oberkante im Himmel
+  for (const k of ['b', 'h', 'bilder', 'msProBild']) assert.ok(s.strahl[k] > 0, 'strahl.' + k);
+  assert.ok(s.strahl.y >= 0 && s.strahl.y + s.strahl.h <= s.ebenen.haeuser.y + 10, 'Strahl endet in der Skyline');
   for (const k of ['auto', 'bus']) assert.ok(s[k].b > 0 && s[k].h > 0, k);
   // Autos 1,4x in mehreren Farben (Janis 13.11.), Radlinie fuer die Spiegelung
   assert.ok(Array.isArray(s.auto.varianten) && s.auto.varianten.length >= 2);
@@ -109,6 +113,7 @@ test('alle Stadt-Bilder existieren und haben die Masse aus stadt.json', () => {
     'stadt-bus-tuer.png': [s.bus.b, s.bus.h],
   };
   for (const v of s.auto.varianten) erwartet[v] = [s.auto.b, s.auto.h];
+  erwartet['stadt-blitz-strahl.png'] = [s.strahl.b * s.strahl.bilder, s.strahl.h];
   for (const d of s.regen.dateien) erwartet[d] = [s.bild.b * s.regen.bilder, s.bild.h];
   for (const v of s.figur.varianten) erwartet[v] = [s.figur.b * s.figur.bilder, s.figur.h];
   for (const [name, [b, h]] of Object.entries(erwartet)) {
