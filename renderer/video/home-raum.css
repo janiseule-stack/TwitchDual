@@ -11,7 +11,7 @@
   --raum-schrift: 12px;
   --raum-schrift-gross: 24px;
   --rand: 12px;
-  --karte-n: 2;
+  --karte-g: 2;
 }
 .raum-aus { display: none !important; }
 
@@ -99,104 +99,106 @@
 }
 .stern.an { color: var(--accent); }
 
-/* --- Karte (Regal neu): grosse Platte, doppelt so breit wie hoch -------------------
-   Vorn links die Huelle (huelle-gross-vorn.png, Fenster mal --karte-n), rechts die
-   Infotafel; hinten die VOD-Liste. Tafel und Rueckseite sind 9-Slice-Bilder
-   (karte.png / karte-rueck.png, Rand 10 Bildpixel = tools/raum-quellen/regal.json,
-   mal --karte-n). Masse, Schrift und Vorschau-Faktor setzt home-raum-dom.js
-   (Raum.kartenMasse). Hover/Fokus nur heller und leicht angehoben. */
-.karte-platz {
-  position: absolute; inset: 0; z-index: 3;
-  background: rgb(18 5 5 / .55);
-}
+/* --- Karte (Regal von nahe, Plan 2026-11-13-regal-nah): Klick-Ansicht ----------------
+   Das Regal wird dunkel, dahinter gleiten die grossen Namen, der Name der Platte
+   leuchtet. Vorn die Huelle (huelle-gross-vorn.png, 128g, sichtbar nur 9..119) mit der
+   drehenden Platte (PixelLab-Bildstreifen) dahinter, rechts die Tafel (karte.png
+   9-Slice, Rand 10 Bildpixel = tools/raum-quellen/regal.json). Lagen, --karte-g,
+   --karte-rand und die Schriften setzt home-raum-dom.js (Raum.klickMasse).
+   Hover/Fokus nur heller und leicht angehoben. */
+.karte-platz { position: absolute; inset: 0; z-index: 3; }
 #home.im-ablauf .karte-platz { display: none; }
-.karte {
-  position: absolute; width: var(--karte-b, 512px); height: var(--karte-h, 256px);
-  perspective: calc(1024px * var(--karte-n, 2));
-  /* Platz fuer das ✕ (16 x n breit, 2 x n vom Rand, Kartenrand 10 x n): Kopf der
-     Rueckseite und die ersten Zeilen der Tafel enden davor */
-  --karte-zu-platz: calc(10px * var(--karte-n, 2));
+.karte-dunkel, .karte-namen, .karte-leucht, .karte { position: absolute; pointer-events: none; }
+.karte-dunkel { inset: 0; background: #05040a; opacity: .72; }
+.karte-namen { inset: 0; overflow: hidden; }
+.karte-namen-zeile {
+  position: absolute; left: 0; white-space: nowrap;
+  font-family: var(--schrift-karte); font-size: var(--karte-namen); line-height: 1;
+  color: #f4e4c9; opacity: .1;
 }
-.karte-karte {
-  position: absolute; inset: 0; transform-style: preserve-3d;
+.karte-namen-text { display: inline-flex; animation: raum-laufschrift 180s linear infinite; }
+.karte-namen-stueck { padding-right: 1em; white-space: pre; }
+.karte-leucht {
+  white-space: nowrap; font-family: var(--schrift-karte); font-size: var(--karte-namen); line-height: 1;
+  color: #f0aa6e; opacity: .45;
+}
+.karte { inset: 0; perspective: calc(1024px * var(--karte-g, 2)); }
+.karte > * { pointer-events: auto; }
+/* Platte: platte-nah-dreht.png (7 Bilder je 64x64, Janis' Wahl A), Kante 64 x --karte-p */
+.karte-platte {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background: url('../themes/cozy/platte-nah-dreht.png') 0 0 no-repeat;
+  background-size: calc(448px * var(--karte-p)) calc(64px * var(--karte-p));
+  animation: karte-platte-dreht 840ms steps(7) infinite;
+}
+@keyframes karte-platte-dreht { to { background-position: calc(-448px * var(--karte-p)) 0; } }
+/* Nur die Huelle dreht sich um (rotateY), die Tafel bleibt stehen */
+.karte-huelle-dreh {
+  position: absolute; transform-style: preserve-3d;
   transition: transform 400ms ease-in-out;
 }
-.karte-karte.ohne-drehen { transition: none; }
-.karte-karte.gedreht { transform: rotateY(180deg); }
+.karte-huelle-dreh.ohne-drehen { transition: none; }
+.karte-huelle-dreh.gedreht { transform: rotateY(180deg); }
 .karte-seite { position: absolute; inset: 0; backface-visibility: hidden; }
-/* huelle-gross-vorn.png ist 128x128, die Huelle selbst aber nur 9..119 (111 Bildpixel,
-   ringsum durchsichtiger Rand). Damit sie die linke Haelfte (kante x kante) genau
-   fuellt und oben mit der Infotafel abschliesst, wird das Bild um 128/111 groesser
-   gezeichnet (--karte-s) und um 9 Bildpixel nach oben links versetzt; Fenster und
-   Bild skalieren gleich. Das Bild wird nur skaliert (scharfkantig), nicht neu gezeichnet. */
-.karte-huelle {
-  --karte-s: calc(var(--karte-n, 2) * 128 / 111);
-  position: absolute; left: 0; top: 0; overflow: hidden;
-  width: calc(128px * var(--karte-n, 2)); height: calc(128px * var(--karte-n, 2));
-}
+.karte-huelle { position: absolute; inset: 0; overflow: hidden; }
 /* Live-Platte: Klick auf die Huelle legt auf (home-raum-dom.js), Hand + Aufhellen */
 .karte-vorn.live .karte-huelle { cursor: pointer; }
 .karte-vorn.live .karte-huelle:hover { filter: brightness(1.15); }
+/* Bild 128g, um 9 Bildpixel nach oben links versetzt: der sichtbare Teil (9..119)
+   fuellt .karte-huelle-dreh (111g). Nur skaliert (scharfkantig), nicht neu gezeichnet. */
 .karte-bild {
   position: absolute; pointer-events: none; user-select: none; image-rendering: pixelated;
-  left: calc(-9px * var(--karte-s)); top: calc(-9px * var(--karte-s));
-  width: calc(128px * var(--karte-s)); height: calc(128px * var(--karte-s));
+  left: calc(-9px * var(--karte-g)); top: calc(-9px * var(--karte-g));
+  width: calc(128px * var(--karte-g)); height: calc(128px * var(--karte-g));
 }
 .karte-teil {
   position: absolute; box-sizing: border-box;
-  left: round(calc((var(--x) - 9) * var(--karte-s) * 1px), 1px); top: round(calc((var(--y) - 9) * var(--karte-s) * 1px), 1px);
-  width: round(calc(var(--b) * var(--karte-s) * 1px), 1px); height: round(calc(var(--h) * var(--karte-s) * 1px), 1px);
+  left: round(calc((var(--x) - 9) * var(--karte-g) * 1px), 1px); top: round(calc((var(--y) - 9) * var(--karte-g) * 1px), 1px);
+  width: round(calc(var(--b) * var(--karte-g) * 1px), 1px); height: round(calc(var(--h) * var(--karte-g) * 1px), 1px);
 }
 /* Fenster: ruhige dunkle Flaeche, nie das, was dahinter liegt; das Profilbild kommt darueber */
 .karte-fenster { overflow: hidden; background: var(--zettel-tinte); }
 .karte-fenster canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
-.karte-fenster .huelle-buchstabe { font-size: var(--karte-schrift, 12px); }
-/* ✕ in der rechten oberen Ecke, ganzzahlig mit --karte-n (Bild 32 px = 16 x n) */
+.karte-fenster .huelle-buchstabe { font-size: var(--karte-name, 12px); }
+/* ✕ an der rechten oberen Ecke der Tafel */
 .karte-zu {
   position: absolute; z-index: 1;
-  top: calc(2px * var(--karte-n, 2)); right: calc(2px * var(--karte-n, 2));
-  width: calc(16px * var(--karte-n, 2)); height: calc(16px * var(--karte-n, 2));
+  top: calc(-4px * var(--karte-g)); right: calc(-4px * var(--karte-g));
+  width: calc(8px * var(--karte-g)); height: calc(8px * var(--karte-g));
   background-size: 100% 100%; image-rendering: pixelated;
 }
 
-.karte-info {
-  position: absolute; left: 50%; top: 0; width: 50%; height: 100%; box-sizing: border-box;
+/* Tafel: 9-Slice, Breite und Hoechsthoehe aus klickMasse, top setzt lageTafel */
+.karte-tafel {
+  position: absolute; box-sizing: border-box; display: flex; flex-direction: column;
   border-style: solid; border-color: transparent;
-  border-width: calc(10px * var(--karte-n));
-  border-image: url('../themes/cozy/karte.png') 10 fill / calc(10px * var(--karte-n)) / 0 stretch;
+  border-width: var(--karte-rand);
+  border-image: url('../themes/cozy/karte.png') 10 fill / var(--karte-rand) / 0 stretch;
   border-image-slice: 10 10 10 10 fill;
   image-rendering: pixelated;
-  display: flex; flex-direction: column; gap: calc(var(--karte-schrift-klein, 12px) / 3); overflow: hidden;
-  font-family: var(--schrift-pixel); font-size: var(--karte-schrift-klein, 12px); line-height: 1;
-  color: var(--zettel-tinte);
+  font-family: var(--schrift-karte); color: var(--zettel-tinte);
+}
+.karte-info {
+  flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column;
+  gap: calc(var(--karte-zeile) / 3); overflow: hidden;
+  font-size: var(--karte-zeile); line-height: 1;
 }
 .karte-info > div { flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Janis 13.11.: nur der Name gross, alles andere klein (--karte-schrift-klein) */
+.karte-info > .karte-name { font-size: var(--karte-name); }
 .karte-info > .karte-titel {
-  white-space: normal;
+  font-size: var(--karte-titel); white-space: normal;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
   max-height: 2em;
 }
-.karte-info > .karte-kopfzeile {
-  display: flex; align-items: baseline; gap: .7em; padding-right: var(--karte-zu-platz);
-}
-.karte-info > .karte-kopfzeile .karte-status { flex: none; }
-/* Live-Punkt: Rot wie .live-punkt im Regal, blinkt hart an/aus (Janis 13.11.) */
-.karte-live-punkt { color: rgb(220 40 32); animation: karte-blinken 1s steps(1) infinite; }
-@keyframes karte-blinken { 50% { opacity: 0; } }
-.karte-info > .karte-kopfzeile .karte-name {
-  font-size: var(--karte-schrift, 12px); min-width: 0; overflow: hidden; text-overflow: ellipsis;
-}
-/* Live-Vorschau: nimmt den freien Platz, hoechstens 16:9 der Innenbreite (Karte kante x
-   kante, Rand 10n ringsum); bei wenig Platz kleiner (mittig beschnitten) */
+.karte-info > .karte-zeile { opacity: .85; }
+/* Vorschaubild 16:9 oben; bei wenig Platz niedriger (mittig beschnitten) */
 .karte-info > .karte-vorschau {
-  flex: 1 1 0; min-height: 0;
-  max-height: calc((var(--karte-h) - 20px * var(--karte-n)) * 9 / 16);
+  flex: 0 1 auto; min-height: 0; width: 100%; aspect-ratio: 16 / 9;
   background: var(--zettel-tinte); overflow: hidden;
 }
 .karte-vorschau canvas { display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .karte-knoepfe, .karte-kopf { display: flex; align-items: center; gap: .7em; }
-.karte-info > .karte-knoepfe { margin-top: auto; overflow: visible; gap: .3333em; }
+.karte-info > .karte-knoepfe { overflow: visible; gap: .3333em; }
 /* Knoepfe aus knopf.png (32x32, Rand 8 als 9-Slice), Hoehe 32 Bildpixel in Schriftgroesse
    (12 px -> 32 px, 24 px -> 64 px), helle Schrift */
 .karte-info .karte-knopf {
@@ -214,22 +216,23 @@
   filter: brightness(1.5); transform: translateY(-1px);
 }
 
+/* Rueckseite: deckungsgleich mit der Huelle (111g), karte-rueck.png als 9-Slice */
 .karte-rueck {
   transform: rotateY(180deg); box-sizing: border-box;
   border-style: solid; border-color: transparent;
-  border-width: calc(10px * var(--karte-n));
-  border-image: url('../themes/cozy/karte-rueck.png') 10 fill / calc(10px * var(--karte-n)) / 0 stretch;
+  border-width: var(--karte-rand);
+  border-image: url('../themes/cozy/karte-rueck.png') 10 fill / var(--karte-rand) / 0 stretch;
   border-image-slice: 10 10 10 10 fill;
   image-rendering: pixelated;
-  display: flex; flex-direction: column; gap: calc(var(--karte-schrift-klein, 12px) / 2); overflow: hidden;
-  font-family: var(--schrift-pixel); font-size: var(--karte-schrift-klein, 12px); line-height: 1;
+  display: flex; flex-direction: column; gap: calc(var(--karte-zeile) / 2); overflow: hidden;
+  font-family: var(--schrift-karte); font-size: var(--karte-zeile); line-height: 1;
   color: var(--zettel-tinte);
 }
-.karte-kopf { flex: none; font-size: var(--karte-schrift, 12px); padding-right: var(--karte-zu-platz); }
+.karte-kopf { flex: none; font-size: var(--karte-zeile); }
 .karte-kopf-titel { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .karte-vods {
   flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; outline: none;
-  display: flex; flex-direction: column; gap: calc(var(--karte-schrift-klein, 12px) / 2);
+  display: flex; flex-direction: column; gap: calc(var(--karte-zeile) / 2);
   scrollbar-width: thin; scrollbar-color: var(--zettel-tinte) transparent;
 }
 .karte-vod {
@@ -240,12 +243,12 @@
 /* Vorschau 64x36 (16:9) links in jeder Zeile; ohne Bild bleibt die ruhige Flaeche */
 .karte-vod canvas {
   flex: none; display: block; image-rendering: pixelated;
-  width: calc(64px * var(--karte-vod-k, 1)); height: calc(36px * var(--karte-vod-k, 1));
+  width: 64px; height: 36px;
   background: rgb(59 36 22 / .16);
 }
 .karte-vod-text { display: flex; flex-direction: column; gap: .3em; min-width: 0; }
 .karte-vod-titel, .karte-vod-info { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.karte-vod-titel { font-size: var(--karte-schrift, 12px); }
+.karte-vod-titel { font-size: var(--karte-zeile); }
 .karte-vod-info { opacity: .7; }
 .karte-vod:hover, .karte-vod:focus-visible { filter: brightness(1.3); transform: translateY(-1px); }
 .karte-status-leer, .karte-vods-fuss { flex: none; margin: auto; text-align: center; }

@@ -456,12 +456,19 @@ function renderHome() {
   }, regalHandler);
   HomeRaumDom.zeichneKarte(g.kanal ? {
     kanal: g.kanal, modus: g.modus, seite,
+    namen: kartenNamen(b),
     vods: vods && vods.login === g.kanal.login ? vods : null,
     punkte: g.modus === 'live' ? stickerStand : null,
   } : null, karteHandler);
   zeichneTv();
   renderHinweis();
   zeigeZurueckSchild();
+}
+
+// Grosse Namen hinter der Karte: die Kanaele in Regal-Reihenfolge (Brett, live, unten).
+function kartenNamen(b) {
+  return [...b.brett, ...b.live.map((e) => e.kanal), ...b.unten.map((e) => e.kanal)]
+    .map((k) => k.displayName || k.login);
 }
 
 // „Noch keine Kanäle …“ steht ueber dem Brett (brettText), nicht hier.

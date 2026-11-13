@@ -188,7 +188,7 @@ test('Ruecken-Fach: Fenster per Raum.REGAL.ruecken, Blaettern in ganzen Schritte
 });
 
 // --- Regal neu, Task 9b: Karte ersetzt die grosse Huelle --------------------------
-test('Karte ersetzt die grosse Huelle: Fenster aus GROSS_FENSTER, Masse aus Raum.kartenMasse, alte Teile weg', () => {
+test('Karte ersetzt die grosse Huelle: Fenster aus GROSS_FENSTER, alte Teile weg', () => {
   assert.ok(/GROSS_FENSTER\s*=\s*\{\s*x:\s*32,\s*y:\s*32,\s*b:\s*65,\s*h:\s*65\s*\}/.test(js));
   assert.ok(!/GROSS_LISTE|GROSS_KANTE|grossOffen|\bt\.gross\b|t\.grossHuelle/.test(js));
   assert.ok(!/function baueGross\(|function zeichneFach\(/.test(js));
@@ -197,14 +197,14 @@ test('Karte ersetzt die grosse Huelle: Fenster aus GROSS_FENSTER, Masse aus Raum
   assert.ok(rumpf(js, 'function zeichneKarte(').includes('profilbild(k, t.karteFenster, GROSS_FENSTER)'));
   const n = rumpf(js, 'function neuAusrichten(');
   assert.ok(!n.includes('Raum.grossKante') && !n.includes("'--n'") && !n.includes("'--vod-k'"));
-  assert.ok(n.includes('Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight)'));
   assert.ok(!/\.gross[\s{.,-]/.test(css), 'kein .gross*-CSS mehr');
   assert.ok(!/\.huelle-lampe|\.vorn-zettel|\.zettel-text/.test(css));
 });
 
-test('Karte dreht sich um: rotateY, Vorder- und Rueckseite, 400 ms, Animationen aus sofort', () => {
-  assert.ok(/\.karte-karte\s*\{[^}]*transform-style:\s*preserve-3d;[^}]*transition:\s*transform 400ms/.test(css));
-  assert.ok(/\.karte-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+test('Karte dreht sich um: nur .karte-huelle-dreh, rotateY, 400 ms, Animationen aus sofort', () => {
+  assert.ok(/\.karte-huelle-dreh\s*\{[^}]*transform-style:\s*preserve-3d;[^}]*transition:\s*transform 400ms/.test(css));
+  assert.ok(/\.karte-huelle-dreh\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
+  assert.ok(!/\.karte-karte\b/.test(css), 'die ganze Karte dreht nicht mehr');
   assert.ok(/\.karte-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
   assert.ok(/\.karte-rueck\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
   assert.ok(/\[data-animationen="aus"\][^{]*\{[^}]*transition:\s*none/.test(css));
@@ -879,15 +879,6 @@ test('Karte: baueKarte nutzt huelle-gross-vorn, karte.png und karte-rueck.png; i
   assert.strictEqual((js.match(/'karte-platz[ ']/g) || []).length, 1);
 });
 
-test('Karte: neuAusrichten setzt die Kartenmasse, die alten Zeilen der grossen Huelle sind weg', () => {
-  const n = rumpf(js, 'function neuAusrichten(');
-  assert.ok(n.includes('Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight)'));
-  for (const v of ['--karte-b', '--karte-h', '--karte-n', '--karte-schrift', '--karte-schrift-klein', '--karte-vod-k']) {
-    assert.ok(n.includes("'" + v + "'"), v);
-  }
-  assert.ok(!n.includes('Raum.grossKante('));
-});
-
 test('Karte: zeichneKarte kennt alle Handler (laden, stern, umdrehen, zuruecklegen, vod, mehrVods)', () => {
   const z = rumpf(js, 'function zeichneKarte(');
   assert.ok(z.length > 0);
@@ -943,55 +934,6 @@ test('Karte: wechselt nur das laufende VOD, ziehen die vorhandenen Zeilen die Ma
   assert.ok(s.includes("toggle('laeuft'") && s.includes('b.dataset.id') && s.includes('karteVodInfo('));
 });
 
-test('Karte: Huelle fuellt die linke Haelfte (Bild 128/111 skaliert, Fenster mit dunkler Flaeche), ✕ skaliert mit --karte-n', () => {
-  const regel = (sel) => (new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.') + '\\s*\\{([^}]*)\\}').exec(css) || [])[2] || '';
-  assert.ok(regel('.karte-huelle').includes('--karte-s: calc(var(--karte-n, 2) * 128 / 111)'));
-  assert.ok(/left:\s*calc\(-9px \* var\(--karte-s\)\)/.test(regel('.karte-bild')));
-  assert.ok(/background:\s*var\(--zettel-tinte\)/.test(regel('.karte-fenster')), 'Fenster nie durchsichtig');
-  const zu = regel('.karte-zu');
-  assert.ok(/width:\s*calc\(16px \* var\(--karte-n, 2\)\)/.test(zu) && /right:\s*calc\(2px \* var\(--karte-n, 2\)\)/.test(zu));
-  assert.ok(!/right:\s*-/.test(zu), 'innerhalb der Karte');
-  // Platz fuer das ✕: Kopf der Rueckseite und erste Tafelzeilen enden davor (Rand 10n + Platz 10n > 2n + 16n)
-  assert.ok(/--karte-zu-platz:\s*calc\(10px \* var\(--karte-n, 2\)\)/.test(regel('.karte')));
-  assert.ok(/padding-right:\s*var\(--karte-zu-platz\)/.test(regel('.karte-kopf')));
-  assert.ok(/\.karte-info > \.karte-kopfzeile\s*\{[^}]*padding-right:\s*var\(--karte-zu-platz\)/.test(css));
-  assert.ok(/\.karte-platz\s*\{[^}]*background:\s*rgb\(18 5 5 \/ \.55\)/.test(css), 'gleiche Abdunklung wie .gross-platz');
-});
-
-// Janis 13.11.: Info-Seite neu ohne neue Bilder - Raum Klar mit geordneten Groessen,
-// Vorschaubild oben (Aufteilung 1), echte Knoepfe aus knopf.png statt Links.
-test('Karte vorn: Kopfzeile (Status + Name gross), Live-Vorschau oben, Rest klein, Knoepfe unten', () => {
-  const v = rumpf(js, 'function zeichneKarteVorn(');
-  const p = (s) => { const i = v.indexOf(s); assert.ok(i > -1, s); return i; };
-  assert.ok(p("el('div', 'karte-kopfzeile')") < p('karteVorschau(k, s.modus)'), 'Kopfzeile vor dem Bild');
-  assert.ok(p('karteVorschau(k, s.modus)') < p("'karte-titel'"), 'Bild vor dem Titel');
-  assert.ok(p("'karte-titel'") < p("el('div', 'karte-knoepfe')"));
-  // Zuschauer und Laufzeit in einer Zeile, Punkte darunter
-  assert.ok(v.includes("[k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', lauf ? 'seit ' + lauf : '']"));
-  const b = rumpf(js, 'function karteVorschau(');
-  assert.ok(b.includes("modus !== 'live'") && b.includes('return null'), 'nur live');
-  assert.ok(b.includes('HomeBuehne.vorschauUrl(k.login, Date.now())'));
-  assert.ok(b.includes('t.karteBild') && b.includes('login === k.login'), 'gleiche Platte: Bild behalten (kein Flackern)');
-  assert.ok(b.includes('vodBild(url, c)'));
-  // Live-Punkt rot und blinkend (Janis 13.11.), eigener Span vor "LIVE"
-  assert.ok(v.includes("st.append(el('span', 'karte-live-punkt', '●'), ' LIVE')"));
-  assert.ok(/\.karte-live-punkt\s*\{[^}]*color:\s*rgb\(220 40 32\)[^}]*animation:\s*karte-blinken 1s steps\(1\) infinite/.test(css), 'gleiches Rot wie der Live-Punkt im Regal');
-  assert.ok(/@keyframes karte-blinken\s*\{\s*50%\s*\{\s*opacity:\s*0;\s*\}\s*\}/.test(css));
-});
-
-test('Karte vorn CSS: Name gross, Rest klein, Bild fuellt den Platz bis 16:9, Knoepfe aus knopf.png', () => {
-  const regel = (sel) => (new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.').replace(/>/g, '\\>') + '\\s*\\{([^}]*)\\}').exec(css) || [])[2] || '';
-  assert.ok(/font-size:\s*var\(--karte-schrift,/.test(regel('.karte-info > .karte-kopfzeile .karte-name')));
-  assert.ok(!/--karte-schrift,/.test(regel('.karte-info > .karte-titel')), 'Titel klein');
-  const bild = regel('.karte-info > .karte-vorschau');
-  assert.ok(/flex:\s*1 1 0/.test(bild) && /min-height:\s*0/.test(bild));
-  assert.ok(bild.includes('max-height: calc((var(--karte-h) - 20px * var(--karte-n)) * 9 / 16)'));
-  const k = regel('.karte-info .karte-knopf');
-  assert.ok(k.includes("border-image: url('../themes/cozy/knopf.png') 8 fill / .6667em / 0 stretch"));
-  assert.ok(/height:\s*2\.6667em/.test(k) && /color:\s*var\(--text\)/.test(k));
-  assert.ok(/text-decoration:\s*none/.test(k), 'keine unterstrichenen Links');
-});
-
 test('Karte: Klick daneben und ✕ legen zurueck (Doppelklick ignoriert), Doppelklick auf die Huelle legt auf', () => {
   const b = rumpf(js, 'function baueKarte(');
   const k = b.indexOf("addEventListener('click'");
@@ -1012,14 +954,14 @@ test('Karte: 9-Slice-Literalwerte im CSS gleich regal.json, border-width mit --k
     const m = new RegExp('(^|\\n)' + sel.replace(/\./g, '\\.') + '\\s*\\{([^}]*)\\}').exec(css);
     return m ? m[2] : '';
   };
-  const info = regel('.karte-info');
+  const info = regel('.karte-tafel');
   const rueck = regel('.karte-rueck');
-  assert.ok(info.includes("border-image: url('../themes/cozy/karte.png')"), 'Info-Bild');
+  assert.ok(info.includes("border-image: url('../themes/cozy/karte.png')"), 'Tafel-Bild');
   assert.ok(rueck.includes("border-image: url('../themes/cozy/karte-rueck.png')"), 'Rueck-Bild');
-  assert.ok(info.includes('border-image-slice: ' + slice(regal.karte.rand) + ' fill'), 'Slice Info');
+  assert.ok(info.includes('border-image-slice: ' + slice(regal.karte.rand) + ' fill'), 'Slice Tafel');
   assert.ok(rueck.includes('border-image-slice: ' + slice(regal.rueckseite.rand) + ' fill'), 'Slice Rueck');
   for (const r of [info, rueck]) {
-    assert.ok(r.includes('border-width: calc(10px * var(--karte-n))'));
+    assert.ok(r.includes('border-width: var(--karte-rand)'), 'Rand 5g, mindestens 10 (neuAusrichten)');
     assert.ok(/image-rendering:\s*pixelated/.test(r));
   }
   const bild = (r) => /border-image:[^;]*\bfill\b/.test(r) || /border-image-slice:[^;]*\bfill\b/.test(r);
@@ -1028,12 +970,8 @@ test('Karte: 9-Slice-Literalwerte im CSS gleich regal.json, border-width mit --k
 
 test('Karte: CSS (Platz verborgen im Ablauf, Drehen, Liste scrollt, Hover nur Aufhellen/Anheben)', () => {
   assert.ok(/#home\.im-ablauf \.karte-platz\s*\{\s*display:\s*none;?\s*\}/.test(css));
-  assert.ok(/\.karte-karte\.gedreht\s*\{\s*transform:\s*rotateY\(180deg\)/.test(css));
-  assert.ok(/\.karte-karte\s*\{[^}]*transition:\s*transform 400ms/.test(css));
   assert.ok(/\.karte-seite\s*\{[^}]*backface-visibility:\s*hidden/.test(css));
   assert.ok(/\.karte-vods\s*\{[^}]*overflow-y:\s*auto/.test(css));
-  assert.ok(/\.karte-vod canvas\s*\{[^}]*calc\(64px \* var\(--karte-vod-k, 1\)\)[^}]*calc\(36px \* var\(--karte-vod-k, 1\)\)/.test(css));
-  assert.ok(/\.karte-vod:hover[^{]*\{[^}]*brightness/.test(css) && /\.karte-vod:hover[^{]*\{[^}]*translateY/.test(css));
   const k = css.slice(css.indexOf('/* --- Karte'));
   assert.ok(k.length > 10);
   assert.ok(!/box-shadow|outline:\s*\d|border-color:\s*var\(--accent|background:\s*var\(--accent/.test(k));
@@ -1300,6 +1238,101 @@ test('Task 9e: Schild zeigt im Home bei kannZurueck den Pfeil (Klasse zurueck), 
   assert.ok(/#onair-bar\.leer:not\(\.zurueck\)\s*\{[^}]*pointer-events:\s*none/.test(stil));
   assert.ok(!/#onair-bar\.leer\s*\{/.test(stil), 'keine Sperre, die zurueck uebergeht');
   assert.ok(/#onair-bar\.zurueck #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(stil));
+});
+
+// --- Regal von nahe, Task 5: Klick-Ansicht vorn ----------------------------------------
+const cssRegel = (sel) => (new RegExp('(^|\\n)' + sel.replace(/[.*+?^${}()|[\]\\>]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(css) || [])[2] || '';
+
+test('Karte nah: Masse aus Raum.klickMasse (kartenMasse weg), Huelle versetzt um 9 Bildpixel', () => {
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('Raum.klickMasse(wirt.clientWidth, wirt.clientHeight)'));
+  assert.ok(!js.includes('kartenMasse') && !/--karte-n\b/.test(css) && !css.includes('--karte-vod-k'));
+  for (const v of ['--karte-g', '--karte-p', '--karte-rand', '--karte-name', '--karte-titel', '--karte-zeile', '--karte-namen']) {
+    assert.ok(n.includes("'" + v + "'"), v);
+  }
+  assert.ok(n.includes('Math.max(10, 5 * km.g)'), 'Tafel-Rand 5g, mindestens 10');
+  // Bild 128g, sichtbarer Teil (9..119) liegt bei huelle.x/y
+  assert.ok(/left:\s*calc\(-9px \* var\(--karte-g\)\)/.test(cssRegel('.karte-bild')));
+  assert.ok(/width:\s*calc\(128px \* var\(--karte-g\)\)/.test(cssRegel('.karte-bild')));
+  assert.ok(/left:\s*round\(calc\(\(var\(--x\) - 9\) \* var\(--karte-g\) \* 1px\), 1px\)/.test(cssRegel('.karte-teil')), 'Fenster mit');
+  assert.ok(/background:\s*var\(--zettel-tinte\)/.test(cssRegel('.karte-fenster')), 'Fenster nie durchsichtig');
+});
+
+test('Karte nah: Platte als Bildstreifen platte-nah-dreht.png steps(7) hinter der Huelle, kein rotate', () => {
+  assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy/platte-nah-dreht.png')), 'Bild liegt');
+  const p = cssRegel('.karte-platte');
+  assert.ok(p.includes("url('../themes/cozy/platte-nah-dreht.png')"));
+  assert.ok(/animation:\s*karte-platte-dreht 840ms steps\(7\) infinite/.test(p), '7 x 120 ms');
+  assert.ok(/background-size:\s*calc\(448px \* var\(--karte-p\)\) calc\(64px \* var\(--karte-p\)\)/.test(p));
+  assert.ok(/@keyframes karte-platte-dreht\s*\{\s*to\s*\{\s*background-position:\s*calc\(-448px \* var\(--karte-p\)\) 0;/.test(css));
+  assert.ok(!/rotate\(/.test(css));
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(b.indexOf('t.kartePlatte') > -1 && b.indexOf('t.kartePlatte') < b.indexOf('t.karteKarte = el('), 'hinter der Huelle');
+  assert.ok(/t\.karteKarte = el\('div', 'karte-huelle-dreh'\)/.test(b));
+});
+
+test('Karte nah: Tafel-Reihenfolge Vorschau, Name, Titel, Spiel · Zuschauer, Knoepfe; Schriften aus klickMasse', () => {
+  const v = rumpf(js, 'function zeichneKarteVorn(');
+  const p = (s) => { const i = v.indexOf(s); assert.ok(i > -1, s); return i; };
+  assert.ok(p('karteVorschau(k, s.modus)') < p("'karte-name'"));
+  assert.ok(p("'karte-name'") < p("'karte-titel'"));
+  assert.ok(p("'karte-titel'") < p("'karte-zeile'"));
+  assert.ok(p("'karte-zeile'") < p("el('div', 'karte-knoepfe')"));
+  assert.ok(v.includes("[k.game, k.viewersLabel ? k.viewersLabel + ' Zuschauer' : ''].filter(Boolean).join(' · ')"));
+  assert.ok(v.includes("'▶ auflegen'") && v.includes("'↻ VODs'"));
+  assert.ok(!v.includes('laufzeit') && !v.includes('Punkte'), 'Laufzeit und Kanalpunkte entfallen');
+  assert.ok(/s\.modus === 'markiert'/.test(v), 'Statuszeile bei markiert');
+  // Schriften
+  assert.ok(/font-size:\s*var\(--karte-name\)/.test(cssRegel('.karte-info > .karte-name')));
+  assert.ok(/font-size:\s*var\(--karte-titel\)/.test(cssRegel('.karte-info > .karte-titel')));
+  assert.ok(/-webkit-line-clamp:\s*2/.test(cssRegel('.karte-info > .karte-titel')));
+  assert.ok(/font-size:\s*var\(--karte-zeile\)/.test(cssRegel('.karte-info')));
+  assert.ok(/font-family:\s*var\(--schrift-karte\)/.test(cssRegel('.karte-tafel')));
+  // ✕ oben rechts an der Tafel, Tafel 9-Slice, Breite/Hoehe aus klickMasse
+  const b = rumpf(js, 'function baueKarte(');
+  assert.ok(/t\.karteTafel\.append\(t\.karteInfo, zu\)/.test(b));
+  const n = rumpf(js, 'function neuAusrichten(');
+  assert.ok(n.includes('km.tafel.breite') && n.includes('km.tafel.hoeheMax') && n.includes('km.tafel.mitteY'));
+  const k = cssRegel('.karte-info .karte-knopf');
+  assert.ok(k.includes("border-image: url('../themes/cozy/knopf.png') 8 fill / .6667em / 0 stretch"));
+  // Vorschau und Live-Punkt-Regeln wie bisher
+  const vb = rumpf(js, 'function karteVorschau(');
+  assert.ok(vb.includes("modus !== 'live'") && vb.includes('HomeBuehne.vorschauUrl(k.login, Date.now())'));
+  assert.ok(/aspect-ratio:\s*16 \/ 9/.test(cssRegel('.karte-info > .karte-vorschau')));
+});
+
+test('Karte nah: grosse Namen per Raum.namenZeile aus stand.namen, Leuchtzeile mit dem Namen der Platte', () => {
+  const z = rumpf(js, 'function zeichneKarteNamen(');
+  assert.ok(z.includes('Raum.namenZeile(namen, n)'));
+  assert.ok(z.includes('[180, 225, 270, 210]'), 'Laufzeiten');
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes('zeichneKarteNamen(stand.namen'));
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes('t.karteLeucht.textContent = name(k)'));
+  const d = cssRegel('.karte-dunkel');
+  assert.ok(/background:\s*#05040a/.test(d) && /opacity:\s*\.72/.test(d));
+  const n = cssRegel('.karte-namen-zeile');
+  assert.ok(/color:\s*#f4e4c9/.test(n) && /opacity:\s*\.1/.test(n) && /font-size:\s*var\(--karte-namen\)/.test(n));
+  assert.ok(/animation:\s*raum-laufschrift/.test(cssRegel('.karte-namen-text')));
+  const l = cssRegel('.karte-leucht');
+  assert.ok(/color:\s*#f0aa6e/.test(l) && /opacity:\s*\.45/.test(l) && /font-size:\s*var\(--karte-namen\)/.test(l));
+  // nicht klickbar: Klick daneben trifft weiter .karte-platz
+  assert.ok(/pointer-events:\s*none/.test(cssRegel('.karte-dunkel, .karte-namen, .karte-leucht, .karte')));
+});
+
+test('Schrift: Raum Zahlen per unicode-range, --schrift-karte', () => {
+  const raumCss = lies('renderer/themes/cozy/raum.css');
+  const f = /@font-face\s*\{[^}]*font-family:\s*'Raum Zahlen'[^}]*\}/.exec(raumCss);
+  assert.ok(f, '@font-face Raum Zahlen');
+  assert.ok(f[0].includes("url('schrift/RaumKlar.ttf')"));
+  assert.ok(/unicode-range:\s*U\+0030-0039, U\+002E, U\+003A/.test(f[0]));
+  assert.ok(/--schrift-karte:\s*'Raum Zahlen', 'Pixelify Sans', monospace;/.test(raumCss));
+});
+
+test('home.js: zeichneKarte bekommt namen aus belegung()', () => {
+  const r = rumpfOben(homeJs, 'function renderHome(');
+  assert.ok(r.includes('namen: kartenNamen(b)'));
+  const k = rumpfOben(homeJs, 'function kartenNamen(');
+  assert.ok(k.includes('b.brett') && k.includes('b.live') && k.includes('b.unten'));
+  assert.ok(k.includes('k.displayName || k.login'));
 });
 
 // --- Regal von nahe, Task 4: Hover - Platte rutscht heraus, Name gross darueber --------

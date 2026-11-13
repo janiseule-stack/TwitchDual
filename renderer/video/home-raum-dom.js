@@ -277,9 +277,17 @@ window.HomeRaumDom = (function () {
       const s = t.karteStand;
       if ((frisch || e.target === t.karteWurzel) && s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
     });
+    // Regal von nahe (Plan 2026-11-13-regal-nah, Task 5): Regal dunkel, dahinter die
+    // grossen Namen und die Leuchtzeile; vorn die Huelle mit der drehenden Platte und
+    // rechts die Tafel. Lagen setzt neuAusrichten (Raum.klickMasse).
+    t.karteDunkel = el('div', 'karte-dunkel');
+    t.karteNamen = el('div', 'karte-namen');
+    t.karteLeucht = el('div', 'karte-leucht');
     t.karte = el('div', 'karte');
-    t.karteKarte = el('div', 'karte-karte');
-    // Vorderseite: Huelle links, Infotafel rechts
+    // Platte (PixelLab-Bildstreifen) hinter der Huelle; sie schaut rechts heraus
+    t.kartePlatte = el('div', 'karte-platte');
+    // Nur die Huelle dreht sich um: vorn Profilbild, hinten die Trackliste
+    t.karteKarte = el('div', 'karte-huelle-dreh');
     const vorn = el('div', 'karte-seite karte-vorn');
     t.karteHuelle = el('div', 'karte-huelle');
     t.karteFenster = textLage(el('div', 'karte-teil karte-fenster'), GROSS_FENSTER);
@@ -291,8 +299,7 @@ window.HomeRaumDom = (function () {
       const s = t.karteStand;
       if (s && s.kanal && s.modus === 'live' && t.karteLaden) t.karteLaden(s.kanal.login);
     });
-    t.karteInfo = el('div', 'karte-info');
-    vorn.append(t.karteHuelle, t.karteInfo);
+    vorn.appendChild(t.karteHuelle);
     // Rueckseite: Kopf und Liste auf karte-rueck.png (9-Slice in CSS)
     const rueck = el('div', 'karte-seite karte-rueck');
     t.karteKopf = el('div', 'karte-kopf');
@@ -303,10 +310,14 @@ window.HomeRaumDom = (function () {
     rueck.append(t.karteKopf, t.karteVods);
     t.karteRueck = rueck;
     t.karteKarte.append(vorn, rueck);
+    // Tafel (karte.png 9-Slice) mit dem ✕ oben rechts
+    t.karteTafel = el('div', 'karte-tafel');
+    t.karteInfo = el('div', 'karte-info');
     const zu = knopf('pixel-knopf k-zu karte-zu', '✕', 'Zurücklegen', () => { if (t.karteZu) t.karteZu(); });
     zu.dataset.id = 'zu';
-    t.karte.append(t.karteKarte, zu);
-    t.karteWurzel.appendChild(t.karte);
+    t.karteTafel.append(t.karteInfo, zu);
+    t.karte.append(t.kartePlatte, t.karteKarte, t.karteTafel);
+    t.karteWurzel.append(t.karteDunkel, t.karteNamen, t.karteLeucht, t.karte);
     t.karteKv = null;
     return t.karteWurzel;
   }
@@ -538,17 +549,26 @@ window.HomeRaumDom = (function () {
     wirt.style.setProperty('--raum-schrift', Raum.schriftPx(f) + 'px');
     wirt.style.setProperty('--raum-schrift-gross', Raum.schriftPx(f, 5) + 'px');
     wirt.style.setProperty('--rand', Raum.randPx(f, ZETTEL_RAND) + 'px');
-    // Karte: doppelt so breit wie hoch, ganzzahlig (--karte-n), eigene Schriftgroessen
-    // und Vorschau-Faktor; mittig auf ganzen Pixeln.
-    const km = Raum.kartenMasse(wirt.clientWidth, wirt.clientHeight);
-    wirt.style.setProperty('--karte-b', km.breite + 'px');
-    wirt.style.setProperty('--karte-h', km.hoehe + 'px');
-    wirt.style.setProperty('--karte-n', km.n);
-    wirt.style.setProperty('--karte-schrift', km.schrift.gross + 'px');
-    wirt.style.setProperty('--karte-schrift-klein', km.schrift.klein + 'px');
-    wirt.style.setProperty('--karte-vod-k', km.vodK);
-    t.karte.style.left = km.links + 'px';
-    t.karte.style.top = km.oben + 'px';
+    // Klick-Ansicht (Raum.klickMasse): eigener ganzzahliger Faktor g, Lagen in ganzen
+    // Bildschirm-Pixeln, Schriften in Vielfachen von 12.
+    const km = Raum.klickMasse(wirt.clientWidth, wirt.clientHeight);
+    const px = (v) => v + 'px';
+    wirt.style.setProperty('--karte-g', km.g);
+    wirt.style.setProperty('--karte-p', km.platte.kante / 64);
+    wirt.style.setProperty('--karte-rand', px(Math.max(10, 5 * km.g)));
+    wirt.style.setProperty('--karte-name', px(km.schrift.name));
+    wirt.style.setProperty('--karte-titel', px(km.schrift.titel));
+    wirt.style.setProperty('--karte-zeile', px(km.schrift.zeile));
+    wirt.style.setProperty('--karte-namen', px(km.schrift.namen));
+    Object.assign(t.kartePlatte.style, { left: px(km.platte.x), top: px(km.platte.y), width: px(km.platte.kante), height: px(km.platte.kante) });
+    Object.assign(t.karteKarte.style, { left: px(km.huelle.x), top: px(km.huelle.y), width: px(km.huelle.kante), height: px(km.huelle.kante) });
+    // Drehen um die eigene Mitte der Huelle (sonst kippt sie schief zur Fenstermitte)
+    t.karte.style.perspectiveOrigin = px(km.huelle.x + km.huelle.kante / 2) + ' ' + px(km.huelle.y + km.huelle.kante / 2);
+    // Tafel: hoechstens hoeheMax hoch, senkrecht mittig um mitteY (lageTafel nach dem Zeichnen)
+    Object.assign(t.karteTafel.style, { left: px(km.tafel.x), width: px(km.tafel.breite), maxHeight: px(km.tafel.hoeheMax) });
+    t.tafelMitte = km.tafel.mitteY;
+    lageTafel();
+    Object.assign(t.karteLeucht.style, { left: px(km.huelle.x), top: px(km.leucht.y) });
     // Raum-Ebene; im Ablauf bleibt sie auf dem Kamera-Ziel (auch bei Groessenaenderung).
     const kamera = kameraZiel();
     const r = t.raum;
@@ -1006,6 +1026,9 @@ window.HomeRaumDom = (function () {
       t.karteKarte.classList.toggle('gedreht', rueck);
     }
     zeichneKarteVorn(stand, k, h);
+    zeichneKarteNamen(stand.namen || []);
+    t.karteLeucht.textContent = name(k);
+    lageTafel();
     // Rueckseite: Kopf (Titel, Stern, bei Live-Platten "Vorderseite") und Liste
     const fokus = merkeFokus(t.karteRueck, 'id');
     t.karteKopf.replaceChildren();
@@ -1024,8 +1047,9 @@ window.HomeRaumDom = (function () {
     zeichneKarteVods(stand.vods, k.login);
   }
 
-  // Vorderseite (Janis 13.11., Aufteilung 1): Kopfzeile (Status klein, Name gross),
-  // Live-Vorschau, Titel, Spiel, Zuschauer und Laufzeit, Kanalpunkte, unten die Knoepfe.
+  // Tafel vorn (Regal von nahe): Vorschaubild, Name, Titel (hoechstens 2 Zeilen),
+  // "Spiel · N Zuschauer" (live) bzw. Statuszeile, Knoepfe. Laufzeit und Kanalpunkte
+  // entfallen (Plan 2026-11-13-regal-nah).
   function zeichneKarteVorn(s, k, h) {
     const z = t.karteInfo;
     const fokus = merkeFokus(z, 'id');
@@ -1033,45 +1057,61 @@ window.HomeRaumDom = (function () {
     const vornSeite = t.karteVornSeite;
     vornSeite.classList.toggle('live', s.modus === 'live'); // Huelle klickbar (CSS)
     const an = s.modus !== 'offline';
-    let lauf = '';
-    let status = null;
-    if (s.modus === 'live') {
-      lauf = typeof StreamInfo !== 'undefined' ? StreamInfo.laufzeit(k.start, Date.now()) : '';
-    } else if (s.modus === 'markiert') status = 'gerade offline gegangen';
-    else status = k.error ? 'Status nicht abrufbar' : 'offline';
-    const kopf = el('div', 'karte-kopfzeile');
-    const st = el('span', 'karte-status', status);
-    // live: roter, blinkender Punkt (CSS .karte-live-punkt)
-    if (s.modus === 'live') st.append(el('span', 'karte-live-punkt', '●'), ' LIVE');
-    kopf.appendChild(st);
-    const kanal = el('span', 'karte-name', name(k));
-    if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
-    kopf.appendChild(kanal);
-    z.appendChild(kopf);
     const bild = karteVorschau(k, s.modus);
     if (bild) z.appendChild(bild);
+    const kanal = el('div', 'karte-name', name(k));
+    if (k.verifiziert) kanal.appendChild(el('span', 'haken', '✓'));
+    z.appendChild(kanal);
     if (an && k.title) z.appendChild(el('div', 'karte-titel', k.title));
-    if (an && k.game) z.appendChild(el('div', 'karte-spiel', k.game));
-    const zahlen = s.modus === 'live'
-      ? [k.viewersLabel ? k.viewersLabel + ' Zuschauer' : '', lauf ? 'seit ' + lauf : ''].filter(Boolean).join(' · ') : '';
-    if (zahlen) z.appendChild(el('div', 'karte-zuschauer', zahlen));
-    const punkte = an && s.punkte ? Number(s.punkte.balance || 0).toLocaleString('de-DE') + ' Punkte' : '';
-    if (punkte) z.appendChild(el('div', 'karte-klein', punkte));
+    let zeile = '';
+    if (s.modus === 'live') zeile = [k.game, k.viewersLabel ? k.viewersLabel + ' Zuschauer' : ''].filter(Boolean).join(' · ');
+    else if (s.modus === 'markiert') zeile = 'gerade offline gegangen';
+    else zeile = k.error ? 'Status nicht abrufbar' : 'offline';
+    if (zeile) z.appendChild(el('div', 'karte-zeile', zeile));
     const knoepfe = el('div', 'karte-knoepfe');
+    if (s.modus === 'live') {
+      const auf = knopf('karte-knopf', '▶ auflegen', 'Stream laden', () => ruf(h, 'laden', k.login));
+      auf.dataset.id = 'laden';
+      knoepfe.appendChild(auf);
+    }
+    const vods = knopf('karte-knopf', '↻ VODs', 'Umdrehen: VODs ansehen', () => ruf(h, 'umdrehen'));
+    vods.dataset.id = 'umdrehen';
+    knoepfe.appendChild(vods);
     const stern = knopf('karte-knopf stern' + (k.favorit ? ' an' : ''), k.favorit ? '★' : '☆',
       k.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten', () => ruf(h, 'stern', k));
     stern.dataset.id = 'stern';
     knoepfe.appendChild(stern);
-    if (s.modus === 'live') {
-      const auf = knopf('karte-knopf', 'Auflegen', 'Stream laden', () => ruf(h, 'laden', k.login));
-      auf.dataset.id = 'laden';
-      knoepfe.appendChild(auf);
-    }
-    const vods = knopf('karte-knopf', 'VODs ↻', 'VODs ansehen', () => ruf(h, 'umdrehen'));
-    vods.dataset.id = 'umdrehen';
-    knoepfe.appendChild(vods);
     z.appendChild(knoepfe);
     stelleFokusHer(z, 'id', fokus);
+  }
+
+  // Tafel senkrecht mittig um mitteY, auf ganzen Pixeln (nach jedem Zeichnen).
+  function lageTafel() {
+    if (!t.karteTafel || t.tafelMitte === undefined) return;
+    t.karteTafel.style.top = Math.round(t.tafelMitte - t.karteTafel.offsetHeight / 2) + 'px';
+  }
+
+  // Grosse Namen hinter der Karte (wie im alten CD-Entwurf): 4 Laufzeilen, Zeile n =
+  // Raum.namenZeile(namen, n); Text zweimal hintereinander (Laufband wie die
+  // Laufschrift, translateX(-50%)). Neu gebaut nur, wenn sich die Namen aendern.
+  function zeichneKarteNamen(namen) {
+    const schluessel = namen.join('\n');
+    if (t.karteNamenSchluessel === schluessel) return;
+    t.karteNamenSchluessel = schluessel;
+    t.karteNamen.replaceChildren();
+    if (!namen.length) return;
+    const dauer = [180, 225, 270, 210];
+    for (let n = 1; n <= 4; n++) {
+      const zeile = el('div', 'karte-namen-zeile');
+      zeile.style.top = ((n - 1) * 25) + '%';
+      const text = el('div', 'karte-namen-text');
+      text.style.animationDuration = dauer[n - 1] + 's';
+      if (n % 2 === 0) text.style.animationDirection = 'reverse';
+      const inhalt = Raum.namenZeile(namen, n).join('   ');
+      for (let i = 0; i < 2; i++) text.appendChild(el('span', 'karte-namen-stueck', inhalt));
+      zeile.appendChild(text);
+      t.karteNamen.appendChild(zeile);
+    }
   }
 
   // Live-Vorschau fuer die Vorderseite (wie im Fernseher): Canvas 160x90, scharfkantig

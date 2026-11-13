@@ -406,25 +406,5 @@
     return Math.round(Math.min(zahl(fensterBreite) - rand - zahl(breiteText), Math.max(rand, l)));
   }
 
-  // Maße der vergrößerten Plattenkarte (zwei Hüllen breit): n = Vielfaches von 128 Bildpixeln.
-  function kartenMasse(fensterBreite, fensterHoehe) {
-    const b = zahl(fensterBreite);
-    const h = zahl(fensterHoehe);
-    const n = Math.max(1, Math.min(Math.floor((0.7 * h) / 128), Math.floor((b - 96) / 256)));
-    const kante = 128 * n;
-    const breite = 2 * kante;
-    const clamp = (w, lo, hi) => Math.min(hi, Math.max(lo, w));
-    return {
-      n,
-      kante,
-      breite,
-      hoehe: kante,
-      links: Math.round((b - breite) / 2),
-      oben: Math.round((h - kante) / 2),
-      schrift: { gross: 12 * clamp(Math.floor(kante / 192), 1, 4), klein: 12 * clamp(Math.floor(kante / 384), 1, 2) },
-      vodK: Math.max(1, Math.floor(kante / 192)),
-    };
-  }
-
-  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, LAUF_ECKEN, LAUF_FELD, laufMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, kartenMasse, REGAL_NAH, skalierungFach, fachFahrt, naechstesFach, klickMasse, namenZeile, namenLage };
+  return { BILD, FLAECHEN, HUELLE, TV_ECKEN, TV_RECHTECK, LAUF_ECKEN, LAUF_FELD, laufMatrix, PLATTENSPIELER_RECHTECK, HOVER, MITTE_X, RAHMEN, RAUM_RAHMEN, REGAL_RAHMEN, REGAL_LEINWAND, REGAL, TELLER, skalierung, skalierungRegal, passtAlsRaum, treffer, zuBild, SPIELER_ANTEIL, lageRuhe, lageSpieler, lageTv, fixpunkt, ZOOM_ORT, zoomAmOrt, pixelStufen, fachFenster, schriftPx, rueckenSchrift, randPx, REGAL_NAH, skalierungFach, fachFahrt, naechstesFach, klickMasse, namenZeile, namenLage };
 });

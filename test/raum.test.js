@@ -183,33 +183,8 @@ test('skalierungRegal: 500x1000 hochkant -> dunkler Rand oben', () => {
   assert.ok(Math.abs(s.faktor - 2.5) < 1e-9);
 });
 
-test('kartenMasse auf der Groessenliste', () => {
-  for (const [b, h] of GROESSEN) {
-    const k = R.kartenMasse(b, h);
-    const id = b + 'x' + h;
-    assert.ok(Number.isInteger(k.n) && k.n >= 1, id);
-    assert.strictEqual(k.kante, 128 * k.n, id);
-    assert.strictEqual(k.breite, 2 * k.kante, id);
-    assert.strictEqual(k.hoehe, k.kante, id);
-    assert.ok(k.breite + 96 <= b, id + ': Platz fuer Knoepfe');
-    assert.ok(k.kante <= 0.7 * h || k.n === 1, id + ': hoechstens 70 % Hoehe');
-    assert.ok(k.links >= 0 && k.oben >= 0, id);
-    assert.ok(k.links + k.breite <= b, id);
-    assert.ok(k.oben + k.hoehe <= h - 44, id + ': Hinweiszeile');
-  }
-  assert.deepStrictEqual(R.kartenMasse(1280, 670).schrift, { gross: 24, klein: 12 });
-  const a = R.kartenMasse(1280, 670);
-  assert.strictEqual(a.n, 3); assert.strictEqual(a.kante, 384); assert.strictEqual(a.vodK, 2);
-  const c = R.kartenMasse(2960, 1390);
-  assert.strictEqual(c.n, 7); assert.strictEqual(c.kante, 896); assert.strictEqual(c.vodK, 4);
-  assert.deepStrictEqual(c.schrift, { gross: 48, klein: 24 });
-  assert.strictEqual(R.kartenMasse(900, 700).n, 3);
-});
-
-test('kartenMasse: Muell -> n 1', () => {
-  for (const [b, h] of [[NaN, NaN], [undefined, undefined], [-5, 'x'], [0, 0], [100, 100]]) {
-    assert.strictEqual(R.kartenMasse(b, h).n, 1);
-  }
+test('kartenMasse ist weg (Regal von nahe: klickMasse)', () => {
+  assert.strictEqual(R.kartenMasse, undefined);
 });
 
 test('skalierung ohne Rahmen-Angabe bleibt beim Raum ohne Wand (Regal-Ansicht)', () => {

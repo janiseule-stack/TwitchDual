@@ -19,11 +19,21 @@
   src: url('schrift/RaumKlar.ttf') format('truetype');
   font-display: block;
 }
+/* Raum Zahlen: nur die Ziffern (und . :) aus Raum Klar, der Rest kommt aus Pixelify
+   Sans (Regal von nahe: in Pixelify sieht die 5 wie ein S aus, die 2 wie ein Z). */
+@font-face {
+  font-family: 'Raum Zahlen';
+  src: url('schrift/RaumKlar.ttf') format('truetype');
+  unicode-range: U+0030-0039, U+002E, U+003A;
+  font-display: block;
+}
 /* Raum Klar hat nur ein Gewicht: kein kuenstliches Fett/Kursiv, das die Pixel verschmiert */
 body { font-synthesis: none; }
 :root {
   /* nur fuer Leisten, Schilder und Ueberschriften; Chat-Text bleibt wie er ist */
   --schrift-pixel: 'Raum Klar', 'Pixelify Sans', 'Cascadia Code', Consolas, monospace;
+  /* Tafel, Trackliste und grosse Namen im Regal: Pixelify Sans mit Raum-Klar-Ziffern */
+  --schrift-karte: 'Raum Zahlen', 'Pixelify Sans', monospace;
 }
 
 /* --- Rahmen ------------------------------------------------------------------
