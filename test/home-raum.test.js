@@ -985,6 +985,19 @@ test('tools/home-groessen.js: Ansichten karte und rueckseite mit Beispieldaten, 
   assert.ok(g.includes('beispiel'));
 });
 
+test('tools/home-groessen.js: Regal von nahe - Ansichten fach-1..3 mit Beispiel-Belegung, namen im Stand, am Ende leer', () => {
+  const g = lies('tools/home-groessen.js');
+  for (const a of ["'fach-1'", "'fach-2'", "'fach-3'"]) assert.ok(g.includes(a), a);
+  const b = /function beispielBelegung\(\) \{[\s\S]*?\n\}/.exec(g);
+  assert.ok(b, 'beispielBelegung');
+  assert.ok(/zahl\(3, 'brett'\)/.test(b[0]) && /zahl\(25, 'live'\)/.test(b[0]) && /zahl\(12, 'offline'\)/.test(b[0]), '3 Cover, 25 live, 12 unten');
+  assert.ok(b[0].includes("'kanal' + String(i).padStart(2, '0')"), 'neutrale Namen kanal01…');
+  assert.ok(b[0].includes('avatar: null'), 'ohne Bilder');
+  assert.ok(g.includes('HomeRaumDom.zeichneRegal(') && g.includes('HomeRaumDom.zeigeNahFach('));
+  assert.ok(/namen:/.test(/function beispielStand\([^)]*\) \{[\s\S]*?\n\}/.exec(g)[0]), 'beispielStand hat namen');
+  assert.ok(g.includes("HomeRaumDom.zeichneRegal({ brett: [], live: [], unten: [] }, {}, {})"), 'am Ende leere Belegung');
+});
+
 // --- Regal neu, Task 9a: Wand, Ausstellbrett, Plattenruecken (Baustein, noch unverdrahtet) ---
 const regalNeu = () => rumpf(js, 'function baueRegalNeu(');
 

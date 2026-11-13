@@ -9,7 +9,7 @@ const path = require('path');
 
 const GROESSEN = [[2960, 1390], [2040, 952], [1920, 1030], [1536, 1030], [1280, 670], [900, 700]];
 const [,, ziel, ansicht = 'raum'] = process.argv;
-if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [raum|regal|karte|rueckseite]'); process.exit(1); }
+if (!ziel) { console.error('Aufruf: node tools/home-groessen.js <zielordner> [raum|regal|karte|rueckseite|fach-1|fach-2|fach-3]'); process.exit(1); }
 
 // Beispiel-Stand fuer zeichneKarte (laeuft im Video-Fenster, daher ohne Verweise nach aussen):
 // neutraler Kanal, 30 Beispiel-VODs mit Spiel; ohne Vorschaubilder (kein Netz).
@@ -31,7 +31,21 @@ function beispielStand(seite) {
     },
     modus: 'live', seite: seite === 'rueckseite' ? 'rueck' : 'vorn', punkte: { balance: 12345 },
     vods: { status: 'ok', liste, weitere: true, laedtNach: false, laufend: 'v1' },
+    namen: Array.from({ length: 40 }, (_, i) => 'kanal' + String(i + 1).padStart(2, '0')),
   };
+}
+
+// Beispiel-Belegung fuer zeichneRegal (Regal von nahe): 3 Cover auf dem Brett, 25
+// Live-Ruecken, 12 untere Ruecken; neutrale Namen kanal01…, ohne Bilder (kein Netz).
+function beispielBelegung() {
+  let i = 0;
+  const kanal = (live) => {
+    i += 1;
+    return { login: 'kanal' + String(i).padStart(2, '0'), displayName: 'kanal' + String(i).padStart(2, '0'),
+      live, favorit: false, avatar: null, game: live ? 'Beispiel-Spiel' : '', viewersLabel: live ? '1,2K' : '' };
+  };
+  const zahl = (n, art) => Array.from({ length: n }, () => (art === 'brett' ? kanal(true) : { art, kanal: kanal(art === 'live') }));
+  return { brett: zahl(3, 'brett'), live: zahl(25, 'live'), unten: zahl(12, 'offline') };
 }
 
 (async () => {
@@ -55,15 +69,23 @@ function beispielStand(seite) {
   for (const [b, h] of GROESSEN) {
     if (b > fenster[0] || h + 50 > fenster[1]) { console.log('zu gross fuer das Fenster, uebersprungen:', b + 'x' + h); continue; }
     // karte/rueckseite: Regal-Ansicht, darueber die Karte mit Beispieldaten (kein Klick, kein Netz)
+    // fach-1..3 (Regal von nahe): Beispiel-Belegung, Fach n, Hover auf der dritten Platte
     const karte = ansicht === 'karte' || ansicht === 'rueckseite';
-    const zeichne = karte ? "HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneKarte((" + beispielStand.toString() + ")('" + ansicht + "'), {});" : '';
-    const oben = await werte("(function(){ var h=document.getElementById('home'); h.style.right='auto'; h.style.bottom='auto'; h.style.width='" + b + "px'; h.style.height='" + h + "px'; HomeRaumDom.zeigeAnsicht('" + (karte ? 'regal' : ansicht) + "'); " + zeichne + " return new Promise(function(r){ setTimeout(function(){ r(h.getBoundingClientRect().top); }, 400); }); })()");
+    const fach = ['fach-1', 'fach-2', 'fach-3'].indexOf(ansicht) + 1;
+    const regal = karte || fach > 0;
+    let zeichne = regal ? 'HomeRaumDom.zeichneRegal((' + beispielBelegung.toString() + ')(), {}, {});' : '';
+    if (karte) zeichne += "HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneKarte((" + beispielStand.toString() + ")('" + ansicht + "'), {});";
+    if (fach) {
+      const box = ['.brett-neu', '.ruecken-fach-live', '.ruecken-fach-unten'][fach - 1];
+      zeichne += 'HomeRaumDom.zeigeNahFach(' + (fach - 1) + "); setTimeout(function(){ var p=document.querySelectorAll('#home " + box + " [data-login]')[2]; if (p) p.dispatchEvent(new MouseEvent('mouseenter')); }, 100);";
+    }
+    const oben = await werte("(function(){ var h=document.getElementById('home'); h.style.right='auto'; h.style.bottom='auto'; h.style.width='" + b + "px'; h.style.height='" + h + "px'; HomeRaumDom.zeigeAnsicht('" + (regal ? 'regal' : ansicht) + "'); HomeRaumDom.neuAusrichten(); " + zeichne + " return new Promise(function(r){ setTimeout(function(){ r(h.getBoundingClientRect().top); }, 500); }); })()");
     const s = await cdp('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: oben, width: b, height: h, scale: 1 } });
     const datei = path.join(ziel, ansicht + '-' + b + 'x' + h + '.png');
     fs.writeFileSync(datei, Buffer.from(s.result.data, 'base64'));
     console.log(datei);
   }
   await cdp('Emulation.clearDeviceMetricsOverride', {});
-  await werte("(function(){ var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
+  await werte("(function(){ var h=document.getElementById('home'); h.style.right=''; h.style.bottom=''; h.style.width=''; h.style.height=''; HomeRaumDom.zeichneKarte(null, {}); HomeRaumDom.zeichneRegal({ brett: [], live: [], unten: [] }, {}, {}); HomeRaumDom.zeigeAnsicht('raum'); return 'zurueck'; })()");
   process.exit(0);
 })().catch((e) => { console.error(e.message); process.exit(1); });

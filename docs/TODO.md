@@ -3,6 +3,26 @@
 Stand 2026-07-02: **Alle Punkte der ursprünglichen Roadmap sind umgesetzt** —
 Details in der Git-Historie. Diese Datei sammelt ab jetzt neue Ideen.
 
+## Regal von nahe (ungemergt, Branch feat/cozy-raum, 13.11.2026)
+
+Entwurf `docs/superpowers/specs/2026-11-13-regal-nah-design.md`, Plan
+`docs/superpowers/plans/2026-11-13-regal-nah.md` (Tasks 1–7 gebaut). Ein Fach füllt das Bild
+(Mausrad/↑↓ = Zoom an Ort ins nächste Fach, Shift+Rad/←→ blättert im Fach), Suchleiste fest oben,
+Kamera folgt dem Suchtreffer, Hover = Platte rutscht heraus + Name groß, Klick = Hülle mit drehender
+Platte (PixelLab A2) + Tafel + große Namen, Rückseite = Trackliste so groß wie die Hülle.
+Fotos (selbst geprüft): `renderer/themes/cozy/entwuerfe/_ANSCHAUEN/86-regal-nah-*/`
+(`node tools/home-groessen.js <ordner> fach-1|fach-2|fach-3|karte|rueckseite`).
+
+Offen für Janis (Optik, nicht selbst entschieden):
+- **Hover-Name im Fach 1 liegt auf der Suchleiste** (alle Größen): Über den Covern ist zwischen
+  Suchleiste und Cover kaum Platz. Mögliche Wege: Name unter das Cover, Suchleiste beim Hover
+  ausblenden oder den Namen über die Leiste legen (so ist es jetzt).
+- **900×700 (und knapp 1280×670):** Tafel-Zeilen, Knöpfe und Trackliste stehen dort in 12 px. Das
+  ist lesbar, aber klein. Laut Plan wird das nicht selbst umgebaut (z. B. Tafel unter die Hülle).
+- Lage der Leuchtzeile (links bündig mit der Hülle) und des ✕ (Ecke über der Tafel): meine Wahl,
+  bitte beim Anschauen beurteilen.
+- Die Vorschaubilder der Tafel waren auf den Fotos leer, weil die Beispieldaten ohne Netz laufen.
+
 ## Chat-Stadt „Regennacht“ (ungemergt, Branch feat/cozy-raum, 13.11.2026)
 
 Entwurf `docs/superpowers/specs/2026-11-13-chat-stadt-design.md`, Plan
