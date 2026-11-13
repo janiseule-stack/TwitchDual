@@ -236,6 +236,8 @@ def main(quellen, ziel, json_pfad):
         "bus": {"b": bus.size[0], "h": bus.size[1], "tuerX": BUS_TUER_X},
         "regen": {"bilder": regen_bilder, "msProBild": regen_ms, "dateien": regen_dateien},
         "strahl": strahl_streifen(quellen, ziel),
+        # Lage der leuchtenden Wolke (Blitz-Ebene): der Strahl kommt aus ihr
+        "blitzWolke": {"x": box[0], "y": box[1], "b": box[2] - box[0], "h": box[3] - box[1]},
         "gehwegY": GEHWEG_Y,
         "fahrbahnY": FAHRBAHN_Y,
     }

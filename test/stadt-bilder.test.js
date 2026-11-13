@@ -77,6 +77,10 @@ test('stadt.json: Felder fuer Bild, Ebenen, Fenster, Figuren, Fahrzeuge, Regen, 
   // Blitz-Strahl (PixelLab-Effekt „TwitchDual Stadt-Blitz“): Bildstreifen, Oberkante im Himmel
   for (const k of ['b', 'h', 'bilder', 'msProBild']) assert.ok(s.strahl[k] > 0, 'strahl.' + k);
   assert.ok(s.strahl.y >= 0 && s.strahl.y + s.strahl.h <= s.ebenen.haeuser.y + 10, 'Strahl endet in der Skyline');
+  // Leuchtende Wolke (Lage der Blitz-Ebene): der Strahl kommt aus ihr (Janis 13.11.)
+  const w = s.blitzWolke;
+  assert.ok(w.b >= s.strahl.b && w.h > 0, 'Wolke breit genug');
+  assert.ok(s.strahl.y >= w.y && s.strahl.y <= w.y + w.h, 'Strahl beginnt in der Wolke');
   for (const k of ['auto', 'bus']) assert.ok(s[k].b > 0 && s[k].h > 0, k);
   // Autos 1,4x in mehreren Farben (Janis 13.11.), Radlinie fuer die Spiegelung
   assert.ok(Array.isArray(s.auto.varianten) && s.auto.varianten.length >= 2);

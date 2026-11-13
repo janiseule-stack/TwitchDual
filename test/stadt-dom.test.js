@@ -174,7 +174,8 @@ test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei au
   assert.strictEqual(st.style.props['--bilder'], String(S.strahl.bilder));
   assert.strictEqual(st.style.props['--dauer'], S.strahl.bilder * S.strahl.msProBild + 'ms');
   const x = parseFloat(st.style.left);
-  assert.ok(x >= 0 && x + S.strahl.b <= S.bild.b, 'im Bild');
+  const w = S.blitzWolke;
+  assert.ok(x >= w.x && x + S.strahl.b <= w.x + w.b, 'kommt aus der leuchtenden Wolke: x ' + x);
   uhr.vor(S.strahl.bilder * S.strahl.msProBild + 10);
   assert.strictEqual(strahlen().length, 0, 'nach dem Abspielen weg');
   uhr.vor(5000 - S.strahl.bilder * S.strahl.msProBild - 10);

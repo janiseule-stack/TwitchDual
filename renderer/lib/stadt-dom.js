@@ -133,7 +133,7 @@
       blitz.classList.remove('an');
       wirt.style.setProperty('--stadt-dunkel', String(DUNKEL));
     }
-    // Blitz-Strahl (PixelLab-Effekt): zuckt an zufaelliger Stelle des sichtbaren Himmels in die Skyline
+    // Blitz-Strahl (PixelLab-Effekt): kommt aus der leuchtenden Wolke und zuckt in die Skyline
     let strahlEl = null;
     let strahlTimer = null;
     function strahlWeg() {
@@ -143,8 +143,9 @@
     function strahl() {
       strahlWeg();
       const R = S.strahl;
-      const von = Math.max(0, Math.min(S.bild.b - R.b, sichtLinks));
-      const bis = Math.max(von, Math.min(S.bild.b - R.b, sichtLinks + sichtBreite - R.b));
+      const W = S.blitzWolke;
+      const von = W.x;
+      const bis = W.x + W.b - R.b;
       const el = neu('stadt-strahl', ebene);
       el.style.left = px(Math.round(von + zufall() * (bis - von)));
       el.style.top = px(R.y);

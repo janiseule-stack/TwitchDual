@@ -43,6 +43,7 @@
       dateien: Object.freeze(['stadt-regen-himmel.png', 'stadt-regen-strasse.png']),
     }),
     strahl: Object.freeze({ b: 38, h: 69, bilder: 14, msProBild: 50, y: 50 }),
+    blitzWolke: Object.freeze({ x: 196, y: 32, b: 118, h: 42 }),
     gehwegY: 251,
     fahrbahnY: 272,
   });
