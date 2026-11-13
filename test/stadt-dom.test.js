@@ -498,7 +498,7 @@ test('aboFenster: n dunkle Fenster gehen an und bleiben, auch bei Animationen au
   assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('an')).length, vorher + 5);
   stadt.aboFenster(500); // mehr als Fenster: kein Fehler, alles hell
   assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('an')).length, S.fenster.length);
-  uhr.vor(60 * 60000); // Uhrzeit-Takt schaltet keine Abo-Fenster aus
+  uhr.vor(5 * 60000); // Uhrzeit-Takt schaltet keine Abo-Fenster aus (sie gehen erst nach ABO_HELL_MS aus)
   assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('abo')).length, S.fenster.length - vorher);
 });
 
@@ -517,6 +517,27 @@ test('aboZurueck: neuer Kanal - Abo-Fenster des alten gehen aus, wartende entfal
   const chat = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'chat', 'chat.js'), 'utf8');
   const a = chat.slice(chat.indexOf('function applySource('), chat.indexOf('function applySource(') + 900);
   assert.ok(a.includes('stadt.aboZurueck();'));
+});
+
+test('Abo-Fenster gehen nach ABO_HELL_MS wieder aus (Janis 13.11.: Stadt fuellt sich nicht dauerhaft)', () => {
+  const { uhr, stadt, teil } = aufbau({ stunde: () => 3 });
+  const fe = teil('stadt-fenster-ebene');
+  const vorher = fe.kinder.filter((d) => d.classList.contains('an')).length;
+  stadt.aus(); // ohne Uhrzeit-Takt, damit nur die Abos zaehlen
+  stadt.aboFenster(5);
+  const abo = () => fe.kinder.filter((d) => d.classList.contains('abo')).length;
+  assert.strictEqual(abo(), 5);
+  assert.strictEqual(StadtDom.ABO_HELL_MS, 10 * 60000);
+  uhr.vor(StadtDom.ABO_HELL_MS - 1000);
+  assert.strictEqual(abo(), 5, 'vorher noch hell');
+  uhr.vor(2000);
+  assert.strictEqual(abo(), 0, 'danach aus (an/aus regelt wieder die Uhrzeit)');
+  assert.ok(fe.kinder.filter((d) => d.classList.contains('an')).length < vorher + 5, 'nicht mehr alle hell');
+  // neuer Kanal raeumt auch die Aus-Timer weg (kein spaeteres Ausschalten fremder Fenster)
+  stadt.aboFenster(2);
+  stadt.aboZurueck();
+  uhr.vor(StadtDom.ABO_HELL_MS + 1000);
+  assert.strictEqual(abo(), 0);
 });
 
 test('aboFenster bei laufenden Animationen: nacheinander', () => {

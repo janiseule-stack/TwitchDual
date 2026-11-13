@@ -21,6 +21,9 @@
   const UHR_WARTEN = 10000;     // Mitte belegt: spaeter nochmal
   const FENSTER_MS = 300;       // weiches An/Aus eines Fensters
   const ABO_ABSTAND = 400;      // Geschenk: Fenster nacheinander
+  // Abo-Fenster bleiben so lange hell, dann gilt wieder die Uhrzeit (Janis 13.11.2026:
+  // sonst fuellt eine Abo-Welle die ganze Stadt dauerhaft)
+  const ABO_HELL_MS = 10 * 60000;
   // Bus: ankunft/abfahrt = Fahrzeit rein/raus; der Halt dauert, bis alle ausgestiegen sind (mind. haltMin)
   const BUS = Object.freeze({ ankunft: 1500, abfahrt: 1500, haltMin: 2000, halteAnteil: 0.25 });
 
@@ -111,8 +114,14 @@
     uhrTimer = setT(uhrTakt, spanne(UHR_PAUSE));
 
     let aboTimer = [];
+    const aboAusTimer = new Map(); // Fenster -> Timer, der es nach ABO_HELL_MS ausschaltet
     function aboAn(i) {
       fenster[i].classList.add('an', 'abo');
+      if (aboAusTimer.has(i)) clearT(aboAusTimer.get(i));
+      aboAusTimer.set(i, setT(() => {
+        aboAusTimer.delete(i);
+        fenster[i].classList.remove('an', 'abo');
+      }, ABO_HELL_MS));
     }
     function aboFenster(n) {
       // schon vorgemerkte (noch nicht angegangene) nicht doppelt nehmen
@@ -383,6 +392,8 @@
       aboZurueck() {
         for (const t of aboTimer) clearT(t.id);
         aboTimer = [];
+        for (const t of aboAusTimer.values()) clearT(t);
+        aboAusTimer.clear();
         for (const f of fenster) {
           if (f.classList.contains('abo') || f.classList.contains('abo-wartet')) f.classList.remove('an', 'abo', 'abo-wartet');
         }
@@ -416,5 +427,5 @@
     };
   }
 
-  return { baue, DUNKEL, DUNKEL_BLITZ, BLITZ_MS, LEBEN_PAUSE, PASSANT_ANTEIL };
+  return { baue, DUNKEL, DUNKEL_BLITZ, BLITZ_MS, LEBEN_PAUSE, PASSANT_ANTEIL, ABO_HELL_MS };
 });
