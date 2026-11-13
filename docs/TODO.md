@@ -38,7 +38,7 @@ Janis: „passt erstmal so“.
   darauf animiert. Nächster Versuch ggf. im PixelLab-Web-Editor mit Vorschau.
 - Blitz: Stärke und Häufigkeit; wie stark die Mitte beim Blitz abdunkelt.
 - Abdunkeln hinter dem Text (heute 25 %) – lesbar genug, zu dunkel?
-- Häufigkeit von Passanten/Autos, Gehtempo.
+- Straßenleben: seit 13.11. selten (alle 40–120 s, 85 % Passanten), Raid-Bus synchron (Tür per CSS) – Janis: „passt“.
 - Breite/niedrige Chats (z. B. 2560×1440, 1397×400) zeigen den Himmel samt Blitz nicht;
   sehr schmale (400×1332) nur einen Ausschnitt → ggf. Bild per PixelLab erweitern.
 - Bus (56 hoch) ragt beim großen Raid etwas über das Straßenband.
