@@ -354,6 +354,82 @@ button { transition: background-color 120ms ease, color 120ms ease; }
 /* Animationen aus: im Streifen steht alles still (chat.js leert dazu die Effekte). */
 html[data-animationen="aus"] #szene * { animation: none !important; }
 
+/* Regennacht-Stadt (stadt-dom.js): liegt fest hinter der Nachrichtenliste, unten am
+   Strassenband ausgerichtet. Alle Ebenen sind PixelLab-Bilder in einer 344x277-Ebene
+   (Bildpixel), die chat.js per --stadt-f skaliert. Code zeichnet nichts: Fenster sind
+   Ausschnitte aus stadt-haeuser-licht.png, Abdunkeln ist ein einfarbiger Schleier. */
+#stadt-flaeche { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+#stadt {
+  position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: #0b0d17;
+}
+#stadt-band { position: relative; z-index: 1; flex-shrink: 0; height: 37px; pointer-events: none; }
+.stadt-bildebene {
+  position: absolute; left: var(--stadt-links, 0px); top: var(--stadt-oben, 0px);
+  width: 344px; height: 277px;
+  background-position: 0 0; background-size: 344px 277px; background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transform: scale(var(--stadt-f, 1)); transform-origin: 0 0;
+}
+.stadt-bildebene > div { position: absolute; left: 0; top: 0; pointer-events: none; image-rendering: pixelated; }
+.stadt-blitz { width: 344px; height: 277px; background-size: 344px 277px; visibility: hidden; }
+.stadt-blitz.an { visibility: visible; }
+.stadt-fenster-ebene, .stadt-strasse { width: 344px; height: 277px; }
+.stadt-fenster {
+  position: absolute; background-size: 344px 277px; background-repeat: no-repeat;
+  image-rendering: pixelated; opacity: 0; transition: opacity 300ms;
+}
+.stadt-fenster.an { opacity: 1; }
+.stadt-regen {
+  width: 344px; height: 277px; background-size: 64px 64px; background-repeat: repeat;
+  animation: stadt-regen var(--regen-dauer, 600ms) steps(16) infinite;
+}
+.stadt-regen.hinten { --regen-dauer: 900ms; opacity: 0.7; }
+.stadt-regen.vorn { --regen-dauer: 550ms; }
+@keyframes stadt-regen { to { background-position: 16px 64px; } }
+.stadt-dunkel { width: 344px; background-color: #05040a; opacity: var(--stadt-dunkel, 0.25); }
+
+/* Strasse: Passanten, Autos und Raids ruecken in ganzen Bildpixeln vor (steps). */
+.stadt-figur, .stadt-raid-figur, .stadt-auto {
+  position: absolute; left: 0; image-rendering: pixelated;
+  transform: translateX(var(--von));
+  animation: stadt-fahrt var(--dauer) steps(var(--schritte)) var(--verzug) 1 both;
+}
+@keyframes stadt-fahrt {
+  from { transform: translateX(var(--von)); }
+  to { transform: translateX(var(--bis)); }
+}
+.stadt-geht {
+  width: 100%; height: 100%; image-rendering: pixelated;
+  background-position: 0 0; background-size: var(--sb) 100%; background-repeat: no-repeat;
+  animation: stadt-zyklus var(--dauer) steps(var(--bilder)) var(--verzug) infinite;
+}
+.stadt-geht.links { transform: scaleX(-1); }
+@keyframes stadt-zyklus { to { background-position: calc(-1 * var(--sb)) 0; } }
+.stadt-auto-bild, .stadt-spiegel {
+  position: absolute; left: 0; width: 100%; height: 100%;
+  background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
+}
+.stadt-auto-bild { top: 0; }
+/* Spiegelung auf der nassen Strasse: Achse an der Radunterkante (Bildzeile 21 von 24). */
+.stadt-spiegel { top: 18px; transform: scaleY(-1); filter: brightness(0.35); opacity: 0.5; }
+.stadt-auto.links .stadt-auto-bild { transform: scaleX(-1); }
+.stadt-auto.links .stadt-spiegel { transform: scale(-1, -1); }
+.stadt-bus {
+  position: absolute; left: 0; image-rendering: pixelated;
+  background-size: 100% 100%; background-repeat: no-repeat;
+  animation: stadt-bus var(--dauer) linear 1 both;
+}
+@keyframes stadt-bus {
+  0% { transform: translateX(var(--von)); }
+  30% { transform: translateX(var(--halt)); }
+  70% { transform: translateX(var(--halt)); }
+  100% { transform: translateX(var(--bis)); }
+}
+
+/* Animationen aus: Stadt steht still, Fenster schalten hart. */
+html[data-animationen="aus"] #stadt * { animation: none !important; transition: none !important; }
+
 
 /* Monospace fuer den technischen Puls: Zeitstempel, Status, msg/min. */
 .msg .ts, #footer, #mode { font-family: var(--mono); }

@@ -802,13 +802,21 @@ const abspieler = RaumLeben.abspieler({
   clearTimeout: (id) => clearTimeout(id),
 });
 
+// Regennacht-Stadt hinter den Nachrichten (stadt-dom.js): Blitz, Fensterlichter,
+// Passanten und Autos; richtet sich bei jeder Groessenaenderung der Flaeche neu aus
+// (auch wenn die Eingabe hoeher wird). "Animationen aus" haelt sie an (applyTheme).
+const $stadt = document.getElementById('stadt');
+const stadt = StadtDom.baue(document, $stadt, '../themes/cozy/', { band: document.getElementById('stadt-band') });
+new ResizeObserver(() => stadt.richteAus($stadt.clientWidth, $stadt.clientHeight)).observe($stadt);
+stadt.richteAus($stadt.clientWidth, $stadt.clientHeight);
+
 function applyTheme(prefs) {
   themePrefs = ThemeLib.cleanThemePrefs(prefs);
   const r = document.documentElement;
   r.style.setProperty('--chat-alpha', String(themePrefs.chatAlpha / 100));
   r.dataset.animationen = themePrefs.animationen ? 'an' : 'aus';
-  if (themePrefs.animationen) leben.an();
-  else { leben.aus(); abspieler.aus(); }
+  if (themePrefs.animationen) { leben.an(); stadt.an(); }
+  else { leben.aus(); stadt.aus(); abspieler.aus(); }
   $alphaChat.value = themePrefs.chatAlpha;
   $alphaChatVal.textContent = themePrefs.chatAlpha + '%';
   $optAnimationen.checked = themePrefs.animationen;

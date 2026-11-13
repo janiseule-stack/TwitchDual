@@ -67,9 +67,9 @@ test('chat.js: Leben im Streifen und Abspieler verdrahtet', () => {
   assert.ok(chatJs.indexOf('const abspieler =') < chatJs.indexOf('function applyTheme('));
 });
 
-test('applyTheme: aus -> leben.aus() und abspieler.aus(), an -> leben.an()', () => {
+test('applyTheme: aus -> leben.aus(), stadt.aus() und abspieler.aus(), an -> leben.an(), stadt.an()', () => {
   const r = rumpf(chatJs, 'applyTheme');
-  assert.ok(/if \(themePrefs\.animationen\) leben\.an\(\);\s*else \{ leben\.aus\(\); abspieler\.aus\(\); \}/.test(r), r);
+  assert.ok(/if \(themePrefs\.animationen\) \{ leben\.an\(\); stadt\.an\(\); \}\s*else \{ leben\.aus\(\); stadt\.aus\(\); abspieler\.aus\(\); \}/.test(r), r);
 });
 
 test('zeigeChatEreignis: nur Raid meldet einen Effekt, Diagnose sagt ehrlich ob', () => {

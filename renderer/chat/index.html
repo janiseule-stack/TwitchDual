@@ -67,10 +67,16 @@
       </div>
     </div>
   </div>
-  <!-- Pin/Umfrage/Vorhersage schweben ueber dem Chat (Schleier laeuft bis oben). -->
-  <div id="chat-mitte">
-    <div id="kanal-ereignisse"></div>
-    <div id="messages"></div>
+  <!-- Regennacht-Stadt (stadt-dom.js) liegt fest hinter den Nachrichten; das
+       Strassenband darunter traegt keinen Text, dort laufen Passanten, Autos, Raids. -->
+  <div id="stadt-flaeche">
+    <div id="stadt"></div>
+    <!-- Pin/Umfrage/Vorhersage schweben ueber dem Chat (Schleier laeuft bis oben). -->
+    <div id="chat-mitte">
+      <div id="kanal-ereignisse"></div>
+      <div id="messages"></div>
+    </div>
+    <div id="stadt-band"></div>
   </div>
   <div id="composer">
     <button id="new-msgs" class="hidden">↓ neue Nachrichten</button>
@@ -147,6 +153,8 @@
   <script src="../lib/szene.js"></script>
   <script src="../lib/raum-leben.js"></script>
   <script src="../lib/raum-leben-dom.js"></script>
+  <script src="../lib/stadt.js"></script>
+  <script src="../lib/stadt-dom.js"></script>
   <script src="../lib/scroll-pille.js"></script>
   <script src="../lib/vorhersage-statistik.js"></script>
   <script src="vorhersage-karte.js"></script>
