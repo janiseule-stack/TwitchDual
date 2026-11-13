@@ -261,6 +261,13 @@
   padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer;
   font: inherit; color: var(--zettel-tinte);
 }
+/* ▲▼ hinter ⟳ (Janis 13.11., Variante B): Tinte auf dem Zettel, Trennstrich davor */
+.fach-pfeile { display: flex; gap: .4em; margin-left: .4em; padding-left: .5em; border-left: 2px solid var(--zettel-tinte); }
+.fach-pfeile button {
+  padding: 0; border: 0; border-radius: 0; background: none; font: inherit; line-height: 1;
+  color: var(--zettel-tinte); cursor: pointer;
+}
+.fach-pfeile button:disabled { opacity: .3; cursor: default; }
 
 /* --- Regal neu (Task 9a): Leinwand, Ausstellbrett, Plattenruecken ------------------
    Bildebene: regal-oben/-unten und regal-wand (PixelLab, 504 breit ab x -80) unter

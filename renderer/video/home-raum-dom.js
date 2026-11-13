@@ -661,7 +661,25 @@ window.HomeRaumDom = (function () {
     });
     const such = document.getElementById('home-such-zeile');
     if (such) t.suchPlatzNeu.appendChild(such);
+    // ▲▼ hinter ⟳: Fach wechseln wie Mausrad (Janis 13.11., Variante B); setzeHinweis
+    // graut sie an den Enden aus und verbirgt sie bei nur einem Fach.
+    t.fachPfeile = el('span', 'fach-pfeile raum-aus');
+    t.pfeilHoch = pfeil('▲', -1, 'Fach darüber');
+    t.pfeilRunter = pfeil('▼', 1, 'Fach darunter');
+    t.fachPfeile.append(t.pfeilHoch, t.pfeilRunter);
+    if (such) such.appendChild(t.fachPfeile);
     return r.e;
+  }
+  function pfeil(zeichen, richtung, titel) {
+    const b = el('button', 'fach-pfeil', zeichen);
+    b.type = 'button';
+    b.title = titel;
+    b.setAttribute('aria-label', titel);
+    b.addEventListener('click', () => {
+      if (tafelOffen() || karteOffen()) return;
+      nahFachWechsel(richtung);
+    });
+    return b;
   }
 
   // Skalierung der Regal-Ebene: ein Fach (nahFachNr) fuellt das Bild, ganzzahliger Faktor.
@@ -910,6 +928,11 @@ window.HomeRaumDom = (function () {
     const n = voll.indexOf(fachZiel !== null ? fachZiel : nahFachNr) + 1;
     t.fachHinweis.textContent = '▲▼ Fach ' + Math.max(1, n) + ' / ' + m;
     aus(t.fachHinweis, m < 2);
+    if (t.fachPfeile) {
+      t.pfeilHoch.disabled = n <= 1;
+      t.pfeilRunter.disabled = n >= m;
+      aus(t.fachPfeile, m < 2);
+    }
   }
   function nahFach() { return nahFachNr; }
   // Fach eines Kanals: 0 Brett, 1 live, 2 unten, sonst null.

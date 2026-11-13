@@ -1584,3 +1584,23 @@ test('Regal nah: CSS Hinweis unten rechts, Hover-Name und Hinweis waehrend der F
   assert.ok(h.includes("'▲▼ Fach '"), 'Text');
   assert.ok(/aus\(t\.fachHinweis, m < 2\)/.test(h), 'bei nur einem Fach verborgen');
 });
+
+test('Pfeile ▲▼ in der Suchzeile wechseln das Fach, an den Enden ausgegraut (Janis 13.11., Variante B)', () => {
+  const b = rumpf(js, 'function baueRegalNeu(');
+  // hinter ⟳ in der Suchzeile, je ein Knopf mit Richtung
+  assert.ok(b.includes("t.fachPfeile = el('span', 'fach-pfeile raum-aus')"));
+  assert.ok(b.includes("such.appendChild(t.fachPfeile)"));
+  assert.ok(b.includes("pfeil('▲', -1, 'Fach darüber')") && b.includes("pfeil('▼', 1, 'Fach darunter')"));
+  // Klick wie Mausrad, nicht bei offener Tafel/Karte
+  const p = rumpf(js, 'function pfeil(');
+  assert.ok(p.includes("addEventListener('click'") && p.includes('nahFachWechsel(richtung)'));
+  assert.ok(p.includes('tafelOffen() || karteOffen()'));
+  // Zustand im Hinweis mitgezaehlt
+  const h = rumpf(js, 'function setzeHinweis(');
+  assert.ok(h.includes('t.pfeilHoch.disabled = n <= 1;') && h.includes('t.pfeilRunter.disabled = n >= m;'));
+  assert.ok(/aus\(t\.fachPfeile, m < 2\)/.test(h));
+  // Optik: Tinte auf dem Zettel, Trennstrich, ausgegraut
+  assert.ok(/\.fach-pfeile\s*\{[^}]*border-left:\s*2px solid var\(--zettel-tinte\)/.test(css));
+  assert.ok(/\.fach-pfeile button\s*\{[^}]*color:\s*var\(--zettel-tinte\)[^}]*cursor:\s*pointer/.test(css));
+  assert.ok(/\.fach-pfeile button:disabled\s*\{[^}]*opacity:\s*\.3[^}]*cursor:\s*default/.test(css));
+});
