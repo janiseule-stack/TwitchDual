@@ -26,7 +26,13 @@ BUS_TUER_X = 138
 # Regen hinten: PixelLab-Effekt (vfx_workbench "TwitchDual Stadt-Regen 3 Ebenen"), Game-Pack in
 # regen-vfx/. Lage des Effekt-Ankers im Stadtbild: Teil rain_ripples (Effekt 54,255) = Stadt 50,272.
 REGEN_VERSATZ = (-4, 17)
-REGEN_EBENEN = (("himmel", ("part-himmel",)), ("strasse", ("part-strasse", "part-rain_ripples")))
+# Himmel: eigener Effekt „TwitchDual Stadt-Regen Himmel schraeg“ (schraege Striche aus der
+# PixelLab-Vorlage slant_rain, gleiche Richtung wie die im Stadtbild eingemalten), Paket in
+# regen-vfx-himmel/ (gleiche Leinwand und gleicher Anker wie regen-vfx/).
+REGEN_EBENEN = (
+    ("himmel", "regen-vfx-himmel", ("whole",)),
+    ("strasse", "regen-vfx", ("part-strasse", "part-rain_ripples")),
+)
 # Gehzyklus: 8 PixelLab-Bilder je Passant, Tempo
 FIGUR_BILDER = 8
 FIGUR_MS_PRO_BILD = 120
@@ -94,16 +100,20 @@ def streifen(quellen, kennung):
     return aus, b, h
 
 
-def regen_streifen(vfx_ordner, groesse, ziel):
-    """Setzt die Teile des PixelLab-Effekts je Ebene an ihre Stelle im Stadtbild und
+def regen_streifen(quellen, groesse, ziel):
+    """Setzt die Teile der PixelLab-Effekte je Ebene an ihre Stelle im Stadtbild und
     reiht die Bilder zu einem Streifen (bilder x Stadtbreite). Nur einsetzen, nichts zeichnen."""
-    with open(os.path.join(vfx_ordner, "manifest.json"), encoding="utf-8") as f:
-        m = json.load(f)
-    n = m["frames"]
-    ax, ay = m["anchor"]["x"], m["anchor"]["y"]
     w, h = groesse
     dateien = []
-    for ebene, praefixe in REGEN_EBENEN:
+    n = ms = None
+    for ebene, ordner, praefixe in REGEN_EBENEN:
+        vfx_ordner = os.path.join(quellen, ordner)
+        with open(os.path.join(vfx_ordner, "manifest.json"), encoding="utf-8") as f:
+            m = json.load(f)
+        if n is not None and (m["frames"], m["frame_ms"]) != (n, ms):
+            raise SystemExit("Regen-Effekte haben unterschiedliche Bildzahl/Takt")
+        n, ms = m["frames"], m["frame_ms"]
+        ax, ay = m["anchor"]["x"], m["anchor"]["y"]
         streifen_bild = Image.new("RGBA", (w * n, h), (0, 0, 0, 0))
         clips = [c for c in m["clips"] if c["name"].startswith(praefixe)]
         if not clips:
@@ -125,7 +135,7 @@ def regen_streifen(vfx_ordner, groesse, ziel):
         name = "stadt-regen-%s.png" % ebene
         streifen_bild.save(os.path.join(ziel, name))
         dateien.append(name)
-    return dateien, n, m["frame_ms"]
+    return dateien, n, ms
 
 
 def main(quellen, ziel, json_pfad):
@@ -183,7 +193,7 @@ def main(quellen, ziel, json_pfad):
     bus.save(os.path.join(ziel, "stadt-bus.png"))
     bus_tuer.save(os.path.join(ziel, "stadt-bus-tuer.png"))
 
-    regen_dateien, regen_bilder, regen_ms = regen_streifen(os.path.join(quellen, "regen-vfx"), (w, h), ziel)
+    regen_dateien, regen_bilder, regen_ms = regen_streifen(quellen, (w, h), ziel)
 
     # Strassenband: von der Oberkante der hoechsten Figur (Passant/Auto) bis unten
     strasse_y = min(GEHWEG_Y - fh, FAHRBAHN_Y - auto_masse[1])
