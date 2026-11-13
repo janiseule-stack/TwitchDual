@@ -127,4 +127,6 @@
 
 ## Janis' Wahl
 
-(wird in Tasks 1–3 eingetragen)
+- **Task 1 (13.11.2026):** Janis findet B (frontale Häuserzeile, `entwuerfe/stadt/1b-frontal.png`) und C (weite Skyline, `1c-skyline.png`) beide stark → **Kombination**: B bleibt unten (Häuser + Straße), die Erweiterung nach oben bekommt eine Skyline im Stil von C. A (schräg, mit Fensterrahmen) aussortiert.
+- **Task 2 (13.11.2026):** Grundbild `entwuerfe/stadt/2-grund.png` (344×277) freigegeben, Lichtkegel der Laterne bleibt, Grundbild-Fenster reichen. Häuser hell `2-haeuser-licht.png`. **Nur ein Blitz-Himmel:** `2-himmel-blitz-1.png` (Original aus C); Blitz 2 „sieht doof aus“ → `stadt-himmel-blitz-2.png` entfällt.
+- **Task 3 (13.11.2026):** Janis: „passt, bau mal damit, was du denkst ist gut“ → Passanten **45** und **2** (`entwuerfe/stadt-figuren/gehen-45/`, `gehen-2/`, je f1–f8), Auto **9** (`auto/a9.png`), Bus **3** (`bus/b3.png`, dazu Tür-auf-Variante), Regen **2** (hinten) und **3** (vorn) (`regen/r2.png`, `r3.png`). Schirme bleiben wie sie sind.
