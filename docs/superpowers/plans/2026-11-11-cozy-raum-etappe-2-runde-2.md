@@ -17,7 +17,9 @@
 | Auflegen | Kamera fährt zum Plattenspieler, Platte dreht sich (PixelLab-Animation **b**), dann Schwenk + Zoom in den Fernseher; Fernseher-Bild bleibt wie es ist |
 | Abgeschnitten | Text auf dem Zettel (oberste Zeile ragt oben heraus) – Janis bestätigt per Screenshot |
 | VODs | „Die Platte wird groß, man kann sie wie rausnehmen und dann hinten drauf VODs scrollen“ |
-| LIVE-Schild | **C**: echtes kleines Schild aus PixelLab statt leuchtendem Lämpchen (Variante wählt Janis) |
+| LIVE-Schild | **C**: echtes kleines Schild aus PixelLab statt leuchtendem Lämpchen → Variante **11** (`entwuerfe/schild/s-11.png`, 64×32) |
+| VOD-Schild | eigenes PixelLab-Schild → Variante **v-2** (Bernstein, `entwuerfe/vod-schild/v-2.png`, 64×32) |
+| Große Hülle | vorn **1** (`entwuerfe/gross/vorn-1.png`), Rückseite **2** (`entwuerfe/gross/rueck-2.png`), je 128×128 |
 
 ## Global Constraints
 
