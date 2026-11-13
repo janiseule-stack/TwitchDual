@@ -23,13 +23,25 @@ neu „🎁 Geschenk“ (5 Abos).
   LEBEN_PAUSE, PASSANT_ANTEIL, AUTO-Tempo, BUS), `renderer/lib/stadt.js`
   (LICHT_NACH_STUNDE, GEWITTER, BUDGET, figur.pxProBild/msProBild über stadt-bilder.py).
 
-**Offene Optik-Fragen (Janis beim Anschauen):**
+**Abnahme-Runde 13.11.:** Regen kommt aus PixelLabs Effekt-Werkzeug (`vfx_workbench`, 0 Gen.):
+Himmel = schräge Striche aus der Vorlage `slant_rain` (gleiche Richtung wie die im Stadtbild
+eingemalten, die deshalb bleiben), Straße = `rain_ripples` mit Ringen auf der Fahrbahn; Pakete
+in `tools/raum-quellen/stadt/regen-vfx*/`, Effekte unter „My effects“ auf pixellab.ai.
+Autos 1,4× (vier Farben, zufällig), Bus 1,4× mit Tür. Straßenband beginnt an der höchsten Figur.
+Janis: „passt erstmal so“.
+
+**Offen:**
+- **Tropfen an der Scheibe** (Janis wollte „wie oben im Streifen“): vier Wege gescheitert
+  (Video-Animation zu hell/realistisch, Stadt-Ausschnitte flackern, durchsichtige Ebenen
+  realistisch bzw. leer, Glas-Träger nicht flach, Rahmen-Trick → Modell schwärzt den Himmel).
+  Lehre: im Streifen klappt es, weil Glas + Rahmen im Bild sind und `animate_image` direkt
+  darauf animiert. Nächster Versuch ggf. im PixelLab-Web-Editor mit Vorschau.
 - Blitz: Stärke und Häufigkeit; wie stark die Mitte beim Blitz abdunkelt.
 - Abdunkeln hinter dem Text (heute 25 %) – lesbar genug, zu dunkel?
-- Häufigkeit von Passanten/Autos, Gehtempo, Regen-Tempo und -Dichte.
-- Das Auto ist klein (sichtbar 27×12 px, niedriger als ein Passant) – größeres Auto aus PixelLab?
-- Sehr schmale, hohe Chats (z. B. 400×1332) zeigen nur einen Ausschnitt; bei Bedarf
-  Himmel nach oben anbauen (PixelLab, je ~20 Gen.).
+- Häufigkeit von Passanten/Autos, Gehtempo.
+- Breite/niedrige Chats (z. B. 2560×1440, 1397×400) zeigen den Himmel samt Blitz nicht;
+  sehr schmale (400×1332) nur einen Ausschnitt → ggf. Bild per PixelLab erweitern.
+- Bus (56 hoch) ragt beim großen Raid etwas über das Straßenband.
 
 **Aufräumen später (nicht im Plan):** alter Streifen-Raid (`RaumLeben.RAID/GLAS/raidDauer/
 schirmAnzahl/raidSchritte`, `leben-streifen-raid*`, `streifen-glas-maske.png` samt
