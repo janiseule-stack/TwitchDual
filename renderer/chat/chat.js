@@ -575,6 +575,7 @@ function applySource(payload) {
   badgeCatalog = payload.badgeCatalog || {};
   userBadgeCache = new Map(); // neue Quelle -> Cache der alten verwerfen
   $messages.innerHTML = '';
+  stadt.aboZurueck(); // helle Abo-Fenster gehoeren zum alten Kanal
   hideEmoteTip();
   closeUserCard();
   autoScroll = true; // neue Quelle -> wieder unten kleben

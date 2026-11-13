@@ -502,6 +502,23 @@ test('aboFenster: n dunkle Fenster gehen an und bleiben, auch bei Animationen au
   assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('abo')).length, S.fenster.length - vorher);
 });
 
+test('aboZurueck: neuer Kanal - Abo-Fenster des alten gehen aus, wartende entfallen (Review 13.11.)', () => {
+  const { uhr, stadt, teil } = aufbau({ stunde: () => 3 });
+  const fe = teil('stadt-fenster-ebene');
+  const vorher = fe.kinder.filter((d) => d.classList.contains('an')).length;
+  stadt.an();
+  stadt.aboFenster(4); // 1 sofort, 3 wartend
+  stadt.aboZurueck();
+  assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('abo') || d.classList.contains('abo-wartet')).length, 0);
+  assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('an')).length, vorher, 'nur noch die Uhrzeit-Lichter');
+  uhr.vor(5000); // wartende Abos kommen nicht mehr nach
+  assert.strictEqual(fe.kinder.filter((d) => d.classList.contains('abo')).length, 0);
+  // chat.js setzt bei jeder neuen Quelle zurueck
+  const chat = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'chat', 'chat.js'), 'utf8');
+  const a = chat.slice(chat.indexOf('function applySource('), chat.indexOf('function applySource(') + 900);
+  assert.ok(a.includes('stadt.aboZurueck();'));
+});
+
 test('aboFenster bei laufenden Animationen: nacheinander', () => {
   const { uhr, stadt, teil } = aufbau({ stunde: () => 3 });
   const fe = teil('stadt-fenster-ebene');

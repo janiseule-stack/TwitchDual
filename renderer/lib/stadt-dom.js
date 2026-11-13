@@ -378,6 +378,15 @@
     }
 
     return {
+      // neue Quelle (anderer Kanal): Abo-Fenster des alten gehen aus, wartende entfallen;
+      // danach gelten nur die Uhrzeit-Lichter
+      aboZurueck() {
+        for (const t of aboTimer) clearT(t.id);
+        aboTimer = [];
+        for (const f of fenster) {
+          if (f.classList.contains('abo') || f.classList.contains('abo-wartet')) f.classList.remove('an', 'abo', 'abo-wartet');
+        }
+      },
       an() {
         if (laeuft) return;
         laeuft = true;
