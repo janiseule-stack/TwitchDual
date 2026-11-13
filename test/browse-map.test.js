@@ -77,6 +77,20 @@ test('sortByLive: live zuerst, dann Zuschauer', () => {
   assert.deepEqual(m.sortByLive(list).map((x) => x.login), ['c', 'b', 'a']);
 });
 
+test('mapVod: Platzhalter-Bild eines VODs in Aufnahme -> kein Bild, laeuft markiert', () => {
+  // Twitch liefert fuer laufende Aufnahmen .../_404/404_processing_...png (antwortet 403)
+  const r = m.mapVod({ id: '1', status: 'RECORDING',
+    previewThumbnailURL: 'https://vod-secure.twitch.tv/_404/404_processing_640x360.png' });
+  assert.equal(r.thumb, null);
+  assert.equal(r.aufnahme, true);
+  const fertig = m.mapVod({ id: '2', status: 'RECORDED', previewThumbnailURL: 'http://a/t.jpg' });
+  assert.equal(fertig.thumb, 'http://a/t.jpg');
+  assert.equal(fertig.aufnahme, false);
+  assert.equal(m.echteVorschau('https://vod-secure.twitch.tv/_404/404_processing_640x360.png'), null);
+  assert.equal(m.echteVorschau(null), null);
+  assert.equal(m.echteVorschau('http://a/t.jpg'), 'http://a/t.jpg');
+});
+
 test('mapVod: Spiel', () => {
   assert.equal(m.mapVod({ id: '1', game: { displayName: 'Spiel' } }).game, 'Spiel');
   assert.equal(m.mapVod({ id: '1', game: null }).game, '');

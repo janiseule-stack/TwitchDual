@@ -117,9 +117,19 @@ test('streamInfo: offline, VOD, unbekannt', async () => {
   assert.deepEqual(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: { login: 'x', displayName: 'X', profileImageURL: null, stream: null } }), retries: 0 }),
     { art: 'offline', name: 'X', avatar: null });
   assert.deepEqual(await browse.streamInfo({ mode: 'vod', wert: '123' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 60, createdAt: '2026-10-07T18:00:00Z', game: null, owner: { displayName: 'O', profileImageURL: 'o.png' }, previewThumbnailURL: 'v.jpg' } }), retries: 0 }),
-    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z', vorschau: 'v.jpg' });
+    { art: 'vod', name: 'O', avatar: 'o.png', titel: 'V', spiel: '', laenge: 60, datum: '2026-10-07T18:00:00Z', vorschau: 'v.jpg', liveLogin: null });
   // ohne Vorschaubild: vorschau null (Fernseher bleibt aus)
   assert.equal((await browse.streamInfo({ mode: 'vod', wert: '1' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, owner: null } }), retries: 0 })).vorschau, null);
+  // VOD noch in Aufnahme: Platzhalter (403) -> kein Bild, dafuer Login des live sendenden Besitzers
+  const aufnahme = await browse.streamInfo({ mode: 'vod', wert: '2' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, status: 'RECORDING',
+    owner: { login: 'kanal_o', displayName: 'O', stream: { id: '9' } },
+    previewThumbnailURL: 'https://vod-secure.twitch.tv/_404/404_processing_640x360.png' } }), retries: 0 });
+  assert.equal(aufnahme.vorschau, null);
+  assert.equal(aufnahme.liveLogin, 'kanal_o');
+  // fertiges VOD eines live sendenden Kanals: kein Ersatz (andere Sendung)
+  const alt = await browse.streamInfo({ mode: 'vod', wert: '3' }, { fetchImpl: antwort({ video: { title: 'V', lengthSeconds: 1, status: 'RECORDED',
+    owner: { login: 'kanal_o', displayName: 'O', stream: { id: '9' } }, previewThumbnailURL: 'v.jpg' } }), retries: 0 });
+  assert.equal(alt.liveLogin, null);
   assert.equal(await browse.streamInfo({ mode: 'live', wert: 'x' }, { fetchImpl: antwort({ user: null }), retries: 0 }), null);
 });
 

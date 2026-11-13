@@ -52,6 +52,13 @@ function mapLiveUser(node) {
   };
 }
 
+// Twitch gibt VODs, die noch aufgenommen werden, ein Platzhalter-Bild
+// (.../_404/404_processing_...png), das mit 403 antwortet (gemessen 13.11.2026).
+// Solche Adressen zaehlen als "kein Bild".
+function echteVorschau(url) {
+  return url && !String(url).includes('/_404/') ? url : null;
+}
+
 // video-Node aus der VOD-Liste -> Modell.
 function mapVod(node, now = Date.now()) {
   if (!node) return null;
@@ -64,7 +71,9 @@ function mapVod(node, now = Date.now()) {
     viewsLabel: formatViewers(node.viewCount || 0),
     published: node.publishedAt || null,
     publishedLabel: relativeDate(node.publishedAt, now),
-    thumb: node.previewThumbnailURL || null,
+    thumb: echteVorschau(node.previewThumbnailURL),
+    // noch in Aufnahme = die laufende Sendung des Kanals
+    aufnahme: node.status === 'RECORDING',
     game: (node.game && node.game.displayName) || ''
   };
 }
@@ -85,5 +94,6 @@ module.exports = {
   relativeDate,
   mapLiveUser,
   mapVod,
+  echteVorschau,
   sortByLive
 };

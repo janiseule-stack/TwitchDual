@@ -252,9 +252,12 @@ new MutationObserver(() => {
   if (!$home.classList.contains('hidden')) HomeRaumDom.leben(!effekteAus());
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-animationen'] });
 // Vorschaubild eines VODs aus der geladenen Liste der Karte (null: unbekannt/ohne Bild).
-function vodVorschau(id) {
+// VOD noch in Aufnahme (kein eigenes Bild, Kanal live): Live-Vorschau derselben Sendung.
+function vodVorschau(id, kanal) {
   const treffer = vods && vods.liste ? vods.liste.find((v) => v.id === id) : null;
-  return treffer ? treffer.thumb || null : null;
+  if (!treffer) return null;
+  if (treffer.thumb) return treffer.thumb;
+  return treffer.aufnahme && kanal && kanal.login && !kanal.offline ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : null;
 }
 async function ladeWert(wert, kanal) {
   if (ladenLaeuft || laufwerk.laeuft) return; // Doppelklick / Enter waehrend des Ladens
@@ -267,7 +270,7 @@ async function ladeWert(wert, kanal) {
     // aus. Im Ablauf ist es verborgen, bis der Fernseher anflackert (home-raum.css).
     // Schlaegt das Laden fehl, setzt der naechste renderHome den laufenden Stream zurueck.
     const istLive = !!(kanal.login && wert === kanal.login && !kanal.offline);
-    const tvBild = istLive ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : vodVorschau(wert);
+    const tvBild = istLive ? HomeBuehne.vorschauUrl(kanal.login, Date.now()) : vodVorschau(wert, kanal);
     const tvName = (kanal.displayName || kanal.login || '') + (istLive ? '' : ' · VOD');
     HomeRaumDom.setzeTv(tvBild ? { vorschauUrl: tvBild, name: tvName, live: istLive } : null);
     laufwerk.start((ok) => ende(ok));

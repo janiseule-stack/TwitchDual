@@ -411,6 +411,7 @@ window.laeuftEtwas = () => infoQuelle ? {
   mode: infoQuelle.mode,
   login: infoQuelle.mode === 'live' ? infoQuelle.wert : null,
   vorschau: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.vorschau || null) : null,
+  liveLogin: infoQuelle.mode === 'vod' && info && info.art === 'vod' ? (info.liveLogin || null) : null,
 } : null;
 let info = null;         // angezeigte Infos (Titel/Spiel nur alle 5 min erneuert)
 let titelZeit = 0;       // wann Titel/Spiel zuletzt uebernommen wurden

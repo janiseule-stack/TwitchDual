@@ -2,7 +2,7 @@
 // Laeuft im Main-Prozess (kein CORS). Client-ID/Endpoint/Timeout zentral
 // in ./twitch-gql.js. opts (fetchImpl, ...) sind fuer Tests injizierbar.
 
-const { mapLiveUser, mapVod, sortByLive } = require('./browse-map');
+const { mapLiveUser, mapVod, echteVorschau, sortByLive } = require('./browse-map');
 const { gql } = require('./twitch-gql');
 
 // Profilbild 300 px: Home zeigt es als Album-Cover und CD-Label (gemessen 09.11.2026).
@@ -83,8 +83,8 @@ const INFO_LIVE_QUERY =
   `query($login:String!){ user(login:$login){ login displayName profileImageURL(width:70) ` +
   `stream{ title viewersCount createdAt game{ displayName } } } }`;
 const INFO_VOD_QUERY =
-  `query($id:ID!){ video(id:$id){ title lengthSeconds createdAt game{ displayName } ` +
-  `owner{ displayName profileImageURL(width:70) } previewThumbnailURL(width:640,height:360) } }`;
+  `query($id:ID!){ video(id:$id){ title lengthSeconds createdAt status game{ displayName } ` +
+  `owner{ login displayName profileImageURL(width:70) stream{ id } } previewThumbnailURL(width:640,height:360) } }`;
 
 async function streamInfo({ mode, wert }, opts = {}) {
   if (mode === 'vod') {
@@ -93,7 +93,10 @@ async function streamInfo({ mode, wert }, opts = {}) {
     if (!v) return null;
     return { art: 'vod', name: (v.owner && v.owner.displayName) || '', avatar: (v.owner && v.owner.profileImageURL) || null,
       titel: v.title || '', spiel: (v.game && v.game.displayName) || '', laenge: v.lengthSeconds || 0, datum: v.createdAt || null,
-      vorschau: v.previewThumbnailURL || null }; // Vorschaubild fuer den Fernseher im Home
+      vorschau: echteVorschau(v.previewThumbnailURL), // Vorschaubild fuer den Fernseher im Home
+      // VOD noch in Aufnahme und Besitzer live: dieselbe Sendung, der Fernseher nimmt
+      // dann die Live-Vorschau (Twitch hat fuer laufende Aufnahmen kein VOD-Bild).
+      liveLogin: v.status === 'RECORDING' && v.owner && v.owner.stream && v.owner.login ? v.owner.login : null };
   }
   const login = String(wert || '').trim().toLowerCase();
   const data = await gql({ query: INFO_LIVE_QUERY, variables: { login } }, opts);
@@ -107,7 +110,7 @@ async function streamInfo({ mode, wert }, opts = {}) {
 
 const VODS_QUERY =
   `query($login:String!,$n:Int!){ user(login:$login){ videos(first:$n,type:ARCHIVE,sort:TIME){ ` +
-  `edges{ node{ id title lengthSeconds publishedAt viewCount game{ displayName } ` +
+  `edges{ node{ id title lengthSeconds publishedAt viewCount status game{ displayName } ` +
   `previewThumbnailURL(width:640,height:360) } } } } }`; // gross fuer das VOD-Inlay (gemessen 10.11.2026)
 
 async function getChannelVods(login, limit = 20, opts = {}) {

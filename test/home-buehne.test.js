@@ -163,6 +163,9 @@ test('tvVorschau: live -> Live-Vorschau, VOD -> sein Vorschaubild, sonst aus', (
   assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: 'https://x/v.jpg' }, 0), 'https://x/v.jpg');
   assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: null }, 0), null);
   assert.equal(tvVorschau({ mode: 'vod', login: null }, 0), null);
+  // VOD noch in Aufnahme (kein eigenes Bild): Live-Vorschau derselben Sendung
+  assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: null, liveLogin: 'kanal_a' }, 120000), vorschauUrl('kanal_a', 120000));
+  assert.equal(tvVorschau({ mode: 'vod', login: null, vorschau: 'https://x/v.jpg', liveLogin: 'kanal_a' }, 0), 'https://x/v.jpg');
 });
 
 // --- Staender (Runde 2) entfaellt mit dem neuen Regal (Task 9b) ----------------

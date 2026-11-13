@@ -84,7 +84,9 @@ test('home-raum-dom.js: Profilbild mit error-Zweig und Anfangsbuchstabe', () => 
 
 test('home-raum-dom.js: VOD-Vorschau nur noch auf der Tafel (Canvas 160x90), alte Groessen weg', () => {
   const z = rumpf(js, 'function tafelVodBild(');
-  assert.ok(/c\.width = 160;/.test(z) && /c\.height = 90;/.test(z) && z.includes('vodBild(v.thumb, c)'));
+  assert.ok(/c\.width = 160;/.test(z) && /c\.height = 90;/.test(z) && z.includes('vodBild(v.thumb || ersatz, c)'));
+  // VOD in Aufnahme (Twitch-Platzhalter = kein Bild): Live-Vorschau des live sendenden Kanals
+  assert.ok(z.includes('!v.thumb && v.aufnahme && k && k.live') && z.includes('HomeBuehne.vorschauUrl(k.login'));
   assert.ok(!/width\s*=\s*64;/.test(js) && !/height\s*=\s*36;/.test(js), 'keine 64x36 in den Zeilen');
   assert.ok(!/height\s*=\s*18;/.test(js), 'alte 64x18-Liste entfaellt');
   assert.ok(!/width\s*=\s*32;/.test(js) && !/height\s*=\s*9;/.test(js));
@@ -758,9 +760,11 @@ test('home.js: Auflegen legt das neue Bild in den (noch verborgenen) Fernseher -
   assert.ok(tv < r.indexOf('HomeRaumDom.zeigeAblauf('), 'vor dem Ablauf (CSS verbirgt es bis ablauf-an)');
   assert.ok(r.includes('HomeBuehne.vorschauUrl(kanal.login, Date.now())'));
   assert.ok(/wert === kanal\.login/.test(r) && /!kanal\.offline/.test(r));
-  assert.ok(r.includes('vodVorschau(wert)'), 'VOD: Vorschaubild aus der Liste');
+  assert.ok(r.includes('vodVorschau(wert, kanal)'), 'VOD: Vorschaubild aus der Liste');
   const v = rumpfOben(homeJs, 'function vodVorschau(');
-  assert.ok(v.includes('vods && vods.liste') && v.includes('v.id === id') && /\.thumb \|\| null/.test(v));
+  assert.ok(v.includes('vods && vods.liste') && v.includes('v.id === id') && v.includes('if (treffer.thumb) return treffer.thumb;'));
+  // VOD in Aufnahme: Live-Vorschau des Kanals, sonst null (Fernseher aus)
+  assert.ok(v.includes('treffer.aufnahme && kanal && kanal.login && !kanal.offline') && v.includes('HomeBuehne.vorschauUrl(kanal.login'));
   assert.ok(/\{ vorschauUrl: \w+[^}]*\} : null\)/.test(r), 'ohne Bild: Fernseher aus (null)');
 });
 
@@ -1382,7 +1386,7 @@ test('Rueckseite nah: Tafel zeigt das VOD unter Maus/Fokus, anfangs das laufende
   const t6 = rumpf(js, 'function zeichneTafelVod(');
   assert.ok(t6.includes('t.tafelVodId') && t6.includes('vods.laufend') && t6.includes('liste[0]'), 'Maus/Fokus, sonst laufend, sonst erstes');
   const p = (s) => { const i = t6.indexOf(s); assert.ok(i > -1, s); return i; };
-  assert.ok(p('tafelVodBild(v)') < p("' · ' + (v.title || 'VOD')"));
+  assert.ok(p('tafelVodBild(v, k)') < p("' · ' + (v.title || 'VOD')"));
   assert.ok(p("' · ' + (v.title || 'VOD')") < p('[v.game, v.publishedLabel, v.lengthLabel]'));
   assert.ok(p('[v.game, v.publishedLabel, v.lengthLabel]') < p("'▶ abspielen'"));
   assert.ok(t6.includes("ruf(h, 'vod', v.id)"));

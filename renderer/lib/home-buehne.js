@@ -170,7 +170,8 @@
   function tvVorschau(l, jetztMs) {
     if (!l) return null;
     if (l.mode === 'live') return l.login ? vorschauUrl(l.login, jetztMs) : null;
-    if (l.mode === 'vod') return l.vorschau || null;
+    // VOD noch in Aufnahme (kein eigenes Bild): Live-Vorschau derselben Sendung
+    if (l.mode === 'vod') return l.vorschau || (l.liveLogin ? vorschauUrl(l.liveLogin, jetztMs) : null);
     return null;
   }
 

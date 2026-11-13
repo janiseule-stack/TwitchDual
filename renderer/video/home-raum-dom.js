@@ -1061,7 +1061,7 @@ window.HomeRaumDom = (function () {
     const v = i >= 0 ? liste[i] : null;
     const knoepfe = el('div', 'karte-knoepfe');
     if (v) {
-      z.appendChild(tafelVodBild(v));
+      z.appendChild(tafelVodBild(v, k));
       z.appendChild(el('div', 'karte-titel', String(i + 1).padStart(2, '0') + ' · ' + (v.title || 'VOD')));
       const info = [v.game, v.publishedLabel, v.lengthLabel].filter(Boolean).join(' · ');
       if (info) z.appendChild(el('div', 'karte-zeile', info));
@@ -1084,14 +1084,16 @@ window.HomeRaumDom = (function () {
   }
   // Vorschaubild des VODs auf der Tafel (Canvas 160x90); fuer dasselbe VOD bleibt es
   // erhalten (kein kurzes Leerblinken beim Neuzeichnen).
-  function tafelVodBild(v) {
+  // VOD noch in Aufnahme (Twitch hat kein Bild dafuer): Live-Vorschau derselben Sendung.
+  function tafelVodBild(v, k) {
     if (t.tafelVodBild && t.tafelVodBild.id === v.id) return t.tafelVodBild.e;
     const e = el('div', 'karte-vorschau');
     const c = document.createElement('canvas');
     c.width = 160;
     c.height = 90;
     e.appendChild(c);
-    vodBild(v.thumb, c);
+    const ersatz = !v.thumb && v.aufnahme && k && k.live && k.login ? HomeBuehne.vorschauUrl(k.login, Date.now()) : null;
+    vodBild(v.thumb || ersatz, c);
     t.tafelVodBild = { id: v.id, e };
     return e;
   }
