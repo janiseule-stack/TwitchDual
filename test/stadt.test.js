@@ -126,6 +126,24 @@ test('regisseur: Mitte hoechstens 1, Strasse hoechstens 2, gesamt hoechstens 3',
   assert.ok(r.darf('strasse'));
 });
 
+test('regisseur: frei(ort, eintrag) gibt genau den gebuchten Platz frei, nicht den fruehesten (Review 13.11.)', () => {
+  let jetzt = 0;
+  const r = Stadt.regisseur({ jetzt: () => jetzt });
+  r.belegt('strasse', 1000); // Passant, endet bald
+  const raid = r.belegt('strasse', 20000);
+  r.frei('strasse', raid); // Raid bricht frueh ab
+  // der Passant zaehlt weiter, der Raid nicht mehr
+  assert.strictEqual(r.darf('strasse'), true, 'ein Platz frei');
+  r.belegt('strasse', 5000);
+  assert.strictEqual(r.darf('strasse'), false, 'Passant + neuer = 2');
+  jetzt = 1500; // Passant fertig
+  assert.strictEqual(r.darf('strasse'), true);
+  // stadt-dom: der Raid gibt seine beiden Plaetze ueber die Eintraege frei
+  const sd = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'lib', 'stadt-dom.js'), 'utf8');
+  assert.ok(/r\.plaetze = \[regie\.belegt\('strasse', dauer\), regie\.belegt\('strasse', dauer\)\];/.test(sd));
+  assert.ok(sd.includes("for (const p of r.plaetze) regie.frei('strasse', p);"));
+});
+
 test('raidPlan: Gruppengroesse nach Raid-Groesse (Janis 13.11.: kleine Raids nur eine Person)', () => {
   assert.deepStrictEqual(Stadt.raidPlan(5), { figuren: 1, bus: false });
   assert.deepStrictEqual(Stadt.raidPlan(499), { figuren: 1, bus: false });

@@ -102,6 +102,9 @@
     // Takt inzwischen), beginnt sie danach von vorn - nicht, wenn das Leben ruht.
     let katzeNeu = false;
     function kisteEnde() {
+      // Nur einmal je Kiste: animationend und danach stoppe() des Abspielers rufen
+      // beide hierher; ein zweiter Neustart wuerde die Katze mitten im Auftritt springen lassen.
+      if (!kiste.classList.contains('spielt')) return;
       kiste.classList.remove('spielt');
       const k = o.katze;
       if (k && (katzeNeu || k.classList.contains('spielt')) && !k.classList.contains('ruht')) {

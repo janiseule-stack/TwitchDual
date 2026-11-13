@@ -296,8 +296,8 @@
       if (r.timer !== null) clearT(r.timer);
       for (const t of r.tuer) clearT(t);
       for (const u of r.teile) weg(u);
-      regie.frei('strasse');
-      regie.frei('strasse');
+      // genau die beiden Plaetze des Raids, nicht die eines gerade laufenden Passanten
+      for (const p of r.plaetze) regie.frei('strasse', p);
       r.ende();
     }
     function raid(plan) {
@@ -305,10 +305,9 @@
       return new Promise((ende) => {
         const F = S.figur;
         const dauer = Stadt.raidDauer(plan, sichtBreite);
-        const r = { ende, timer: null, teile: [], tuer: [] };
+        const r = { ende, timer: null, teile: [], tuer: [], plaetze: [] };
         raidLauf = r;
-        regie.belegt('strasse', dauer);
-        regie.belegt('strasse', dauer);
+        r.plaetze = [regie.belegt('strasse', dauer), regie.belegt('strasse', dauer)];
         const abstandMs = (Stadt.RAID_ABSTAND / F.pxProBild) * F.msProBild;
         let start = sichtLinks - F.b;
         let weite = sichtBreite + F.b;

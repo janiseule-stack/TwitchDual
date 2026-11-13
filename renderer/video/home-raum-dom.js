@@ -53,6 +53,9 @@ window.HomeRaumDom = (function () {
   let spielt = false; // Stream oder VOD spielt gerade (plattenspielerLaeuft)
   let aktuell = 'raum';
   let tvVorschau = null;
+  // Adresse, deren Laden zuletzt fehlschlug: nicht bei jedem Neuzeichnen erneut anfragen
+  // (die Live-Adresse wechselt jede Minute, dann gibt es einen neuen Versuch).
+  let tvFehlUrl = null;
   let tvLogin = null; // Kanal des Bildes auf dem Fernseher
   let schildTimer = null;
   let ablaufRuf = null;
@@ -1205,15 +1208,19 @@ window.HomeRaumDom = (function () {
   // neu gezeichnet, ein neues Bild wuerde jedes Mal kurz leer blinken).
   function karteVorschau(k, modus) {
     if (modus !== 'live' || typeof HomeBuehne === 'undefined') return null;
-    if (t.karteBild && t.karteBild.login === k.login) return t.karteBild.e;
+    const url = HomeBuehne.vorschauUrl(k.login, Date.now());
+    if (t.karteBild && t.karteBild.login === k.login) {
+      // neue Minute: neues Bild in dieselbe Leinwand (altes bleibt stehen, bis es geladen ist)
+      if (t.karteBild.url !== url) { t.karteBild.url = url; vodBild(url, t.karteBild.c); }
+      return t.karteBild.e;
+    }
     const e = el('div', 'karte-vorschau');
     const c = document.createElement('canvas');
     c.width = 160;
     c.height = 90;
     e.appendChild(c);
-    const url = HomeBuehne.vorschauUrl(k.login, Date.now());
     vodBild(url, c);
-    t.karteBild = { login: k.login, e };
+    t.karteBild = { login: k.login, url, c, e };
     return e;
   }
 
@@ -1467,6 +1474,7 @@ window.HomeRaumDom = (function () {
   function setzeTv(o) {
     const url = (o && o.vorschauUrl) || null;
     if (wirt) zeigeLaufschrift(url ? o : null);
+    if (url && url === tvFehlUrl) return;
     if (!wirt || url === tvVorschau) return; // gleiche Adresse: Bild steht schon
     tvVorschau = url;
     const nr = ++tvNr;
@@ -1479,7 +1487,7 @@ window.HomeRaumDom = (function () {
     const img = new Image();
     img.decoding = 'async';
     // Ladefehler: Aus-Bildschirm bleibt; der naechste Aufruf versucht es neu.
-    const fehler = () => { if (nr === tvNr) { leereTv(); tvVorschau = null; tvLogin = null; } };
+    const fehler = () => { if (nr === tvNr) { leereTv(); tvVorschau = null; tvLogin = null; tvFehlUrl = url; } };
     img.addEventListener('error', fehler);
     img.addEventListener('load', () => {
       if (nr !== tvNr) return;

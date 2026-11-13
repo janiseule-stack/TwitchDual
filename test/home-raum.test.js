@@ -1585,6 +1585,21 @@ test('Regal nah: CSS Hinweis unten rechts, Hover-Name und Hinweis waehrend der F
   assert.ok(/aus\(t\.fachHinweis, m < 2\)/.test(h), 'bei nur einem Fach verborgen');
 });
 
+test('Fernseher: fehlgeschlagene Adresse wird nicht bei jedem Neuzeichnen neu geladen (Review 13.11.)', () => {
+  const r = rumpf(js, 'function setzeTv(');
+  assert.ok(r.includes('if (url && url === tvFehlUrl) return;'), 'gleiche kaputte Adresse: kein neuer Versuch');
+  const f = r.slice(r.indexOf('const fehler ='));
+  assert.ok(f.includes('tvFehlUrl = url;'), 'Fehler merkt sich die Adresse');
+  assert.ok(/let tvFehlUrl = null;/.test(js));
+});
+
+test('Karte vorn: Live-Vorschau wird mit neuer Minuten-Adresse in dieselbe Leinwand nachgeladen (Review 13.11.)', () => {
+  const r = rumpf(js, 'function karteVorschau(');
+  assert.ok(r.indexOf('const url = HomeBuehne.vorschauUrl(k.login, Date.now());') < r.indexOf('t.karteBild.login === k.login'), 'Adresse vor dem Merker');
+  assert.ok(r.includes('if (t.karteBild.url !== url) { t.karteBild.url = url; vodBild(url, t.karteBild.c); }'));
+  assert.ok(r.includes('t.karteBild = { login: k.login, url, c, e };'));
+});
+
 test('Tafel: Knopfreihe bricht um statt aus der Tafel zu laufen (Fotos 13.11.: "Vorderseite" abgeschnitten)', () => {
   const r = /\.karte-info > \.karte-knoepfe\s*\{([^}]*)\}/.exec(css);
   assert.ok(r && /flex-wrap:\s*wrap/.test(r[1]), 'umbrechen');

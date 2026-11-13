@@ -180,12 +180,18 @@
         const grenze = BUDGET[ort];
         return grenze === undefined || belegung[ort].length < grenze;
       },
+      // gibt den Eintrag zurueck; frei(ort, eintrag) gibt genau diesen Platz frei
       belegt(ort, ms) {
-        if (belegung[ort]) belegung[ort].push(jetzt() + Math.max(0, Number(ms) || 0));
+        if (!belegung[ort]) return null;
+        const e = jetzt() + Math.max(0, Number(ms) || 0);
+        belegung[ort].push(e);
+        return e;
       },
-      frei(ort) {
+      frei(ort, eintrag) {
         const l = belegung[ort];
-        if (l && l.length) l.splice(l.indexOf(Math.min(...l)), 1);
+        if (!l || !l.length) return;
+        const i = eintrag === undefined ? l.indexOf(Math.min(...l)) : l.indexOf(eintrag);
+        if (i >= 0) l.splice(i, 1);
       },
     };
   }

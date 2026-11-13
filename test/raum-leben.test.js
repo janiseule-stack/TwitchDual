@@ -460,6 +460,23 @@ test('RaumLebenDom.effekte: Katze spielt nicht verdeckt weiter, beginnt nach der
   assert.ok(!katze.classList.contains('spielt'));
 });
 
+test('RaumLebenDom.effekte: Kisten-Ende nur einmal - stoppe() nach animationend startet die Katze nicht erneut (Review 13.11.)', () => {
+  const doc = baumDoc();
+  const ebene = doc.createElement('div');
+  const katze = doc.createElement('div');
+  let neustarts = 0;
+  Object.defineProperty(katze, 'offsetWidth', { get() { neustarts += 1; return 0; } });
+  const fx = RLD.effekte(doc, ebene, 'p/', { katze });
+  const kiste = ebene.kinder[ebene.kinder.length - 1];
+  katze.classList.add('spielt');
+  fx.starte({ art: 'kiste', daten: {} });
+  kiste.feuere('animationend');
+  assert.strictEqual(neustarts, 1, 'nach der Kiste einmal von vorn');
+  fx.stoppe(); // Abspieler raeumt nach DAUER_KISTE auf
+  assert.strictEqual(neustarts, 1, 'kein zweiter Neustart mitten im Auftritt');
+  assert.ok(katze.classList.contains('spielt'));
+});
+
 test('raum-leben-dom.js: UMD, setzt RaumLebenDom, nutzt RaumLeben.TAKT und naechstePause', () => {
   const q = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'lib', 'raum-leben-dom.js'), 'utf8');
   assert.ok(q.includes('root.RaumLebenDom'));
