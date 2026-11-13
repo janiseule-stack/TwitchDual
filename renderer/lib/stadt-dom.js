@@ -70,7 +70,7 @@
     const strasse = neu('stadt-strasse', ebene);
     regenEbene('strasse', S.regen.dateien[1]);
     const dunkel = neu('stadt-dunkel', ebene);
-    dunkel.style.height = px(S.ebenen.strasse.y);
+    dunkel.style.height = px(S.bild.h); // ganze Stadt: auch auf der Strasse liegt Text
     wirt.style.setProperty('--stadt-dunkel', String(DUNKEL));
 
     // --- Fensterlichter -------------------------------------------------------------

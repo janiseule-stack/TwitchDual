@@ -24,6 +24,10 @@ body { display: flex; flex-direction: column; }
   flex: 1; overflow-y: auto; padding: 8px 10px;
   font-size: var(--chat-font-size, 14px); line-height: 1.45;
   scrollbar-width: none;
+  /* Lesbar vor der Regennacht-Stadt (Janis 13.11.2026, Variante S1):
+     halbfett, reines Weiss, dunkler 1-px-Rand. Namen bleiben fett in ihrer Farbe. */
+  font-weight: 600; color: #fff;
+  text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
 }
 /* Keine sichtbaren Scrollbalken im ganzen Chat-Fenster (Janis 09.11.2026):
    Mausrad/Touchpad scrollt weiter, nur der Balken an der Seite ist weg.

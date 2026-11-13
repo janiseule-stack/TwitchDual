@@ -106,8 +106,8 @@ test('baue: Bildebene mit Grundbild, Ebenen in fester Reihenfolge', () => {
     assert.strictEqual(r.style.props['--dauer'], S.regen.bilder * S.regen.msProBild + 'ms');
     assert.strictEqual(r.style.props['--sb'], S.bild.b * S.regen.bilder + 'px');
   }
-  // Abdunkeln nur ueber Himmel + Haeusern, nicht ueber dem Strassenband
-  assert.strictEqual(ebene.kinder[n + 4].style.height, S.ebenen.strasse.y + 'px');
+  // Abdunkeln ueber der ganzen Stadt: seit es kein Strassenband mehr gibt, liegt auch dort Text
+  assert.strictEqual(ebene.kinder[n + 4].style.height, S.bild.h + 'px');
 });
 
 test('Fensterlichter: Ausschnitte aus stadt-haeuser-licht.png an stadt.json.fenster, Anteil nach Uhrzeit', () => {
@@ -516,6 +516,11 @@ test('chat.css: Stadt-Regeln pixelig, Abdunkeln ueber Variable, Animationen aus 
   assert.ok(regel('.stadt-fenster').includes('transition: opacity 300ms'));
   assert.ok(regel('#stadt').includes('overflow: hidden'));
   assert.ok(!/#stadt-band\b/.test(lies('renderer/chat/chat.css')), 'kein Strassenband mehr');
+  // Lesbarkeit vor der Stadt (Janis 13.11.2026, Variante S1): halbfett, reines Weiss, dunkler Rand
+  const m = regel('#messages');
+  assert.ok(m.includes('font-weight: 600'), 'halbfett');
+  assert.ok(m.includes('color: #fff'), 'weiss');
+  assert.ok(m.includes('text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000'), 'Rand');
 });
 
 test('index.html: Stadt hinter den Nachrichten, Nachrichten bis zur Eingabe (kein Band), Skripte vor chat.js', () => {
