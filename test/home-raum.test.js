@@ -533,7 +533,7 @@ test('zeigeAblauf: raum -> spieler -> dreht -> zurueck (ohne spieler) -> an -> t
   const reihe = ["'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zurueck'", "'ablauf-an'", "'ablauf-tv'"].map((k) => r.indexOf(k));
   assert.ok(reihe[0] > -1 && reihe.every((x, i) => i === 0 || x > reihe[i - 1]), 'Reihenfolge');
   assert.ok(r.includes('abschnitt(m.raum, ()'), 'spieler');
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS + PLATTE_WECHSEL_MS : 0), ()'), 'dreht');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS : 0), ()'), 'dreht');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen, ()'), 'zurueck');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck, ()'), 'an');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck + m.an + m.zeigen, ()'), 'tv');
@@ -551,18 +551,17 @@ test('Neue Platte bei laufender: alte steht sofort, bleibt am Spieler kurz stehe
   const an = r.indexOf("t.dreht.classList.add('platte-steht')");
   assert.ok(an > -1 && an < r.indexOf('abschnitt('), 'steht ab Beginn');
   assert.ok(!js.includes('platte-auslauf') && !css.includes('platte-auslauf'), 'kein Auslaufen mehr');
-  // an der Ankunft noch PLATTE_STEHT_MS stehend zu sehen, dann runter (leer), neue nach PLATTE_WECHSEL_MS
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler + PLATTE_STEHT_MS, ()'), 'alte runter nach dem Stehen');
-  // ohne laufende Platte gibt es kein Abnehmen (wuerde sonst die neue wieder ausblenden)
-  assert.ok(/if \(lief\) \{\s*abschnitt\(m\.raum \+ m\.spieler \+ PLATTE_STEHT_MS, \(\)/.test(r));
-  const ab = r.slice(r.indexOf('abschnitt(m.raum + m.spieler + PLATTE_STEHT_MS, ()'));
-  assert.ok(ab.includes("t.dreht.classList.remove('platte-steht')") && ab.includes('aus(t.dreht, true)'));
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS + PLATTE_WECHSEL_MS : 0), ()'), 'neue Platte nach dem Wechsel');
+  // an der Ankunft noch PLATTE_STEHT_MS stehend zu sehen, dann dreht sie von vorn (Klasse weg)
+  const dreh = 'abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS : 0), ()';
+  assert.ok(r.includes(dreh), 'Drehen nach dem Stehen');
+  const ab = r.slice(r.indexOf(dreh));
+  assert.ok(ab.indexOf("t.dreht.classList.remove('platte-steht')") < ab.indexOf("k.add('ablauf-dreht')"));
+  // kein Ausblenden dazwischen (im Raumbild liegt darunter eine Platte: Etikett wuerde springen)
+  assert.ok(!r.includes('aus(t.dreht, true)') && !js.includes('PLATTE_WECHSEL_MS'));
   const steht = Number(/const PLATTE_STEHT_MS = (\d+);/.exec(js)[1]);
-  const wechsel = Number(/const PLATTE_WECHSEL_MS = (\d+);/.exec(js)[1]);
-  assert.ok(steht >= 400, 'deutlich als stehend erkennbar');
+  assert.ok(steht >= 600, 'deutlich als stehend erkennbar');
   const auflegen = Number(/auflegen: (\d+)/.exec(js)[1]);
-  assert.ok(steht + wechsel + 300 <= auflegen, 'neue dreht noch sichtbar, bevor die Kamera zurueckfaehrt');
+  assert.ok(steht + 300 <= auflegen, 'dreht noch sichtbar, bevor die Kamera zurueckfaehrt');
   // Abbruch raeumt das Stehen weg
   assert.ok(rumpf(js, 'function versteckeAblauf(').includes("t.dreht.classList.remove('platte-steht')"));
   // CSS: stehende Platte = erstes Bild ohne Animation
