@@ -521,6 +521,10 @@ test('chat.css: Stadt-Regeln pixelig, Abdunkeln ueber Variable, Animationen aus 
   assert.ok(m.includes('font-weight: 600'), 'halbfett');
   assert.ok(m.includes('color: #fff'), 'weiss');
   assert.ok(m.includes('text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000'), 'Rand');
+  // Wenige Nachrichten stehen unten an der Eingabe wie bei Twitch (Janis 13.11.2026).
+  // margin-top: auto statt justify-content: flex-end, sonst ist der Anfang nicht mehr scrollbar.
+  assert.ok(m.includes('display: flex; flex-direction: column'), 'Spalte');
+  assert.ok(regel('#messages > :first-child').includes('margin-top: auto'), 'von unten');
 });
 
 test('index.html: Stadt hinter den Nachrichten, Nachrichten bis zur Eingabe (kein Band), Skripte vor chat.js', () => {

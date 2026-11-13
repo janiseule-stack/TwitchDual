@@ -28,7 +28,11 @@ body { display: flex; flex-direction: column; }
      halbfett, reines Weiss, dunkler 1-px-Rand. Namen bleiben fett in ihrer Farbe. */
   font-weight: 600; color: #fff;
   text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+  /* Von unten fuellen wie bei Twitch (Janis 13.11.2026): margin-top: auto am ersten
+     Kind statt justify-content: flex-end, damit der Anfang scrollbar bleibt. */
+  display: flex; flex-direction: column;
 }
+#messages > :first-child { margin-top: auto; }
 /* Keine sichtbaren Scrollbalken im ganzen Chat-Fenster (Janis 09.11.2026):
    Mausrad/Touchpad scrollt weiter, nur der Balken an der Seite ist weg.
    scrollbar-width schlaegt in Chromium 121+ die ::-webkit-scrollbar-Regeln
