@@ -544,6 +544,30 @@ test('zeigeAblauf: raum -> spieler -> dreht -> zurueck (ohne spieler) -> an -> t
   assert.strictEqual((r.match(/neuAusrichten\(\)/g) || []).length, 3, 'Kamera bei spieler, zurueck und tv');
 });
 
+test('Neue Platte bei laufender: alte laeuft aus, kurz leer, neue dreht von vorn (Janis 13.11., A)', () => {
+  const r = rumpf(js, 'function zeigeAblauf(');
+  // vor allen Abschnitten: laeuft etwas, bremst die alte Platte bis die Kamera da ist
+  assert.ok(/const lief = spielt;/.test(r));
+  const an = r.indexOf("t.dreht.classList.add('platte-auslauf')");
+  assert.ok(an > -1 && an < r.indexOf('abschnitt('), 'Auslauf beginnt sofort');
+  assert.ok(r.includes("t.dreht.style.setProperty('--auslauf', (m.raum + m.spieler) + 'ms')"), 'Auslauf dauert bis zur Ankunft');
+  // Ankunft: alte Platte runter (leer), neue nach PLATTE_WECHSEL_MS
+  const ab = r.slice(r.indexOf('abschnitt(m.raum + m.spieler, ()'));
+  assert.ok(ab.includes("t.dreht.classList.remove('platte-auslauf')") && ab.includes('aus(t.dreht, true)'));
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_WECHSEL_MS : 0), ()'), 'neue Platte nach dem Wechsel');
+  assert.ok(/const PLATTE_WECHSEL_MS = \d+;/.test(js));
+  // Abbruch raeumt den Auslauf weg
+  assert.ok(rumpf(js, 'function versteckeAblauf(').includes("t.dreht.classList.remove('platte-auslauf')"));
+  // CSS: bremst ueber --auslauf, harte Bildwechsel, bleibt am Ende stehen
+  const regel = /\.ablauf-dreht-platte\.platte-auslauf\s*\{([^}]*)\}/.exec(css);
+  assert.ok(regel && /animation:\s*raum-platte-auslauf var\(--auslauf, 2000ms\) linear 1 forwards/.test(regel[1]));
+  const k = /@keyframes raum-platte-auslauf\s*\{([\s\S]*?)\n\}/.exec(css);
+  assert.ok(k && /animation-timing-function:\s*steps\(1, end\)/.test(k[1]));
+  const proz = [...k[1].matchAll(/([\d.]+)% \{/g)].map((x) => Number(x[1]));
+  const abstaende = proz.slice(1).map((p, i) => p - proz[i]);
+  assert.ok(abstaende.every((d, i) => i === 0 || d >= abstaende[i - 1]), 'Bildwechsel werden immer langsamer');
+});
+
 test('CSS: Kamera-Uebergaenge je Abschnitt, tv-Regel zuletzt', () => {
   assert.ok(/#home\.im-ablauf #raum-ebene\s*\{[^}]*transition:\s*opacity 500ms/.test(css));
   const sp = css.search(/#home\.ablauf-spieler #raum-ebene \.raum-bildebene\s*\{[^}]*transition:\s*transform 1500ms ease-in-out/);

@@ -410,6 +410,23 @@
   animation: raum-platte-dreht 800ms steps(8) infinite;
 }
 @keyframes raum-platte-dreht { to { background-position: -432px 0; } }
+/* Neue Platte bei laufender (Janis 13.11., A): die alte bremst ueber --auslauf
+   (Ablauf bis zur Ankunft der Kamera) und bleibt stehen. 10 Bildwechsel, Abstaende
+   nach p = 1 - (1 - t)^2 (anfangs ~10 Bilder/s wie beim Drehen, dann immer langsamer). */
+.ablauf-dreht-platte.platte-auslauf { animation: raum-platte-auslauf var(--auslauf, 2000ms) linear 1 forwards; }
+@keyframes raum-platte-auslauf {
+  0% { background-position: 0 0; animation-timing-function: steps(1, end); }
+  5.1% { background-position: -54px 0; animation-timing-function: steps(1, end); }
+  10.6% { background-position: -108px 0; animation-timing-function: steps(1, end); }
+  16.3% { background-position: -162px 0; animation-timing-function: steps(1, end); }
+  22.5% { background-position: -216px 0; animation-timing-function: steps(1, end); }
+  29.3% { background-position: -270px 0; animation-timing-function: steps(1, end); }
+  36.8% { background-position: -324px 0; animation-timing-function: steps(1, end); }
+  45.2% { background-position: -378px 0; animation-timing-function: steps(1, end); }
+  55.3% { background-position: 0 0; animation-timing-function: steps(1, end); }
+  68.4% { background-position: -54px 0; animation-timing-function: steps(1, end); }
+  100% { background-position: -108px 0; }
+}
 
 /* Leben (Etappe 3, raum-leben-dom.js): PixelLab-Bildstreifen leben-home-<datei>.png
    in Bildpixeln, --bilder Bilder je Flaeche, --sb Streifenbreite, --dauer ein
