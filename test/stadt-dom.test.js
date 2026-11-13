@@ -304,7 +304,7 @@ test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklic
   assert.ok(halt + S.bus.tuerX <= sichtLinks + sichtBreite, 'Tuer sichtbar');
   for (const f of strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'))) {
     assert.ok(Number(f.style.props['--schritte']) >= 1, 'gueltige steps()');
-    assert.ok(parseFloat(f.style.props['--bis']) > parseFloat(f.style.props['--von']), 'laeuft nach rechts');
+    assert.notStrictEqual(parseFloat(f.style.props['--bis']), parseFloat(f.style.props['--von']), 'laeuft wirklich');
   }
 });
 
@@ -335,6 +335,43 @@ test('raid mit Bus: alle steigen aus, solange die Tuer offen ist, im normalen Ra
       assert.ok(an + halt + ab <= Stadt.raidDauer(plan, b / m.faktor), anzahl + ' bei ' + b + 'x' + h);
     }
   }
+});
+
+test('raid mit Bus: Leute gehen abwechselnd nach links und rechts und verlassen das Bild', () => {
+  for (const [b, h] of [[1397, 1332], [400, 1332]]) {
+    const { stadt, teil } = aufbau();
+    const strasse = teil('stadt-strasse');
+    stadt.an();
+    stadt.richteAus(b, h);
+    const m = Stadt.masse(b, h);
+    const links = -m.links / m.faktor;
+    const rechts = links + b / m.faktor;
+    const plan = Stadt.raidPlan(250);
+    stadt.raid(plan);
+    const figuren = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'));
+    figuren.forEach((f, i) => {
+      const von = parseFloat(f.style.props['--von']);
+      const bis = parseFloat(f.style.props['--bis']);
+      const nachLinks = i % 2 === 1;
+      assert.strictEqual(bis < von, nachLinks, b + ': Figur ' + i + ' Richtung');
+      if (nachLinks) assert.ok(bis <= links - S.figur.b, b + ': links ganz raus');
+      else assert.ok(bis >= rechts, b + ': rechts ganz raus');
+      // Laufweg endet, bevor der Raid vorbei ist
+      const ende = parseFloat(f.style.props['--verzug']) + Number(f.style.props['--schritte']) * S.figur.msProBild;
+      assert.ok(ende <= Stadt.raidDauer(plan, b / m.faktor), b + ': Figur ' + i + ' fertig');
+    });
+  }
+});
+
+test('raid: verschiedene Leute (keine doppelte Figur, solange es genug Varianten gibt)', () => {
+  let z = 0;
+  const { stadt, teil } = aufbau({ zufall: () => [0.1, 0.1, 0.7, 0.3][z++ % 4] });
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  stadt.raid(Stadt.raidPlan(250));
+  const bilder = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'))
+    .map((f) => f.kinder.find((k) => k.classList.contains('stadt-geht')).style.backgroundImage);
+  assert.strictEqual(new Set(bilder).size, Math.min(bilder.length, S.figur.varianten.length));
 });
 
 test('raid: Bus wird erst nach dem Wegfahren entfernt, nicht schon beim Ankommen', () => {

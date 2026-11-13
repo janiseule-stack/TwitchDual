@@ -219,7 +219,7 @@
       el.style.setProperty('--dauer', schritte * msProBild + 'ms');
       el.style.setProperty('--verzug', (verzugMs || 0) + 'ms');
     }
-    function figur(klasse, nachLinks, von, weite, verzugMs) {
+    function figur(klasse, nachLinks, von, weite, verzugMs, variante = null) {
       const F = S.figur;
       const el = neu(klasse);
       el.style.top = px(S.gehwegY - F.h);
@@ -233,8 +233,8 @@
       g.style.setProperty('--dauer', F.bilder * F.msProBild + 'ms');
       g.style.setProperty('--sb', px(F.bilder * F.b));
       g.style.setProperty('--verzug', (verzugMs || 0) + 'ms');
-      const variante = F.varianten[Math.min(F.varianten.length - 1, Math.floor(zufall() * F.varianten.length))];
-      g.style.backgroundImage = url(pfad, variante);
+      const bild = variante || F.varianten[Math.min(F.varianten.length - 1, Math.floor(zufall() * F.varianten.length))];
+      g.style.backgroundImage = url(pfad, bild);
       return { el, dauer: (verzugMs || 0) + schritte * F.msProBild };
     }
     function passant() {
@@ -333,8 +333,18 @@
           weite = Math.max(F.b, sichtLinks + sichtBreite - start);
           verzug = BUS.ankunft + 200;
         }
+        // Jede Figur anders aussehend: Varianten gemischt, erst bei mehr Leuten als Varianten doppelt
+        const varianten = F.varianten.slice();
+        for (let i = varianten.length - 1; i > 0; i--) {
+          const j = Math.min(i, Math.floor(zufall() * (i + 1)));
+          [varianten[i], varianten[j]] = [varianten[j], varianten[i]];
+        }
         for (let i = 0; i < plan.figuren; i++) {
-          const f = figur('stadt-raid-figur', false, start, weite, Math.round(verzug + i * abstandMs));
+          // Aus dem Bus abwechselnd nach rechts und links (links an der stehenden Bus-Front vorbei hinter ihm)
+          const nachLinks = plan.bus && i % 2 === 1;
+          const w = nachLinks ? Math.max(F.b, start - (sichtLinks - F.b)) : weite;
+          const f = figur('stadt-raid-figur', nachLinks, start, w, Math.round(verzug + i * abstandMs),
+            varianten[i % varianten.length]);
           r.teile.push(losschicken(f.el, f.dauer));
         }
         r.timer = setT(() => { r.timer = null; if (raidLauf === r) stoppeRaid(); }, dauer);
