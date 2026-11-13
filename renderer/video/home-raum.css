@@ -282,7 +282,8 @@
   display: flex; align-items: center; justify-content: center; text-align: center;
   color: var(--text); text-shadow: 1px 1px 0 rgb(18 5 5);
 }
-.ruecken-fach { overflow: hidden; }
+/* waagrecht beschnitten, nach oben 12 Bildpixel frei fuer die herausgerutschte Platte */
+.ruecken-fach { overflow: visible; clip-path: inset(calc(-12px * var(--f)) 0 0 0); }
 .ruecken {
   position: absolute; box-sizing: border-box; cursor: pointer; outline: none;
   left: round(calc(var(--x) * var(--f) * 1px), 1px); top: round(calc(var(--y) * var(--f) * 1px), 1px);
@@ -330,6 +331,16 @@
   font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;
 }
 .such-oben .such-platz { flex: 1; min-width: 0; }
+/* Hover/Fokus: Platte rutscht heraus (Ruecken 10 Bildpixel, Cover in der Bildebene 4) */
+.ruecken.raus { transform: translateY(round(calc(-10 * var(--f) * 1px), 1px)); }
+.brett-neu .huelle.raus { transform: translateY(-4px); }
+/* Name gross ueber der Platte: nur Schrift, weiss mit dunklem Rand, ohne Schild */
+.hover-name {
+  position: absolute; z-index: 3; pointer-events: none; white-space: nowrap;
+  font-family: var(--schrift-pixel); font-size: var(--raum-schrift-gross); line-height: 1;
+  color: #fff; text-shadow: 0 0 4px #000, 3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000;
+}
+#home.fahrt .hover-name { visibility: hidden; }
 .fach-hinweis {
   position: absolute; right: 16px; bottom: 12px; z-index: 2; pointer-events: none;
   font-family: var(--schrift-pixel); font-size: var(--raum-schrift); line-height: 1;

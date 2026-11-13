@@ -1302,6 +1302,38 @@ test('Task 9e: Schild zeigt im Home bei kannZurueck den Pfeil (Klasse zurueck), 
   assert.ok(/#onair-bar\.zurueck #oa-pfeil[^{]*\{[^}]*display:\s*block/.test(stil));
 });
 
+// --- Regal von nahe, Task 4: Hover - Platte rutscht heraus, Name gross darueber --------
+test('Hover: Klasse raus mit translateY(-10 Bildpixel), Fach oben per clip-path offen, Cover hebt 4', () => {
+  assert.ok(/\.ruecken\.raus\s*\{\s*transform:\s*translateY\(round\(calc\(-10 \* var\(--f\) \* 1px\), 1px\)\)/.test(css));
+  assert.ok(css.indexOf('.ruecken.raus') > css.indexOf('.ruecken.gewaehlt, .ruecken.vorschlag'), 'raus gewinnt');
+  assert.ok(/\.ruecken-fach\s*\{\s*overflow:\s*visible;\s*clip-path:\s*inset\(calc\(-12px \* var\(--f\)\) 0 0 0\)/.test(css));
+  assert.ok(!/\.ruecken-fach\s*\{\s*overflow:\s*hidden/.test(css));
+  // Cover liegen in der skalierten Bildebene: 4px = 4 Bildpixel
+  assert.ok(/\.brett-neu \.huelle\.raus\s*\{\s*transform:\s*translateY\(-4px\)/.test(css));
+  const ru = rumpf(js, 'function baueRuecken(');
+  assert.ok(ru.includes('merkeHover(p, 10)'), 'Ruecken: 10 Bildpixel');
+  assert.ok(rumpf(js, 'function zeichneBrett(').includes('merkeHover(p, 4)'), 'Cover: 4 Bildpixel');
+});
+
+test('Hover-Name: in t.regal.e ausserhalb regalInnen, Raum.namenLage, Schatten wie im Plan, verborgen bei Karte/Fahrt', () => {
+  const b = regalNeu();
+  assert.ok(/t\.hoverName = el\('div', 'hover-name raum-aus'\)/.test(b));
+  assert.ok(/r\.e\.append\([^)]*t\.hoverName/.test(b), 'ausserhalb von regalInnen');
+  const m = rumpf(js, 'function merkeHover(');
+  for (const ev of ["'mouseenter'", "'focus'", "'mouseleave'", "'blur'"]) assert.ok(m.includes(ev), ev);
+  const z = rumpf(js, 'function zeigeHoverName(');
+  assert.ok(z.includes('Raum.namenLage('));
+  assert.ok(z.includes("classList.add('raus')"));
+  assert.ok(z.includes('karteOffen()') && z.includes('fachZiel !== null'), 'nicht bei Karte/Fahrt');
+  assert.ok(z.includes('- 8 -'), '8 px ueber der Oberkante');
+  const regel = css.match(/\n\.hover-name\s*\{[^}]*\}/)[0];
+  assert.ok(regel.includes('color: #fff'));
+  assert.ok(regel.includes('text-shadow: 0 0 4px #000, 3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000'));
+  assert.ok(regel.includes('font-size: var(--raum-schrift-gross)') && regel.includes('font-family: var(--schrift-pixel)'));
+  assert.ok(rumpf(js, 'function zeichneKarte(').includes('versteckeHoverName()'), 'offene Karte verbirgt ihn');
+  assert.ok(rumpf(js, 'function fahreFach(').includes('versteckeHoverName()'));
+});
+
 // --- Regal von nahe, Task 3: Tasten und Suche in home.js ------------------------------
 const tasten = () => {
   const i = homeJs.indexOf("document.addEventListener('keydown'");

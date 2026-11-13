@@ -529,6 +529,7 @@ window.HomeRaumDom = (function () {
     if (!wirt) return;
     // Groessenwechsel waehrend einer Fachfahrt: abbrechen, das aktuelle Fach bleibt
     if (fachZiel !== null) stoppeFahrt();
+    versteckeHoverName(); // Lage gilt nicht mehr
     skal = Raum.skalierung(wirt.clientWidth, wirt.clientHeight);
     skalRaum = Raum.skalierung(wirt.clientWidth, wirt.clientHeight, Raum.RAUM_RAHMEN);
     const f = skal.faktor;
@@ -593,7 +594,8 @@ window.HomeRaumDom = (function () {
     t.suchPlatzNeu = el('div', 'such-platz');
     t.suchOben.appendChild(t.suchPlatzNeu);
     t.fachHinweis = el('div', 'fach-hinweis raum-aus');
-    r.e.append(t.regalInnen, t.suchOben, t.fachHinweis);
+    t.hoverName = el('div', 'hover-name raum-aus');
+    r.e.append(t.regalInnen, t.suchOben, t.fachHinweis, t.hoverName);
     // Mausrad: Fach wechseln (Sperre), mit Shift in Fach 2/3 waagrecht blaettern.
     r.e.addEventListener('wheel', (e) => {
       if (tafelOffen() || karteOffen()) return;
@@ -665,6 +667,40 @@ window.HomeRaumDom = (function () {
     r.text.style.height = Raum.BILD.hoehe * f + 'px';
   }
 
+  // --- Hover im Regal von nahe: Platte rutscht heraus, Name gross darueber ------------
+  // hebt = Anhebung in Bildpixeln (Ruecken 10, Cover 4; CSS .raus).
+  function merkeHover(p, hebt) {
+    const an = () => zeigeHoverName(p, hebt);
+    const ab = () => { if (t.hoverZiel === p) versteckeHoverName(); else p.classList.remove('raus'); };
+    p.addEventListener('mouseenter', an);
+    p.addEventListener('focus', an);
+    p.addEventListener('mouseleave', ab);
+    p.addEventListener('blur', ab);
+  }
+  function zeigeHoverName(p, hebt) {
+    if (!t.hoverName || karteOffen() || fachZiel !== null || fahrtZiel !== null) return;
+    if (t.hoverZiel && t.hoverZiel !== p) t.hoverZiel.classList.remove('raus');
+    t.hoverZiel = p;
+    // Lage vor dem Anheben: aktuelle Verschiebung (gewaehlt, laufender Uebergang) herausrechnen
+    const box = t.regal.e.getBoundingClientRect();
+    const r = p.getBoundingClientRect();
+    const tr = getComputedStyle(p).transform;
+    const jetzt = tr && tr !== 'none' ? new DOMMatrixReadOnly(tr).m42 * (r.height / (p.offsetHeight || r.height)) : 0;
+    const oberkante = r.top - box.top - jetzt - hebt * skalRegal.faktor;
+    p.classList.add('raus');
+    const n = t.hoverName;
+    n.textContent = p.dataset.name || '';
+    aus(n, false);
+    const breite = n.offsetWidth;
+    n.style.left = Raum.namenLage(r.left - box.left + r.width / 2, breite, box.width) + 'px';
+    n.style.top = Math.round(oberkante - 8 - n.offsetHeight) + 'px';
+  }
+  function versteckeHoverName() {
+    if (t.hoverZiel) t.hoverZiel.classList.remove('raus');
+    t.hoverZiel = null;
+    if (t.hoverName) aus(t.hoverName, true);
+  }
+
   // gewaehlt (herausgenommen) und vorschlag (bester Treffer fuer Enter) heben die Platte an.
   function markiere(box, s) {
     for (const p of box.children) {
@@ -693,6 +729,8 @@ window.HomeRaumDom = (function () {
         p.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
         p.dataset.login = k.login;
         p.dataset.art = 'brett';
+        p.dataset.name = name(k);
+        merkeHover(p, 4);
         const waehle = () => ruf(t.regalH, 'waehle', jetzt(), 'brett');
         p.addEventListener('click', waehle);
         // Doppelklick: waehlen und sofort auflegen (nur live)
@@ -737,6 +775,8 @@ window.HomeRaumDom = (function () {
     p.title = name(k) + (k.live ? (k.game ? ' · ' + k.game : '') : ' · offline');
     p.dataset.login = k.login;
     p.dataset.art = e.art;
+    p.dataset.name = name(k);
+    merkeHover(p, 10);
     const fenster = textLage(el('div', 'ruecken-stueck ruecken-fenster'), Raum.REGAL.ruecken.fenster);
     profilbild(k, fenster, Raum.REGAL.ruecken.fenster);
     const schrift = textLage(el('div', 'ruecken-stueck ruecken-name', name(k)), Raum.REGAL.ruecken.name);
@@ -824,9 +864,11 @@ window.HomeRaumDom = (function () {
     zeichneBrett(b.brett || [], s);
     zeichneFachNeu('live', b.live || [], s);
     zeichneFachNeu('unten', b.unten || [], s);
+    if (t.hoverZiel && !t.hoverZiel.isConnected) versteckeHoverName(); // Platte neu gebaut
     // Aktuelles Fach leer geworden (offline, Suche): sofort ins naechste, ohne Fahrt
     const z = Raum.naechstesFach(nahFachNr, 0, leereFaecher());
     if (z !== nahFachNr && fachZiel === null) {
+      versteckeHoverName();
       nahFachNr = z;
       if (wirt.clientWidth > 0) richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight);
     }
@@ -870,6 +912,7 @@ window.HomeRaumDom = (function () {
     const fahren = !!weich && aktuell === 'regal' && fahrtZiel === null && !karteOffen() && kannFahren();
     if (fahren) fahreFach(nahFachNr, ziel);
     else {
+      versteckeHoverName();
       nahFachNr = ziel;
       if (wirt.clientWidth > 0) richteRegalNeuAus(wirt.clientWidth, wirt.clientHeight);
     }
@@ -890,6 +933,7 @@ window.HomeRaumDom = (function () {
     const w = wirt.clientWidth, h = wirt.clientHeight;
     const z = Raum.fachFahrt(w, h, von, nach);
     const tf = (a) => 'translate(' + a.dx + 'px, ' + a.dy + 'px) scale(' + a.s + ')';
+    versteckeHoverName();
     k.add('fach-fahrt');
     void t.regalInnen.offsetWidth; // Startzustand festschreiben, sonst kein Uebergang
     t.regalInnen.style.transform = tf(z.raus);
@@ -927,6 +971,7 @@ window.HomeRaumDom = (function () {
   // laedtNach, laufend }|null, punkte }|null; null legt die Karte weg.
   function zeichneKarte(stand, h) {
     if (!wirt) return;
+    if (stand && stand.kanal) versteckeHoverName(); // die Karte liegt darueber
     const k = stand && stand.kanal ? stand.kanal : null;
     t.karteStand = k ? stand : null;
     if (!k) {
