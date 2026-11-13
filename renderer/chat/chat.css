@@ -390,6 +390,8 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
 }
 .stadt-geht.links { transform: scaleX(-1); }
 @keyframes stadt-zyklus { to { background-position: calc(-1 * var(--sb)) 0; } }
+/* Fahrbahn liegt vor dem Gehweg: Fahrzeuge verdecken Fussgaenger, nicht umgekehrt */
+.stadt-auto { z-index: 1; }
 .stadt-auto-bild, .stadt-spiegel {
   position: absolute; left: 0; width: 100%; height: 100%;
   background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
@@ -399,25 +401,29 @@ html[data-animationen="aus"] #szene * { animation: none !important; }
 .stadt-spiegel { transform: scaleY(-1); filter: brightness(0.35); opacity: 0.5; }
 .stadt-auto.links .stadt-auto-bild { transform: scaleX(-1); }
 .stadt-auto.links .stadt-spiegel { transform: scale(-1, -1); }
+/* Bus: anfahren (--an), halten (--halt-ms, so lange alle aussteigen), wegfahren (--ab).
+   Die zweite Animation haelt bis zu ihrem Start nichts fest, die erste haelt den Halt-Punkt. */
 .stadt-bus {
-  position: absolute; left: 0; image-rendering: pixelated;
+  position: absolute; left: 0; z-index: 1; image-rendering: pixelated;
   background-size: 100% 100%; background-repeat: no-repeat;
-  animation: stadt-bus var(--dauer) linear 1 both;
+  animation: stadt-bus-an var(--an) linear 1 both, stadt-bus-ab var(--ab) linear var(--ab-verzug) 1 forwards;
 }
 .stadt-bus-zu, .stadt-bus-auf {
   position: absolute; left: 0; top: 0; width: 100%; height: 100%;
   background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated;
 }
-/* Tuer offen genau waehrend des Halts (30 %..70 % wie @keyframes stadt-bus) */
-.stadt-bus-auf { animation: stadt-bus-tuer var(--dauer) step-end 1 both; }
-.stadt-bus-zu { animation: stadt-bus-zu var(--dauer) step-end 1 both; }
-@keyframes stadt-bus-tuer { 0% { visibility: hidden; } 30% { visibility: visible; } 70% { visibility: hidden; } 100% { visibility: hidden; } }
-@keyframes stadt-bus-zu { 0% { visibility: visible; } 30% { visibility: hidden; } 70% { visibility: visible; } 100% { visibility: visible; } }
-@keyframes stadt-bus {
-  0% { transform: translateX(var(--von)); }
-  30% { transform: translateX(var(--halt)); }
-  70% { transform: translateX(var(--halt)); }
-  100% { transform: translateX(var(--bis)); }
+/* Tuer offen genau waehrend des Halts (dieselben Werte wie die Fahrt) */
+.stadt-bus-auf { visibility: hidden; animation: stadt-bus-tuer var(--halt-ms) step-end var(--an) 1; }
+.stadt-bus-zu { animation: stadt-bus-zu var(--halt-ms) step-end var(--an) 1; }
+@keyframes stadt-bus-tuer { from, to { visibility: visible; } }
+@keyframes stadt-bus-zu { from, to { visibility: hidden; } }
+@keyframes stadt-bus-an {
+  from { transform: translateX(var(--von)); }
+  to { transform: translateX(var(--halt)); }
+}
+@keyframes stadt-bus-ab {
+  from { transform: translateX(var(--halt)); }
+  to { transform: translateX(var(--bis)); }
 }
 
 /* Animationen aus: Stadt steht still, Fenster schalten hart. */

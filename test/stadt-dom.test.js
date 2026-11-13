@@ -308,21 +308,55 @@ test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklic
   }
 });
 
-test('raid mit Bus: alle steigen aus, solange die Tuer offen ist (30 %..70 % der Busfahrt)', () => {
-  for (const anzahl of [80, 250]) {
-    const { stadt, teil } = aufbau();
-    const strasse = teil('stadt-strasse');
-    stadt.an();
-    stadt.raid(Stadt.raidPlan(anzahl));
-    const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
-    const dauer = parseFloat(bus.style.props['--dauer']);
-    const figuren = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'));
-    assert.strictEqual(figuren.length, Stadt.raidPlan(anzahl).figuren);
-    for (const f of figuren) {
-      const verzug = parseFloat(f.style.props['--verzug']);
-      assert.ok(verzug >= dauer * 0.3 && verzug < dauer * 0.7, anzahl + ': verzug ' + verzug);
+test('raid mit Bus: alle steigen aus, solange die Tuer offen ist, im normalen Raid-Abstand (kein Klumpen)', () => {
+  const abstandMs = (Stadt.RAID_ABSTAND / S.figur.pxProBild) * S.figur.msProBild;
+  for (const [b, h] of [[1397, 1332], [400, 1332]]) {
+    for (const anzahl of [80, 250]) {
+      const { stadt, teil } = aufbau();
+      const strasse = teil('stadt-strasse');
+      stadt.an();
+      stadt.richteAus(b, h);
+      const plan = Stadt.raidPlan(anzahl);
+      stadt.raid(plan);
+      const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
+      const an = parseFloat(bus.style.props['--an']);
+      const halt = parseFloat(bus.style.props['--halt-ms']);
+      const ab = parseFloat(bus.style.props['--ab']);
+      assert.strictEqual(parseFloat(bus.style.props['--ab-verzug']), an + halt, 'faehrt erst nach dem Halt');
+      const verzuege = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'))
+        .map((f) => parseFloat(f.style.props['--verzug']));
+      assert.strictEqual(verzuege.length, plan.figuren);
+      for (const v of verzuege) assert.ok(v >= an && v < an + halt, anzahl + ': verzug ' + v + ' bei offener Tuer');
+      for (let i = 1; i < verzuege.length; i++) {
+        assert.ok(verzuege[i] - verzuege[i - 1] >= abstandMs - 1, anzahl + ': Abstand ' + (verzuege[i] - verzuege[i - 1]));
+      }
+      // der Bus ist weg, bevor der Raid endet (sonst verschwindet er mitten im Bild)
+      const m = Stadt.masse(b, h);
+      assert.ok(an + halt + ab <= Stadt.raidDauer(plan, b / m.faktor), anzahl + ' bei ' + b + 'x' + h);
     }
   }
+});
+
+test('raid: Bus wird erst nach dem Wegfahren entfernt, nicht schon beim Ankommen', () => {
+  const { stadt, teil } = aufbau();
+  const strasse = teil('stadt-strasse');
+  stadt.an();
+  stadt.raid(Stadt.raidPlan(80));
+  const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
+  bus.feuere('animationend', 'stadt-bus-an');
+  assert.ok(strasse.kinder.includes(bus), 'bleibt nach der Ankunft');
+  bus.feuere('animationend', 'stadt-bus-ab');
+  assert.ok(!strasse.kinder.includes(bus), 'weg nach der Abfahrt');
+});
+
+test('Fahrzeuge fahren vor den Fussgaengern (Fahrbahn liegt vor dem Gehweg)', () => {
+  const css = lies('renderer/chat/chat.css');
+  const z = (sel) => {
+    const m = new RegExp('\\.' + sel + '\\s*\\{[^}]*z-index:\\s*(\\d+)').exec(css);
+    return m ? Number(m[1]) : 0;
+  };
+  assert.ok(z('stadt-bus') > z('stadt-raid-figur') && z('stadt-bus') > z('stadt-figur'));
+  assert.ok(z('stadt-auto') > z('stadt-figur'));
 });
 
 test('raid: Ende der Sichtbar-Animation entfernt keine Figur, erst das Ende des Laufwegs', () => {
@@ -349,10 +383,12 @@ test('raid: Bus hat beide Bilder von Anfang an, die Tuer laeuft im selben CSS-Ta
   assert.ok(zu.style.backgroundImage.includes('p/stadt-bus.png'));
   assert.ok(auf.style.backgroundImage.includes('p/stadt-bus-tuer.png'));
   const css = lies('renderer/chat/chat.css');
-  // Tuer offen genau waehrend des Halts (30 %..70 % wie @keyframes stadt-bus), kein JS-Zeitgeber
-  assert.ok(/\.stadt-bus-auf\s*\{[^}]*animation:\s*stadt-bus-tuer var\(--dauer\) step-end 1 both/.test(css));
-  assert.ok(/\.stadt-bus-zu\s*\{[^}]*animation:\s*stadt-bus-zu var\(--dauer\) step-end 1 both/.test(css));
-  assert.ok(/@keyframes stadt-bus-tuer\s*\{\s*0%\s*\{\s*visibility:\s*hidden;?\s*\}\s*30%\s*\{\s*visibility:\s*visible;?\s*\}\s*70%\s*\{\s*visibility:\s*hidden/.test(css));
+  // Tuer offen genau waehrend des Halts (ab --an fuer --halt-ms, dieselben Werte wie die Fahrt), kein JS-Zeitgeber
+  assert.ok(/\.stadt-bus\s*\{[^}]*animation:\s*stadt-bus-an var\(--an\) linear 1 both,\s*stadt-bus-ab var\(--ab\) linear var\(--ab-verzug\) 1 forwards/.test(css));
+  assert.ok(/\.stadt-bus-auf\s*\{[^}]*visibility:\s*hidden;[^}]*animation:\s*stadt-bus-tuer var\(--halt-ms\) step-end var\(--an\) 1/.test(css));
+  assert.ok(/\.stadt-bus-zu\s*\{[^}]*animation:\s*stadt-bus-zu var\(--halt-ms\) step-end var\(--an\) 1/.test(css));
+  assert.ok(/@keyframes stadt-bus-tuer\s*\{\s*from,\s*to\s*\{\s*visibility:\s*visible;?\s*\}\s*\}/.test(css));
+  assert.ok(/@keyframes stadt-bus-zu\s*\{\s*from,\s*to\s*\{\s*visibility:\s*hidden;?\s*\}\s*\}/.test(css));
   assert.ok(!lies('renderer/lib/stadt-dom.js').includes('tuer-auf'));
 });
 

@@ -21,7 +21,8 @@
   const UHR_WARTEN = 10000;     // Mitte belegt: spaeter nochmal
   const FENSTER_MS = 300;       // weiches An/Aus eines Fensters
   const ABO_ABSTAND = 400;      // Geschenk: Fenster nacheinander
-  const BUS = Object.freeze({ dauer: 5000, ankunft: 1500, abfahrt: 3500, halteAnteil: 0.25 });
+  // Bus: ankunft/abfahrt = Fahrzeit rein/raus; der Halt dauert, bis alle ausgestiegen sind (mind. haltMin)
+  const BUS = Object.freeze({ ankunft: 1500, abfahrt: 1500, haltMin: 2000, halteAnteil: 0.25 });
 
   const px = (n) => n + 'px';
   const url = (pfad, datei) => "url('" + pfad + datei + "')";
@@ -197,13 +198,15 @@
       if (u.timer !== null) clearT(u.timer);
       u.el.remove();
     }
-    function losschicken(el, dauerMs) {
+    function losschicken(el, dauerMs, endAnimation = null) {
       const u = { el, timer: null };
       unterwegs.add(u);
       strasse.appendChild(el);
-      // Nur das Ende der Bewegung zaehlt; die 0-s-Sichtbar-Animation endet schon beim Loslaufen.
+      // Nur das Ende der Bewegung zaehlt; die 0-s-Sichtbar-Animation endet schon beim Loslaufen,
+      // beim Bus endet die Ankunft vor der Abfahrt (endAnimation).
       el.addEventListener('animationend', (e) => {
-        if (e.target === el && e.animationName !== 'stadt-erscheinen') weg(u);
+        if (e.target !== el) return;
+        if (endAnimation ? e.animationName === endAnimation : e.animationName !== 'stadt-erscheinen') weg(u);
       });
       u.timer = setT(() => { u.timer = null; weg(u); }, dauerMs + 500);
       return u;
@@ -319,19 +322,19 @@
           bus.style.setProperty('--von', px(sichtLinks - B.b));
           bus.style.setProperty('--halt', px(halt));
           bus.style.setProperty('--bis', px(sichtLinks + sichtBreite));
-          bus.style.setProperty('--dauer', BUS.dauer + 'ms');
-          r.teile.push(losschicken(bus, BUS.dauer));
+          // Alle steigen im normalen Raid-Abstand aus; die Tuer bleibt offen, bis der Letzte draussen ist
+          const haltMs = Math.max(BUS.haltMin, 200 + (plan.figuren - 1) * abstandMs + 300);
+          bus.style.setProperty('--an', BUS.ankunft + 'ms');
+          bus.style.setProperty('--halt-ms', haltMs + 'ms');
+          bus.style.setProperty('--ab-verzug', BUS.ankunft + haltMs + 'ms');
+          bus.style.setProperty('--ab', BUS.abfahrt + 'ms');
+          r.teile.push(losschicken(bus, BUS.ankunft + haltMs + BUS.abfahrt, 'stadt-bus-ab'));
           start = halt + B.tuerX - F.b / 2;
           weite = Math.max(F.b, sichtLinks + sichtBreite - start);
           verzug = BUS.ankunft + 200;
         }
-        // Beim Bus steigen alle aus, solange die Tuer offen ist (grosse Gruppen dichter)
-        let abstand = abstandMs;
-        if (plan.bus && plan.figuren > 1) {
-          abstand = Math.min(abstandMs, (BUS.abfahrt - verzug - 100) / (plan.figuren - 1));
-        }
         for (let i = 0; i < plan.figuren; i++) {
-          const f = figur('stadt-raid-figur', false, start, weite, Math.round(verzug + i * abstand));
+          const f = figur('stadt-raid-figur', false, start, weite, Math.round(verzug + i * abstandMs));
           r.teile.push(losschicken(f.el, f.dauer));
         }
         r.timer = setT(() => { r.timer = null; if (raidLauf === r) stoppeRaid(); }, dauer);
