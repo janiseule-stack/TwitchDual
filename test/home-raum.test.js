@@ -533,7 +533,7 @@ test('zeigeAblauf: raum -> spieler -> dreht -> zurueck (ohne spieler) -> an -> t
   const reihe = ["'ablauf-raum'", "'ablauf-spieler'", "'ablauf-dreht'", "'ablauf-zurueck'", "'ablauf-an'", "'ablauf-tv'"].map((k) => r.indexOf(k));
   assert.ok(reihe[0] > -1 && reihe.every((x, i) => i === 0 || x > reihe[i - 1]), 'Reihenfolge');
   assert.ok(r.includes('abschnitt(m.raum, ()'), 'spieler');
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler, ()'), 'dreht');
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS + PLATTE_WECHSEL_MS : 0), ()'), 'dreht');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen, ()'), 'zurueck');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck, ()'), 'an');
   assert.ok(r.includes('abschnitt(m.raum + m.spieler + m.auflegen + m.zurueck + m.an + m.zeigen, ()'), 'tv');
@@ -544,28 +544,29 @@ test('zeigeAblauf: raum -> spieler -> dreht -> zurueck (ohne spieler) -> an -> t
   assert.strictEqual((r.match(/neuAusrichten\(\)/g) || []).length, 3, 'Kamera bei spieler, zurueck und tv');
 });
 
-test('Neue Platte bei laufender: alte laeuft aus, kurz leer, neue dreht von vorn (Janis 13.11., A)', () => {
+test('Neue Platte bei laufender: alte steht sofort, bleibt am Spieler kurz stehen, dann leer, neue dreht von vorn (Janis 13.11.)', () => {
   const r = rumpf(js, 'function zeigeAblauf(');
-  // vor allen Abschnitten: laeuft etwas, bremst die alte Platte bis die Kamera da ist
+  // vor allen Abschnitten: laeuft etwas, haelt die alte Platte sofort an (sichtbar)
   assert.ok(/const lief = spielt;/.test(r));
-  const an = r.indexOf("t.dreht.classList.add('platte-auslauf')");
-  assert.ok(an > -1 && an < r.indexOf('abschnitt('), 'Auslauf beginnt sofort');
-  assert.ok(r.includes("t.dreht.style.setProperty('--auslauf', (m.raum + m.spieler) + 'ms')"), 'Auslauf dauert bis zur Ankunft');
-  // Ankunft: alte Platte runter (leer), neue nach PLATTE_WECHSEL_MS
-  const ab = r.slice(r.indexOf('abschnitt(m.raum + m.spieler, ()'));
-  assert.ok(ab.includes("t.dreht.classList.remove('platte-auslauf')") && ab.includes('aus(t.dreht, true)'));
-  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_WECHSEL_MS : 0), ()'), 'neue Platte nach dem Wechsel');
-  assert.ok(/const PLATTE_WECHSEL_MS = \d+;/.test(js));
-  // Abbruch raeumt den Auslauf weg
-  assert.ok(rumpf(js, 'function versteckeAblauf(').includes("t.dreht.classList.remove('platte-auslauf')"));
-  // CSS: bremst ueber --auslauf, harte Bildwechsel, bleibt am Ende stehen
-  const regel = /\.ablauf-dreht-platte\.platte-auslauf\s*\{([^}]*)\}/.exec(css);
-  assert.ok(regel && /animation:\s*raum-platte-auslauf var\(--auslauf, 2000ms\) linear 1 forwards/.test(regel[1]));
-  const k = /@keyframes raum-platte-auslauf\s*\{([\s\S]*?)\n\}/.exec(css);
-  assert.ok(k && /animation-timing-function:\s*steps\(1, end\)/.test(k[1]));
-  const proz = [...k[1].matchAll(/([\d.]+)% \{/g)].map((x) => Number(x[1]));
-  const abstaende = proz.slice(1).map((p, i) => p - proz[i]);
-  assert.ok(abstaende.every((d, i) => i === 0 || d >= abstaende[i - 1]), 'Bildwechsel werden immer langsamer');
+  const an = r.indexOf("t.dreht.classList.add('platte-steht')");
+  assert.ok(an > -1 && an < r.indexOf('abschnitt('), 'steht ab Beginn');
+  assert.ok(!js.includes('platte-auslauf') && !css.includes('platte-auslauf'), 'kein Auslaufen mehr');
+  // an der Ankunft noch PLATTE_STEHT_MS stehend zu sehen, dann runter (leer), neue nach PLATTE_WECHSEL_MS
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + PLATTE_STEHT_MS, ()'), 'alte runter nach dem Stehen');
+  // ohne laufende Platte gibt es kein Abnehmen (wuerde sonst die neue wieder ausblenden)
+  assert.ok(/if \(lief\) \{\s*abschnitt\(m\.raum \+ m\.spieler \+ PLATTE_STEHT_MS, \(\)/.test(r));
+  const ab = r.slice(r.indexOf('abschnitt(m.raum + m.spieler + PLATTE_STEHT_MS, ()'));
+  assert.ok(ab.includes("t.dreht.classList.remove('platte-steht')") && ab.includes('aus(t.dreht, true)'));
+  assert.ok(r.includes('abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS + PLATTE_WECHSEL_MS : 0), ()'), 'neue Platte nach dem Wechsel');
+  const steht = Number(/const PLATTE_STEHT_MS = (\d+);/.exec(js)[1]);
+  const wechsel = Number(/const PLATTE_WECHSEL_MS = (\d+);/.exec(js)[1]);
+  assert.ok(steht >= 400, 'deutlich als stehend erkennbar');
+  const auflegen = Number(/auflegen: (\d+)/.exec(js)[1]);
+  assert.ok(steht + wechsel + 300 <= auflegen, 'neue dreht noch sichtbar, bevor die Kamera zurueckfaehrt');
+  // Abbruch raeumt das Stehen weg
+  assert.ok(rumpf(js, 'function versteckeAblauf(').includes("t.dreht.classList.remove('platte-steht')"));
+  // CSS: stehende Platte = erstes Bild ohne Animation
+  assert.ok(/\.ablauf-dreht-platte\.platte-steht\s*\{[^}]*animation:\s*none[^}]*background-position:\s*0 0/.test(css));
 });
 
 test('CSS: Kamera-Uebergaenge je Abschnitt, tv-Regel zuletzt', () => {

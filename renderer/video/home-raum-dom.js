@@ -23,7 +23,9 @@ window.HomeRaumDom = (function () {
   // Auflegen (Plan 2026-11-13-auflegen-neu): Dauer je Abschnitt (gleich den
   // Uebergaengen in home-raum.css). Summe 7900 ms = mindestMs in home.js.
   const ABLAUF_MS = { raum: 500, spieler: 1500, auflegen: 1200, zurueck: 1500, an: 700, zeigen: 500, tv: 2000 };
-  // Lief schon eine Platte: so lange ist der Spieler leer, bevor die neue aufliegt.
+  // Lief schon eine Platte: sie steht ab Beginn still, bleibt nach der Ankunft der
+  // Kamera PLATTE_STEHT_MS sichtbar stehen, dann ist der Spieler PLATTE_WECHSEL_MS leer.
+  const PLATTE_STEHT_MS = 450;
   const PLATTE_WECHSEL_MS = 250;
   // Weicher Wechsel Raum <-> Regal (zeigeAnsicht weich, fahre): Zoom an Ort und
   // Stelle, mit der Einstellung "Pixel-Uebergang" (data-uebergang="pixel", Janis
@@ -1330,22 +1332,21 @@ window.HomeRaumDom = (function () {
     wirt.classList.add('ablauf-raum');
     const m = ABLAUF_MS;
     const k = wirt.classList;
-    // Lief schon etwas (Janis 13.11., A): die alte Platte laeuft aus, bis die Kamera
-    // am Spieler ist, wird abgenommen, die neue dreht von vorn.
+    // Lief schon etwas (Janis 13.11.): die alte Platte steht sofort still, bleibt am
+    // Spieler kurz stehend zu sehen, wird abgenommen, die neue dreht von vorn.
     const lief = spielt;
-    if (lief) {
-      t.dreht.style.setProperty('--auslauf', (m.raum + m.spieler) + 'ms');
-      t.dreht.classList.add('platte-auslauf');
-    }
+    if (lief) t.dreht.classList.add('platte-steht');
     abschnitt(m.raum, () => {
       k.add('ablauf-spieler');
       neuAusrichten();
     });
-    abschnitt(m.raum + m.spieler, () => {
-      t.dreht.classList.remove('platte-auslauf');
-      aus(t.dreht, true); // alte Platte runter (ohne laufende: war schon aus)
-    });
-    abschnitt(m.raum + m.spieler + (lief ? PLATTE_WECHSEL_MS : 0), () => {
+    if (lief) {
+      abschnitt(m.raum + m.spieler + PLATTE_STEHT_MS, () => {
+        t.dreht.classList.remove('platte-steht');
+        aus(t.dreht, true); // alte Platte runter
+      });
+    }
+    abschnitt(m.raum + m.spieler + (lief ? PLATTE_STEHT_MS + PLATTE_WECHSEL_MS : 0), () => {
       aus(t.dreht, false); // neue Platte, Animation beginnt von vorn
       k.add('ablauf-dreht');
     });
@@ -1370,7 +1371,7 @@ window.HomeRaumDom = (function () {
     ablaufTimer = [];
     // Mit den Klassen faellt auch der Uebergang weg: Ruecksprung ohne Animation.
     wirt.classList.remove('im-ablauf', 'ablauf-raum', 'ablauf-spieler', 'ablauf-dreht', 'ablauf-zurueck', 'ablauf-an', 'ablauf-tv');
-    t.dreht.classList.remove('platte-auslauf');
+    t.dreht.classList.remove('platte-steht');
     aus(t.dreht, !spielt);
     aus(t.ablauf, true);
     zeigeAnsicht(aktuell); // Raum/Regal wie vorher, ruft neuAusrichten()
