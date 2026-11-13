@@ -88,6 +88,16 @@ test('Ausprobieren: Geschenk-Knopf spielt ein Sammelgeschenk ueber denselben Weg
   assert.ok(/else if \(art === 'geschenk'\) zeigeChatEreignis\(\{ art: 'abo-regen', name: 'TestZuschauer', anzahl: 5, gruppe: null \}\);/.test(chatJs));
 });
 
+test('Ausprobieren: Raid-Knopf zeigt reihum jede Stufe (1 Person, 3, Bus 4, Bus 8, Bus 10)', () => {
+  const Stadt = require('../renderer/lib/stadt.js');
+  const m = /const RAID_PROBEN = \[([^\]]*)\]/.exec(chatJs);
+  assert.ok(m, 'RAID_PROBEN fehlt');
+  const proben = m[1].split(',').map(Number);
+  const stufen = proben.map((n) => JSON.stringify(Stadt.raidPlan(n)));
+  assert.strictEqual(new Set(stufen).size, 5, 'jede Stufe genau einmal');
+  assert.ok(/else if \(art === 'raid'\) \{[^}]*anzahl: RAID_PROBEN\[raidProbe\+\+ % RAID_PROBEN\.length\]/.test(chatJs));
+});
+
 test('zeigeChatEreignis: nur Raid meldet einen Effekt, Diagnose sagt ehrlich ob', () => {
   const r = rumpf(chatJs, 'zeigeChatEreignis');
   assert.ok(r.includes("ev.art === 'raid'"));

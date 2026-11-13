@@ -191,9 +191,11 @@
 
   function raidPlan(anzahl) {
     const n = zahl(anzahl);
-    if (n >= 200) return { figuren: 8, bus: true };
-    if (n >= 50) return { figuren: 4, bus: true };
-    if (n >= 10) return { figuren: 3, bus: false };
+    // Janis 13.11.2026: kleine Raids zeigen nur eine Person, der Bus kommt erst bei grossen
+    if (n >= 10000) return { figuren: 10, bus: true };
+    if (n >= 5000) return { figuren: 8, bus: true };
+    if (n >= 2000) return { figuren: 4, bus: true };
+    if (n >= 500) return { figuren: 3, bus: false };
     return { figuren: 1, bus: false };
   }
 

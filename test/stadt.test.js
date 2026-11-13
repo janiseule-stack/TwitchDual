@@ -133,25 +133,29 @@ test('regisseur: Mitte hoechstens 1, Strasse hoechstens 2, gesamt hoechstens 3',
   assert.ok(r.darf('strasse'));
 });
 
-test('raidPlan: Gruppengroesse nach Raid-Groesse', () => {
+test('raidPlan: Gruppengroesse nach Raid-Groesse (Janis 13.11.: kleine Raids nur eine Person)', () => {
   assert.deepStrictEqual(Stadt.raidPlan(5), { figuren: 1, bus: false });
-  assert.deepStrictEqual(Stadt.raidPlan(20), { figuren: 3, bus: false });
-  assert.deepStrictEqual(Stadt.raidPlan(80), { figuren: 4, bus: true });
-  assert.deepStrictEqual(Stadt.raidPlan(250), { figuren: 8, bus: true });
+  assert.deepStrictEqual(Stadt.raidPlan(499), { figuren: 1, bus: false });
+  assert.deepStrictEqual(Stadt.raidPlan(500), { figuren: 3, bus: false });
+  assert.deepStrictEqual(Stadt.raidPlan(1999), { figuren: 3, bus: false });
+  assert.deepStrictEqual(Stadt.raidPlan(2000), { figuren: 4, bus: true });
+  assert.deepStrictEqual(Stadt.raidPlan(5000), { figuren: 8, bus: true });
+  assert.deepStrictEqual(Stadt.raidPlan(9999), { figuren: 8, bus: true });
+  assert.deepStrictEqual(Stadt.raidPlan(10000), { figuren: 10, bus: true });
   assert.deepStrictEqual(Stadt.raidPlan(0), { figuren: 1, bus: false });
   assert.deepStrictEqual(Stadt.raidPlan(NaN), { figuren: 1, bus: false });
 });
 
 test('raidDauer waechst mit der Strassenbreite und deckt den ganzen Weg (Review Focus 2)', () => {
   const F = Stadt.STADT.figur;
-  for (const plan of [Stadt.raidPlan(5), Stadt.raidPlan(250)]) {
+  for (const plan of [Stadt.raidPlan(5), Stadt.raidPlan(5000)]) {
     const kurz = Stadt.raidDauer(plan, 200);
     const lang = Stadt.raidDauer(plan, 800);
     assert.ok(lang > kurz);
     const mindest = ((800 + F.b) / F.pxProBild) * F.msProBild;
     assert.ok(lang >= mindest, 'Figur kommt ganz durch');
   }
-  assert.ok(Stadt.raidDauer(Stadt.raidPlan(250), 344) >= Stadt.raidDauer(Stadt.raidPlan(5), 344) + 2000);
+  assert.ok(Stadt.raidDauer(Stadt.raidPlan(5000), 344) >= Stadt.raidDauer(Stadt.raidPlan(5), 344) + 2000);
 });
 
 // Janis 13.11.: „ich meine dass mans nicht sieht“ – Blitz nur aus einer Wolke, die im

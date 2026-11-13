@@ -1376,11 +1376,16 @@ function spieleZuwaechse(liste) {
 for (const b of document.querySelectorAll('#opt-fx-test button')) {
   b.addEventListener('click', () => window.twitchDual.fxTest(b.dataset.art));
 }
+// Ausprobieren-Raid: reihum je eine Groesse pro Stufe von Stadt.raidPlan
+const RAID_PROBEN = [120, 700, 2500, 6000, 12000];
+let raidProbe = 0;
 window.twitchDual.onFxTest((art) => {
   // Kiste/Punkte laufen ueber denselben Weg wie echte Zugewinne.
   if (art === 'kiste') zeigeZuwachs({ quelle: 'kiste', betrag: 50 });
   else if (art === 'punkte') zeigeZuwachs({ quelle: 'passiv', betrag: 10 });
-  else if (art === 'raid') zeigeChatEreignis({ art: 'raid', name: 'Testkanal', anzahl: 120 });
+  else if (art === 'raid') {
+    zeigeChatEreignis({ art: 'raid', name: 'Testkanal', anzahl: RAID_PROBEN[raidProbe++ % RAID_PROBEN.length] });
+  }
   else if (art === 'abo') {
     zeigeChatEreignis({ art: 'abo', name: 'TestZuschauer', monate: 12, prime: false, nachricht: 'Test-Nachricht zum Abo' });
   } else if (art === 'geschenk') zeigeChatEreignis({ art: 'abo-regen', name: 'TestZuschauer', anzahl: 5, gruppe: null });

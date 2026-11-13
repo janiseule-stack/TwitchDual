@@ -267,7 +267,7 @@ test('raid: Figuren nach Plan, Bus ab 50, endet nach Stadt.raidDauer', async () 
   const strasse = teil('stadt-strasse');
   stadt.an();
   stadt.richteAus(1397, 940);
-  const plan = Stadt.raidPlan(250);
+  const plan = Stadt.raidPlan(5000);
   let fertig = false;
   const p = stadt.raid(plan).then(() => { fertig = true; });
   assert.strictEqual(strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur')).length, plan.figuren);
@@ -283,7 +283,7 @@ test('raid: Figuren nach Plan, Bus ab 50, endet nach Stadt.raidDauer', async () 
 
 test('raidDauer: aus der aktuell sichtbaren Strassenbreite', () => {
   const { stadt } = aufbau();
-  const plan = Stadt.raidPlan(80);
+  const plan = Stadt.raidPlan(2000);
   assert.strictEqual(stadt.raidDauer(plan), Stadt.raidDauer(plan, S.bild.b));
   stadt.richteAus(400, 1200);
   const m = Stadt.masse(400, 1200);
@@ -298,7 +298,7 @@ test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklic
   const m = Stadt.masse(400, 1332);
   const sichtLinks = -m.links / m.faktor;
   const sichtBreite = 400 / m.faktor;
-  stadt.raid(Stadt.raidPlan(250));
+  stadt.raid(Stadt.raidPlan(5000));
   const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
   const halt = parseFloat(bus.style.props['--halt']);
   assert.ok(halt + S.bus.tuerX <= sichtLinks + sichtBreite, 'Tuer sichtbar');
@@ -311,7 +311,7 @@ test('raid im schmalen Chat (400x1332): Bus haelt sichtbar, Leute laufen wirklic
 test('raid mit Bus: alle steigen aus, solange die Tuer offen ist, im normalen Raid-Abstand (kein Klumpen)', () => {
   const abstandMs = (Stadt.RAID_ABSTAND / S.figur.pxProBild) * S.figur.msProBild;
   for (const [b, h] of [[1397, 1332], [400, 1332]]) {
-    for (const anzahl of [80, 250]) {
+    for (const anzahl of [2000, 5000, 10000]) {
       const { stadt, teil } = aufbau();
       const strasse = teil('stadt-strasse');
       stadt.an();
@@ -346,7 +346,7 @@ test('raid mit Bus: Leute gehen abwechselnd nach links und rechts und verlassen 
     const m = Stadt.masse(b, h);
     const links = -m.links / m.faktor;
     const rechts = links + b / m.faktor;
-    const plan = Stadt.raidPlan(250);
+    const plan = Stadt.raidPlan(5000);
     stadt.raid(plan);
     const figuren = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'));
     figuren.forEach((f, i) => {
@@ -368,7 +368,7 @@ test('raid: verschiedene Leute (keine doppelte Figur, solange es genug Varianten
   const { stadt, teil } = aufbau({ zufall: () => [0.1, 0.1, 0.7, 0.3][z++ % 4] });
   const strasse = teil('stadt-strasse');
   stadt.an();
-  stadt.raid(Stadt.raidPlan(250));
+  stadt.raid(Stadt.raidPlan(5000));
   const bilder = strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur'))
     .map((f) => f.kinder.find((k) => k.classList.contains('stadt-geht')).style.backgroundImage);
   assert.strictEqual(new Set(bilder).size, Math.min(bilder.length, S.figur.varianten.length));
@@ -378,7 +378,7 @@ test('raid: Bus wird erst nach dem Wegfahren entfernt, nicht schon beim Ankommen
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
   stadt.an();
-  stadt.raid(Stadt.raidPlan(80));
+  stadt.raid(Stadt.raidPlan(2000));
   const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
   bus.feuere('animationend', 'stadt-bus-an');
   assert.ok(strasse.kinder.includes(bus), 'bleibt nach der Ankunft');
@@ -400,7 +400,7 @@ test('raid: Ende der Sichtbar-Animation entfernt keine Figur, erst das Ende des 
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
   stadt.an();
-  stadt.raid(Stadt.raidPlan(20));
+  stadt.raid(Stadt.raidPlan(500));
   const f = strasse.kinder.find((k) => k.classList.contains('stadt-raid-figur'));
   const feuere = (name) => f.feuere('animationend', name);
   feuere('stadt-erscheinen');
@@ -413,7 +413,7 @@ test('raid: Bus hat beide Bilder von Anfang an, die Tuer laeuft im selben CSS-Ta
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
   stadt.an();
-  stadt.raid(Stadt.raidPlan(80));
+  stadt.raid(Stadt.raidPlan(2000));
   const bus = strasse.kinder.find((k) => k.classList.contains('stadt-bus'));
   const zu = bus.kinder.find((k) => k.classList.contains('stadt-bus-zu'));
   const auf = bus.kinder.find((k) => k.classList.contains('stadt-bus-auf'));
@@ -433,7 +433,7 @@ test('raid: kleine Raids ohne Bus, stoppeRaid raeumt sofort auf', async () => {
   const { stadt, teil } = aufbau();
   const strasse = teil('stadt-strasse');
   stadt.an();
-  const p = stadt.raid(Stadt.raidPlan(20));
+  const p = stadt.raid(Stadt.raidPlan(500));
   assert.strictEqual(strasse.kinder.filter((k) => k.classList.contains('stadt-bus')).length, 0);
   assert.strictEqual(strasse.kinder.filter((k) => k.classList.contains('stadt-raid-figur')).length, 3);
   stadt.stoppeRaid();
@@ -474,7 +474,7 @@ test('aus() mitten im Gewitter und Raid: Blitz weg, Figuren weg, Timer leer, Abo
   stadt.aboFenster(2);
   uhr.vor(5000); // Blitz laeuft
   assert.ok(leuchtet());
-  const p = stadt.raid(Stadt.raidPlan(80));
+  const p = stadt.raid(Stadt.raidPlan(2000));
   stadt.aus();
   await p;
   assert.ok(!leuchtet());
