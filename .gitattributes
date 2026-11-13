@@ -1,0 +1,11 @@
+# Quelltext immer mit LF auschecken (auch bei core.autocrlf=true unter Windows):
+# Tests lesen Quelltext und suchen nach Zeilenenden ("\n}"); mit CRLF schlagen sie fehl.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.ttf binary
+*.exe binary
+*.zip binary
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
