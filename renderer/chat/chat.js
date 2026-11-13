@@ -1384,6 +1384,7 @@ window.twitchDual.onFxTest((art) => {
   else if (art === 'abo') {
     zeigeChatEreignis({ art: 'abo', name: 'TestZuschauer', monate: 12, prime: false, nachricht: 'Test-Nachricht zum Abo' });
   } else if (art === 'geschenk') zeigeChatEreignis({ art: 'abo-regen', name: 'TestZuschauer', anzahl: 5, gruppe: null });
+  else if (art === 'blitz') stadt.blitz();
 });
 
 function zeigeZuwachs(z) {

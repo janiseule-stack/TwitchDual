@@ -160,14 +160,18 @@
     function blitzt() {
       wetterTimer = null;
       if (!laeuft) return;
-      if (regie.darf('himmel')) {
-        regie.belegt('himmel', BLITZ_MS);
-        strahl();
-        blitz.classList.add('an');
-        wirt.style.setProperty('--stadt-dunkel', String(DUNKEL_BLITZ));
-        blitzTimer = setT(() => { blitzTimer = null; blitzAus(); }, BLITZ_MS);
-      }
+      if (regie.darf('himmel')) blitzJetzt();
       wetterTakt();
+    }
+    // Ein Blitz: Wolke leuchtet (<= 300 ms), Mitte dunkelt staerker ab, Strahl zuckt
+    function blitzJetzt() {
+      if (!laeuft) return;
+      if (blitzTimer !== null) clearT(blitzTimer);
+      regie.belegt('himmel', BLITZ_MS);
+      strahl();
+      blitz.classList.add('an');
+      wirt.style.setProperty('--stadt-dunkel', String(DUNKEL_BLITZ));
+      blitzTimer = setT(() => { blitzTimer = null; blitzAus(); }, BLITZ_MS);
     }
     function wetterTakt() {
       if (!laeuft) return;
@@ -361,6 +365,7 @@
       },
       richteAus,
       aboFenster,
+      blitz: blitzJetzt, // Ausprobieren-Knopf
       raid,
       stoppeRaid,
       // Dauer eines Raids bei der aktuell sichtbaren Strassenbreite (fuer den Abspieler)

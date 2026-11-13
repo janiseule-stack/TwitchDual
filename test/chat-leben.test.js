@@ -76,6 +76,12 @@ test('zeigeChatEreignis: Abo/Geschenk machen Fenster hell (auch bei Animationen 
   assert.ok(!/lebenAktiv\(\)[^;]*aboFenster|aboFenster[^;]*lebenAktiv/.test(r), 'nicht an Animationen gebunden');
 });
 
+test('Ausprobieren: Blitz-Knopf loest einen Blitz in der Stadt aus', () => {
+  assert.ok(chatHtml.includes('<button type="button" data-art="blitz">'));
+  assert.ok(/FX_TEST_ARTEN = \[[^\]]*'blitz'/.test(lies('main.js')));
+  assert.ok(/else if \(art === 'blitz'\) stadt\.blitz\(\);/.test(chatJs));
+});
+
 test('Ausprobieren: Geschenk-Knopf spielt ein Sammelgeschenk ueber denselben Weg', () => {
   assert.ok(chatHtml.includes('<button type="button" data-art="geschenk">'));
   assert.ok(/FX_TEST_ARTEN = \[[^\]]*'geschenk'/.test(lies('main.js')));

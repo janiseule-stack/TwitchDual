@@ -183,6 +183,18 @@ test('Blitz: ein Strahl zuckt im Himmel, verschwindet nach dem Abspielen, bei au
   assert.strictEqual(strahlen().length, 0, 'aus() raeumt auf');
 });
 
+test('blitz(): Blitz sofort auf Knopfdruck (Ausprobieren), aber nicht bei Animationen aus', () => {
+  const { uhr, stadt, ebene, teil } = aufbau();
+  stadt.blitz();
+  assert.ok(!teil('stadt-blitz').classList.contains('an'), 'aus: kein Blitz');
+  stadt.an();
+  stadt.blitz();
+  assert.ok(teil('stadt-blitz').classList.contains('an'));
+  assert.strictEqual(ebene.kinder.filter((k) => k.classList.contains('stadt-strahl')).length, 1);
+  uhr.vor(300);
+  assert.ok(!teil('stadt-blitz').classList.contains('an'));
+});
+
 test('Strassen-Leben: Passant und Auto nur im Band, Auto mit gespiegelter, abgedunkelter Kopie', () => {
   let z = 0;
   const werte = [0.1, 0.9, 0.5]; // Periode 3: Passant und Auto kommen beide vor
