@@ -21,17 +21,21 @@
     /* Leiste = TV-Gehaeuse (Rahmen aus raum.css, Klasse rahmen-leiste-video;
        links sitzt der Lautsprecher). Der Inhalt ragt etwas in den Rahmen. */
     #bar {
-      display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+      display: flex; gap: 8px; align-items: center;
       padding: 0 2px; flex-shrink: 0;
       -webkit-app-region: drag; /* Fenster ueber Leiste ziehbar */
     }
     #bar > * { margin-top: -6px; margin-bottom: -8px; }
     #bar input, #bar button { -webkit-app-region: no-drag; }
-    /* Drei Spalten: links Home, Mitte Eingabe (fix zur Fenstermitte), rechts Status/Fenster-Buttons.
-       So springt die Mitte nicht, wenn der Status-Text wechselt (bereit -> live: …). */
-    .bar-left { justify-self: start; min-width: 0; display: flex; align-items: center; gap: 10px; }
-    .bar-center { display: flex; align-items: center; gap: 8px; justify-self: center; }
-    .bar-right { display: flex; align-items: center; gap: 8px; justify-self: end; min-width: 0; }
+    /* Drei Teile: links Ads blocked, Mitte Stream-Infos, rechts Status/Fenster-Knoepfe.
+       Die Seiten wachsen gleich stark (Mitte bleibt bei Platz in der Fenstermitte),
+       werden aber nie schmaler als ihr Inhalt; nur die Mitte schrumpft und kuerzt
+       den Titel mit "…" (Janis 14.11.2026: sonst lag der Titel ueber Ads blocked). */
+    .bar-left { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; gap: 10px; }
+    .bar-center { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; }
+    .bar-right { flex: 1 1 0; min-width: max-content; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    /* Wird es eng, faellt das Wort "Ads blocked" weg; Lampe und Zahl bleiben. */
+    @media (max-width: 1150px) { #ads-indicator .ads-text { display: none; } }
     #channel {
       flex: 0 1 340px; min-width: 0;
       padding: 8px 10px; border-radius: 6px;
@@ -71,14 +75,25 @@
        waehrend gerade eine Werbung geblockt wird (.blocking), blinkt die Lampe. */
     #ads-indicator {
       -webkit-app-region: no-drag; font-family: var(--schrift-pixel);
-      display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; user-select: none; cursor: default;
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; user-select: none; cursor: default;
       font-size: 14px; font-weight: 700; color: var(--accent-title); text-transform: uppercase; letter-spacing: .06em;
     }
-    #ads-indicator .lampe { margin: -4px -2px -4px -4px; }
-    #ads-zahl { min-width: 18px; padding: 1px 6px; margin-left: 4px; font-size: 13px; text-align: center;
-      background: var(--panel-fest); color: var(--accent-title); border: 2px solid var(--line); }
+    /* Zaehl-Kasten (Janis 14.11.2026, PixelLab, tools/raum-bilder.py ads_kasten),
+       doppelt gross: links mit Lampe, die Zahl auf der Kachel (der Kasten waechst
+       mit der Zahl), rechts der Rand. Die Lampe ist eine eigene Ebene und blinkt
+       allein, waehrend eine Werbung geblockt wird. */
+    .ads-kasten { display: inline-flex; flex: none; height: 36px; image-rendering: pixelated; }
+    .ads-k-links { position: relative; flex: none; width: 28px;
+      background: url('../themes/cozy/ads-kasten-links.png') 0 0 / 28px 36px no-repeat; }
+    .ads-lampe { position: absolute; inset: 0;
+      background: url('../themes/cozy/ads-lampe.png') 0 0 / 28px 36px no-repeat; }
+    #ads-zahl { flex: none; min-width: 18px; padding: 1px 2px 0; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; line-height: 1; color: var(--accent-title); image-rendering: auto;
+      background: url('../themes/cozy/ads-kasten-mitte.png') 0 0 / 2px 36px repeat-x; }
     #ads-zahl.hidden { display: none; }
-    #ads-indicator.blocking .lampe { animation: ads-blink .8s steps(1) infinite; }
+    .ads-k-rechts { flex: none; width: 14px;
+      background: url('../themes/cozy/ads-kasten-rechts.png') 0 0 / 14px 36px no-repeat; }
+    #ads-indicator.blocking .ads-lampe { animation: ads-blink .8s steps(1) infinite; }
     @keyframes ads-blink { 50% { filter: brightness(.45); } }
     /* Fenster-Buttons (randloses Fenster): Pixel-Knoepfe (raum.css), ✕ warnt rot */
     #win-controls { display: flex; gap: 2px; -webkit-app-region: no-drag; margin-left: 2px; }
@@ -168,7 +183,11 @@
       border: 2px solid var(--accent-contrast); image-rendering: pixelated;
     }
     #si-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-    #si-oben { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Kanalname wird nie gekuerzt, nur der Titel (Janis 14.11.2026). Die
+       Mindestbreite der Mitte (Bild + Name) setzt video.js mitteMindestbreite(). */
+    #si-oben { display: flex; min-width: 0; font-weight: 700; font-size: 13px; white-space: nowrap; }
+    #si-name { flex: none; }
+    #si-titel { flex: 1 1 auto; min-width: 0; white-space: pre; /* Leerzeichen vor dem · bleibt */ overflow: hidden; text-overflow: ellipsis; }
     #si-unten { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
@@ -180,14 +199,14 @@
       <span id="oa-pfeil"></span>
     </button>
     <div class="bar-left">
-      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="lampe gruen"></span><span>Ads blocked</span><span id="ads-zahl" class="hidden"></span></span>
+      <span id="ads-indicator" title="Werbe-Blocker aktiv"><span class="ads-kasten"><span class="ads-k-links"><span class="ads-lampe"></span></span><span id="ads-zahl" class="hidden"></span><span class="ads-k-rechts"></span></span><span class="ads-text">Ads blocked</span></span>
     </div>
     <div class="bar-center">
       <!-- Was laeuft gerade (statt des Eingabefelds); Klick oder Strg+L -> Eingabe -->
       <button id="stream-info" type="button" class="hidden" title="Klicken (oder Strg+L): Home öffnen und Kanal wechseln">
         <img id="si-avatar" alt="" />
         <canvas id="si-avatar-pixel" width="16" height="16"></canvas>
-        <span id="si-text"><span id="si-oben"></span><span id="si-unten"></span></span>
+        <span id="si-text"><span id="si-oben"><span id="si-name"></span><span id="si-titel"></span></span><span id="si-unten"></span></span>
       </button>
     </div>
     <div class="bar-right">

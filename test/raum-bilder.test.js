@@ -43,6 +43,13 @@ const MASSE = {
   'schild-aus.png': [32, 19],
   'schild-pfeil.png': [256, 19],
   'leiste-video-links.png': [334, 39],
+  'leiste-tv-links.png': [26, 31],
+  'leiste-tv-mitte.png': [16, 31],
+  'leiste-tv-rechts.png': [19, 31],
+  'ads-kasten-links.png': [14, 18],
+  'ads-kasten-mitte.png': [1, 18],
+  'ads-kasten-rechts.png': [7, 18],
+  'ads-lampe.png': [14, 18],
   'raum-wand.png': [504, 192],
 };
 
@@ -382,6 +389,44 @@ test('leiste-video-links.png: Lautsprecher-Gitter durch PixelLab-Metall ersetzt,
       assert.ok(a.px.subarray(i, i + 4).equals(soll), x + ',' + y);
     }
   }
+});
+
+// Janis 14.11.2026: Leiste als Fernseher-Gehaeuse (PixelLab, Variante 1), in drei
+// unveraenderte Ausschnitte zerlegt: Ende links (Gitter), Kachel, Ende rechts.
+test('leiste-tv-*.png: unveraenderte Ausschnitte aus leiste-tv-roh.png', () => {
+  const roh = dekodiere(fs.readFileSync(path.join(QUELLEN, 'leiste-tv-roh.png')));
+  for (const [name, x0] of [['leiste-tv-links.png', 2], ['leiste-tv-mitte.png', 60], ['leiste-tv-rechts.png', 108]]) {
+    const a = dekodiere(lade(name));
+    for (let y = 0; y < a.h; y++) {
+      for (let x = 0; x < a.w; x++) {
+        const i = (y * a.w + x) * 4, j = ((y + 1) * roh.w + x0 + x) * 4;
+        assert.ok(a.px.subarray(i, i + 4).equals(roh.px.subarray(j, j + 4)), name + ' ' + x + ',' + y);
+      }
+    }
+  }
+});
+
+// Janis 14.11.2026: Zaehl-Kasten fuer "Ads blocked" (PixelLab, Variante 1). Aus dem
+// Original (Inhalt ab x 9, y 1) drei unveraenderte Teile, damit der Kasten mit der
+// Zahl waechst, und die runde Lampe als eigene Ebene, damit nur sie blinkt.
+test('ads-kasten-*.png und ads-lampe.png: unveraenderte Ausschnitte aus ads-kasten-roh.png', () => {
+  const roh = dekodiere(fs.readFileSync(path.join(QUELLEN, 'ads-kasten-roh.png')));
+  const px = (b, x, y) => b.px.subarray((y * b.w + x) * 4, (y * b.w + x) * 4 + 4);
+  for (const [name, x0] of [['ads-kasten-links.png', 9], ['ads-kasten-mitte.png', 9 + 18], ['ads-kasten-rechts.png', 9 + 23]]) {
+    const a = dekodiere(lade(name));
+    for (let y = 0; y < a.h; y++) for (let x = 0; x < a.w; x++) {
+      assert.ok(px(a, x, y).equals(px(roh, x0 + x, y + 1)), name + ' ' + x + ',' + y);
+    }
+  }
+  const l = dekodiere(lade('ads-lampe.png'));
+  let gruen = 0;
+  for (let y = 0; y < l.h; y++) for (let x = 0; x < l.w; x++) {
+    const p = px(l, x, y), q = px(roh, 9 + x, y + 1);
+    assert.ok(p[3] === 0 || p.equals(q), 'Lampe ' + x + ',' + y);
+    const istGruen = q[3] > 0 && q[1] > q[0] + 25 && q[1] > q[2] + 25;
+    if (istGruen) { gruen++; assert.ok(p.equals(q), 'gruenes Pixel fehlt in der Lampe ' + x + ',' + y); }
+  }
+  assert.ok(gruen > 5, 'Lampe gefunden');
 });
 
 test('Schild eingebunden: doppelt gross, scharf, Pfeil-Animation in 8 Schritten, Leuchten im Bild', () => {

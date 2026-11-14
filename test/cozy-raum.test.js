@@ -18,7 +18,7 @@ test('raum.css: Pixel-Schrift lokal, keine Netz-Adresse', () => {
   assert.ok(/--schrift-pixel\s*:\s*'Raum Klar',\s*'Pixelify Sans'/.test(raum));
 });
 test('raum.css: Rahmen-Klassen nutzen die Bilder, pixelgenau und eckig', () => {
-  for (const [klasse, bild] of [['.rahmen-leiste-chat', 'leiste-chat.png'], ['.rahmen-leiste-video', 'leiste-video-links.png'], ['.rahmen-feld', 'feld.png']]) {
+  for (const [klasse, bild] of [['.rahmen-leiste-chat', 'leiste-chat.png'], ['.rahmen-feld', 'feld.png']]) {
     const regel = raum.slice(raum.indexOf(klasse + ' {'), raum.indexOf('}', raum.indexOf(klasse + ' {')));
     assert.ok(regel.includes(bild), klasse);
     assert.ok(/border-image:[^;]*fill/.test(regel), klasse + ' fill');
@@ -26,6 +26,22 @@ test('raum.css: Rahmen-Klassen nutzen die Bilder, pixelgenau und eckig', () => {
     assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy', bild)), bild);
   }
   assert.ok(!/gradient|backdrop-filter/.test(raum));
+});
+// Janis 14.11.2026: Video-Leiste = Fernseher-Gehaeuse (PixelLab, Variante 1).
+// Enden doppelt gross, die Mitte wird gekachelt statt gestreckt (bleibt scharf).
+test('raum.css: Video-Leiste ist das Fernseher-Gehaeuse, Mitte gekachelt', () => {
+  const i = raum.indexOf('.rahmen-leiste-video {');
+  const regel = raum.slice(i, raum.indexOf('}', i));
+  assert.ok(i > -1);
+  assert.ok(!regel.includes('border-image') && !regel.includes('leiste-video-links.png'));
+  assert.ok(/url\('leiste-tv-links\.png'\) left top \/ 52px 62px no-repeat/.test(regel));
+  assert.ok(/url\('leiste-tv-rechts\.png'\) right top \/ 38px 62px no-repeat/.test(regel));
+  assert.ok(/url\('leiste-tv-mitte\.png'\) left top \/ 32px 62px repeat-x/.test(regel));
+  assert.ok(/height:\s*62px/.test(regel) && /background-origin:\s*border-box/.test(regel));
+  assert.ok(regel.includes('image-rendering: pixelated') && /border-color:\s*transparent/.test(regel));
+  for (const b of ['leiste-tv-links.png', 'leiste-tv-mitte.png', 'leiste-tv-rechts.png']) {
+    assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy', b)), b);
+  }
 });
 test('raum.css: Knopf, Lampen, Tapete', () => {
   for (const s of ['.pixel-knopf', '.lampe.rot', '.lampe.gruen', '.tapete', 'knopf.png', 'lampe-rot.png', 'lampe-gruen.png', 'tapete.png']) assert.ok(raum.includes(s), s);
@@ -60,6 +76,53 @@ test('Chat: keine Verlaeufe, kein Blur, Streifen und Leisten ohne Deckkraft-Vari
     assert.ok(!/var\(--(bg|panel|hover)\)/.test(regel), sel + ' traegt Deckkraft');
   }
 });
+// Janis 14.11.2026: im schmalen Chat-Fenster brach "1115 7TV-Emotes" auf drei Zeilen
+// um, die Fensterknoepfe fielen raus, der Platzhalter brach Buchstabe fuer Buchstabe
+// um und die Fusszeile quetschte sich. Alles einzeilig, gekuerzt wird mit "…".
+test('Chat: schmales Fenster - Kopf, Platzhalter und Fusszeile bleiben einzeilig', () => {
+  const start = chatCss.indexOf('/* --- Schmales Fenster');
+  assert.ok(start > -1);
+  const block = chatCss.slice(start);
+  const regel = (sel) => { const i = block.indexOf(sel + ' {'); return i < 0 ? '' : block.slice(i, block.indexOf('}', i)); };
+  const kuerzt = (r) => /white-space:\s*nowrap/.test(r) && /overflow:\s*hidden/.test(r) && /text-overflow:\s*ellipsis/.test(r) && /min-width:\s*0/.test(r);
+  for (const sel of ['#title', '#mode', '#conn', '#rate']) {
+    const r = regel(sel);
+    assert.ok(/white-space:\s*nowrap/.test(r) && /overflow:\s*hidden/.test(r) && /text-overflow:\s*ellipsis/.test(r), sel);
+  }
+  for (const sel of ['#mode', '#conn', '#rate']) assert.ok(kuerzt(regel(sel)), sel);
+  // die Emote-Zahl gibt zuerst nach; der Titel schrumpft nicht mit (Rundung kuerzte
+  // ihn sonst schon), sondern ist hoechstens Kopf minus Zahnrad und Fensterknoepfe
+  assert.ok(/flex:\s*0 1000 auto/.test(regel('#mode')));
+  assert.ok(/flex:\s*none/.test(regel('#title')) && /max-width:\s*calc\(100% - 140px\)/.test(regel('#title')));
+  for (const sel of ['#settings-btn', '#win-controls', '#points-wrap']) assert.ok(/flex:\s*none/.test(regel(sel)), sel);
+  assert.ok(kuerzt(regel('#chat-input:empty:before')) || (/white-space:\s*nowrap/.test(regel('#chat-input:empty:before')) && /text-overflow:\s*ellipsis/.test(regel('#chat-input:empty:before'))));
+  assert.ok(/display:\s*block/.test(regel('#chat-input:empty:before')));
+  assert.ok(/gap:\s*8px/.test(regel('#footer')));
+  // Status-Texte sind Bloecke (in Flex-Elementen wirkt text-overflow nicht), Punkt davor inline
+  assert.ok(/display:\s*block/.test(regel('#conn, #rate')));
+  assert.ok(/display:\s*inline-block/.test(regel('#conn::before, #rate::before')));
+});
+// Rundgang 14.11.2026 (schmale Breiten 190-384 px): Einstellungen und Nutzerkarte ragten
+// links aus dem Fenster, die Vorhersage-Karte schnitt rechts ab, "neue Nachrichten" brach um.
+test('Chat: Tafeln und Karten passen in schmale Fenster', () => {
+  const block = chatCss.slice(chatCss.indexOf('/* --- Schmales Fenster'));
+  const regel = (sel) => { const i = block.indexOf(sel + ' {'); return i < 0 ? '' : block.slice(i, block.indexOf('}', i)); };
+  assert.ok(/width:\s*min\(280px, calc\(100vw - 16px\)\)/.test(regel('#settings-pop')) && /min-width:\s*0/.test(regel('#settings-pop')));
+  assert.ok(/min-width:\s*min\(200px, calc\(100vw - 8px\)\)/.test(regel('#user-card')));
+  assert.ok(/max-width:\s*min\(280px, calc\(100vw - 8px\)\)/.test(regel('#user-card')));
+  assert.ok(/white-space:\s*nowrap/.test(regel('#new-msgs')) && /text-overflow:\s*ellipsis/.test(regel('#new-msgs')));
+  assert.ok(/container-type:\s*inline-size/.test(regel('.ke-vorhersage')));
+  assert.ok(/min-width:\s*0/.test(regel('.vk-seite')));
+  const cq = block.slice(block.indexOf('@container (max-width: 300px)'));
+  assert.ok(block.includes('@container (max-width: 300px)'));
+  assert.ok(/\.vk-ring\s*\{[^}]*width:\s*56px/.test(cq) && /\.vk-quote\s*\{[^}]*font-size/.test(cq));
+  const cq2 = block.slice(block.indexOf('@container (max-width: 140px)'));
+  assert.ok(block.includes('@container (max-width: 140px)') && /\.vk-ring\s*\{\s*display:\s*none/.test(cq2));
+  // Nutzerkarte: links nie unter 4 px, auch wenn sie breiter als das Fenster waere
+  const js = lies('renderer/chat/chat.js');
+  assert.ok(js.includes('const left = Math.max(4, Math.min(evt.clientX - 20, window.innerWidth - w - 4));'));
+  assert.ok(js.includes('const top = Math.max(4, Math.min(evt.clientY + 10, window.innerHeight - h - 4));'));
+});
 test('Chat: harte Kanten an Tafeln, Feldern und Nachrichten', () => {
   const start = chatCss.indexOf('/* --- Cozy: harte Kanten');
   assert.ok(start > -1);
@@ -80,9 +143,8 @@ test('Video: Leiste ist das TV-Gehaeuse, Knoepfe sind Pixel-Knoepfe', () => {
   assert.ok(!videoHtml.includes('id="home-btn"'));
 });
 test('Video: Lampen fuer Ads blocked (gruen) und Live (rot)', () => {
-  const start = videoHtml.indexOf('id="ads-indicator"');
-  const ads = videoHtml.slice(start, videoHtml.indexOf('</span></span>', start));
-  assert.ok(ads.includes('lampe gruen'));
+  // Janis 14.11.2026: gruene Lampe sitzt im Zaehl-Kasten (PixelLab), eigene Ebene
+  assert.ok(/<span class="ads-k-links"><span class="ads-lampe"><\/span><\/span>/.test(videoHtml));
   // Runde 4: die rote Lampe sitzt im LIVE-Schild auf der Lautsprecher-Flaeche
   // ganz links in der Leiste, nicht mehr bei den Stream-Infos.
   assert.ok(!videoHtml.includes('si-lampe'));
@@ -110,6 +172,40 @@ test('Video: keine On-Air-Linie mehr, Nur-Video blendet die Leiste weiter aus', 
   assert.ok(/body\.video-only #bar,?[^{]*\{[^}]*display:\s*none/.test(videoHtml));
   const stil = videoHtml.slice(videoHtml.indexOf('<style>'), videoHtml.indexOf('</style>'));
   assert.ok(!/#onair-bar[^{]*\{[^}]*gradient/.test(stil) && !/#oa-label\s*\{[^}]*gradient/.test(stil));
+});
+// Janis 14.11.2026: in schmalen Fenstern schob sich der Stream-Titel ueber
+// "Ads blocked". Die Seiten behalten ihren Platz, nur der Titel wird kuerzer;
+// wird es eng, faellt das Wort "Ads blocked" weg (Lampe + Zahl bleiben).
+test('Video: Leiste ueberlappt in schmalen Fenstern nicht', () => {
+  const stil = videoHtml.slice(videoHtml.indexOf('<style>'), videoHtml.indexOf('</style>'));
+  const regel = (sel) => { const i = stil.indexOf(sel + ' {'); return i < 0 ? '' : stil.slice(i, stil.indexOf('}', i)); };
+  assert.ok(/display:\s*flex/.test(regel('#bar')) && !/grid-template-columns/.test(regel('#bar')));
+  for (const sel of ['.bar-left', '.bar-right']) {
+    assert.ok(/flex:\s*1 1 0/.test(regel(sel)) && /min-width:\s*max-content/.test(regel(sel)), sel);
+  }
+  assert.ok(/justify-content:\s*flex-end/.test(regel('.bar-right')));
+  assert.ok(/flex:\s*0 1 auto/.test(regel('.bar-center')));
+  assert.ok(/<span class="ads-text">Ads blocked<\/span>/.test(videoHtml));
+  assert.ok(/@media \(max-width:\s*1150px\)\s*\{\s*#ads-indicator \.ads-text\s*\{\s*display:\s*none/.test(stil));
+});
+// Janis 14.11.2026: der Kanalname wird nie gekuerzt, nur der Titel.
+test('Video: Kanalname bleibt ganz, nur der Titel bekommt "…"', () => {
+  assert.ok(/<span id="si-oben"><span id="si-name"><\/span><span id="si-titel"><\/span><\/span>/.test(videoHtml));
+  const stil = videoHtml.slice(videoHtml.indexOf('<style>'), videoHtml.indexOf('</style>'));
+  const regel = (sel) => { const i = stil.indexOf(sel + ' {'); return i < 0 ? '' : stil.slice(i, stil.indexOf('}', i)); };
+  assert.ok(/flex:\s*none/.test(regel('#si-name')));
+  assert.ok(/text-overflow:\s*ellipsis/.test(regel('#si-titel')) && /min-width:\s*0/.test(regel('#si-titel')));
+  assert.ok(/white-space:\s*pre;/.test(regel('#si-titel')), 'sonst fehlt das Leerzeichen vor dem ·');
+  // contain blendete den Titel ganz aus (14.11.2026 gemessen) -> nicht verwenden
+  assert.ok(!stil.includes('contain:'));
+  const js = lies('renderer/video/video.js');
+  assert.ok(js.includes("getElementById('si-name')") && js.includes("getElementById('si-titel')"));
+  assert.ok(!js.includes('$siOben.textContent'));
+  // Mitte mindestens so breit wie Bild + Name, nach jedem neuen Namen gemessen
+  const f = js.slice(js.indexOf('function mitteMindestbreite('), js.indexOf('\n}', js.indexOf('function mitteMindestbreite(')));
+  assert.ok(f.includes('$siName.getBoundingClientRect()') && f.includes('style.minWidth'));
+  const zeigen = js.slice(js.indexOf('function infoZeigen('), js.indexOf('\n}', js.indexOf('function infoZeigen(')));
+  assert.ok((zeigen.match(/mitteMindestbreite\(\)/g) || []).length >= 2, 'in beiden Zweigen');
 });
 test('Video: leerer Player zeigt die Tapete', () => {
   assert.ok(/id="player" class="[^"]*tapete/.test(videoHtml));
@@ -140,8 +236,26 @@ test('Video: Ads blocked ohne Emote, Lampe blinkt beim Blocken', () => {
   assert.ok(!videoHtml.includes('ads-emote'));
   assert.ok(!lies('renderer/video/video.js').includes('AdsEmotes'));
   assert.ok(!fs.existsSync(path.join(wurzel, 'renderer/lib/ads-emotes.js')));
-  assert.ok(/#ads-indicator\.blocking \.lampe\s*\{[^}]*animation/.test(videoHtml));
+  // Blinken bleibt (Janis 14.11.2026): nur die Lampen-Ebene, nicht der Kasten
+  assert.ok(/#ads-indicator\.blocking \.ads-lampe\s*\{[^}]*animation:\s*ads-blink/.test(videoHtml));
+  assert.ok(!/#ads-indicator\.blocking \.ads-kasten\s*\{/.test(videoHtml));
   assert.ok(/#ads-indicator\s*\{[^}]*var\(--schrift-pixel\)/.test(videoHtml));
+});
+test('Video: Zaehl-Kasten aus drei PixelLab-Teilen, waechst mit der Zahl', () => {
+  // Reihenfolge: links (mit Lampe), Zahl auf der Kachel, rechts; danach das Wort
+  assert.ok(/<span class="ads-kasten"><span class="ads-k-links"><span class="ads-lampe"><\/span><\/span><span id="ads-zahl" class="hidden"><\/span><span class="ads-k-rechts"><\/span><\/span><span class="ads-text">Ads blocked<\/span>/.test(videoHtml));
+  const stil = videoHtml.slice(videoHtml.indexOf('<style>'), videoHtml.indexOf('</style>'));
+  const regel = (sel) => { const i = stil.indexOf(sel + ' {'); return i < 0 ? '' : stil.slice(i, stil.indexOf('}', i)); };
+  assert.ok(/ads-kasten-links\.png[^;]*28px 36px/.test(regel('.ads-k-links')));
+  assert.ok(/ads-lampe\.png[^;]*28px 36px/.test(regel('.ads-lampe')));
+  assert.ok(/ads-kasten-mitte\.png[^;]*2px 36px repeat-x/.test(regel('#ads-zahl')));
+  assert.ok(/ads-kasten-rechts\.png[^;]*14px 36px/.test(regel('.ads-k-rechts')));
+  assert.ok(/image-rendering:\s*pixelated/.test(regel('.ads-kasten')));
+  // die Zahl bekommt keinen eigenen Rahmen mehr, der Kasten ist der Rahmen
+  assert.ok(!/border/.test(regel('#ads-zahl')));
+  for (const b of ['ads-kasten-links.png', 'ads-kasten-mitte.png', 'ads-kasten-rechts.png', 'ads-lampe.png']) {
+    assert.ok(fs.existsSync(path.join(wurzel, 'renderer/themes/cozy', b)), b);
+  }
 });
 
 // --- Runde 3 (Janis 10.11.2026): Streifen fuellt die Breite, Knoepfe mit Bild-Zeichen

@@ -868,3 +868,43 @@ button:focus-visible, input:focus-visible {
 #chat-send, #emote-btn, #rewards-btn, .ep-emote {
   border-radius: 0;
 }
+
+/* --- Schmales Fenster (Janis 14.11.2026) ---------------------------------------
+   Alles bleibt einzeilig, gekuerzt wird mit "…". Im Kopf gibt die Emote-Zahl
+   zuerst nach, dann der Titel; Zahnrad und Fensterknoepfe schrumpfen nie. */
+/* Titel schrumpft nicht mit (sonst kuerzt ihn schon ein Bruchteil eines Pixels),
+   sondern ist hoechstens Kopf minus Zahnrad (32) und Fensterknoepfe (6 + 100) breit. */
+#title { flex: none; max-width: calc(100% - 140px); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mode { flex: 0 1000 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#settings-btn { flex: none; }
+#win-controls { flex: none; }
+#chat-input:empty:before { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#footer { gap: 8px; white-space: nowrap; }
+#conn { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#rate { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* In Flex-Elementen wirkt text-overflow nicht: Status als Block, der Punkt davor inline. */
+#conn, #rate { display: block; }
+#conn::before, #rate::before { display: inline-block; vertical-align: middle; margin-right: 6px; }
+#points-wrap { flex: none; }
+/* Tafeln und Karten nie breiter als das Fenster (Rundgang 14.11.2026). */
+#settings-pop { width: min(280px, calc(100vw - 16px)); min-width: 0; }
+#user-card { min-width: min(200px, calc(100vw - 8px)); max-width: min(280px, calc(100vw - 8px)); }
+#new-msgs { white-space: nowrap; max-width: calc(100vw - 24px); overflow: hidden; text-overflow: ellipsis; }
+/* Vorhersage: in schmalen Karten werden Ring und Quote kleiner, sonst schnitt die
+   rechte Seite ab; breite Karten bleiben wie sie sind. */
+.ke-vorhersage { container-type: inline-size; }
+.vk-seite { min-width: 0; }
+@container (max-width: 300px) {
+  .vk-ring { width: 56px; height: 56px; }
+  .vk-quote { font-size: 1.25em; }
+  .vk-name { font-size: .95em; }
+  .vk-tau-seg { font-size: .68em; }
+  .vk-tau-seg.links { padding-left: 5px; }
+  .vk-tau-seg.rechts { padding-right: 5px; }
+}
+/* Sehr schmal (z. B. Karte neben dem Pin-Knopf im 190-px-Chat): Ring weg, die
+   Anteile stehen auch im Balken darunter. */
+@container (max-width: 140px) {
+  .vk-ring { display: none; }
+  .vk-tau-seg { font-size: .6em; }
+}

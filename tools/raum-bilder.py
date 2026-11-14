@@ -179,6 +179,57 @@ def onair_schilder(ordner):
     pfeil.save(os.path.join(ordner, "schild-pfeil.png"))
 
 
+# Video-Leiste als Fernseher-Gehaeuse (Janis 14.11.2026, PixelLab Variante 1, 128x32):
+# Ende links (Gitter) x 2-27, Kachel x 60-75, Ende rechts x 108-126, jeweils y 1-31.
+LEISTE_TV_Y = (1, 32)
+LEISTE_TV = {"links": (2, 28), "mitte": (60, 76), "rechts": (108, 127)}
+
+
+def leiste_tv(ordner):
+    """Drei unveraenderte Ausschnitte aus leiste-tv-roh.png (nur zuschneiden)."""
+    roh = quelle("leiste-tv-roh.png")
+    y0, y1 = LEISTE_TV_Y
+    for teil, (x0, x1) in LEISTE_TV.items():
+        roh.crop((x0, y0, x1, y1)).save(os.path.join(ordner, "leiste-tv-%s.png" % teil))
+
+
+# Zaehl-Kasten "Ads blocked" (Janis 14.11.2026, PixelLab Variante 1, 48x20, Inhalt ab
+# x 9, y 1, 30x18). Zahlenfenster im Inhalt x 12-24; links bis 2 px ins Fenster,
+# Kachel aus der Fenstermitte (x 18), rechts ab 2 px vor Fensterende.
+ADS_KASTEN = (9, 1, 39, 19)
+ADS_FENSTER_X = (12, 25)
+
+
+def ads_kasten(ordner):
+    """Drei unveraenderte Teile, damit der Kasten mit der Zahl waechst, und die
+    runde Lampe samt dunklem Rand als eigene Ebene (nur sie blinkt beim Blocken).
+    Lampe = Kreis um die gruenen Pixel, 1,2 px groesser; nur ausgeschnitten."""
+    k = quelle("ads-kasten-roh.png").crop(ADS_KASTEN)
+    w, h = k.size
+    x0, x1 = ADS_FENSTER_X
+    mx = (x0 + x1) // 2
+    links = k.crop((0, 0, x0 + 2, h))
+    links.save(os.path.join(ordner, "ads-kasten-links.png"))
+    k.crop((mx, 0, mx + 1, h)).save(os.path.join(ordner, "ads-kasten-mitte.png"))
+    k.crop((x1 - 2, 0, w, h)).save(os.path.join(ordner, "ads-kasten-rechts.png"))
+    p = links.load()
+    lw, lh = links.size
+    gruen = [(x, y) for y in range(lh) for x in range(lw)
+             if p[x, y][3] > 0 and p[x, y][1] > p[x, y][0] + 25 and p[x, y][1] > p[x, y][2] + 25]
+    if not gruen:
+        raise SystemExit("ads-kasten-roh.png: keine gruene Lampe gefunden")
+    cx = sum(x for x, _ in gruen) / len(gruen)
+    cy = sum(y for _, y in gruen) / len(gruen)
+    r = max(((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 for x, y in gruen) + 1.2
+    lampe = Image.new("RGBA", links.size, DURCHSICHTIG)
+    lp = lampe.load()
+    for y in range(lh):
+        for x in range(lw):
+            if ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 <= r and p[x, y][3] > 0:
+                lp[x, y] = p[x, y]
+    lampe.save(os.path.join(ordner, "ads-lampe.png"))
+
+
 def hover_und_platte(ordner):
     raum = Image.open(os.path.join(ordner, "raum.png")).convert("RGBA")
     rp = raum.load()
@@ -466,6 +517,8 @@ def main():
     platten(ordner)
     zettel_schild(ordner)
     onair_schilder(ordner)
+    leiste_tv(ordner)
+    ads_kasten(ordner)
     print(json.dumps({"tvEcken": ecken, "grossFenster": gross}, separators=(",", ":")))
 
 

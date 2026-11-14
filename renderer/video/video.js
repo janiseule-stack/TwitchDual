@@ -402,7 +402,9 @@ function updateOnAir() {
 // ---------------------------------------------------------------------------
 const $streamInfo = document.getElementById('stream-info');
 const $siAvatar = document.getElementById('si-avatar');
-const $siOben = document.getElementById('si-oben');
+// Name und Titel getrennt: der Name wird nie gekuerzt, nur der Titel (Janis 14.11.2026).
+const $siName = document.getElementById('si-name');
+const $siTitel = document.getElementById('si-titel');
 const $siUnten = document.getElementById('si-unten');
 let infoQuelle = null;   // { mode, wert } der geladenen Quelle
 // Auskunft fuer Home (Fernseher, Plattenspieler): was laeuft gerade?
@@ -445,10 +447,21 @@ function zuschauerZaehlen(von, nach) {
   setTimeout(() => { if (nr === zaehlLauf && info) infoZeigen(); }, 1100);
 }
 
+// Die Mitte der Leiste darf schrumpfen (Titel bekommt "…"), aber nie unter
+// Profilbild + Name: Name rechts minus Infos links, plus Innenabstand rechts.
+// Der Name schrumpft nie (flex: none), seine Breite ist also immer die volle.
+const $barMitte = document.querySelector('.bar-center');
+function mitteMindestbreite() {
+  const n = $siName.getBoundingClientRect(), s = $streamInfo.getBoundingClientRect();
+  $barMitte.style.minWidth = n.width ? Math.ceil(n.right - s.left + 12) + 'px' : '';
+}
+
 function infoZeigen(zuschauer) {
   $streamInfo.classList.remove('hidden');
   if (!info) {
-    $siOben.textContent = infoQuelle ? String(infoQuelle.wert) : 'Nichts geladen';
+    $siName.textContent = infoQuelle ? String(infoQuelle.wert) : 'Nichts geladen';
+    $siTitel.textContent = '';
+    mitteMindestbreite();
     $siUnten.textContent = '☰ Home: Kanal wählen';
     $streamInfo.classList.remove('live');
     $siAvatar.style.visibility = 'hidden';
@@ -456,7 +469,11 @@ function infoZeigen(zuschauer) {
     return;
   }
   const z = StreamInfo.zeilen(zuschauer === undefined ? info : { ...info, zuschauer }, Date.now());
-  $siOben.textContent = z.oben;
+  // z.oben = "Name · Titel": vorne der Name, der Rest (" · Titel") darf gekuerzt werden.
+  const name = info.name ? String(info.name) : '';
+  $siName.textContent = name;
+  $siTitel.textContent = name && z.oben.startsWith(name) ? z.oben.slice(name.length) : z.oben;
+  mitteMindestbreite();
   $siUnten.textContent = z.unten;
   $streamInfo.classList.toggle('live', z.live);
   if (info.avatar) { $siAvatar.src = info.avatar; $siAvatar.style.visibility = ''; } else $siAvatar.style.visibility = 'hidden';

@@ -414,8 +414,9 @@ function openUserCard(evt, name, color, msgDiv) {
   $userCard.classList.remove('hidden');
   // Nahe am Klick positionieren, im Fenster clampen (erst zeigen, dann messen).
   const w = $userCard.offsetWidth, h = $userCard.offsetHeight;
-  const left = Math.min(Math.max(4, evt.clientX - 20), window.innerWidth - w - 4);
-  const top = Math.min(evt.clientY + 10, window.innerHeight - h - 4);
+  // Math.max aussen: ist die Karte breiter/hoeher als das Fenster, bleibt sie links/oben im Bild.
+  const left = Math.max(4, Math.min(evt.clientX - 20, window.innerWidth - w - 4));
+  const top = Math.max(4, Math.min(evt.clientY + 10, window.innerHeight - h - 4));
   $userCard.style.left = left + 'px';
   $userCard.style.top = top + 'px';
 }

@@ -47,12 +47,18 @@ body { font-synthesis: none; }
   image-rendering: pixelated; border-radius: 0; background: none;
 }
 
-/* leiste-video-links.png 334x39 (gespiegelt): Gehaeuse, links der Lautsprecher
-   (bis Bildpixel 50, samt Schrauben), rechts 14, oben 7, unten 9 */
+/* Fernseher-Gehaeuse (Janis 14.11.2026, PixelLab, tools/raum-bilder.py leiste_tv):
+   Enden und Kachel je 31 Bildpixel hoch, doppelt gross. Die Mitte wird gekachelt
+   statt gestreckt, damit sie bei jeder Fensterbreite scharf bleibt. Links 138 px
+   Abstand: 52 px Lautsprecher-Gitter, daneben das LIVE-Schild (video/index.html). */
 .rahmen-leiste-video {
-  border-style: solid; border-color: transparent; border-width: 14px 28px 18px 100px;
-  border-image: url('leiste-video-links.png') 7 14 9 50 fill / 14px 28px 18px 100px / 0 stretch;
-  image-rendering: pixelated; border-radius: 0; background: none;
+  border-style: solid; border-color: transparent; border-width: 18px 28px 18px 138px;
+  height: 62px; box-sizing: border-box;
+  background: url('leiste-tv-links.png') left top / 52px 62px no-repeat,
+    url('leiste-tv-rechts.png') right top / 38px 62px no-repeat,
+    url('leiste-tv-mitte.png') left top / 32px 62px repeat-x;
+  background-origin: border-box;
+  image-rendering: pixelated; border-radius: 0;
 }
 
 /* feld.png 334x39: dunkles Feld mit Bernstein-Linie, Rand 9 px ringsum */
